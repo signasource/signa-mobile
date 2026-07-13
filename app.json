@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Signa",
+    "slug": "signa-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#1D283C"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.signasource.signamobile"
+    },
+    "android": {
+      "package": "com.signasource.signamobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#1D283C"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
