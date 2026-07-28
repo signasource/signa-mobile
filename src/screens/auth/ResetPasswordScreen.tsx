@@ -1,62 +1,116 @@
 import React, { useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { colors, fonts, fontSizes } from "@/theme";
-import { Button } from "@/components/Button";
-import { Input } from "@/components/Input";
-import { authApi } from "@/api/auth";
 import { AuthStackParamList } from "@/navigation/AuthNavigator";
+import { authApi } from "@/api/auth";
+import {
+  AuthScreen,
+  AuthField,
+  AuthHeading,
+  AuthIconBadge,
+  AuthFooter,
+  PrimaryButton,
+  StatusText,
+} from "@/components/auth";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "ResetPassword">;
 
 /**
- *  Sin deep linking configurado.
+ * Sin deep linking configurado.
  */
 export function ResetPasswordScreen({ navigation, route }: Props) {
   const [token, setToken] = useState(route.params?.token ?? "");
   const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<{
+    token?: string;
+    newPassword?: string;
+    confirmPassword?: string;
+    general?: string;
+  }>({});
+
+  function validate() {
+    const e: typeof errors = {};
+    if (!token.trim()) e.token = "Ingresá el token recibido por email";
+    if (!newPassword) e.newPassword = "Ingresá tu nueva contraseña";
+    else if (newPassword.length < 8) e.newPassword = "La contraseña debe tener al menos 8 caracteres";
+    if (!confirmPassword) e.confirmPassword = "Confirmá tu nueva contraseña";
+    else if (newPassword !== confirmPassword) e.confirmPassword = "Las contraseñas no coinciden";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  }
 
   async function handleSubmit() {
+    if (!validate()) return;
     setLoading(true);
+    setErrors({});
     try {
       await authApi.resetPassword({ newPassword }, token);
-      Alert.alert("Contrasena actualizada", "Ya podes iniciar sesion con tu nueva contrasena.");
       navigation.navigate("Login");
     } catch (err: any) {
-      Alert.alert("Error", err?.response?.data?.message ?? err.message);
+      setErrors({ general: err?.response?.data?.message ?? err.message });
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Nueva contrasena</Text>
-        <Input label="Token" value={token} onChangeText={setToken} placeholder="Token recibido por email" />
-        <Input
-          label="Nueva contrasena"
+    <AuthScreen onBack={() => navigation.goBack()} canGoBack={navigation.canGoBack()}>
+      <AuthIconBadge icon="key" />
+
+      <AuthHeading
+        title="Nueva contraseña"
+        subtitle="Ingresá el token que recibiste por email y elegí una nueva contraseña."
+        style={styles.textBlock}
+      />
+
+      <View style={styles.fieldGroup}>
+        <AuthField
+          icon="token"
+          value={token}
+          onChangeText={setToken}
+          placeholder="Token recibido por email"
+          autoCapitalize="none"
+          autoCorrect={false}
+          invalid={!!errors.token}
+          error={errors.token ?? null}
+        />
+        <AuthField
+          icon="password"
+          secure
           value={newPassword}
           onChangeText={setNewPassword}
-          secureTextEntry
-          placeholder="********"
+          placeholder="Nueva contraseña"
+          invalid={!!errors.newPassword}
+          error={errors.newPassword ?? null}
         />
-        <Button label="Guardar" onPress={handleSubmit} loading={loading} style={styles.mt} />
-      </ScrollView>
-    </KeyboardAvoidingView>
+        <AuthField
+          icon="password"
+          secure
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          placeholder="Confirmá la contraseña"
+          invalid={!!errors.confirmPassword}
+          error={errors.confirmPassword ?? null}
+        />
+
+        <PrimaryButton label="Guardar contraseña" onPress={handleSubmit} loading={loading} />
+
+        {errors.general ? <StatusText>{errors.general}</StatusText> : null}
+      </View>
+
+      <AuthFooter
+        text="¿Te acordaste?"
+        linkLabel="Volver"
+        onPress={() => navigation.navigate("Login")}
+        pinToBottom
+      />
+    </AuthScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.background },
-  container: { flexGrow: 1, padding: 24, justifyContent: "center" },
-  title: {
-    fontFamily: fonts.headingBold,
-    fontSize: fontSizes.xl,
-    color: colors.primary,
-    textAlign: "center",
-    marginBottom: 28,
-  },
-  mt: { marginTop: 8 },
+  textBlock: { marginTop: 24 },
+  fieldGroup: { marginTop: 26, gap: 14 },
 });

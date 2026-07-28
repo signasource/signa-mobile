@@ -10,4 +10,11 @@ import { AuthResponse, ChangePasswordRequest } from "@/types";
 export const usersApi = {
   changePassword: (payload: ChangePasswordRequest) =>
     apiClient.put<AuthResponse>("/users/password", payload),
+
+  // GET /users/username-availability?username=... (endpoint público)
+  checkUsernameAvailability: (username: string, signal?: AbortSignal) =>
+    apiClient.get<{ available: boolean }>("/users/username-availability", {
+      params: { username },
+      signal,
+    }),
 };

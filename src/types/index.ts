@@ -23,13 +23,14 @@ export interface AuthResponse {
 
 // LoginRequest.java
 export interface LoginRequest {
-  email: string;
+  identifier: string;
   password: string;
 }
 
-// RegisterRequest.java: email, password, name (NO fullName)
+// RegisterRequest.java: email, username, password, name
 export interface RegisterRequest {
   email: string;
+  username: string;
   password: string;
   name: string;
 }

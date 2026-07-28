@@ -9,7 +9,9 @@ Scaffold en **React Native (Expo + TypeScript)** para conectar el front mobile d
 - Perfil de usuario armado a partir del **JWT decodificado**.
 - Navegacion con `React Navigation`: stack de auth vs.
 - Pantalla **"Test de conexion"**, provisoria, para verificar que el celular/emulador le puede pegar a `signa-api`.
-- Theming centralizado (`src/theme`) con la paleta y tipografias (Montserrat + Poppins).
+- Theming centralizado (`src/theme`) con la paleta (naranja/violeta de marca) y tipografias (Bricolage Grotesque para titulos + Figtree para texto).
+- Flujo de **onboarding** (6 pantallas de bienvenida/preguntas) previo al login, en `src/features/onboarding`.
+- Primitivas de UI de auth reutilizables en `src/components/auth` (`AuthScreen`, `AuthField`, `PrimaryButton`, etc.) que comparten todas las pantallas de login/registro/recupero.
 
 ## 2. Endpoints 
 
@@ -35,6 +37,10 @@ la URL base es directa, **sin `/api`**: `http://localhost:8080`.
 
 ```
 src/features/
+├── onboarding/              # flujo de bienvenida previo al login (6 pantallas + storage de progreso)
+│   ├── types.ts              # pasos / total de pasos
+│   ├── storage.ts             # persistencia de "onboarding completado"
+│   └── screens/               # Welcome, Intro, DailyGoal, Experience, Motivation, Achievement
 ├── courses/                 # cursos, lecciones, bloques (segun content.yml del PDF de arquitectura)
 │   ├── types.ts              # Course / Lesson / LessonBlock / LessonProgress
 │   ├── api.ts                 # STUB - paths tentativos, el back no tiene endpoints de contenido todavia
@@ -99,17 +105,21 @@ signa-mobile/
 │   ├── context/AuthContext.tsx  # estado global de sesion
 │   ├── navigation/
 │   │   ├── RootNavigator.tsx
-│   │   ├── AuthNavigator.tsx     # Login, Register, VerifyEmail, ForgotPassword, ResetPassword
+│   │   ├── AuthNavigator.tsx     # Onboarding + Login, Register, VerifyEmail, ForgotPassword(+Sent), ResetPassword
 │   │   └── AppNavigator.tsx      # Home, Profile, ChangePassword, Courses, Lesson, SignRecognition
-│   ├── screens/                 # pantallas transversales (auth, perfil, cambio de pass, test conexion)
+│   ├── screens/                 # pantallas transversales (auth en screens/auth, perfil, cambio de pass, test conexion)
 │   ├── features/
+│   │   ├── onboarding/           # ver seccion 3
 │   │   ├── courses/              # ver seccion 4
 │   │   └── ml/                   # ver seccion 4
-│   ├── components/               # Button, Input, Card (paleta/tipografia)
+│   ├── components/
+│   │   ├── auth/                  # primitivas reutilizables de auth (AuthScreen, AuthField, PrimaryButton, ...)
+│   │   └── ...                    # Button, Input, Card, BackButton, FieldIcon, SignaLogo, OnboardingProgress
 │   ├── theme/
 │   ├── types/                    # tipos espejados de los DTOs reales del back
 │   └── utils/
 │       ├── storage.ts             # persistencia segura de tokens
+│       ├── validation.ts          # reglas compartidas (password, email, username)
 │       └── jwt.ts                 # decodificacion del JWT para armar el User (ver seccion 3)
 ├── .env.example
 ├── .gitlab-ci.yml
@@ -118,17 +128,25 @@ signa-mobile/
 
 ## 8. Paleta y tipografia
 
-| Uso | Color | Hex |
-|---|---|---|
-| Primario (Morado) | `colors.primary` | `#7455F7` |
-| Exito (Verde) | `colors.success` | `#34D339` |
-| Advertencia (Amarillo) | `colors.warning` | `#FBBF24` |
-| Acento (Rosado) | `colors.accent` | `#F47643` |
-| Texto / Header oscuro | `colors.azulOscuro` | `#1D283C` |
-| Fondo (Blanco) | `colors.background` | `#F7F8FB` (el hex original "#F78FB" tenia un digito de menos) |
+Paleta vigente (la paleta morado/rosado + Poppins/Montserrat del scaffold original quedo **deprecada**; los tokens viejos siguen como alias en `colors`/`fonts` solo para las pantallas legacy, no usar en pantallas nuevas).
 
-- Titulos -> **Poppins** (`fonts.headingRegular` a `fonts.headingBold`)
-- Cuerpo -> **Montserrat** (`fonts.bodyRegular` a `fonts.bodyBold`)
+| Uso | Token | Hex |
+|---|---|---|
+| Primario (Violeta) | `colors.primary` | `#7857FF` |
+| Primario oscuro | `colors.primaryDark` | `#5E3ED1` |
+| Primario claro (fondos) | `colors.primaryLight` | `#EEE8FF` |
+| Exito (Verde) | `colors.success` | `#4CA65C` |
+| Advertencia (Amarillo) | `colors.warning` | `#FBBF24` |
+| Error | `colors.danger` | `#E14E22` |
+| Fondo | `colors.background` | `#FAF6F2` |
+| Superficie / cards | `colors.surface` | `#FFFFFF` |
+| Relleno de campos | `colors.fill` | `#F2ECE6` |
+| Texto | `colors.text` | `#241A16` |
+| Texto atenuado | `colors.textMuted` | `#8C817A` |
+| Borde | `colors.border` | `#ECE5DE` |
+
+- Titulos -> **Bricolage Grotesque** (`fonts.displaySemiBold` / `displayBold` / `displayExtraBold`)
+- Cuerpo, labels y botones -> **Figtree** (`fonts.bodyRegular` a `fonts.bodyBold`)
 
 ## 9. Proximos pasos 
 
