@@ -122,7 +122,7 @@ signa-mobile/
 │       ├── validation.ts          # reglas compartidas (password, email, username)
 │       └── jwt.ts                 # decodificacion del JWT para armar el User (ver seccion 3)
 ├── .env.example
-├── .gitlab-ci.yml
+├── .github/workflows/release.yml   # CI: semantic-release en push a master
 └── package.json
 ```
 
