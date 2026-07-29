@@ -1,0 +1,70 @@
+# Navigation
+
+> Responsibility: navigators, auth↔app switching, route params, add-a-screen procedure.
+> Update when: a screen/route is added, renamed, or removed, or navigation params change.
+> Sources: src/navigation/RootNavigator.tsx, AuthNavigator.tsx, AppNavigator.tsx
+
+All navigation uses `@react-navigation/native-stack`. Three navigators.
+
+## RootNavigator (`src/navigation/RootNavigator.tsx`)
+
+App decision point. Consumes `useAuth()`:
+- `isLoading` (hydrating session from secure-store) → loader.
+- `isAuthenticated` → `AppNavigator`.
+- otherwise → `AuthNavigator`.
+
+Switching between auth and app is **not** done by navigating; mutate the session in `AuthContext` (see [authentication/auth-context.md](./authentication/auth-context.md)).
+
+## AuthNavigator (`src/navigation/AuthNavigator.tsx`)
+
+Onboarding + authentication screens. Default `initialRoute`: `Welcome`. `screenOptions`: `headerShown: false`, `animation: "slide_from_right"`.
+
+`AuthStackParamList` (source of truth for params):
+
+| Route | Params | Screen |
+|---|---|---|
+| `Welcome` | — | onboarding |
+| `Intro` | — | onboarding (step 1) |
+| `DailyGoal` | — | onboarding (step 2) |
+| `Experience` | — | onboarding (step 3) |
+| `Motivation` | — | onboarding (step 4) |
+| `Achievement` | — | onboarding (closing) |
+| `Login` | — | `screens/auth/LoginScreen` |
+| `Register` | — | `screens/auth/RegisterScreen` |
+| `VerifyEmail` | `{ email?: string }` | `screens/auth/VerifyEmailScreen` |
+| `ForgotPassword` | — | `screens/auth/ForgotPasswordScreen` |
+| `ForgotPasswordSent` | `{ email: string }` (required) | `screens/auth/ForgotPasswordSentScreen` |
+| `ResetPassword` | `{ token?: string }` | `screens/auth/ResetPasswordScreen` |
+
+Onboarding progress bar: rendered as a **fixed overlay** (`OnboardingProgressOverlay`) outside the `Stack.Navigator`, so it stays still during transitions. `ONBOARDING_STEP` maps route → step (`Intro:1, DailyGoal:2, Experience:3, Motivation:4`); progress = `step / ONBOARDING_TOTAL_STEPS` (from `@/features/onboarding/types`). Routes outside the map show no bar.
+
+## AppNavigator (`src/navigation/AppNavigator.tsx`)
+
+Post-login screens. `screenOptions` use a dark header: `headerStyle.backgroundColor = colors.azulOscuro`, `headerTintColor = colors.white`, `headerTitleStyle.fontFamily = fonts.headingSemiBold` (legacy tokens; existing code).
+
+`AppStackParamList`:
+
+| Route | Params | Header title | Screen |
+|---|---|---|---|
+| `Home` | — | (no header) | `screens/HomeScreen` |
+| `Profile` | — | "Perfil" | `screens/ProfileScreen` |
+| `ChangePassword` | — | "Cambiar contrasena" | `screens/ChangePasswordScreen` |
+| `Courses` | — | "Cursos" | `features/courses/screens/CoursesListScreen` |
+| `Lesson` | `{ courseId: string; lessonId: string }` | "Leccion" | `features/courses/screens/LessonScreen` |
+| `SignRecognition` | — | "Practicar" | `features/ml/screens/SignRecognitionScreen` |
+| `ConnectionTest` | — | "Test de conexion" | `screens/ConnectionTestScreen` |
+
+Header titles are UI copy (Spanish), kept verbatim from the code.
+
+## Add a screen
+
+1. Create the component in `screens/` (cross-cutting) or `features/<domain>/screens/` (feature).
+2. Type it with `NativeStackScreenProps<AuthStackParamList | AppStackParamList, "MyRoute">`.
+3. Add the route (with params) to the matching `ParamList`.
+4. Register it with `<Stack.Screen name="MyRoute" ... />` and its `options`.
+5. If it is auth/onboarding, mount the content inside `AuthScreen` (see [design-system/components.md](./design-system/components.md)).
+
+## Navigating
+
+- `navigation.navigate("Route", params)` / `navigation.replace(...)` / `navigation.goBack()`.
+- Read params: `route.params?.field`.

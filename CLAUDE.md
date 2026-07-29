@@ -1,66 +1,56 @@
-# CLAUDE.md — guía para desarrollar signa-mobile con IA
+# CLAUDE.md — signa-mobile
 
-Este archivo es la fuente de contexto para **Claude** y **Claude Design**. Está pensado para
-poder desarrollar el frontend con la **mínima revisión de código posible**: si seguís lo que
-está acá y en `/docs`, no hace falta releer todo el repo en cada tarea.
+Entry point and mandatory rules for developing `signa-mobile` with Claude / Claude Design.
+Detailed docs (retrieval map): [`docs/README.md`](./docs/README.md).
 
-> ⚠️ **Regla de oro:** esta documentación es parte del código. Se mantiene **en el mismo commit**
-> que el cambio que la afecta. Ver [§ Mantener la documentación](#5-mantener-la-documentación).
+`signa-mobile` is a React Native (Expo, TypeScript strict) app for Signa — learning Argentine
+Sign Language (LSA) with camera recognition. Backend: `signa-api` (Spring Boot). Solved today:
+auth, navigation, theming, onboarding. Reserved: courses (stub), ML (placeholder).
 
----
+## Docs are code
 
-## 1. Qué es el proyecto
+Update the relevant doc in the **same commit** as the change. Router:
 
-`signa-mobile` es un scaffold **React Native (Expo 54 + TypeScript strict)** para la app de
-Signa (aprendizaje de Lengua de Señas Argentina con reconocimiento por cámara). Se conecta con
-el backend `signa-api` (Spring Boot). Hoy tiene resuelto **auth + navegación + theming +
-onboarding**, y deja reservados los lugares para **cursos** (stub) y **ML** (placeholder).
+| Change | Update |
+|---|---|
+| Add/rename a screen or route | [docs/navigation.md](./docs/navigation.md) |
+| Add/change an endpoint | [docs/api/endpoints.md](./docs/api/endpoints.md) |
+| Change the HTTP client or env | [docs/api/http-client.md](./docs/api/http-client.md) |
+| Add/change a DTO | [docs/api/types.md](./docs/api/types.md) |
+| Change token / session / profile storage | [docs/api/session-persistence.md](./docs/api/session-persistence.md) |
+| Change the session flow or `useAuth` | [docs/authentication/auth-context.md](./docs/authentication/auth-context.md) |
+| Change an auth screen flow | [docs/authentication/screens.md](./docs/authentication/screens.md) |
+| Change a validation rule | [docs/authentication/validation.md](./docs/authentication/validation.md) |
+| Add/change a color, font, size, or UI primitive | [docs/design-system/colors.md](./docs/design-system/colors.md) |
+| Advance a feature or flip stub↔real | [docs/features/onboarding.md](./docs/features/onboarding.md) + [docs/status.md](./docs/status.md) |
+| Change folder structure, alias, or app startup | [docs/architecture.md](./docs/architecture.md) |
+| Add/resolve tech debt | [docs/status.md](./docs/status.md) |
 
-- Contexto para usuarios/humanos que arrancan el repo → [`README.md`](./README.md).
-- Detalle de implementación por área → carpeta [`/docs`](./docs/README.md).
+A new cross-cutting convention goes in this file (§ Rules).
 
----
+## Rules
 
-## 2. Cómo trabajar acá (reglas para la IA)
+**Language & types**
+- TypeScript strict. No `any` in public APIs (props, exported types, returns).
+- Import via the `@/` → `src/` alias (defined in `babel.config.js` + `tsconfig.json`). Never long relative paths.
+- English for docs and code identifiers. **Spanish for user-facing UI copy.**
 
-Estas son las convenciones que hacen que el código nuevo se vea como el existente. Respetalas
-salvo que el usuario pida lo contrario.
+**Styling**
+- `StyleSheet.create()` at the end of the file. No styled-components / CSS-in-JS.
+- Never hardcode hex or font names — use `@/theme` tokens (`colors.*`, `fonts.*`, `fontSizes.*`).
+- Do not use legacy tokens (`accent`, `morado`, `azulOscuro`, `headingSemiBold`, …) in new screens. See [docs/design-system/colors.md](./docs/design-system/colors.md).
 
-**Lenguaje y tipos**
-- Todo en **TypeScript strict**. Sin `any` en APIs públicas (props, tipos exportados, retornos).
-- Importá siempre con el alias **`@/` → `src/`** (definido en `babel.config.js` y `tsconfig.json`).
-  Ej: `import { colors } from "@/theme"`. No uses rutas relativas largas (`../../..`).
-- Español para textos de UI, comentarios y docs. Nombres de código en inglés (como ya está).
+**Components & screens**
+- Reuse existing primitives before creating new ones (generic `@/components/*` + auth `@/components/auth/*`). See [docs/design-system/components.md](./docs/design-system/components.md).
+- Auth/onboarding screens mount inside `AuthScreen`.
+- Type screens with `NativeStackScreenProps<ParamList, "Route">`. Add a screen → [docs/navigation.md](./docs/navigation.md).
 
-**Estilos y diseño**
-- Estilos con **`StyleSheet.create()`** al final del archivo. No styled-components, no CSS-in-JS.
-- **Nunca** hardcodees colores hex ni nombres de fuente: usá tokens de `@/theme`
-  (`colors.*`, `fonts.*`, `fontSizes.*`).
-- Los tokens **legacy** (`accent`, `morado`, `azulOscuro`, `headingSemiBold`, etc.) existen solo
-  para pantallas viejas. **No los uses en pantallas nuevas** — usá los tokens vigentes.
-- Detalle completo de paleta, tipografía y primitivas → [`docs/design-system.md`](./docs/design-system.md).
+**State & data**
+- Global state: Context API only (`AuthContext` via `useAuth()`). No Redux/Zustand without asking.
+- Local state: `useState`. Validation via `@/utils/validation`.
+- All HTTP via `@/api/*` (never `axios` directly): the client injects the Bearer token, converts camelCase↔snake_case, and auto-refreshes on 401. See [docs/api/http-client.md](./docs/api/http-client.md).
 
-**Componentes y pantallas**
-- **Reutilizá primitivas existentes** antes de crear nuevas:
-  - Genéricas: `@/components/{Button,Input,Card,BackButton,FieldIcon,SignaLogo}`.
-  - De auth: `@/components/auth/*` (`AuthScreen`, `AuthField`, `PrimaryButton`,
-    `SecondaryButton`, `AuthHeading`, `AuthIconBadge`, `PasswordChecklist`, `StatusText`…).
-- Toda pantalla de **auth u onboarding** se monta dentro de `AuthScreen` (maneja safe area,
-  teclado, scroll y back).
-- Tipá las pantallas con `NativeStackScreenProps<ParamList, "RouteName">`.
-- Para agregar una pantalla nueva: crearla, registrarla en el navigator correspondiente y
-  agregar su ruta al `ParamList`. Ver [`docs/navegacion.md`](./docs/navegacion.md).
-
-**Estado y datos**
-- Estado global: solo **Context API** (`AuthContext` vía `useAuth()`). No hay Redux/Zustand;
-  no agregues uno sin pedirlo.
-- Estado local de pantalla: `useState`. Validación con `@/utils/validation.ts` (no hay librería
-  de forms).
-- **Toda llamada HTTP va por `@/api/*`** (`authApi`, `usersApi`, …), nunca `axios` directo:
-  el cliente (`@/api/client.ts`) inyecta el Bearer token, convierte camelCase↔snake_case y hace
-  refresh automático ante un 401. Ver [`docs/api-y-datos.md`](./docs/api-y-datos.md).
-
-**Patrón estándar de acción async (loading + error)**
+**Standard async action (loading + error)** — canonical pattern; reuse verbatim:
 ```tsx
 const [loading, setLoading] = useState(false);
 const [error, setError] = useState<string | null>(null);
@@ -70,7 +60,7 @@ async function handleAction() {
   setLoading(true);
   try {
     await someApi();
-    // navegar o actualizar estado en éxito
+    // navigate or update state on success
   } catch (err: any) {
     setError(err?.response?.data?.message ?? "Mensaje por defecto.");
   } finally {
@@ -79,63 +69,16 @@ async function handleAction() {
 }
 ```
 
----
-
-## 3. Mapa del repo
-
-```
-signa-mobile/
-├── App.tsx                  # carga de fuentes → SafeAreaProvider → AuthProvider → RootNavigator
-├── src/
-│   ├── api/                 # capa HTTP con signa-api (Axios + interceptores)  → docs/api-y-datos.md
-│   ├── context/             # AuthContext: estado global de sesión             → docs/auth.md
-│   ├── navigation/          # Root / Auth / App navigators (native-stack)      → docs/navegacion.md
-│   ├── screens/             # pantallas transversales (auth/, Home, Profile, ChangePassword, ConnectionTest)
-│   ├── features/            # módulos por feature                              → docs/features.md
-│   │   ├── onboarding/      #   real: 6 pantallas + storage de progreso
-│   │   ├── courses/         #   stub: endpoints tentativos, back sin implementar
-│   │   └── ml/              #   placeholder: sin cámara ni runtime de ML
-│   ├── components/          # primitivas de UI (genéricas y auth/)             → docs/design-system.md
-│   ├── theme/               # colors, typography, fontSizes                    → docs/design-system.md
-│   ├── types/               # DTOs espejados del backend
-│   └── utils/               # validation, storage, jwt, caseConverter, profileCache
-├── docs/                    # documentación detallada (mantener al día)        → docs/README.md
-└── CLAUDE.md                # este archivo
-```
-
-Estructura general y flujo de arranque → [`docs/arquitectura.md`](./docs/arquitectura.md).
-
----
-
-## 4. Comandos
+## Commands
 
 ```bash
 npm start          # Expo dev server (a=Android, i=iOS, w=web)
-npm run android    # abrir en emulador/dispositivo Android
-npm run ios        # abrir en simulador iOS
-npm run web        # web (soporte limitado)
-npm run lint       # eslint (sin config propia hoy)
-npm run typecheck  # tsc --noEmit  ← verificación mínima antes de dar por hecho un cambio
+npm run android    # Android emulator/device
+npm run ios        # iOS simulator
+npm run web        # web (limited)
+npm run lint       # eslint (no rules configured yet)
+npm run typecheck  # tsc --noEmit ← minimum check before considering a change done
 ```
 
-**Entorno:** copiar `.env.example` → `.env` y setear `EXPO_PUBLIC_API_URL` con la URL de
-`signa-api` (base **sin `/api`**). En **emulador Android** usar `http://10.0.2.2:8080` en vez de
-`localhost`; en simulador iOS `localhost` funciona; en dispositivo físico, la IP local de la PC.
-
----
-
-## 5. Mantener la documentación
-
-Cuando tu cambio toca una de estas cosas, **actualizá el doc en el mismo commit**:
-
-| Si tu cambio… | Actualizá |
-|---|---|
-| Agrega/renombra una pantalla o ruta | `docs/navegacion.md` |
-| Agrega/cambia un endpoint, tipo DTO o el cliente HTTP | `docs/api-y-datos.md` |
-| Toca el flujo de sesión/login/validación | `docs/auth.md` |
-| Agrega/cambia un color, fuente, `fontSize` o una primitiva de UI | `docs/design-system.md` |
-| Avanza una feature (onboarding/courses/ml) o cambia su estado real↔stub | `docs/features.md` y `docs/estado-y-roadmap.md` |
-| Cambia estructura de carpetas, alias o arranque de la app | `docs/arquitectura.md` |
-| Convierte algo de stub a real, o suma deuda técnica conocida | `docs/estado-y-roadmap.md` |
-
-Si creás una convención nueva que otros deberían seguir, agregala a [§2](#2-cómo-trabajar-acá-reglas-para-la-ia).
+Environment: copy `.env.example` → `.env`, set `EXPO_PUBLIC_API_URL` (base without `/api`).
+Per-platform host → [docs/api/http-client.md](./docs/api/http-client.md).
