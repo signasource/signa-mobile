@@ -9,7 +9,11 @@ auth, navigation, theming, onboarding. Reserved: courses (stub), ML (placeholder
 
 ## Docs are code
 
-Update the relevant doc in the **same commit** as the change. Router:
+These docs are the project's memory and must **self-maintain** — every change closes this loop:
+1. **Before** touching an area, open its doc (router below, or [docs/README.md](./docs/README.md)) to load the current state.
+2. **After**, update that same doc in the **same commit** — code and its doc move together, never in a follow-up.
+
+If reality already diverged from a doc, **the code wins**: fix the doc first (re-read the files in its `Sources` header). Router:
 
 | Change | Update |
 |---|---|
