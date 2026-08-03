@@ -17,5 +17,14 @@ export function RootNavigator() {
     );
   }
 
-  return <NavigationContainer>{isAuthenticated ? <AppNavigator /> : <AuthNavigator />}</NavigationContainer>;
+  return (
+    <NavigationContainer>
+      {isAuthenticated ? (
+        <AppNavigator />
+      ) : (
+        // La bienvenida es siempre la primera pantalla para usuarios no autenticados.
+        <AuthNavigator initialRoute="Welcome" />
+      )}
+    </NavigationContainer>
+  );
 }

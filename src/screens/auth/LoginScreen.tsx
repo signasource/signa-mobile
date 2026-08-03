@@ -1,11 +1,18 @@
 import React, { useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { colors, fonts, fontSizes } from "@/theme";
-import { Button } from "@/components/Button";
-import { Input } from "@/components/Input";
-import { useAuth } from "@/context/AuthContext";
 import { AuthStackParamList } from "@/navigation/AuthNavigator";
+import { useAuth } from "@/context/AuthContext";
+import {
+  AuthScreen,
+  AuthField,
+  AuthHeading,
+  AuthDivider,
+  AuthFooter,
+  PrimaryButton,
+  StatusText,
+} from "@/components/auth";
+import { colors, fonts } from "@/theme";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
 
@@ -14,87 +21,80 @@ export function LoginScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  function validate() {
+    if (!email.trim() || !password) {
+      setError("Completá todos los campos para continuar");
+      return false;
+    }
+    setError("");
+    return true;
+  }
 
   async function handleLogin() {
+    if (!validate()) return;
     setLoading(true);
+    setError("");
     try {
-      await login({ email, password });
+      await login({ identifier: email.trim(), password });
     } catch (err: any) {
-      Alert.alert("Error al iniciar sesion", err?.response?.data?.message ?? err.message);
+      setError(err?.response?.data?.message ?? "No se pudo iniciar sesión");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Signa</Text>
-        <Text style={styles.subtitle}>Iniciar sesion</Text>
+    <AuthScreen onBack={() => navigation.goBack()} canGoBack={navigation.canGoBack()}>
+      <AuthHeading title="Hola de nuevo" subtitle="Seguí donde lo dejaste." style={styles.header} />
 
-        <Input
-          label="Email"
+      <View style={styles.fields}>
+        <AuthField
+          icon="email"
           value={email}
           onChangeText={setEmail}
+          placeholder="Correo o usuario"
           autoCapitalize="none"
           keyboardType="email-address"
-          placeholder="tu@email.com"
         />
-        <Input
-          label="Contrasena"
+        <AuthField
+          icon="password"
+          secure
           value={password}
           onChangeText={setPassword}
-          secureTextEntry
-          placeholder="********"
+          placeholder="Contraseña"
         />
 
-        <Button label="Ingresar" onPress={handleLogin} loading={loading} style={styles.mt} />
+        <Pressable
+          onPress={() => navigation.navigate("ForgotPassword")}
+          accessibilityRole="link"
+          accessibilityLabel="¿Olvidaste tu contraseña?"
+          style={styles.forgotWrap}
+        >
+          <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
+        </Pressable>
 
-        <View style={styles.links}>
-          <Text style={styles.link} onPress={() => navigation.navigate("ForgotPassword")}>
-            Olvide mi contrasena
-          </Text>
-          <Text style={styles.link} onPress={() => navigation.navigate("Register")}>
-            Crear cuenta
-          </Text>
-        </View>
+        <PrimaryButton label="Iniciar sesión" onPress={handleLogin} loading={loading} />
 
-        <Button
-          label="Probar conexion con el backend"
-          variant="outline"
-          onPress={() => navigation.navigate("ConnectionTest")}
-          style={styles.mt}
-        />
-      </ScrollView>
-    </KeyboardAvoidingView>
+        {error ? <StatusText>{error}</StatusText> : null}
+      </View>
+
+      <AuthDivider />
+
+      <AuthFooter
+        text="¿No tenés cuenta?"
+        linkLabel="Registrate"
+        onPress={() => navigation.navigate("Register")}
+        pinToBottom
+      />
+    </AuthScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.background },
-  container: { flexGrow: 1, padding: 24, justifyContent: "center" },
-  title: {
-    fontFamily: fonts.headingBold,
-    fontSize: fontSizes.xxl,
-    color: colors.primary,
-    textAlign: "center",
-  },
-  subtitle: {
-    fontFamily: fonts.headingMedium,
-    fontSize: fontSizes.lg,
-    color: colors.text,
-    textAlign: "center",
-    marginBottom: 28,
-  },
-  mt: { marginTop: 8 },
-  links: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 16,
-  },
-  link: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: fontSizes.sm,
-    color: colors.accent,
-  },
+  header: { marginTop: 22 },
+  fields: { marginTop: 28, gap: 14 },
+  forgotWrap: { alignSelf: "flex-end" },
+  forgotText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.primary },
 });

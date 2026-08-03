@@ -1,11 +1,18 @@
 import React, { useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { colors, fonts, fontSizes } from "@/theme";
-import { Button } from "@/components/Button";
-import { Input } from "@/components/Input";
-import { authApi } from "@/api/auth";
 import { AuthStackParamList } from "@/navigation/AuthNavigator";
+import { authApi } from "@/api/auth";
+import {
+  AuthScreen,
+  AuthField,
+  AuthHeading,
+  AuthIconBadge,
+  AuthFooter,
+  PrimaryButton,
+  SecondaryButton,
+  StatusText,
+} from "@/components/auth";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "VerifyEmail">;
 
@@ -17,88 +24,94 @@ export function VerifyEmailScreen({ navigation, route }: Props) {
   const [token, setToken] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [resending, setResending] = useState(false);
+  const [tokenError, setTokenError] = useState("");
+  const [generalError, setGeneralError] = useState("");
+  const [resendMessage, setResendMessage] = useState("");
   const email = route.params?.email ?? "";
+  const busy = verifying || resending;
 
   async function handleVerify() {
+    setTokenError("");
+    setGeneralError("");
+    setResendMessage("");
+    if (!token.trim()) {
+      setTokenError("Ingresá el token del mail");
+      return;
+    }
     setVerifying(true);
     try {
       await authApi.verifyEmail(token);
-      Alert.alert("Cuenta verificada", "Ya podes iniciar sesion.");
       navigation.replace("Login");
     } catch (err: any) {
-      Alert.alert("Error", err?.response?.data?.message ?? err.message);
+      setGeneralError(err?.response?.data?.message ?? err.message);
     } finally {
       setVerifying(false);
     }
   }
 
   async function handleResend() {
+    setGeneralError("");
+    setResendMessage("");
     if (!email) {
-      Alert.alert("Falta el email", "Volve a la pantalla de registro para reenviar el mail de verificacion.");
+      setGeneralError("Volvé a la pantalla de registro para reenviar el mail de verificación.");
       return;
     }
     setResending(true);
     try {
       await authApi.resendVerificationEmail({ email });
-      Alert.alert("Listo", "Te reenviamos el mail de verificacion.");
+      setResendMessage("Te reenviamos el mail de verificación.");
     } catch (err: any) {
-      Alert.alert("Error", err?.response?.data?.message ?? err.message);
+      setGeneralError(err?.response?.data?.message ?? err.message);
     } finally {
       setResending(false);
     }
   }
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Verifica tu email</Text>
-        <Text style={styles.subtitle}>
-          Te mandamos un mail{email ? ` a ${email}` : ""} con un link de verificacion. Pega aca el token que viene en
-          ese link.
-        </Text>
+    <AuthScreen onBack={() => navigation.goBack()} canGoBack={navigation.canGoBack()}>
+      <AuthIconBadge icon="email" />
 
-        <Input label="Token de verificacion" value={token} onChangeText={setToken} placeholder="Token del mail" />
+      <AuthHeading
+        title="Verificá tu email"
+        subtitle={`Te mandamos un mail${email ? ` a ${email}` : ""} con un link de verificación. Pegá acá el token que viene en ese link.`}
+        style={styles.textBlock}
+      />
 
-        <Button label="Verificar cuenta" onPress={handleVerify} loading={verifying} style={styles.mt} />
-        <Button
-          label="Reenviar mail de verificacion"
-          variant="outline"
-          onPress={handleResend}
-          loading={resending}
-          style={styles.mt}
+      <View style={styles.fieldGroup}>
+        <AuthField
+          icon="token"
+          value={token}
+          onChangeText={setToken}
+          placeholder="Token del mail"
+          autoCapitalize="none"
+          autoCorrect={false}
+          invalid={!!tokenError}
+          error={tokenError || null}
         />
 
-        <Text style={styles.link} onPress={() => navigation.replace("Login")}>
-          Ya verifique, ir a iniciar sesion
-        </Text>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        <PrimaryButton label="Verificar cuenta" onPress={handleVerify} loading={verifying} disabled={busy} />
+        <SecondaryButton
+          label="Reenviar mail de verificación"
+          onPress={handleResend}
+          loading={resending}
+          disabled={busy}
+        />
+
+        {generalError ? <StatusText>{generalError}</StatusText> : null}
+        {resendMessage ? <StatusText tone="neutral">{resendMessage}</StatusText> : null}
+      </View>
+
+      <AuthFooter
+        text="¿Ya verificaste?"
+        linkLabel="Iniciar sesión"
+        onPress={() => navigation.replace("Login")}
+        pinToBottom
+      />
+    </AuthScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.background },
-  container: { flexGrow: 1, padding: 24, justifyContent: "center" },
-  title: {
-    fontFamily: fonts.headingBold,
-    fontSize: fontSizes.xl,
-    color: colors.primary,
-    textAlign: "center",
-    marginBottom: 12,
-  },
-  subtitle: {
-    fontFamily: fonts.bodyRegular,
-    fontSize: fontSizes.sm,
-    color: colors.textMuted,
-    textAlign: "center",
-    marginBottom: 24,
-  },
-  mt: { marginTop: 12 },
-  link: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: fontSizes.sm,
-    color: colors.accent,
-    textAlign: "center",
-    marginTop: 20,
-  },
+  textBlock: { marginTop: 24 },
+  fieldGroup: { marginTop: 26, gap: 14 },
 });

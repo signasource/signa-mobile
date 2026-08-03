@@ -1,27 +1,39 @@
-/**
- * Paleta provista para las pruebas de conexion front-back.
- * NOTA: "BLANCO #F78FB" tenia un digito hex faltante (no es un color valido de 6 digitos).
- * Se interpreto como un blanco/hueso cercano (#F7F8FB). Ajustar aqui si el valor real era otro.
- */
 export const colors = {
-  morado: "#7455F7",
+  // Brand
+  primary: "#7857FF",
+  primaryLight: "#EEE8FF",
+  primaryDark: "#5E3ED1",
+  primaryMedallion: "#E0D5FF",
+
+  // Surfaces
+  background: "#FAF6F2",
+  surface: "#FFFFFF",
+  fill: "#F2ECE6",
+  fillDark: "#EBE3DB",
+
+  // Text
+  text: "#241A16",
+  onPrimary: "#F5F0FF",
+  onDark: "#FBF6F2",
+  textMuted: "#8C817A",
+
+  // Borders
+  border: "#ECE5DE",
+
+  // Semantic
+  success: "#4CA65C",
+  warning: "#FBBF24",
+  danger: "#E14E22",
+
+  // Legacy aliases kept for existing app screens
+  accent: "#7857FF",
+  white: "#FFFFFF",
+  azulOscuro: "#241A16",
+  blanco: "#FAF6F2",
+  morado: "#7857FF",
   verde: "#34D339",
   amarillo: "#FBBF24",
-  rosado: "#F47643",
-  azulOscuro: "#1D283C",
-  blanco: "#F7F8FB", // ver nota arriba
-
-  // Alias semanticos para usar en componentes
-  primary: "#7455F7",
-  success: "#34D339",
-  warning: "#FBBF24",
-  accent: "#F47643",
-  background: "#F7F8FB",
-  text: "#1D283C",
-  textMuted: "#5B6478",
-  danger: "#E03131",
-  white: "#FFFFFF",
-  border: "#E2E4EC",
+  rosado: "#7857FF",
 };
 
 export type ColorKey = keyof typeof colors;

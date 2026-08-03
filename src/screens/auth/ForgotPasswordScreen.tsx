@@ -1,58 +1,85 @@
 import React, { useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { colors, fonts, fontSizes } from "@/theme";
-import { Button } from "@/components/Button";
-import { Input } from "@/components/Input";
-import { authApi } from "@/api/auth";
 import { AuthStackParamList } from "@/navigation/AuthNavigator";
+import { authApi } from "@/api/auth";
+import {
+  AuthScreen,
+  AuthField,
+  AuthHeading,
+  AuthIconBadge,
+  AuthFooter,
+  PrimaryButton,
+} from "@/components/auth";
+import { isValidEmail } from "@/utils/validation";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "ForgotPassword">;
 
 export function ForgotPasswordScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  function validate() {
+    if (!email.trim()) {
+      setError("Ingresá tu correo electrónico");
+      return false;
+    }
+    if (!isValidEmail(email)) {
+      setError("Ingresá un correo electrónico válido");
+      return false;
+    }
+    return true;
+  }
 
   async function handleSubmit() {
+    if (!validate()) return;
     setLoading(true);
+    setError("");
     try {
-      await authApi.forgotPassword({ email });
-      Alert.alert("Listo", "Si el email existe, te enviamos instrucciones para resetear la contrasena.");
-      navigation.goBack();
+      await authApi.forgotPassword({ email: email.trim() });
+      navigation.navigate("ForgotPasswordSent", { email: email.trim() });
     } catch (err: any) {
-      Alert.alert("Error", err?.response?.data?.message ?? err.message);
+      setError(err?.response?.data?.message ?? "No se pudo enviar el correo");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Recuperar contrasena</Text>
-        <Input
-          label="Email"
+    <AuthScreen onBack={() => navigation.goBack()}>
+      <AuthIconBadge icon="password" />
+
+      <AuthHeading
+        title="¿Olvidaste tu contraseña?"
+        subtitle="Ingresá tu email y te mandamos un enlace para crear una nueva."
+        style={styles.textBlock}
+      />
+
+      <View style={styles.fieldGroup}>
+        <AuthField
+          icon="email"
           value={email}
           onChangeText={setEmail}
+          placeholder="Correo electrónico"
           autoCapitalize="none"
           keyboardType="email-address"
-          placeholder="tu@email.com"
+          error={error || null}
         />
-        <Button label="Enviar instrucciones" onPress={handleSubmit} loading={loading} style={styles.mt} />
-      </ScrollView>
-    </KeyboardAvoidingView>
+        <PrimaryButton label="Enviar enlace" onPress={handleSubmit} loading={loading} />
+      </View>
+
+      <AuthFooter
+        text="¿Te acordaste?"
+        linkLabel="Volver"
+        onPress={() => navigation.navigate("Login")}
+        pinToBottom
+      />
+    </AuthScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.background },
-  container: { flexGrow: 1, padding: 24, justifyContent: "center" },
-  title: {
-    fontFamily: fonts.headingBold,
-    fontSize: fontSizes.xl,
-    color: colors.primary,
-    textAlign: "center",
-    marginBottom: 28,
-  },
-  mt: { marginTop: 8 },
+  textBlock: { marginTop: 24 },
+  fieldGroup: { marginTop: 26, gap: 18 },
 });

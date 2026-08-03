@@ -81,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+
   async function changePassword(payload: ChangePasswordRequest) {
     setError(null);
     try {
