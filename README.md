@@ -33,3 +33,18 @@ npm start   # then: a=Android, i=iOS, w=web
 ```
 
 Scan the QR with Expo Go (Android) or the Camera app (iOS).
+
+---
+
+# Instalar EAS CLI globalmente
+npm install -g eas-cli
+
+# Login en Expo
+eas login
+
+# Configurar el proyecto (solo la primera vez)
+eas build:configure
+
+# Generar APK de desarrollo/prueba
+eas build --platform android --profile preview
+
