@@ -23,7 +23,11 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 | Method | Path | Returns | Notes |
 |---|---|---|---|
 | `changePassword(ChangePasswordRequest)` | `PUT /users/password` | `AuthResponse` | returns **new tokens** |
+| `getMe()` | `GET /users/me` | `UserProfileResponse` | authenticated profile: `id, email, username, name, role, enabled` |
+| `updateUsername(UpdateUsernameRequest)` | `PATCH /users/me` | `void` | 204. Changes **only** the username (3-50, `^[a-zA-Z0-9_]+$`); 409 if taken. **No endpoint updates `name`.** |
 | `checkUsernameAvailability(username, signal?)` | `GET /users/username-availability?username=` | `{ available: boolean }` | **public**; accepts `AbortSignal` |
+
+The backend `UserController` also exposes `GET/PATCH /users/settings`, `GET /users/{username}` (public profile), and `DELETE /users/me` — not wired in the app yet.
 
 ## `health` (`src/api/health.ts`)
 

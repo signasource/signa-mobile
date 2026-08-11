@@ -12,4 +12,6 @@
 - `ChangePasswordRequest { currentPassword, newPassword }`.
 - `ResendVerificationEmailRequest { email }`.
 - `ApiErrorResponse { message, status, timestamp }` — backend error shape; UI error messages come from `err?.response?.data?.message`.
-- `User { email, name? }` — `name` is best-effort local cache (see [session-persistence.md](./session-persistence.md)).
+- `User { email, name? }` — local session shape: `email` from the JWT, `name` best-effort local cache (see [session-persistence.md](./session-persistence.md)).
+- `UserProfileResponse { id, email, username, name, role, enabled }` — `GET /users/me` payload (full profile, incl. `username`). `Role = "USER"`.
+- `UpdateUsernameRequest { username }` — `PATCH /users/me` body. Only the username is mutable server-side; `name` has no update endpoint.

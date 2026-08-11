@@ -3,15 +3,33 @@
  * (confirmados con el codigo fuente compartido, no ya inferidos).
  */
 
-// No hay entidad de usuario expuesta por API en ningun lado (ni AuthResponse,
-// ni el JWT, ni un endpoint de perfil). "email" es lo unico que se puede
-// obtener con certeza (del JWT). "name" es un cache local best-effort
-// (ver src/utils/profileCache.ts) que se completa cuando el usuario se
-// registra en ESTE dispositivo. "role" e "id" no estan disponibles en el
-// front hoy - existen en User.java del back pero no se exponen todavia.
+// Sesion local minima: "email" sale del JWT y "name" es un cache local
+// best-effort (ver src/utils/profileCache.ts). Para el perfil completo
+// (username, role, id) se usa GET /users/me -> UserProfileResponse.
 export interface User {
   email: string;
   name?: string;
+}
+
+// Role.java (users/entity): por ahora un unico valor.
+export type Role = "USER";
+
+// UserProfileResponse.java (users/dto): lo que devuelve GET /users/me.
+// record UserProfileResponse(UUID id, String email, String username,
+//   String name, Role role, boolean enabled)
+export interface UserProfileResponse {
+  id: string;
+  email: string;
+  username: string;
+  name: string;
+  role: Role;
+  enabled: boolean;
+}
+
+// UpdateUsernameRequest.java (users/dto): body de PATCH /users/me.
+// El back solo permite cambiar el username (no el name). @Size(3,50) + @Pattern.
+export interface UpdateUsernameRequest {
+  username: string;
 }
 
 // AuthResponse.java: public record AuthResponse(String accessToken, String refreshToken)
