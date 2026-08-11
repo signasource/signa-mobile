@@ -31,6 +31,9 @@ export function HomeScreen({ navigation }: Props) {
         style={styles.mt}
       />
 
+      <Text style={styles.sectionLabel}>Gamificación</Text>
+      <Button label="Tienda" onPress={() => navigation.navigate("Store")} style={styles.mt} />
+
       <Text style={styles.sectionLabel}>Cuenta</Text>
       <Button label="Ver perfil" variant="outline" onPress={() => navigation.navigate("Profile")} style={styles.mt} />
       <Button

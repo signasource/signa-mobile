@@ -68,3 +68,110 @@ export interface ApiErrorResponse {
   status: number;
   timestamp: number;
 }
+
+// PublicUserProfileResponse.java (UserController: GET /users/{username})
+export interface PublicUserProfileResponse {
+  id: string;
+  username: string;
+  name: string;
+}
+
+// === Tienda (signa-api rama feature/store-endpoints) ===
+
+// ShopItemType.java
+export type ShopItemType =
+  | "STREAK_SHIELD"
+  | "LIFE"
+  | "XP_MULTIPLIER"
+  | "UNLIMITED_LIVES"
+  | "MYSTERY_CHEST"
+  | "GEMS";
+
+// LivesMode.java
+export type LivesMode = "INFINITE" | "LIMITED";
+
+// GiftStatus.java
+export type GiftStatus = "PENDING" | "CLAIMED" | "EXPIRED";
+
+// ShopItemResponse.java (GET /store/items, GET /store/items/{id})
+export interface ShopItemResponse {
+  id: string;
+  code: string;
+  title: string;
+  description: string;
+  itemType: ShopItemType;
+  priceGems: number;
+  quantity: number;
+  durationMinutes: number | null;
+  multiplierValue: number | null;
+  active: boolean;
+}
+
+// AppliedEffectResponse.java: recompensa concreta aplicada (para MYSTERY_CHEST,
+// "type" es el premio resuelto, no el cofre en si)
+export interface AppliedEffectResponse {
+  type: ShopItemType;
+  gemsGranted: number | null;
+  livesGranted: number | null;
+  streakShieldsGranted: number | null;
+  xpMultiplierValue: number | null;
+  durationMinutes: number | null;
+}
+
+// UserInventoryResponse.java (GET /inventories/me)
+export interface UserInventoryResponse {
+  gems: number;
+  streakShields: number;
+  livesMode: LivesMode;
+  currentLives: number | null;
+  nextLifeAt: string | null;
+  effectiveXpMultiplier: number;
+  xpMultiplierExpiresAt: string | null;
+  xpMultiplierActive: boolean;
+  unlimitedLivesExpiresAt: string | null;
+  unlimitedLivesActive: boolean;
+}
+
+// PurchaseRequest.java (POST /store/purchases)
+export interface PurchaseRequest {
+  shopItemId: string;
+}
+
+// PurchaseResponse.java
+export interface PurchaseResponse {
+  id: string;
+  item: ShopItemResponse;
+  gemsSpent: number;
+  purchasedAt: string;
+  effect: AppliedEffectResponse;
+  inventory: UserInventoryResponse;
+}
+
+// SendGiftRequest.java (POST /store/gifts)
+export interface SendGiftRequest {
+  shopItemId: string;
+  recipientUserId: string;
+  message?: string;
+}
+
+// GiftResponse.java
+export interface GiftResponse {
+  id: string;
+  item: ShopItemResponse;
+  senderId: string;
+  senderUsername: string;
+  recipientId: string;
+  recipientUsername: string;
+  message: string | null;
+  status: GiftStatus;
+  sentAt: string;
+  claimedAt: string | null;
+  expiresAt: string | null;
+}
+
+// GiftClaimResponse.java (POST /store/gifts/{id}/claim)
+export interface GiftClaimResponse {
+  gift: GiftResponse;
+  effect: AppliedEffectResponse;
+  inventory: UserInventoryResponse;
+}
