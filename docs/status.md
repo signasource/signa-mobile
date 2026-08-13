@@ -17,6 +17,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 | Connection test | real | `screens/ConnectionTestScreen` |
 | User profile | partial | [api/session-persistence.md](./api/session-persistence.md) |
 | Courses | stub | [features/courses.md](./features/courses.md) |
+| Shop (gems, lives, potenciadores, mystery chest) | real, except gift recipient picker (stub) | [features/shop.md](./features/shop.md) |
 | ML (sign recognition) | placeholder | [features/ml.md](./features/ml.md) |
 
 ## Cross-cutting tech debt
@@ -32,6 +33,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 - `GET /users/me` (or equivalent) to stop deriving the profile from the decoded JWT.
 - Deep linking for email verification and password reset.
 - Confirm and wire real `courses` endpoints; build `LessonScreen`.
+- Add a friends-list/user-search endpoint on `signa-api` so the Tienda "regalar a un amigo" picker stops using `stubFriends.ts`.
 - Decide the camera + ML runtime stack and migrate to a dev build.
 - Persist onboarding answers once there is a place to store them.
 - (Optional) Configure ESLint/Prettier.

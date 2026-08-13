@@ -7,6 +7,7 @@ import { ConnectionTestScreen } from "@/screens/ConnectionTestScreen";
 import { CoursesListScreen } from "@/features/courses/screens/CoursesListScreen";
 import { LessonScreen } from "@/features/courses/screens/LessonScreen";
 import { SignRecognitionScreen } from "@/features/ml/screens/SignRecognitionScreen";
+import { ShopScreen } from "@/features/shop/screens/ShopScreen";
 import { colors, fonts } from "@/theme";
 
 export type AppStackParamList = {
@@ -17,6 +18,7 @@ export type AppStackParamList = {
   Lesson: { courseId: string; lessonId: string } | undefined;
   SignRecognition: undefined;
   ConnectionTest: undefined;
+  Tienda: undefined;
 };
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -37,6 +39,7 @@ export function AppNavigator() {
       <Stack.Screen name="Lesson" component={LessonScreen} options={{ title: "Leccion" }} />
       <Stack.Screen name="SignRecognition" component={SignRecognitionScreen} options={{ title: "Practicar" }} />
       <Stack.Screen name="ConnectionTest" component={ConnectionTestScreen} options={{ title: "Test de conexion" }} />
+      <Stack.Screen name="Tienda" component={ShopScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

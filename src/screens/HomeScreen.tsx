@@ -30,6 +30,7 @@ export function HomeScreen({ navigation }: Props) {
         onPress={() => navigation.navigate("SignRecognition")}
         style={styles.mt}
       />
+      <Button label="Tienda" variant="outline" onPress={() => navigation.navigate("Tienda")} style={styles.mt} />
 
       <Text style={styles.sectionLabel}>Cuenta</Text>
       <Button label="Ver perfil" variant="outline" onPress={() => navigation.navigate("Profile")} style={styles.mt} />

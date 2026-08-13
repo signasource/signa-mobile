@@ -12,7 +12,7 @@
 | `context/` | Global session state (`AuthContext`) | [authentication/auth-context.md](./authentication/auth-context.md) |
 | `navigation/` | Root / Auth / App navigators (native-stack) | [navigation.md](./navigation.md) |
 | `screens/` | Cross-cutting screens (auth, Home, Profile, ChangePassword, ConnectionTest) | [authentication/screens.md](./authentication/screens.md) |
-| `features/` | Product-domain modules (onboarding, courses, ml) | [features/onboarding.md](./features/onboarding.md) |
+| `features/` | Product-domain modules (onboarding, courses, shop, ml) | [features/onboarding.md](./features/onboarding.md) |
 | `components/` | UI primitives (generic + `auth/`) | [design-system/components.md](./design-system/components.md) |
 | `theme/` | `colors`, `typography`, `fontSizes` | [design-system/colors.md](./design-system/colors.md) |
 | `types/` | DTOs mirrored from the backend | [api/types.md](./api/types.md) |

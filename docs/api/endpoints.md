@@ -2,7 +2,7 @@
 
 > Responsibility: catalog of API endpoints exposed through `src/api/`.
 > Update when: an endpoint is added, changed, or removed, or a stub becomes real.
-> Sources: src/api/auth.ts, src/api/users.ts, src/api/health.ts, src/features/courses/api.ts
+> Sources: src/api/auth.ts, src/api/users.ts, src/api/health.ts, src/features/courses/api.ts, src/features/shop/api.ts
 
 Types → [types.md](./types.md). Client behavior → [http-client.md](./http-client.md).
 
@@ -32,3 +32,14 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 ## `courses` — STUB (`src/features/courses/api.ts`)
 
 `GET /courses`, `GET /courses/{id}`, `GET /courses/{courseId}/lessons/{lessonId}`. **Tentative paths — backend has no content endpoints yet.** See [features/courses.md](../features/courses.md).
+
+## `shopApi` (`src/features/shop/api.ts`) — mirrors `signa-api`'s `gamification` package
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getInventory()` | `GET /inventories/me` | `UserInventoryResponse` | gems, lives, streak shields, active buffs |
+| `listItems(type?)` | `GET /store/items?type=` | `ShopItemResponse[]` | `type` optional, one of `ShopItemType` |
+| `purchase(PurchaseRequest)` | `POST /store/purchases` | `PurchaseResponse` | `{ shopItemId }`; response includes the applied effect **and** the fresh `inventory` (use it directly, no refetch) |
+| `sendGift(SendGiftRequest)` | `POST /store/gifts` | `GiftResponse` | `{ shopItemId, recipientUserId, message? }`; does **not** return updated inventory — refetch with `getInventory()` after |
+
+Recipient picker for gifts is a **stub** (`src/features/shop/stubFriends.ts`) — no friends-list/user-search endpoint exists yet. See [features/shop.md](../features/shop.md).

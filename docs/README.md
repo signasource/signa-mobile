@@ -22,7 +22,7 @@ Detailed implementation docs for `signa-mobile`. Entry point and mandatory rules
 | What color tokens exist? | [design-system/colors.md](./design-system/colors.md) |
 | What fonts / sizes exist? | [design-system/typography.md](./design-system/typography.md) |
 | What UI primitives exist? | [design-system/components.md](./design-system/components.md) |
-| State of onboarding / courses / ml? | [features/onboarding.md](./features/onboarding.md) · [features/courses.md](./features/courses.md) · [features/ml.md](./features/ml.md) |
+| State of onboarding / courses / shop / ml? | [features/onboarding.md](./features/onboarding.md) · [features/courses.md](./features/courses.md) · [features/shop.md](./features/shop.md) · [features/ml.md](./features/ml.md) |
 | What is real vs stub? What is the tech debt? | [status.md](./status.md) |
 
 ## Rules for these docs

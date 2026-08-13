@@ -53,8 +53,9 @@ Post-login screens. `screenOptions` use a dark header: `headerStyle.backgroundCo
 | `Lesson` | `{ courseId: string; lessonId: string }` | "Leccion" | `features/courses/screens/LessonScreen` |
 | `SignRecognition` | — | "Practicar" | `features/ml/screens/SignRecognitionScreen` |
 | `ConnectionTest` | — | "Test de conexion" | `screens/ConnectionTestScreen` |
+| `Tienda` | — | (no header) | `features/shop/screens/ShopScreen` |
 
-Header titles are UI copy (Spanish), kept verbatim from the code.
+Header titles are UI copy (Spanish), kept verbatim from the code. `Tienda` hides the stack header like `Home` — it builds its own amber header.
 
 ## Add a screen
 

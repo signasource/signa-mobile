@@ -5,6 +5,11 @@ export const colors = {
   primaryDark: "#5E3ED1",
   primaryMedallion: "#E0D5FF",
 
+  // Tienda (acento Ámbar)
+  amber: "#DE7211",
+  amberDark: "#B85806",
+  amberTint: "#FBE7D2",
+
   // Surfaces
   background: "#FAF6F2",
   surface: "#FFFFFF",

@@ -26,6 +26,9 @@ Import: `import { colors } from "@/theme"`. Rule: every visual value comes from 
 | `colors.success` | `#4CA65C` | success |
 | `colors.warning` | `#FBBF24` | warning |
 | `colors.danger` | `#E14E22` | error |
+| `colors.amber` | `#DE7211` | Tienda accent (header, featured card, CTA), chosen over the other 4 palette options explored in Claude Design |
+| `colors.amberDark` | `#B85806` | pressed/emphasis amber, chest-opening overlay background |
+| `colors.amberTint` | `#FBE7D2` | soft amber fills (medallions, price chip icon) |
 
 ## Legacy tokens (do NOT use in new screens)
 
