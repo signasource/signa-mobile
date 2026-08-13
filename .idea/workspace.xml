@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7943dffb-8917-4171-acd1-137ed5c94a81" name="Changes" comment="" />
+    <list default="true" id="7943dffb-8917-4171-acd1-137ed5c94a81" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -15,23 +17,23 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.7589502101638501" />
-      <entry key="MS500" value="3.230321765741441" />
-      <entry key="S2" value="4.787554240130913" />
-      <entry key="S5" value="5.439906377851414" />
-      <entry key="S10" value="5.719881438623431" />
-      <entry key="S30" value="11.186281583987512" />
-      <entry key="S60" value="34.905792920389146" />
-      <entry key="M2" value="79.38634902589544" />
-      <entry key="M5" value="139.72552586989246" />
-      <entry key="M10" value="182.00757832255624" />
-      <entry key="M15" value="213.8469678692273" />
-      <entry key="M30" value="284.06540932735606" />
-      <entry key="H1" value="356.0505909761397" />
-      <entry key="H2" value="410.4885537678742" />
-      <entry key="H4" value="444.43165826157366" />
-      <entry key="D1" value="476.97142498900246" />
-      <entry key="W1" value="482.9846760131886" />
+      <entry key="MS100" value="1.0" />
+      <entry key="MS500" value="1.0000052338309422" />
+      <entry key="S2" value="1.4056577705625855" />
+      <entry key="S5" value="6.736872839551099" />
+      <entry key="S10" value="16.53097339786358" />
+      <entry key="S30" value="32.66885205082774" />
+      <entry key="S60" value="39.11033485052242" />
+      <entry key="M2" value="42.890665720983925" />
+      <entry key="M5" value="51.77813540049799" />
+      <entry key="M10" value="85.35582460225032" />
+      <entry key="M15" value="123.2841882281543" />
+      <entry key="M30" value="217.01319190776925" />
+      <entry key="H1" value="322.5402100072086" />
+      <entry key="H2" value="408.1309486952969" />
+      <entry key="H4" value="463.8623164477937" />
+      <entry key="D1" value="518.908395459918" />
+      <entry key="W1" value="529.2489323801972" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
@@ -53,23 +55,23 @@
       <entry key="W1" value="0.0" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="1.6140691751500322" />
-      <entry key="MS500" value="3.180405865827337" />
-      <entry key="S2" value="4.7692659436629805" />
-      <entry key="S5" value="5.4316055829893575" />
-      <entry key="S10" value="5.7155140473214665" />
-      <entry key="S30" value="11.182189289036526" />
-      <entry key="S60" value="34.89726883135244" />
-      <entry key="M2" value="79.37578168326151" />
-      <entry key="M5" value="139.71787531622255" />
-      <entry key="M10" value="182.00272665555826" />
-      <entry key="M15" value="213.8433252840267" />
-      <entry key="M30" value="284.0631992570958" />
-      <entry key="H1" value="356.04930091298195" />
-      <entry key="H2" value="410.48784058473314" />
-      <entry key="H4" value="444.4312806447133" />
-      <entry key="D1" value="476.9713587123429" />
-      <entry key="W1" value="482.9846664571455" />
+      <entry key="MS100" value="0.47302882336279795" />
+      <entry key="MS500" value="0.8609543643219559" />
+      <entry key="S2" value="1.3675324479581277" />
+      <entry key="S5" value="6.714070883880629" />
+      <entry key="S10" value="16.512368118185968" />
+      <entry key="S30" value="32.65844361043787" />
+      <entry key="S60" value="39.104259219449126" />
+      <entry key="M2" value="42.88736639965108" />
+      <entry key="M5" value="51.776395102760056" />
+      <entry key="M10" value="85.3540748940837" />
+      <entry key="M15" value="123.28240684147666" />
+      <entry key="M30" value="217.01162951716987" />
+      <entry key="H1" value="322.53909208885665" />
+      <entry key="H2" value="408.1302615363505" />
+      <entry key="H4" value="463.8619324018985" />
+      <entry key="D1" value="518.9083249125524" />
+      <entry key="W1" value="529.2489221281387" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -81,28 +83,28 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "codeWithMe.voiceChat.enabledByDefault": "false",
-    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "feature/screen-store",
-    "ignore.virus.scanning.warn.message": "true",
-    "junie.onboarding.icon.badge.shown": "true",
-    "kotlin-language-version-configured": "true",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "to.speed.mode.migration.done": "true",
-    "ts.external.directory.path": "C:\\Program Files\\JetBrains\\IntelliJ IDEA 2026.1.2\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;feature/screen-store&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;C:\\Program Files\\JetBrains\\IntelliJ IDEA 2026.1.2\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager">
     <configuration default="true" type="JetRunConfigurationType">
       <module name="signa-mobile" />
