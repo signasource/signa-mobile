@@ -15,7 +15,6 @@ export interface UserStats {
   totalXp: number;
   currentStreak: number;
   weeklyXp: number;
-  learnedSignsCount: number;
   weeklyRank: number;
 }
 

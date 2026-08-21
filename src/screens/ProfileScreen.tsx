@@ -79,11 +79,11 @@ const HEADER_COLORS = [
 ];
 
 const DEFAULT_INVENTORY: UserInventory = {
-  gems: 540,
-  streakShields: 2,
-  lives: 3,
-  xpMultiplier: 2,
-  totalSignsLearned: 128,
+  gems: 0,
+  streakShields: 0,
+  lives: MAX_LIVES,
+  xpMultiplier: 1,
+  totalSignsLearned: 0,
 };
 
 
@@ -429,7 +429,7 @@ export function ProfileScreen({}: Props) {
         <View style={styles.statsGrid}>
           {[
             { icon: "flash", color: colors.warning, value: (userStats?.totalXp ?? 0).toLocaleString("es-AR"), label: "XP total" },
-            { icon: "hand-left", color: colors.courseTeal, value: String(userStats?.learnedSignsCount ?? inventory.totalSignsLearned), label: "Señas aprendidas" },
+            { icon: "hand-left", color: colors.courseTeal, value: String(inventory.totalSignsLearned), label: "Señas aprendidas" },
           ].map((s) => (
             <View key={s.label} style={styles.statCard}>
               <View style={[styles.statChip, { backgroundColor: s.color + "1F" }]}>
