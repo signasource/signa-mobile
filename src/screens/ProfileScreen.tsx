@@ -429,7 +429,7 @@ export function ProfileScreen({}: Props) {
         <View style={styles.statsGrid}>
           {[
             { icon: "flash", color: colors.warning, value: (userStats?.totalXp ?? 0).toLocaleString("es-AR"), label: "XP total" },
-            { icon: "hand-left", color: colors.courseTeal, value: String(inventory.totalSignsLearned), label: "Señas aprendidas" },
+            { icon: "hand-left", color: colors.courseTeal, value: String(inventory.totalSignsLearned ?? 0), label: "Señas aprendidas" },
           ].map((s) => (
             <View key={s.label} style={styles.statCard}>
               <View style={[styles.statChip, { backgroundColor: s.color + "1F" }]}>
