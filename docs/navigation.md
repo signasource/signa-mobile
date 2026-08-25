@@ -39,21 +39,34 @@ Onboarding progress bar: rendered as a **fixed overlay** (`OnboardingProgressOve
 
 ## AppNavigator (`src/navigation/AppNavigator.tsx`)
 
-Post-login screens. `screenOptions` use a dark header: `headerStyle.backgroundColor = colors.azulOscuro`, `headerTintColor = colors.white`, `headerTitleStyle.fontFamily = fonts.headingSemiBold` (legacy tokens; existing code).
+Post-login screens with tab navigation. `screenOptions` use a dark header: `headerStyle.backgroundColor = colors.azulOscuro`, `headerTintColor = colors.white`, `headerTitleStyle.fontFamily = fonts.headingSemiBold` (legacy tokens; existing code).
 
 `AppStackParamList`:
 
 | Route | Params | Header title | Screen |
 |---|---|---|---|
-| `Home` | — | (no header) | `screens/HomeScreen` |
-| `Profile` | — | (no header — screen manages its own) | `screens/ProfileScreen` |
+| `Tabs` | — | (no header) | `navigation/TabNavigator` |
 | `ChangePassword` | — | "Cambiar contrasena" | `screens/ChangePasswordScreen` |
-| `Courses` | — | "Cursos" | `features/courses/screens/CoursesListScreen` |
 | `Lesson` | `{ courseId: string; lessonId: string }` | "Leccion" | `features/courses/screens/LessonScreen` |
 | `SignRecognition` | — | "Practicar" | `features/ml/screens/SignRecognitionScreen` |
 | `ConnectionTest` | — | "Test de conexion" | `screens/ConnectionTestScreen` |
 
 Header titles are UI copy (Spanish), kept verbatim from the code.
+
+## TabNavigator (`src/navigation/TabNavigator.tsx`)
+
+Bottom tab navigation with four tabs. Uses `@react-navigation/bottom-tabs`. Tab bar styled with `colors.primary` as active tint.
+
+`TabParamList`:
+
+| Tab | Screen |
+|---|---|
+| `ProfileTab` | `screens/ProfileScreen` |
+| `CoursesTab` | `screens/tabs/CoursesTabScreen` |
+| `PracticeTab` | `screens/tabs/PracticeTabScreen` |
+| `MoreTab` | `screens/tabs/MoreTabScreen` |
+
+Tab screens (CoursesTab, PracticeTab, MoreTab) are currently placeholders.
 
 ## Add a screen
 

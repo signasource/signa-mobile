@@ -12,8 +12,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { AppStackParamList } from "@/navigation/AppNavigator";
+import { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+import { TabParamList } from "@/navigation/TabNavigator";
 import { colors, fonts } from "@/theme";
 import { useAuth } from "@/context/AuthContext";
 import { usersApi, WeeklyXpEntry, UserStats } from "@/api/users";
@@ -22,7 +22,7 @@ import { inventoryApi, UserInventory } from "@/api/inventory";
 import { achievementsApi, Achievement } from "@/api/achievements";
 import { learningApi, CourseProgress } from "@/api/learning";
 
-type Props = NativeStackScreenProps<AppStackParamList, "Profile">;
+type Props = BottomTabScreenProps<TabParamList, "ProfileTab">;
 type Section = "general" | "cursos" | "inventario" | "logros";
 type AchFilter = "unlocked" | "locked";
 
