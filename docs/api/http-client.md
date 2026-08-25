@@ -21,8 +21,7 @@ Axios instance:
 
 ## Environment (`.env`)
 
-- `EXPO_PUBLIC_API_URL` — base URL **without `/api`**. Per platform:
-  - Android emulator → `http://10.0.2.2:8080` (not `localhost`).
-  - iOS simulator → `http://localhost:8080`.
-  - Physical device → local PC IP on the same network (e.g. `http://192.168.0.10:8080`).
+- `EXPO_PUBLIC_API_URL` — base URL **without `/api`**.
+  - Production/default: `http://161.35.105.45` (port 80, behind a proxy).
+  - Local dev per platform: Android emulator → `http://10.0.2.2:8080` (not `localhost`); iOS simulator → `http://localhost:8080`; physical device → local PC IP (e.g. `http://192.168.0.10:8080`).
 - `.env` is gitignored; copy from `.env.example`. `EXPO_PUBLIC_*` vars are embedded in the bundle at build time.

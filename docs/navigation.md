@@ -31,7 +31,6 @@ Onboarding + authentication screens. Default `initialRoute`: `Welcome`. `screenO
 | `Achievement` | — | onboarding (closing) |
 | `Login` | — | `screens/auth/LoginScreen` |
 | `Register` | — | `screens/auth/RegisterScreen` |
-| `VerifyEmail` | `{ email?: string }` | `screens/auth/VerifyEmailScreen` |
 | `ForgotPassword` | — | `screens/auth/ForgotPasswordScreen` |
 | `ForgotPasswordSent` | `{ email: string }` (required) | `screens/auth/ForgotPasswordSentScreen` |
 | `ResetPassword` | `{ token?: string }` | `screens/auth/ResetPasswordScreen` |

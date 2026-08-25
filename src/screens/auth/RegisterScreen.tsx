@@ -22,6 +22,7 @@ type Props = NativeStackScreenProps<AuthStackParamList, "Register">;
 export function RegisterScreen({ navigation }: Props) {
   const { register } = useAuth();
   const [name, setName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,7 +38,7 @@ export function RegisterScreen({ navigation }: Props) {
   const usernameChecking = usernameAvailability.status === "checking";
 
   function validate() {
-    if (!name.trim() || !username.trim() || !email.trim() || !password) {
+    if (!name.trim() || !lastName.trim() || !username.trim() || !email.trim() || !password) {
       setError("Completá todos los campos para continuar");
       return false;
     }
@@ -50,7 +51,7 @@ export function RegisterScreen({ navigation }: Props) {
       return false;
     }
     if (!passwordValid) {
-      setError("La contraseña no cumple los requisitos");
+      setError("La contraseña debe tener al menos 8 caracteres");
       return false;
     }
     setError("");
@@ -62,8 +63,15 @@ export function RegisterScreen({ navigation }: Props) {
     setLoading(true);
     setError("");
     try {
-      await register({ name: name.trim(), username: username.trim(), email: email.trim(), password });
-      navigation.replace("VerifyEmail", { email: email.trim() });
+      await register({
+        name: name.trim(),
+        lastName: lastName.trim(),
+        username: username.trim(),
+        email: email.trim(),
+        password,
+      });
+      // Registro exitoso: register() ya guardo los tokens y seteo el usuario,
+      // RootNavigator monta AppNavigator automaticamente (sin pantalla de verificacion).
     } catch (err: any) {
       setError(err?.response?.data?.message ?? "No se pudo crear la cuenta");
     } finally {
@@ -94,6 +102,14 @@ export function RegisterScreen({ navigation }: Props) {
           value={name}
           onChangeText={setName}
           placeholder="Nombre"
+          autoCapitalize="words"
+        />
+
+        <AuthField
+          icon="name"
+          value={lastName}
+          onChangeText={setLastName}
+          placeholder="Apellido"
           autoCapitalize="words"
         />
 

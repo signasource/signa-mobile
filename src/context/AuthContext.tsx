@@ -73,8 +73,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function register(payload: RegisterRequest) {
     setError(null);
     try {
-      await authApi.register(payload);
+      const { data } = await authApi.register(payload);
+      await tokenStorage.setTokens(data.accessToken, data.refreshToken);
       await profileCache.setName(payload.email, payload.name);
+      setUser(await buildUserFromToken(data.accessToken));
     } catch (err: any) {
       setError(err?.response?.data?.message ?? "No se pudo registrar el usuario");
       throw err;
