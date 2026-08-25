@@ -9,8 +9,7 @@ All auth screens mount inside `AuthScreen` and use `@/components/auth` primitive
 | Screen | Flow |
 |---|---|
 | `LoginScreen` | validate fields → `login({ identifier, password })` → stack swaps on auth |
-| `RegisterScreen` | validate name/username/email/password (live username availability + password checklist) → `register(...)` → navigate to `VerifyEmail` |
-| `VerifyEmailScreen` | enter token from email → `authApi.verifyEmail(token)`; can resend |
+| `RegisterScreen` | validate name/lastName/username/email/password (live username availability + password checklist) → `register(...)` → **auto-login**, stack swaps to app (no email verification) |
 | `ForgotPasswordScreen` | validate email → `authApi.forgotPassword` → navigate to `ForgotPasswordSent` |
 | `ForgotPasswordSentScreen` | informational (no form), with resend |
 | `ResetPasswordScreen` | token (from email or param) + new password → `authApi.resetPassword(payload, token)` → `Login` |

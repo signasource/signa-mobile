@@ -22,19 +22,13 @@ export function isValidUsername(value: string): boolean {
 
 export type PasswordRules = {
   length: boolean;
-  uppercase: boolean;
-  lowercase: boolean;
-  digit: boolean;
-  special: boolean;
 };
 
+// Unica regla: minimo 8 caracteres (el tope de 72 respeta el limite de bcrypt del back).
+// Espeja ValidPasswordValidator.java.
 export function checkPassword(password: string): PasswordRules {
   return {
     length: password.length >= 8 && password.length <= 72,
-    uppercase: /[A-Z]/.test(password),
-    lowercase: /[a-z]/.test(password),
-    digit: /[0-9]/.test(password),
-    special: /[^a-zA-Z0-9]/.test(password),
   };
 }
 

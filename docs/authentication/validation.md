@@ -8,7 +8,7 @@ Centralized rules that mirror the backend.
 
 - `USERNAME_REGEX = /^[a-zA-Z0-9_]{3,50}$/` → `isValidUsername(value)`. Same criterion as `UserController.checkUsernameAvailability`.
 - `EMAIL_REGEX` → `isValidEmail(value)`.
-- `checkPassword(password) → PasswordRules` with flags `length` (8–72), `uppercase`, `lowercase`, `digit`, `special`. `isPasswordValid(password)` = all `true`. Rendered live with `PasswordChecklist` (Register/Reset).
+- `checkPassword(password) → PasswordRules` with a single flag `length` (8–72; only real rule is min 8, the 72 cap mirrors bcrypt). `isPasswordValid(password)` = `length` is `true`. Rendered live with `PasswordChecklist` (Register/Reset). Mirrors `ValidPasswordValidator.java` (min 8, no complexity rules).
 
 ## Live username availability
 
