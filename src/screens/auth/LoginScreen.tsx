@@ -13,6 +13,7 @@ import {
   StatusText,
 } from "@/components/auth";
 import { colors, fonts } from "@/theme";
+import { mapAuthError } from "@/utils/authErrors";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
 
@@ -38,8 +39,8 @@ export function LoginScreen({ navigation }: Props) {
     setError("");
     try {
       await login({ identifier: email.trim(), password });
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? "No se pudo iniciar sesión");
+    } catch (err: unknown) {
+      setError(mapAuthError(err, "No se pudo iniciar sesión"));
     } finally {
       setLoading(false);
     }

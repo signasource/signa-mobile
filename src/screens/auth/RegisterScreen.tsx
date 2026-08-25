@@ -14,7 +14,8 @@ import {
   PasswordChecklist,
   StatusText,
 } from "@/components/auth";
-import { checkPassword, isPasswordValid, isValidUsername } from "@/utils/validation";
+import { checkPassword, isPasswordValid, isValidEmail, isValidUsername } from "@/utils/validation";
+import { mapAuthError } from "@/utils/authErrors";
 import { colors, fonts } from "@/theme";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Register">;
@@ -40,6 +41,10 @@ export function RegisterScreen({ navigation }: Props) {
   function validate() {
     if (!name.trim() || !lastName.trim() || !username.trim() || !email.trim() || !password) {
       setError("Completá todos los campos para continuar");
+      return false;
+    }
+    if (!isValidEmail(email)) {
+      setError("Ingresá un correo electrónico válido");
       return false;
     }
     if (!isValidUsername(username)) {
@@ -72,8 +77,8 @@ export function RegisterScreen({ navigation }: Props) {
       });
       // Registro exitoso: register() ya guardo los tokens y seteo el usuario,
       // RootNavigator monta AppNavigator automaticamente (sin pantalla de verificacion).
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? "No se pudo crear la cuenta");
+    } catch (err: unknown) {
+      setError(mapAuthError(err, "No se pudo crear la cuenta"));
     } finally {
       setLoading(false);
     }
