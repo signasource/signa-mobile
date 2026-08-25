@@ -16,7 +16,7 @@ import { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import { TabParamList } from "@/navigation/TabNavigator";
 import { colors, fonts } from "@/theme";
 import { useAuth } from "@/context/AuthContext";
-import { usersApi, WeeklyXpEntry, UserStats } from "@/api/users";
+import { usersApi, WeeklyXpEntry, UserStats, UserSettings } from "@/api/users";
 import { useUsernameAvailability } from "@/hooks/useUsernameAvailability";
 import { inventoryApi, UserInventory } from "@/api/inventory";
 import { achievementsApi, Achievement } from "@/api/achievements";
@@ -154,6 +154,7 @@ export function ProfileScreen({}: Props) {
   // UI state
   const [activeSection, setActiveSection] = useState<Section>("general");
   const [headerColor, setHeaderColor] = useState(colors.surface);
+  const [headerColorDraft, setHeaderColorDraft] = useState(colors.surface);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [headerColorOpen, setHeaderColorOpen] = useState(false);
@@ -215,7 +216,7 @@ export function ProfileScreen({}: Props) {
 
   async function loadProfile() {
     setLoading(true);
-    const [profileRes, weekRes, goalRes, statsRes, invRes, unlockedRes, lockedRes, coursesRes] =
+    const [profileRes, weekRes, goalRes, statsRes, invRes, unlockedRes, lockedRes, coursesRes, settingsRes] =
       await Promise.allSettled([
         usersApi.getMe(),
         usersApi.getWeeklyXp(),
@@ -225,6 +226,7 @@ export function ProfileScreen({}: Props) {
         achievementsApi.getAchievements(true),
         achievementsApi.getAchievements(false),
         learningApi.getProgress(),
+        usersApi.getSettings(),
       ]);
 
     if (profileRes.status === "fulfilled") {
@@ -271,6 +273,12 @@ export function ProfileScreen({}: Props) {
 
     if (coursesRes.status === "fulfilled") {
       setCourses(coursesRes.value.data);
+    }
+
+    if (settingsRes.status === "fulfilled") {
+      const color = settingsRes.value.data.profileHeaderColor;
+      setHeaderColor(color);
+      setHeaderColorDraft(color);
     }
 
     setLoading(false);
@@ -331,7 +339,7 @@ export function ProfileScreen({}: Props) {
             <View style={styles.headerActions}>
               <TouchableOpacity
                 style={styles.iconBtn}
-                onPress={() => setHeaderColorOpen(true)}
+                onPress={() => { setHeaderColorDraft(headerColor); setHeaderColorOpen(true); }}
                 activeOpacity={0.7}
               >
                 <Ionicons name="color-palette-outline" size={23} color={onHeader} />
@@ -1040,10 +1048,14 @@ export function ProfileScreen({}: Props) {
       </BottomSheet>
 
       {/* Header color modal */}
-      <BottomSheet open={headerColorOpen} onClose={() => setHeaderColorOpen(false)} title="Color del encabezado">
+      <BottomSheet
+        open={headerColorOpen}
+        onClose={() => { setHeaderColorDraft(headerColor); setHeaderColorOpen(false); }}
+        title="Color del encabezado"
+      >
         <View style={styles.colorGrid}>
           {HEADER_COLORS.map((c) => {
-            const selected = c.hex.toLowerCase() === headerColor.toLowerCase();
+            const selected = c.hex.toLowerCase() === headerColorDraft.toLowerCase();
             const light = isLight(c.hex);
             return (
               <TouchableOpacity
@@ -1052,7 +1064,7 @@ export function ProfileScreen({}: Props) {
                   styles.colorSwatch,
                   { backgroundColor: c.hex, borderColor: selected ? colors.neutral900 : light ? "rgba(0,0,0,0.12)" : "transparent" },
                 ]}
-                onPress={() => setHeaderColor(c.hex)}
+                onPress={() => setHeaderColorDraft(c.hex)}
                 activeOpacity={0.8}
               >
                 {selected && (
@@ -1062,7 +1074,18 @@ export function ProfileScreen({}: Props) {
             );
           })}
         </View>
-        <PrimaryButton label="Listo" onPress={() => setHeaderColorOpen(false)} />
+        <PrimaryButton
+          label="Listo"
+          onPress={async () => {
+            setHeaderColor(headerColorDraft);
+            setHeaderColorOpen(false);
+            try {
+              await usersApi.updateSettings({ profileHeaderColor: headerColorDraft });
+            } catch {
+              // keep local change even if API fails
+            }
+          }}
+        />
       </BottomSheet>
 
       {/* Daily goal modal */}

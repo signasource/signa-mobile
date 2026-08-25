@@ -23,6 +23,10 @@ export interface DailyGoal {
   minutesToday: number;
 }
 
+export interface UserSettings {
+  profileHeaderColor: string;
+}
+
 export const usersApi = {
   changePassword: (payload: ChangePasswordRequest) =>
     apiClient.put<AuthResponse>("/users/password", payload),
@@ -46,4 +50,9 @@ export const usersApi = {
 
   recordActivity: (minutes: number) =>
     apiClient.post<void>("/users/me/activity", { minutes }),
+
+  getSettings: () => apiClient.get<UserSettings>("/users/settings"),
+
+  updateSettings: (payload: Partial<UserSettings>) =>
+    apiClient.patch<UserSettings>("/users/settings", payload),
 };
