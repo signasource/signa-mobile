@@ -40,9 +40,9 @@ export function TabNavigator() {
           backgroundColor: colors.surface,
           borderTopColor: colors.neutral200,
           borderTopWidth: 1,
-          paddingBottom: 16,
+          paddingBottom: 24,
           paddingTop: 12,
-          height: 70,
+          height: 76,
         },
       })}
     >
