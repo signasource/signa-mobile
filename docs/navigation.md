@@ -39,21 +39,35 @@ Onboarding progress bar: rendered as a **fixed overlay** (`OnboardingProgressOve
 
 ## AppNavigator (`src/navigation/AppNavigator.tsx`)
 
-Post-login screens. `screenOptions` use a dark header: `headerStyle.backgroundColor = colors.azulOscuro`, `headerTintColor = colors.white`, `headerTitleStyle.fontFamily = fonts.headingSemiBold` (legacy tokens; existing code).
+Post-login screens with tab navigation. `screenOptions` use a dark header: `headerStyle.backgroundColor = colors.azulOscuro`, `headerTintColor = colors.white`, `headerTitleStyle.fontFamily = fonts.headingSemiBold` (legacy tokens; existing code).
 
 `AppStackParamList`:
 
 | Route | Params | Header title | Screen |
 |---|---|---|---|
-| `Home` | — | (no header) | `screens/HomeScreen` |
-| `Profile` | — | (no header — screen manages its own) | `screens/ProfileScreen` |
+| `Tabs` | — | (no header) | `navigation/TabNavigator` |
 | `ChangePassword` | — | "Cambiar contrasena" | `screens/ChangePasswordScreen` |
-| `Courses` | — | "Cursos" | `features/courses/screens/CoursesListScreen` |
 | `Lesson` | `{ courseId: string; lessonId: string }` | "Leccion" | `features/courses/screens/LessonScreen` |
 | `SignRecognition` | — | "Practicar" | `features/ml/screens/SignRecognitionScreen` |
 | `ConnectionTest` | — | "Test de conexion" | `screens/ConnectionTestScreen` |
 
 Header titles are UI copy (Spanish), kept verbatim from the code.
+
+## TabNavigator (`src/navigation/TabNavigator.tsx`)
+
+Bottom tab navigation with five tabs. Uses `@react-navigation/bottom-tabs`. Tab bar displays only icons (no labels), styled with `colors.primary` (#7857FF) as active tint and `colors.neutral600` as inactive. Based on design in Perfil.dc.html.
+
+`TabParamList`:
+
+| Tab | Icon | Screen |
+|---|---|---|
+| `Home` | home/home-outline | `screens/tabs/HomeTabScreen` |
+| `Practice` | hand-left/hand-left-outline | `screens/tabs/PracticeTabScreen` |
+| `Store` | storefront/storefront-outline | `screens/tabs/StoreTabScreen` |
+| `Social` | people/people-outline | `screens/tabs/SocialTabScreen` |
+| `Profile` | person/person-outline | `screens/ProfileScreen` |
+
+Tab screens (Home, Practice, Store, Social) are currently placeholders. Only Profile tab has full implementation.
 
 ## Add a screen
 
