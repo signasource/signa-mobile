@@ -26,6 +26,8 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 | `getWeeklyXp()` | `GET /users/me/weekly-xp` | `WeeklyXpEntry[]` | `[{ date, xpEarned }]` Mon–today; zeros for inactive days |
 | `getDailyGoal()` | `GET /users/daily-goal` | `{ dailyGoalMinutes }` | |
 | `updateDailyGoal(minutes)` | `PATCH /users/daily-goal` | `void` | body: `{ daily_goal_minutes }` (snake_case via interceptor) |
+| `getSettings()` | `GET /users/settings` | `UserSettings` | returns full settings; front-end uses `profileHeaderColor` |
+| `updateSettings(payload)` | `PATCH /users/settings` | `UserSettings` | partial patch; all fields optional |
 
 ## `inventoryApi` (`src/api/inventory.ts`)
 
