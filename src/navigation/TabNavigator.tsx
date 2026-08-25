@@ -1,17 +1,19 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
-import { ProfileScreen } from "@/screens/ProfileScreen";
-import { CoursesTabScreen } from "@/screens/tabs/CoursesTabScreen";
+import { HomeTabScreen } from "@/screens/tabs/HomeTabScreen";
 import { PracticeTabScreen } from "@/screens/tabs/PracticeTabScreen";
-import { MoreTabScreen } from "@/screens/tabs/MoreTabScreen";
+import { StoreTabScreen } from "@/screens/tabs/StoreTabScreen";
+import { SocialTabScreen } from "@/screens/tabs/SocialTabScreen";
+import { ProfileScreen } from "@/screens/ProfileScreen";
 import { colors } from "@/theme";
 
 export type TabParamList = {
-  ProfileTab: undefined;
-  CoursesTab: undefined;
-  PracticeTab: undefined;
-  MoreTab: undefined;
+  Home: undefined;
+  Practice: undefined;
+  Store: undefined;
+  Social: undefined;
+  Profile: undefined;
 };
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -21,49 +23,53 @@ export function TabNavigator() {
     <Tab.Navigator
       screenOptions={({ route }: any) => ({
         headerShown: false,
-        tabBarIcon: ({ focused, color, size }: any) => {
+        tabBarIcon: ({ focused, color }: any) => {
           const iconMap: Record<string, string> = {
-            ProfileTab: focused ? "person" : "person-outline",
-            CoursesTab: focused ? "school" : "school-outline",
-            PracticeTab: focused ? "hand-left" : "hand-left-outline",
-            MoreTab: focused ? "menu" : "menu-outline",
+            Home: focused ? "home" : "home-outline",
+            Practice: focused ? "hand-left" : "hand-left-outline",
+            Store: focused ? "storefront" : "storefront-outline",
+            Social: focused ? "people" : "people-outline",
+            Profile: focused ? "person" : "person-outline",
           };
-          return <Ionicons name={iconMap[route.name] as any} size={size} color={color} />;
+          return <Ionicons name={iconMap[route.name] as any} size={26} color={color} />;
         },
+        tabBarLabel: () => null,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.neutral600,
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopColor: colors.neutral200,
           borderTopWidth: 1,
-          paddingBottom: 4,
-          paddingTop: 4,
-        },
-        tabBarLabelStyle: {
-          fontSize: 10,
-          marginBottom: 2,
+          paddingBottom: 10,
+          paddingTop: 6,
+          height: 60,
         },
       })}
     >
       <Tab.Screen
-        name="ProfileTab"
+        name="Home"
+        component={HomeTabScreen}
+        options={{ tabBarLabel: "Inicio" }}
+      />
+      <Tab.Screen
+        name="Practice"
+        component={PracticeTabScreen}
+        options={{ tabBarLabel: "Práctica" }}
+      />
+      <Tab.Screen
+        name="Store"
+        component={StoreTabScreen}
+        options={{ tabBarLabel: "Tienda" }}
+      />
+      <Tab.Screen
+        name="Social"
+        component={SocialTabScreen}
+        options={{ tabBarLabel: "Social" }}
+      />
+      <Tab.Screen
+        name="Profile"
         component={ProfileScreen}
         options={{ tabBarLabel: "Perfil" }}
-      />
-      <Tab.Screen
-        name="CoursesTab"
-        component={CoursesTabScreen}
-        options={{ tabBarLabel: "Cursos" }}
-      />
-      <Tab.Screen
-        name="PracticeTab"
-        component={PracticeTabScreen}
-        options={{ tabBarLabel: "Practicar" }}
-      />
-      <Tab.Screen
-        name="MoreTab"
-        component={MoreTabScreen}
-        options={{ tabBarLabel: "Más" }}
       />
     </Tab.Navigator>
   );

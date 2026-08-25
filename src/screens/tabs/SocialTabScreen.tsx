@@ -2,10 +2,10 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { colors, fonts } from "@/theme";
 
-export function MoreTabScreen() {
+export function SocialTabScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.placeholder}>Pantalla de Más opciones</Text>
+      <Text style={styles.placeholder}>Pantalla de Social</Text>
     </View>
   );
 }

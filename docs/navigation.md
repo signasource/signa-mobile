@@ -55,18 +55,19 @@ Header titles are UI copy (Spanish), kept verbatim from the code.
 
 ## TabNavigator (`src/navigation/TabNavigator.tsx`)
 
-Bottom tab navigation with four tabs. Uses `@react-navigation/bottom-tabs`. Tab bar styled with `colors.primary` as active tint.
+Bottom tab navigation with five tabs. Uses `@react-navigation/bottom-tabs`. Tab bar displays only icons (no labels), styled with `colors.primary` (#7857FF) as active tint and `colors.neutral600` as inactive. Based on design in Perfil.dc.html.
 
 `TabParamList`:
 
-| Tab | Screen |
-|---|---|
-| `ProfileTab` | `screens/ProfileScreen` |
-| `CoursesTab` | `screens/tabs/CoursesTabScreen` |
-| `PracticeTab` | `screens/tabs/PracticeTabScreen` |
-| `MoreTab` | `screens/tabs/MoreTabScreen` |
+| Tab | Icon | Screen |
+|---|---|---|
+| `Home` | home/home-outline | `screens/tabs/HomeTabScreen` |
+| `Practice` | hand-left/hand-left-outline | `screens/tabs/PracticeTabScreen` |
+| `Store` | storefront/storefront-outline | `screens/tabs/StoreTabScreen` |
+| `Social` | people/people-outline | `screens/tabs/SocialTabScreen` |
+| `Profile` | person/person-outline | `screens/ProfileScreen` |
 
-Tab screens (CoursesTab, PracticeTab, MoreTab) are currently placeholders.
+Tab screens (Home, Practice, Store, Social) are currently placeholders. Only Profile tab has full implementation.
 
 ## Add a screen
 

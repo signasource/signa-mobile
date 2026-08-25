@@ -22,7 +22,7 @@ import { inventoryApi, UserInventory } from "@/api/inventory";
 import { achievementsApi, Achievement } from "@/api/achievements";
 import { learningApi, CourseProgress } from "@/api/learning";
 
-type Props = BottomTabScreenProps<TabParamList, "ProfileTab">;
+type Props = BottomTabScreenProps<TabParamList, "Profile">;
 type Section = "general" | "cursos" | "inventario" | "logros";
 type AchFilter = "unlocked" | "locked";
 
