@@ -12,6 +12,7 @@ import {
   PrimaryButton,
   StatusText,
 } from "@/components/auth";
+import { mapAuthError } from "@/utils/authErrors";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "ResetPassword">;
 
@@ -48,8 +49,8 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
     try {
       await authApi.resetPassword({ newPassword }, token);
       navigation.navigate("Login");
-    } catch (err: any) {
-      setErrors({ general: err?.response?.data?.message ?? err.message });
+    } catch (err: unknown) {
+      setErrors({ general: mapAuthError(err, "No se pudo restablecer la contraseña") });
     } finally {
       setLoading(false);
     }

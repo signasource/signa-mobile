@@ -4,6 +4,7 @@ import { colors, fonts, fontSizes } from "@/theme";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { useAuth } from "@/context/AuthContext";
+import { mapAuthError } from "@/utils/authErrors";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AppStackParamList } from "@/navigation/AppNavigator";
 
@@ -24,8 +25,8 @@ export function ChangePasswordScreen({ navigation }: Props) {
       await changePassword({ currentPassword, newPassword });
       Alert.alert("Listo", "Tu contrasena se actualizo correctamente.");
       navigation.goBack();
-    } catch (err: any) {
-      Alert.alert("Error", err?.response?.data?.message ?? err.message);
+    } catch (err: unknown) {
+      Alert.alert("Error", mapAuthError(err, "No se pudo cambiar la contraseña"));
     } finally {
       setLoading(false);
     }
