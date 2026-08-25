@@ -22,6 +22,28 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 |---|---|---|---|
 | `changePassword(ChangePasswordRequest)` | `PUT /users/password` | `AuthResponse` | returns **new tokens** |
 | `checkUsernameAvailability(username, signal?)` | `GET /users/username-availability?username=` | `{ available: boolean }` | **public**; accepts `AbortSignal` |
+| `getMe()` | `GET /users/me` | `UserProfile` | `{ name, username }` |
+| `getWeeklyXp()` | `GET /users/me/weekly-xp` | `WeeklyXpEntry[]` | `[{ date, xpEarned }]` Mon–today; zeros for inactive days |
+| `getDailyGoal()` | `GET /users/daily-goal` | `{ dailyGoalMinutes }` | |
+| `updateDailyGoal(minutes)` | `PATCH /users/daily-goal` | `void` | body: `{ daily_goal_minutes }` (snake_case via interceptor) |
+
+## `inventoryApi` (`src/api/inventory.ts`)
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getMyInventory()` | `GET /inventories/me` | `UserInventory` | gems, streakShields, lives, xpMultiplier, totalSignsLearned |
+
+## `achievementsApi` (`src/api/achievements.ts`)
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getAchievements(unlocked)` | `GET /achievements?unlocked=` | `Achievement[]` | pass `true` or `false` |
+
+## `learningApi` (`src/api/learning.ts`)
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getProgress()` | `GET /learning/tracking/progress` | `CourseProgress[]` | per-course progress, unit info, signs learned |
 
 ## `health` (`src/api/health.ts`)
 

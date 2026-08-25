@@ -46,7 +46,7 @@ Post-login screens. `screenOptions` use a dark header: `headerStyle.backgroundCo
 | Route | Params | Header title | Screen |
 |---|---|---|---|
 | `Home` | — | (no header) | `screens/HomeScreen` |
-| `Profile` | — | "Perfil" | `screens/ProfileScreen` |
+| `Profile` | — | (no header — screen manages its own) | `screens/ProfileScreen` |
 | `ChangePassword` | — | "Cambiar contrasena" | `screens/ChangePasswordScreen` |
 | `Courses` | — | "Cursos" | `features/courses/screens/CoursesListScreen` |
 | `Lesson` | `{ courseId: string; lessonId: string }` | "Leccion" | `features/courses/screens/LessonScreen` |

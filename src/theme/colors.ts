@@ -25,6 +25,22 @@ export const colors = {
   warning: "#FBBF24",
   danger: "#E14E22",
 
+  // Gamification / profile palette
+  streakOrange: "#FB8B24",
+  gemsBlue: "#29B6E8",
+  gemsBlueDark: "#1B84AB",
+  courseTeal: "#2FA8A0",
+  livesRed: "#E03B3B",
+  infinitePink: "#E86AA6",
+  successDark: "#2E7D45",
+  successLight: "#E7F5EA",
+
+  // Neutral grays (profile screen uses a pure-gray palette)
+  neutral900: "#111111",
+  neutral600: "#86868B",
+  neutral200: "#E7E7E9",
+  neutral100: "#F2F2F3",
+
   // Legacy aliases kept for existing app screens
   accent: "#7857FF",
   white: "#FFFFFF",
