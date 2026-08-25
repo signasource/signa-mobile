@@ -33,16 +33,16 @@ export function TabNavigator() {
           };
           return <Ionicons name={iconMap[route.name] as any} size={26} color={color} />;
         },
-        tabBarLabel: () => null,
+        tabBarShowLabel: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.neutral600,
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopColor: colors.neutral200,
           borderTopWidth: 1,
-          paddingBottom: 10,
-          paddingTop: 6,
-          height: 60,
+          paddingBottom: 16,
+          paddingTop: 12,
+          height: 70,
         },
       })}
     >
