@@ -17,7 +17,6 @@ import { AchievementScreen } from "@/features/onboarding/screens/AchievementScre
 // Auth screens
 import { LoginScreen } from "@/screens/auth/LoginScreen";
 import { RegisterScreen } from "@/screens/auth/RegisterScreen";
-import { VerifyEmailScreen } from "@/screens/auth/VerifyEmailScreen";
 import { ForgotPasswordScreen } from "@/screens/auth/ForgotPasswordScreen";
 import { ForgotPasswordSentScreen } from "@/screens/auth/ForgotPasswordSentScreen";
 import { ResetPasswordScreen } from "@/screens/auth/ResetPasswordScreen";
@@ -33,7 +32,6 @@ export type AuthStackParamList = {
   // Auth
   Login: undefined;
   Register: undefined;
-  VerifyEmail: { email?: string } | undefined;
   ForgotPassword: undefined;
   ForgotPasswordSent: { email: string };
   ResetPassword: { token?: string } | undefined;
@@ -91,7 +89,6 @@ export function AuthNavigator({ initialRoute = "Welcome" }: AuthNavigatorProps) 
         <Stack.Screen name="Achievement" component={AchievementScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
-        <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         <Stack.Screen name="ForgotPasswordSent" component={ForgotPasswordSentScreen} />
         <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />

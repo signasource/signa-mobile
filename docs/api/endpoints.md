@@ -10,13 +10,11 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 
 | Method | Path | Returns | Notes |
 |---|---|---|---|
-| `register(RegisterRequest)` | `POST /auth/register` | `void` | 201 no body. Does **not** auto-login. |
+| `register(RegisterRequest)` | `POST /auth/register` | `AuthResponse` | 201 with `{ accessToken, refreshToken }`. **Auto-logs in.** Backend sends a verification email (`verified` flag) but it is **not required** to use the app; the mobile app exposes no verify/resend UI. |
 | `login(LoginRequest)` | `POST /auth/login` | `AuthResponse` | `{ accessToken, refreshToken }` |
 | `refresh(refreshToken)` | `POST /auth/refresh` | `AuthResponse` | also used by the interceptor |
-| `verifyEmail(token)` | `GET /auth/verify?token=` | `void` | `token` as query param |
 | `forgotPassword(ForgotPasswordRequest)` | `POST /auth/forgot-password` | `void` | |
 | `resetPassword(ResetPasswordRequest, token)` | `POST /auth/reset-password?token=` | `void` | `token` is a **query param**, separate from the body |
-| `resendVerificationEmail(ResendVerificationEmailRequest)` | `POST /auth/resend-verification-email` | `void` | |
 
 ## `usersApi` (`src/api/users.ts`) — mirrors `UserController.java`
 

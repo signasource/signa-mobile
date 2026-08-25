@@ -16,17 +16,13 @@ function Rule({ ok, label }: { ok: boolean; label: string }) {
 export function PasswordChecklist({ rules }: { rules: PasswordRules }) {
   return (
     <View style={styles.list}>
-      <Rule ok={rules.length} label="Entre 8 y 72 caracteres" />
-      <Rule ok={rules.uppercase} label="Al menos una mayúscula" />
-      <Rule ok={rules.lowercase} label="Al menos una minúscula" />
-      <Rule ok={rules.digit} label="Al menos un número" />
-      <Rule ok={rules.special} label="Al menos un símbolo (ej: @, #, !)" />
+      <Rule ok={rules.length} label="Al menos 8 caracteres" />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  list: { marginTop: 8, marginLeft: 6, gap: 2 },
+  list: { marginTop: 2, marginLeft: 6, gap: 2 },
   row: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 3 },
   dot: { fontSize: 12, width: 14 },
   label: { fontSize: 12, fontFamily: fonts.bodyMedium },

@@ -15,7 +15,7 @@ Single global state. Consumed via `useAuth()` (throws if used outside `<AuthProv
 | `isAuthenticated` | `boolean` | `!!user` — consumed by `RootNavigator` |
 | `error` | `string \| null` | last auth-operation error |
 | `login(LoginRequest)` | `Promise<void>` | logs in, stores tokens, builds `user` |
-| `register(RegisterRequest)` | `Promise<void>` | registers and caches the name; does **not** log in |
+| `register(RegisterRequest)` | `Promise<void>` | registers, stores tokens, caches the name and builds `user` — **auto-logs in** |
 | `changePassword(ChangePasswordRequest)` | `Promise<void>` | changes password and **rotates tokens** |
 | `logout()` | `Promise<void>` | clears tokens and `user` |
 

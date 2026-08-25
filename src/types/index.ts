@@ -27,12 +27,13 @@ export interface LoginRequest {
   password: string;
 }
 
-// RegisterRequest.java: email, username, password, name
+// RegisterRequest.java: email, username, password, name, lastName
 export interface RegisterRequest {
   email: string;
   username: string;
   password: string;
   name: string;
+  lastName: string;
 }
 
 // RefreshTokenRequest.java
@@ -55,11 +56,6 @@ export interface ResetPasswordRequest {
 export interface ChangePasswordRequest {
   currentPassword: string;
   newPassword: string;
-}
-
-// ResendVerificationEmailRequest.java - se asume { email } por analogia con ForgotPasswordRequest.
-export interface ResendVerificationEmailRequest {
-  email: string;
 }
 
 // ErrorResponse.java: public record ErrorResponse(String message, int status, long timestamp)
