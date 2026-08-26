@@ -2,7 +2,7 @@
 
 > Responsibility: catalog of API endpoints exposed through `src/api/`.
 > Update when: an endpoint is added, changed, or removed, or a stub becomes real.
-> Sources: src/api/auth.ts, src/api/users.ts, src/api/health.ts, src/features/courses/api.ts
+> Sources: src/api/auth.ts, src/api/users.ts, src/api/health.ts, src/api/shop.ts, src/features/courses/api.ts
 
 Types → [types.md](./types.md). Client behavior → [http-client.md](./http-client.md).
 
@@ -34,6 +34,16 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 | Method | Path | Returns | Notes |
 |---|---|---|---|
 | `getMyInventory()` | `GET /inventories/me` | `UserInventory` | gems, streakShields, lives, xpMultiplier, totalSignsLearned |
+
+## `shopApi` (`src/api/shop.ts`) — mirrors `ShopItemController`/`PurchaseController`
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getItems()` | `GET /store/items` | `ShopItem[]` | full catalog; screen groups client-side by `itemType` into tabs (Vidas / Potenciadores / Especiales) |
+| `getMyInventory()` | `GET /inventories/me` | `ShopInventory` | full inventory shape (gems, `livesMode`, `currentLives`, streak shields, XP multiplier/unlimited-lives status) — **not** the narrower `UserInventory` from `inventoryApi` |
+| `purchase(shopItemId)` | `POST /store/purchases` | `PurchaseResult` | `{ shopItemId }`; response includes `effect` (resolved reward, notably for `MYSTERY_CHEST`) and the refreshed `inventory` |
+
+No endpoint lists a user's friends, so the Store screen only supports buying for yourself — the "regalar a un amigo" flow from the design (`POST /store/gifts` etc.) is not wired into the UI.
 
 ## `achievementsApi` (`src/api/achievements.ts`)
 
