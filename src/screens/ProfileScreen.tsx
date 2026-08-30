@@ -13,7 +13,10 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { TabParamList } from "@/navigation/TabNavigator";
+import type { AppStackParamList } from "@/navigation/AppNavigator";
 import { colors, fonts } from "@/theme";
 import { useAuth } from "@/context/AuthContext";
 import { usersApi, WeeklyXpEntry, UserStats, UserSettings } from "@/api/users";
@@ -148,6 +151,7 @@ function processWeeklyXp(data: WeeklyXpEntry[]): DayXp[] {
 export function ProfileScreen({}: Props) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
 
   const todayIdx = getTodayIndex();
 
@@ -1005,6 +1009,14 @@ export function ProfileScreen({}: Props) {
             Todavía no hay nada configurable acá. Esta sección va a estar disponible pronto.
           </Text>
         </View>
+        {/* PoC entry point: 3D animation test screen. */}
+        <PrimaryButton
+          label="Test de animación 3D"
+          onPress={() => {
+            setSettingsOpen(false);
+            navigation.navigate("AnimationTest");
+          }}
+        />
       </BottomSheet>
 
       {/* Edit profile modal */}

@@ -15,6 +15,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 | Onboarding (6 screens + progress) | real | [features/onboarding.md](./features/onboarding.md) |
 | Theming (palette + fonts) | real | [design-system/colors.md](./design-system/colors.md) |
 | Connection test | real | `screens/ConnectionTestScreen` |
+| 3D animation PoC (R2 presigned `.glb` → three.js) | PoC | `screens/AnimationTestScreen`, `features/animations/GlbAnimationView` |
 | User profile | partial | [api/session-persistence.md](./api/session-persistence.md) |
 | Courses | stub | [features/courses.md](./features/courses.md) |
 | ML (sign recognition) | placeholder | [features/ml.md](./features/ml.md) |
@@ -26,6 +27,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 - **No ESLint/Prettier config.** `npm run lint` runs eslint without configured rules; the real check today is `npm run typecheck` (tsc strict).
 - **Legacy theme tokens** (`accent`, `morado`, `azulOscuro`, `headingSemiBold`, …) still used by `AppNavigator` and old screens; migrate to current tokens.
 - **CI:** GitHub Actions (`.github/workflows/release.yml`, semantic-release on push to `master`). No GitLab pipeline.
+- **3D animation render (PoC) uses `react-native-webview` + Google `<model-viewer>`** (loaded from CDN). Full PBR/color, drag-to-rotate + auto-rotate, animation autoplay. **Requires R2 CORS** (GET) because the web engine fetches the `.glb`. Needs a dev build (native module, not Expo Go). The earlier native `three`/`expo-gl`/`expo-three`/`expo-file-system` path was dropped (embedded GLB textures can't load in RN — `new Blob([ArrayBuffer])` unsupported); those deps are now unused and can be removed.
 
 ## Next steps
 

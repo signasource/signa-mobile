@@ -50,6 +50,7 @@ Post-login screens with tab navigation. `screenOptions` use a dark header: `head
 | `Lesson` | `{ courseId: string; lessonId: string }` | "Leccion" | `features/courses/screens/LessonScreen` |
 | `SignRecognition` | — | "Practicar" | `features/ml/screens/SignRecognitionScreen` |
 | `ConnectionTest` | — | "Test de conexion" | `screens/ConnectionTestScreen` |
+| `AnimationTest` | — | "Test de animación 3D" | `screens/AnimationTestScreen` (PoC; entry point: Profile → Configuración) |
 
 Header titles are UI copy (Spanish), kept verbatim from the code.
 

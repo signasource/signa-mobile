@@ -47,6 +47,12 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 |---|---|---|---|
 | `getProgress()` | `GET /learning/tracking/progress` | `CourseProgress[]` | per-course progress, unit info, signs learned |
 
+## `signsApi` (`src/api/signs.ts`) — mirrors `SignController.java`
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getAnimation(meaning)` | `GET /signs/{meaning}/animation` | `SignAnimation` | Presigned R2 URL for the sign's `.glb`, addressed by the sign's unique `meaning`. 404 if the sign doesn't exist or has no animation. Used by the 3D animation PoC (`AnimationTestScreen`). |
+
 ## `health` (`src/api/health.ts`)
 
 `pingBackend()` for the connection test: GET to the API root with a short timeout.
