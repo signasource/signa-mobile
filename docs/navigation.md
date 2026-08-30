@@ -67,7 +67,7 @@ Bottom tab navigation with five tabs. Uses `@react-navigation/bottom-tabs`. Tab 
 | `Social` | people/people-outline | `screens/tabs/SocialTabScreen` |
 | `Profile` | person/person-outline | `screens/ProfileScreen` |
 
-Tab screens (Home, Practice, Store, Social) are currently placeholders. Only Profile tab has full implementation.
+Tab screens (Home, Practice, Social) are currently placeholders. Profile and Store have full implementations.
 
 ## Add a screen
 

@@ -16,6 +16,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 | Theming (palette + fonts) | real | [design-system/colors.md](./design-system/colors.md) |
 | Connection test | real | `screens/ConnectionTestScreen` |
 | User profile | partial | [api/session-persistence.md](./api/session-persistence.md) |
+| Store / Tienda (browse catalog, buy for self) | real | [api/endpoints.md](./api/endpoints.md#shopapi-srcapishopts--mirrors-shopitemcontrollerpurchasecontroller) |
 | Courses | stub | [features/courses.md](./features/courses.md) |
 | ML (sign recognition) | placeholder | [features/ml.md](./features/ml.md) |
 
@@ -25,6 +26,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 - **Password-reset token pasted by hand.** No deep linking; the user copies the token from the email. Email verification still exists on the backend (`verified` flag) but registration auto-logs in and the app surfaces no verify/resend UI.
 - **No ESLint/Prettier config.** `npm run lint` runs eslint without configured rules; the real check today is `npm run typecheck` (tsc strict).
 - **Legacy theme tokens** (`accent`, `morado`, `azulOscuro`, `headingSemiBold`, …) still used by `AppNavigator` and old screens; migrate to current tokens.
+- **No "list my friends" endpoint.** `signa-api` only exposes send/accept friend requests, not a list of accepted friends, so the Store screen's "regalar a un amigo" flow (`POST /store/gifts`) has no UI — buying is self-only for now.
 - **CI:** GitHub Actions (`.github/workflows/release.yml`, semantic-release on push to `master`). No GitLab pipeline.
 
 ## Next steps

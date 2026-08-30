@@ -24,6 +24,8 @@ export const colors = {
   success: "#4CA65C",
   warning: "#FBBF24",
   danger: "#E14E22",
+  warningLight: "#FEF3D6",
+  dangerLight: "#FBE0D8",
 
   // Gamification / profile palette
   streakOrange: "#FB8B24",
@@ -40,6 +42,11 @@ export const colors = {
   neutral600: "#86868B",
   neutral200: "#E7E7E9",
   neutral100: "#F2F2F3",
+
+  // Shop / tienda accent (Ámbar)
+  shopAmber: "#DE7211",
+  shopAmberDark: "#B85806",
+  shopAmberLight: "#FBE4C8",
 
   // Legacy aliases kept for existing app screens
   accent: "#7857FF",

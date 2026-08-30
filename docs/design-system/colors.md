@@ -51,6 +51,16 @@ The profile / stats screens use a pure-gray palette rather than the warm-toned o
 | `colors.neutral200` | `#E7E7E9` | borders (profile) |
 | `colors.neutral100` | `#F2F2F3` | fills / inputs (profile) |
 
+## Shop / tienda palette (use in the Store tab)
+
+| Token | Hex | Use |
+|---|---|---|
+| `colors.shopAmber` | `#DE7211` | tienda header, featured item, success/opening overlays |
+| `colors.shopAmberDark` | `#B85806` | success overlay background, "te quedan" emphasis text |
+| `colors.shopAmberLight` | `#FBE4C8` | icon medallion tint for amber-toned items |
+| `colors.warningLight` | `#FEF3D6` | icon medallion tint for `warning`-toned items (XP boosters) |
+| `colors.dangerLight` | `#FBE0D8` | icon medallion tint for `danger`-toned items (lives) |
+
 ## Legacy tokens (do NOT use in new screens)
 
 `accent`, `white`, `azulOscuro`, `blanco`, `morado`, `verde`, `amarillo`, `rosado`. Kept only for old screens (and `AppNavigator` uses `azulOscuro`/`white` in its header). New design → current tokens above.
