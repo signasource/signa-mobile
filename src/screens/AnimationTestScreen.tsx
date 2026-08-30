@@ -6,11 +6,9 @@ import { Card } from "@/components/Card";
 import { signsApi } from "@/api/signs";
 import { GlbAnimationView } from "@/features/animations/GlbAnimationView";
 
-// Demo sign meaning from .env (the backend's local TestSignSeeder creates "test"), editable below.
-const DEFAULT_SIGN_MEANING = process.env.EXPO_PUBLIC_TEST_SIGN_MEANING ?? "test";
-
 export function AnimationTestScreen() {
-  const [meaning, setMeaning] = useState(DEFAULT_SIGN_MEANING);
+  // Free-form: type any sign meaning and fetch its animation from the backend catalog.
+  const [meaning, setMeaning] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [animationUrl, setAnimationUrl] = useState<string | null>(null);
@@ -53,7 +51,7 @@ export function AnimationTestScreen() {
         style={styles.input}
         value={meaning}
         onChangeText={setMeaning}
-        placeholder="test"
+        placeholder="hola"
         placeholderTextColor={colors.textMuted}
         autoCapitalize="none"
         autoCorrect={false}
