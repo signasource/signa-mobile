@@ -25,6 +25,12 @@ export interface DailyGoal {
 
 export interface UserSettings {
   profileHeaderColor: string;
+  fontSize?: "SMALL" | "MEDIUM" | "LARGE";
+  vibrationEnabled?: boolean;
+  notificationsEnabled?: boolean;
+  dailyNotificationEnabled?: boolean;
+  accountVisibility?: "PUBLIC" | "PRIVATE";
+  dailyNotificationTime?: string;
 }
 
 export const usersApi = {
@@ -55,4 +61,9 @@ export const usersApi = {
 
   updateSettings: (payload: Partial<UserSettings>) =>
     apiClient.patch<UserSettings>("/users/settings", payload),
+
+  updateUsername: (username: string) =>
+    apiClient.patch<void>("/users/me", { username }),
+
+  deleteMe: () => apiClient.delete<void>("/users/me"),
 };

@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from "react";
-import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
+﻿import React, { useState, useMemo } from "react";
+import { View, ActivityIndicator, StyleSheet } from "react-native";
+import { Text } from "@/components/Text";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "@/navigation/AuthNavigator";
 import { useAuth } from "@/context/AuthContext";

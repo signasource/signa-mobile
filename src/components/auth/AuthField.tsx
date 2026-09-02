@@ -1,12 +1,12 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import {
   View,
-  Text,
   TextInput,
   TextInputProps,
   Pressable,
   StyleSheet,
 } from "react-native";
+import { Text } from "@/components/Text";
 import { FieldIcon, FieldIconName } from "@/components/FieldIcon";
 import { colors, fonts } from "@/theme";
 

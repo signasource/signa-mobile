@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { StyleSheet, Text, View, ViewStyle } from "react-native";
+﻿import React, { useState } from "react";
+import { StyleSheet, View, ViewStyle } from "react-native";
+import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
 import { GlbAnimationView } from "@/features/animations/GlbAnimationView";
 import { getCachedAnimationUrl } from "@/features/courses/animationPreload";

@@ -1,5 +1,6 @@
-import React from "react";
-import { View, Text, Pressable, StyleSheet, StatusBar } from "react-native";
+﻿import React from "react";
+import { View, Pressable, StyleSheet, StatusBar } from "react-native";
+import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "@/navigation/AuthNavigator";

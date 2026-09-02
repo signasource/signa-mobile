@@ -1,5 +1,6 @@
-import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+﻿import React from "react";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "@/theme";
 import { LessonButton } from "./LessonButton";
