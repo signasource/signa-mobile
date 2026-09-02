@@ -7,6 +7,8 @@ import { AppStackParamList } from "@/navigation/AppNavigator";
 import { lessonsApi } from "@/api/lessons";
 import { learningApi } from "@/api/learning";
 import { shopApi } from "@/api/shop";
+import { coursesApi } from "@/features/courses/api";
+import { preloadLessonAnimations } from "@/features/courses/animationPreload";
 import { BlockType, LessonContent, LessonContentBlock, parseBlockConfig } from "@/features/courses/lessonContent.types";
 import { LessonButton } from "@/features/courses/components/lesson/LessonButton";
 import { LessonHeader } from "@/features/courses/components/lesson/LessonHeader";
@@ -77,6 +79,15 @@ export function LessonScreen({ route, navigation }: Props) {
           setUnlimitedLives(inventoryRes.data.livesMode === "INFINITE");
           setLives(inventoryRes.data.currentLives ?? STARTING_LIVES);
         }
+
+        // Preload de animaciones: no bloquea la UI, silencioso ante errores.
+        coursesApi
+          .getSignLanguages()
+          .then((res) => {
+            const lsa = res.data.find((l) => l.code === "LSA");
+            if (lsa) return preloadLessonAnimations(lsa.id, lessonRes.data.blocks);
+          })
+          .catch(() => {});
       })
       .catch((err: any) => setError(err?.response?.data?.message ?? "No pudimos cargar la lección."))
       .finally(() => setLoading(false));

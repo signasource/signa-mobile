@@ -2,7 +2,7 @@
 
 > Responsibility: courses module scope and state.
 > Update when: course screens/types change, or the backend content API changes.
-> Sources: src/features/courses/, src/api/lessons.ts, src/api/learning.ts, src/screens/tabs/HomeTabScreen.tsx
+> Sources: src/features/courses/, src/api/lessons.ts, src/api/learning.ts, src/api/signs.ts, src/screens/tabs/HomeTabScreen.tsx
 
 Status: **mixed**. The **Inicio (Home) roadmap** is wired to real `signa-api` content, and the
 lesson player (`LessonScreen`) is real and wired to `signa-api`. Flat course/lesson browsing
@@ -45,6 +45,18 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   `LessonComplete`, and `blocks/` with one component per `BlockType`
   (`InfoBlock`, `SelectMeaningBlock`, `SelectSignBlock`, `ContextResponseBlock` and
   `SelectSignBlock` share `SignCarouselBlock`, `MatchBlock`, `VisualRecognitionBlock`).
+- `animationPreload.ts`: as soon as the lesson loads, resolves LSA's `signLanguageId`
+  (`coursesApi.getSignLanguages()`) and fires `preloadLessonAnimations(signLanguageId, blocks)` —
+  fire-and-forget, errors swallowed, doesn't block the UI. `collectSignMeanings(blocks)` picks the
+  sign *meanings* to look up per block type (mirrors `signa-api`'s `SignController`/`Sign` entity,
+  `meaning` → `animationUrl`): `SELECT_MEANING.sign`, `SELECT_SIGN.options`,
+  `CONTEXT_RESPONSE.options`, `MATCH.concepts`, `VISUAL_RECOGNITION.sign_sequence` (its `options`
+  are plain text, not animated). Each meaning is looked up via `signsApi.getSigns` (`GET
+  /signs?signLanguageId=&query=`, a *contains* match — the exact meaning is picked from the page,
+  falling back to the first result) and its `animationUrl` is cached process-wide
+  (`getCachedAnimationUrl`) plus best-effort `Image.prefetch`ed. Not yet consumed by the block
+  components themselves — `SignPlaceholder` still renders a static card — this only warms the
+  cache/network for when real animation rendering lands.
 
 To advance: wire the Inicio roadmap's lesson CTA to navigate into this real `LessonScreen` with a
 real `unitLabel` (currently it just closes the sheet — see below). Once `signa-api` #60 merges,
