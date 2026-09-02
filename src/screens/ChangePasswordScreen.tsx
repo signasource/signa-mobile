@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from "react-native";
+﻿import React, { useState } from "react";
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from "react-native";
+import { Text } from "@/components/Text";
 import { colors, fonts, fontSizes } from "@/theme";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";

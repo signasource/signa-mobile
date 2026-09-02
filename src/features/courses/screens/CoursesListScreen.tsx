@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native";
+﻿import React, { useEffect, useState } from "react";
+import { ActivityIndicator, FlatList, StyleSheet, View } from "react-native";
+import { Text } from "@/components/Text";
 import { colors, fonts, fontSizes } from "@/theme";
 import { Card } from "@/components/Card";
 import { coursesApi } from "../api";

@@ -15,6 +15,7 @@ import {
 } from "@expo-google-fonts/bricolage-grotesque";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider } from "@/context/AuthContext";
+import { SettingsProvider } from "@/context/SettingsContext";
 import { RootNavigator } from "@/navigation/RootNavigator";
 import { colors } from "@/theme";
 
@@ -39,10 +40,12 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <StatusBar style="dark" />
-        <RootNavigator />
-      </AuthProvider>
+      <SettingsProvider>
+        <AuthProvider>
+          <StatusBar style="dark" />
+          <RootNavigator />
+        </AuthProvider>
+      </SettingsProvider>
     </SafeAreaProvider>
   );
 }

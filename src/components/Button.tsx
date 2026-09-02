@@ -1,5 +1,6 @@
-import React from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, ViewStyle } from "react-native";
+﻿import React from "react";
+import { ActivityIndicator, Pressable, StyleSheet, ViewStyle } from "react-native";
+import { Text } from "@/components/Text";
 import { colors, fonts, fontSizes } from "@/theme";
 
 type Variant = "primary" | "secondary" | "outline";

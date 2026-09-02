@@ -1,28 +1,33 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
-  Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  TextInput,
   ActivityIndicator,
   Pressable,
   Dimensions,
 } from "react-native";
+import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+import { BottomTabNavigationProp, BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+import { CompositeNavigationProp, useFocusEffect } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { TabParamList } from "@/navigation/TabNavigator";
+import { AppStackParamList } from "@/navigation/AppNavigator";
 import { colors, fonts } from "@/theme";
 import { useAuth } from "@/context/AuthContext";
-import { usersApi, WeeklyXpEntry, UserStats, UserSettings } from "@/api/users";
-import { useUsernameAvailability } from "@/hooks/useUsernameAvailability";
+import { usersApi, WeeklyXpEntry, UserStats } from "@/api/users";
 import { inventoryApi, UserInventory } from "@/api/inventory";
 import { achievementsApi, Achievement } from "@/api/achievements";
 import { learningApi, CourseProgress } from "@/api/learning";
 
-type Props = BottomTabScreenProps<TabParamList, "Profile">;
+type ProfileNavigation = CompositeNavigationProp<
+  BottomTabNavigationProp<TabParamList, "Profile">,
+  NativeStackNavigationProp<AppStackParamList>
+>;
+type Props = BottomTabScreenProps<TabParamList, "Profile"> & { navigation: ProfileNavigation };
 type Section = "general" | "cursos" | "inventario" | "logros";
 type AchFilter = "unlocked" | "locked";
 
@@ -145,7 +150,7 @@ function processWeeklyXp(data: WeeklyXpEntry[]): DayXp[] {
 }
 
 // ─── main component ───────────────────────────────────────────
-export function ProfileScreen({}: Props) {
+export function ProfileScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
 
@@ -155,26 +160,19 @@ export function ProfileScreen({}: Props) {
   const [activeSection, setActiveSection] = useState<Section>("general");
   const [headerColor, setHeaderColor] = useState(colors.surface);
   const [headerColorDraft, setHeaderColorDraft] = useState(colors.surface);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
   const [headerColorOpen, setHeaderColorOpen] = useState(false);
   const [goalOpen, setGoalOpen] = useState(false);
   const [goalDraft, setGoalDraft] = useState(15);
   const [achievementDetailId, setAchievementDetailId] = useState<number | null>(null);
   const [achFilter, setAchFilter] = useState<AchFilter>("unlocked");
   const [selectedDayIndex, setSelectedDayIndex] = useState(todayIdx);
-  const [nameDraft, setNameDraft] = useState("");
-  const [usernameDraft, setUsernameDraft] = useState("");
 
   // Data state (populated from API, with fallback defaults shown below)
   const [loading, setLoading] = useState(true);
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
 
-  // Availability check: skip when the draft equals the current saved username
-  const { status: usernameStatus, message: usernameMessage } = useUsernameAvailability(
-    usernameDraft.trim() === username ? "" : usernameDraft
-  );
+  const firstFocus = useRef(true);
   const [weekDays, setWeekDays] = useState<DayXp[]>(buildDefaultWeek);
   const [dailyGoalMinutes, setDailyGoalMinutes] = useState(15);
   const [inventory, setInventory] = useState<UserInventory>(DEFAULT_INVENTORY);
@@ -196,6 +194,20 @@ export function ProfileScreen({}: Props) {
   useEffect(() => {
     loadProfile();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (firstFocus.current) {
+        firstFocus.current = false;
+        return;
+      }
+      usersApi.getSettings().then((res) => {
+        const color = res.data.profileHeaderColor;
+        setHeaderColor(color);
+        setHeaderColorDraft(color);
+      }).catch(() => {});
+    }, [])
+  );
 
   // Life regeneration countdown
   useEffect(() => {
@@ -233,12 +245,8 @@ export function ProfileScreen({}: Props) {
       const p = profileRes.value.data;
       setDisplayName(p.name);
       setUsername(p.username);
-      setNameDraft(p.name);
-      setUsernameDraft(p.username);
     } else {
-      const n = user?.name ?? "";
-      setDisplayName(n);
-      setNameDraft(n);
+      setDisplayName(user?.name ?? "");
     }
 
     if (weekRes.status === "fulfilled") {
@@ -346,14 +354,7 @@ export function ProfileScreen({}: Props) {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.iconBtn}
-                onPress={() => setEditOpen(true)}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="create-outline" size={23} color={onHeader} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.iconBtn}
-                onPress={() => setSettingsOpen(true)}
+                onPress={() => navigation.navigate("Configuration")}
                 activeOpacity={0.7}
               >
                 <Ionicons name="settings-outline" size={23} color={onHeader} />
@@ -996,56 +997,6 @@ export function ProfileScreen({}: Props) {
           </ScrollView>
         </>
       )}
-
-      {/* Settings modal */}
-      <BottomSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Configuración">
-        <View style={styles.settingsPlaceholder}>
-          <Ionicons name="construct-outline" size={36} color={colors.neutral600} />
-          <Text style={styles.placeholderText}>
-            Todavía no hay nada configurable acá. Esta sección va a estar disponible pronto.
-          </Text>
-        </View>
-      </BottomSheet>
-
-      {/* Edit profile modal */}
-      <BottomSheet open={editOpen} onClose={() => setEditOpen(false)} title="Editar perfil">
-        <Text style={styles.fieldLabel}>Nombre</Text>
-        <TextInput
-          style={styles.fieldInput}
-          value={nameDraft}
-          onChangeText={setNameDraft}
-          placeholderTextColor={colors.neutral600}
-        />
-        <Text style={styles.fieldLabel}>Usuario</Text>
-        <TextInput
-          style={[styles.fieldInput, { marginBottom: usernameMessage ? 6 : 14 }]}
-          value={usernameDraft}
-          onChangeText={setUsernameDraft}
-          placeholderTextColor={colors.neutral600}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        {usernameMessage && (
-          <Text
-            style={[
-              styles.usernameStatusText,
-              usernameStatus === "available" && { color: colors.success },
-              (usernameStatus === "taken" || usernameStatus === "invalid" || usernameStatus === "error") && { color: colors.danger },
-            ]}
-          >
-            {usernameMessage}
-          </Text>
-        )}
-        <PrimaryButton
-          label="Guardar"
-          disabled={usernameStatus === "taken" || usernameStatus === "invalid"}
-          onPress={() => {
-            setDisplayName(nameDraft);
-            setUsername(usernameDraft);
-            setEditOpen(false);
-          }}
-        />
-      </BottomSheet>
 
       {/* Header color modal */}
       <BottomSheet
@@ -1978,39 +1929,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  settingsPlaceholder: {
-    alignItems: "center",
-    paddingVertical: 28,
-    paddingHorizontal: 12,
-    gap: 12,
-  },
-  placeholderText: {
-    fontFamily: fonts.bodyRegular,
-    fontSize: 14,
-    color: colors.neutral600,
-    lineHeight: 22,
-    textAlign: "center",
-  },
-
-  // Edit form
-  fieldLabel: {
-    fontFamily: fonts.bodyRegular,
-    fontSize: 12,
-    color: colors.neutral600,
-    marginBottom: 6,
-  },
-  fieldInput: {
-    width: "100%",
-    backgroundColor: colors.neutral100,
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    fontFamily: fonts.bodyRegular,
-    fontSize: 15,
-    color: colors.neutral900,
-    marginBottom: 14,
-  },
-
   // Color picker
   colorGrid: {
     flexDirection: "row",
@@ -2075,14 +1993,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.surface,
   },
-  usernameStatusText: {
-    fontFamily: fonts.bodyRegular,
-    fontSize: 12,
-    color: colors.neutral600,
-    marginBottom: 14,
-    marginLeft: 4,
-  },
-
   // Achievement detail
   achDetailBody: {
     alignItems: "center",

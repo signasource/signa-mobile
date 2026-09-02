@@ -1,5 +1,6 @@
-import React from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+﻿import React from "react";
+import { ScrollView, StyleSheet, View } from "react-native";
+import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "@/theme";
 import { InfoConfig } from "@/features/courses/lessonContent.types";
