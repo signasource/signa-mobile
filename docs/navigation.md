@@ -45,9 +45,9 @@ Post-login screens with tab navigation. `screenOptions` use a dark header: `head
 
 | Route | Params | Header title | Screen |
 |---|---|---|---|
-| `Tabs` | — | (no header) | `navigation/TabNavigator` |
+| `Tabs` | `NavigatorScreenParams<TabParamList>` (optional) — lets a caller deep-link into a tab, e.g. `navigation.navigate("Tabs", { screen: "Store" })` | (no header) | `navigation/TabNavigator` |
 | `ChangePassword` | — | "Cambiar contrasena" | `screens/ChangePasswordScreen` |
-| `Lesson` | `{ courseId: string; lessonId: string }` | "Leccion" | `features/courses/screens/LessonScreen` |
+| `Lesson` | `{ lessonId: string; unitLabel?: string }` | (no header, screen renders its own) | `features/courses/screens/LessonScreen` |
 | `SignRecognition` | — | "Practicar" | `features/ml/screens/SignRecognitionScreen` |
 | `ConnectionTest` | — | "Test de conexion" | `screens/ConnectionTestScreen` |
 

@@ -51,11 +51,19 @@ No endpoint lists a user's friends, so the Store screen only supports buying for
 |---|---|---|---|
 | `getAchievements(unlocked)` | `GET /achievements?unlocked=` | `Achievement[]` | pass `true` or `false` |
 
-## `learningApi` (`src/api/learning.ts`)
+## `learningApi` (`src/api/learning.ts`) — mirrors `CourseTrackingController.java`
 
 | Method | Path | Returns | Notes |
 |---|---|---|---|
 | `getProgress()` | `GET /learning/tracking/progress` | `CourseProgress[]` | per-course progress, unit info, signs learned |
+| `enroll(courseVersionId)` | `POST /learning/tracking/courses/{courseVersionId}/enroll` | `void` | not yet called from any screen |
+| `recordBlockInteraction(lessonBlockId, isCorrect)` | `POST /learning/tracking/blocks/{lessonBlockId}/interactions` | `void` | `isCorrect` is `null` for an `INFO` block view, `true`/`false` for an evaluable block attempt. Called from `LessonScreen` per block interaction (see [features/courses.md](../features/courses.md)); XP/lesson/topic/course completion is awarded server-side on the **first correct** attempt per block, so it's safe to call once per attempt (including repeated wrong taps inside `MATCH`/`VISUAL_RECOGNITION`) |
+
+## `lessonsApi` (`src/api/lessons.ts`) — mirrors `LessonController.java`
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getLesson(lessonId)` | `GET /lessons/{id}` | `LessonContent` | full block content for the lesson player. Each block's `config` is a **raw JSON string** (not camelCased by the client interceptor) — parse with `parseBlockConfig` from `features/courses/lessonContent.types.ts`; see [types.md](./types.md) |
 
 ## `health` (`src/api/health.ts`)
 
