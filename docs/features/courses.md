@@ -24,9 +24,19 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   and the caller's lives (`shopApi.getMyInventory()`), walks `blocks` in `order`, renders the
   matching block component, and reports every answer to
   `learningApi.recordBlockInteraction(blockId, isCorrect)` (`isCorrect: null` for an `INFO` view).
-  Local-only state: a session life counter (decremented on a wrong answer, since there's no
-  backend endpoint yet to spend a life from a lesson attempt) and the XP/aciertos/señas summary
-  shown on the completion screen. `route.params`: `{ lessonId: string; unitLabel?: string }` —
+  That same call is now also where the backend spends a life server-side: `signa-api` PR #60
+  (`feature/rest-lives-errors` → `develop`, open as of 2026-09-02) makes
+  `CourseTrackingService.recordBlockInteraction` publish a `LifeLostEvent` whenever a non-`INFO`
+  block is answered incorrectly, and `UserStatsEventListener` decrements `UserStats.currentLives`
+  through it — no-op when `livesMode = INFINITE` or already at 0, defaulting to 5 (`MAX_LIVES`) if
+  never initialized. No new endpoint or app change was needed: the client already calls
+  `recordBlockInteraction` on every answer. The screen's own `lives` state is a **local optimistic
+  mirror** of the same rule (starts from `shopApi.getMyInventory()`'s `currentLives`, decrements by
+  1 on a wrong non-`INFO` answer, floors at 0, skips when `unlimitedLives`) — it stays in sync as
+  long as the fire-and-forget `recordInteraction` call (errors are swallowed, see below) actually
+  reaches the server; a dropped request leaves the local counter one life ahead of the backend
+  until the lesson is reopened and inventory is refetched. The XP/aciertos/señas summary
+  shown on the completion screen is still local-only. `route.params`: `{ lessonId: string; unitLabel?: string }` —
   `unitLabel` is supplied by the caller (there's no course-path screen yet to source it from
   `TopicSummaryResponse`, so it falls back to the lesson's own name).
 - `components/lesson/`: `LessonHeader` (back + progress + lives), `XpChip`, `FeedbackBar`,
@@ -37,9 +47,10 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   `SelectSignBlock` share `SignCarouselBlock`, `MatchBlock`, `VisualRecognitionBlock`).
 
 To advance: wire the Inicio roadmap's lesson CTA to navigate into this real `LessonScreen` with a
-real `unitLabel` (currently it just closes the sheet — see below). Consider a backend endpoint to
-spend a life per wrong answer once the lives system needs to be authoritative across
-devices/sessions instead of per-attempt local state.
+real `unitLabel` (currently it just closes the sheet — see below). Once `signa-api` #60 merges,
+consider trusting the server as the sole source of truth for `lives` (e.g. refetch
+`shopApi.getMyInventory()` after each wrong answer, or surface the fire-and-forget interaction
+error) instead of the local optimistic decrement, to remove the drift risk on a dropped request.
 
 ### Inicio (Home) roadmap screen
 
