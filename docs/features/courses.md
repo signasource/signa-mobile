@@ -49,17 +49,19 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   `SelectMeaningBlock` and `SignCarouselBlock` (so `SelectSignBlock`/`ContextResponseBlock`) render
   the sign via `SignAnimation`; `MatchBlock`/`VisualRecognitionBlock` still use static
   cards/swatches (they show many signs at once, not one at a time).
-- `animationPreload.ts`: as soon as the lesson loads, resolves LSA's `signLanguageId`
-  (`coursesApi.getSignLanguages()`) and fires `preloadLessonAnimations(signLanguageId, blocks)` —
-  fire-and-forget, errors swallowed, doesn't block the UI. `collectSignMeanings(blocks)` picks the
-  sign *meanings* to look up per block type (mirrors `signa-api`'s `SignController`/`Sign` entity,
-  `meaning` → `animationUrl`): `SELECT_MEANING.sign`, `SELECT_SIGN.options`,
-  `CONTEXT_RESPONSE.options`, `MATCH.concepts`, `VISUAL_RECOGNITION.sign_sequence` (its `options`
-  are plain text, not animated). Each meaning is looked up via `signsApi.getSigns` (`GET
-  /signs?signLanguageId=&query=`, a *contains* match — the exact meaning is picked from the page,
-  falling back to the first result) and its `animationUrl` is cached process-wide
-  (`getCachedAnimationUrl`) plus best-effort `Image.prefetch`ed. `SignAnimation` reads that same
-  cache synchronously when its block renders.
+- `animationPreload.ts`: as soon as the lesson loads, fires
+  `preloadLessonAnimations(blocks)` — fire-and-forget, errors swallowed, doesn't block the UI.
+  `collectSignMeanings(blocks)` picks the sign *meanings* to look up per block type (mirrors
+  `signa-api`'s `SignController`/`Sign` entity, `meaning` → `animationUrl`): `SELECT_MEANING.sign`,
+  `SELECT_SIGN.options`, `CONTEXT_RESPONSE.options`, `MATCH.concepts`,
+  `VISUAL_RECOGNITION.sign_sequence` (its `options` are plain text, not animated). All pending
+  meanings are resolved in **one** batched request, `signsApi.getSignAnimations` (`POST
+  /signs/animations`, exact-meaning match, presigned URLs) — not one `GET /signs` call per sign as
+  before, which is what let the lesson player advance faster than each animation could load. Each
+  returned URL is cached process-wide (`getCachedAnimationUrl`) plus best-effort
+  `Image.prefetch`ed; a meaning missing from the response (no sign, or no animation uploaded) is
+  cached as `null` so `SignAnimation` falls back to `SignPlaceholder` without retrying. `SignAnimation`
+  reads that same cache synchronously when its block renders.
 - `features/animations/GlbAnimationView.tsx`: renders a `.glb` inside a `WebView` using Google's
   `<model-viewer>` (loaded from a CDN `<script type="module">`; the GLB itself is fetched by the
   web engine, so the R2 bucket must allow CORS `GET`). Same strategy and encuadre as the

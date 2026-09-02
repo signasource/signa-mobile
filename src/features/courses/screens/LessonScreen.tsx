@@ -7,7 +7,6 @@ import { AppStackParamList } from "@/navigation/AppNavigator";
 import { lessonsApi } from "@/api/lessons";
 import { learningApi } from "@/api/learning";
 import { shopApi } from "@/api/shop";
-import { coursesApi } from "@/features/courses/api";
 import { preloadLessonAnimations } from "@/features/courses/animationPreload";
 import { BlockType, LessonContent, LessonContentBlock, parseBlockConfig } from "@/features/courses/lessonContent.types";
 import { LessonButton } from "@/features/courses/components/lesson/LessonButton";
@@ -81,13 +80,7 @@ export function LessonScreen({ route, navigation }: Props) {
         }
 
         // Preload de animaciones: no bloquea la UI, silencioso ante errores.
-        coursesApi
-          .getSignLanguages()
-          .then((res) => {
-            const lsa = res.data.find((l) => l.code === "LSA");
-            if (lsa) return preloadLessonAnimations(lsa.id, lessonRes.data.blocks);
-          })
-          .catch(() => {});
+        preloadLessonAnimations(lessonRes.data.blocks).catch(() => {});
       })
       .catch((err: any) => setError(err?.response?.data?.message ?? "No pudimos cargar la lección."))
       .finally(() => setLoading(false));

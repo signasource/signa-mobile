@@ -69,7 +69,8 @@ No endpoint lists a user's friends, so the Store screen only supports buying for
 
 | Method | Path | Returns | Notes |
 |---|---|---|---|
-| `getSigns(signLanguageId, query?)` | `GET /signs?signLanguageId=&query=` | `Page<SignSummary>` | `SignSummary`: `{ id, meaning, description, handedness, animationUrl }`. `query` is a **contains**, case-insensitive match against `meaning` (`findBySignLanguageIdAndMeaningContainingIgnoreCase`), not exact. Used by `preloadLessonAnimations` (see [features/courses.md](../features/courses.md)) to resolve a sign's `animationUrl` by meaning. |
+| `getSigns(signLanguageId, query?)` | `GET /signs?signLanguageId=&query=` | `Page<SignSummary>` | `SignSummary`: `{ id, meaning, description, handedness, animationUrl }`. `query` is a **contains**, case-insensitive match against `meaning` (`findBySignLanguageIdAndMeaningContainingIgnoreCase`), not exact. `animationUrl` here is the raw R2 **object key**, not a fetchable URL — don't render it directly. |
+| `getSignAnimations(meanings)` | `POST /signs/animations` `{ meanings }` | `Record<meaning, url>` | Batched, exact-meaning lookup of **presigned** animation URLs (mirrors `SignController.getSignAnimations`/`SignService.getSignAnimations`). Meanings with no matching sign, or no animation uploaded, are simply absent from the response. Used by `preloadLessonAnimations` (see [features/courses.md](../features/courses.md)) to fetch every animation a lesson needs in one request. |
 
 ## `health` (`src/api/health.ts`)
 

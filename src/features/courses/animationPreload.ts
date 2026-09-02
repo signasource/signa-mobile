@@ -49,36 +49,32 @@ export function collectSignMeanings(blocks: LessonContentBlock[]): string[] {
   return [...meanings];
 }
 
-async function fetchAnimationUrl(signLanguageId: string, meaning: string): Promise<string | null> {
-  const res = await signsApi.getSigns(signLanguageId, meaning);
-  const exact = res.data.content.find((s) => s.meaning.toLowerCase() === meaning.toLowerCase());
-  return (exact ?? res.data.content[0])?.animationUrl ?? null;
-}
-
 /**
  * Fetches (and caches) the animation URL for every sign meaning used by the
- * lesson's blocks, then best-effort prefetches each asset. Meant to be
- * kicked off as soon as a lesson starts, without blocking the UI: failures
- * per-sign are swallowed so one missing/broken animation doesn't stop the
- * rest from preloading.
+ * lesson's blocks in a single batched request, then best-effort prefetches
+ * each asset. Meant to be kicked off as soon as a lesson starts, without
+ * blocking the UI: a failed request just leaves those meanings uncached, so
+ * `SignAnimation` falls back to the placeholder instead of breaking the
+ * lesson.
  */
-export async function preloadLessonAnimations(
-  signLanguageId: string,
-  blocks: LessonContentBlock[]
-): Promise<void> {
+export async function preloadLessonAnimations(blocks: LessonContentBlock[]): Promise<void> {
   const pending = collectSignMeanings(blocks).filter((meaning) => !animationUrlCache.has(meaning));
+  if (pending.length === 0) return;
 
-  await Promise.all(
-    pending.map(async (meaning) => {
-      try {
-        const url = await fetchAnimationUrl(signLanguageId, meaning);
+  try {
+    const res = await signsApi.getSignAnimations(pending);
+    const urlsByMeaning = res.data;
+
+    await Promise.all(
+      pending.map(async (meaning) => {
+        const url = urlsByMeaning[meaning] ?? null;
         animationUrlCache.set(meaning, url);
         if (url) {
           await Image.prefetch(url).catch(() => {});
         }
-      } catch {
-        animationUrlCache.set(meaning, null);
-      }
-    })
-  );
+      })
+    );
+  } catch {
+    pending.forEach((meaning) => animationUrlCache.set(meaning, null));
+  }
 }

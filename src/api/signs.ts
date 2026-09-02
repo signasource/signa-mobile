@@ -21,4 +21,12 @@ interface SignsPage {
 export const signsApi = {
   getSigns: (signLanguageId: string, query?: string) =>
     apiClient.get<SignsPage>("/signs", { params: { signLanguageId, query } }),
+
+  /**
+   * Batched, exact-meaning lookup of presigned animation URLs. Mirrors
+   * SignController.getSignAnimations: meanings with no matching sign, or no
+   * animation uploaded, are simply absent from the response.
+   */
+  getSignAnimations: (meanings: string[]) =>
+    apiClient.post<Record<string, string>>("/signs/animations", { meanings }),
 };
