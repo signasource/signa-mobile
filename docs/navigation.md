@@ -67,7 +67,7 @@ Bottom tab navigation with five tabs. Uses `@react-navigation/bottom-tabs`. Tab 
 | `Social` | people/people-outline | `screens/tabs/SocialTabScreen` |
 | `Profile` | person/person-outline | `screens/ProfileScreen` |
 
-Tab screens (Home, Practice, Social) are currently placeholders. Profile and Store have full implementations.
+Tab screens Practice and Social are currently placeholders. Home (Inicio lesson roadmap — see [features/courses.md](./features/courses.md#inicio-home-roadmap-screen)), Store and Profile have full implementations.
 
 ## Add a screen
 

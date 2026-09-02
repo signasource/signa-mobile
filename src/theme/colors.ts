@@ -43,6 +43,10 @@ export const colors = {
   neutral200: "#E7E7E9",
   neutral100: "#F2F2F3",
 
+  // Roadmap locked state (Inicio timeline nodes/labels)
+  roadmapLockedIcon: "#A9A09A",
+  roadmapLockedBorder: "#DCD2C8",
+
   // Shop / tienda accent (Ámbar)
   shopAmber: "#DE7211",
   shopAmberDark: "#B85806",

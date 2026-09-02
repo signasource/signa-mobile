@@ -40,6 +40,16 @@ Import: `import { colors } from "@/theme"`. Rule: every visual value comes from 
 | `colors.successDark` | `#2E7D45` | active booster text |
 | `colors.successLight` | `#E7F5EA` | active booster background |
 
+## Roadmap locked state (Inicio timeline)
+
+The Inicio lesson-roadmap draws locked / review / chest nodes and labels with a muted grey that
+has no equivalent in the palettes above.
+
+| Token | Hex | Use |
+|---|---|---|
+| `colors.roadmapLockedIcon` | `#A9A09A` | locked node icon, dimmed lesson label, disabled CTA text |
+| `colors.roadmapLockedBorder` | `#DCD2C8` | locked node border |
+
 ## Neutral grays (profile screen uses a pure-gray palette)
 
 The profile / stats screens use a pure-gray palette rather than the warm-toned one. Use these tokens in those screens.

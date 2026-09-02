@@ -17,7 +17,9 @@ Per-feature detail is owned by each feature doc; this is the index.
 | Connection test | real | `screens/ConnectionTestScreen` |
 | User profile | partial | [api/session-persistence.md](./api/session-persistence.md) |
 | Store / Tienda (browse catalog, buy for self) | real | [api/endpoints.md](./api/endpoints.md#shopapi-srcapishopts--mirrors-shopitemcontrollerpurchasecontroller) |
-| Courses | mixed — lesson player real, catalog stub | [features/courses.md](./features/courses.md) |
+| Inicio (Home) roadmap screen | real (topics/lessons + per-lesson state from `signa-api`) | [features/courses.md](./features/courses.md#inicio-home-roadmap-screen) |
+| Lesson player (`LessonScreen`) | real, wired to `signa-api` | [features/courses.md](./features/courses.md#lesson-player--real) |
+| Courses flat browse (`CoursesListScreen`) | stub | [features/courses.md](./features/courses.md#course-catalog--stub) |
 | ML (sign recognition) | placeholder | [features/ml.md](./features/ml.md) |
 
 ## Cross-cutting tech debt
@@ -33,7 +35,8 @@ Per-feature detail is owned by each feature doc; this is the index.
 
 - `GET /users/me` (or equivalent) to stop deriving the profile from the decoded JWT.
 - Deep linking for password reset.
-- Confirm and wire real `courses` endpoints; build a lesson-path screen that navigates into the now-real `LessonScreen`.
+- Wire the Inicio roadmap lesson CTA to navigate into the now-real `LessonScreen`.
+- Confirm real `courses` endpoints for the flat browse stub, or retire it in favor of the Inicio roadmap.
 - Decide the camera + ML runtime stack and migrate to a dev build.
 - Persist onboarding answers once there is a place to store them.
 - (Optional) Configure ESLint/Prettier.
