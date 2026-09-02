@@ -3,7 +3,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "@/theme";
 import { SelectMeaningConfig } from "@/features/courses/lessonContent.types";
-import { SignPlaceholder } from "../SignPlaceholder";
+import { SignAnimation } from "../SignAnimation";
 import { XpChip } from "../XpChip";
 import { FeedbackBar } from "../FeedbackBar";
 import { LessonButton } from "../LessonButton";
@@ -35,7 +35,7 @@ export function SelectMeaningBlock({ config, xp, onAnswer, onContinue }: SelectM
           <XpChip xp={xp} state={answered ? (correct ? "correct" : "incorrect") : "idle"} />
         </View>
 
-        <SignPlaceholder label="avatar 3D · config.sign" icon={answered ? "refresh" : "play"} />
+        <SignAnimation meaning={config.sign} label="avatar 3D" paused={answered} />
 
         <View style={styles.grid}>
           {config.options.map((option) => {

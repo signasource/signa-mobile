@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "@/theme";
-import { SignPlaceholder } from "../SignPlaceholder";
+import { SignAnimation } from "../SignAnimation";
 import { XpChip } from "../XpChip";
 import { FeedbackBar } from "../FeedbackBar";
 import { LessonButton } from "../LessonButton";
@@ -69,11 +69,12 @@ export function SignCarouselBlock({
         <View style={styles.stack}>
           <View style={[styles.stackLayer, styles.stackLayerBack]} />
           <View style={[styles.stackLayer, styles.stackLayerMid]} />
-          <SignPlaceholder
+          <SignAnimation
+            meaning={options[index]}
             label={`avatar 3D · seña ${index + 1}`}
             height={330}
             tone={cardTone}
-            icon={status === "idle" ? "play" : "refresh"}
+            paused={answered}
             badge={`Opción ${index + 1} de ${options.length}`}
             style={styles.stackFront}
           />

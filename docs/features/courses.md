@@ -40,11 +40,15 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   `unitLabel` is supplied by the caller (there's no course-path screen yet to source it from
   `TopicSummaryResponse`, so it falls back to the lesson's own name).
 - `components/lesson/`: `LessonHeader` (back + progress + lives), `XpChip`, `FeedbackBar`,
-  `LessonButton`, `SignPlaceholder` (the sign/avatar animation is still a placeholder card — see
-  [ml.md](./ml.md), there's no real animation asset pipeline yet), `NoLivesOverlay`,
-  `LessonComplete`, and `blocks/` with one component per `BlockType`
-  (`InfoBlock`, `SelectMeaningBlock`, `SelectSignBlock`, `ContextResponseBlock` and
+  `LessonButton`, `SignPlaceholder` (fallback card shown while a meaning's animation URL isn't
+  cached yet — still loading, no animation for that meaning, or the model failed), `SignAnimation`
+  (looks up the meaning in `animationPreload`'s cache and renders `GlbAnimationView`, falling back
+  to `SignPlaceholder`), `NoLivesOverlay`, `LessonComplete`, and `blocks/` with one component per
+  `BlockType` (`InfoBlock`, `SelectMeaningBlock`, `SelectSignBlock`, `ContextResponseBlock` and
   `SelectSignBlock` share `SignCarouselBlock`, `MatchBlock`, `VisualRecognitionBlock`).
+  `SelectMeaningBlock` and `SignCarouselBlock` (so `SelectSignBlock`/`ContextResponseBlock`) render
+  the sign via `SignAnimation`; `MatchBlock`/`VisualRecognitionBlock` still use static
+  cards/swatches (they show many signs at once, not one at a time).
 - `animationPreload.ts`: as soon as the lesson loads, resolves LSA's `signLanguageId`
   (`coursesApi.getSignLanguages()`) and fires `preloadLessonAnimations(signLanguageId, blocks)` —
   fire-and-forget, errors swallowed, doesn't block the UI. `collectSignMeanings(blocks)` picks the
@@ -54,9 +58,17 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   are plain text, not animated). Each meaning is looked up via `signsApi.getSigns` (`GET
   /signs?signLanguageId=&query=`, a *contains* match — the exact meaning is picked from the page,
   falling back to the first result) and its `animationUrl` is cached process-wide
-  (`getCachedAnimationUrl`) plus best-effort `Image.prefetch`ed. Not yet consumed by the block
-  components themselves — `SignPlaceholder` still renders a static card — this only warms the
-  cache/network for when real animation rendering lands.
+  (`getCachedAnimationUrl`) plus best-effort `Image.prefetch`ed. `SignAnimation` reads that same
+  cache synchronously when its block renders.
+- `features/animations/GlbAnimationView.tsx`: renders a `.glb` inside a `WebView` using Google's
+  `<model-viewer>` (loaded from a CDN `<script type="module">`; the GLB itself is fetched by the
+  web engine, so the R2 bucket must allow CORS `GET`). Same strategy and encuadre as the
+  `feature/poc-animations` spike: `camera-controls` (drag to rotate) with the vertical orbit
+  clamped to `60deg`–`110deg`, `autoplay`, optional `autoRotate`; once the model's `load` event
+  fires, JS reframes the camera target ~30% up from the bounding-box center (upper body/chest) and
+  sets `fieldOfView="15deg"`. Reports loaded animation clip names and load errors back to RN via
+  `postMessage`; `paused` toggles `play()`/`pause()` on the `<model-viewer>` through
+  `injectJavaScript` without reloading the model. Depends on `react-native-webview`.
 
 To advance: wire the Inicio roadmap's lesson CTA to navigate into this real `LessonScreen` with a
 real `unitLabel` (currently it just closes the sheet — see below). Once `signa-api` #60 merges,
