@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -11,9 +11,12 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+import { BottomTabNavigationProp, BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+import { CompositeNavigationProp, useFocusEffect } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { colors, fonts, fontSizes } from "@/theme";
 import { TabParamList } from "@/navigation/TabNavigator";
+import { AppStackParamList } from "@/navigation/AppNavigator";
 import { usersApi } from "@/api/users";
 import { inventoryApi } from "@/api/inventory";
 import {
@@ -25,7 +28,11 @@ import {
 } from "@/features/courses/api";
 import { accentFor, LESSON_STATE_VIS, progressFor } from "@/features/courses/roadmap";
 
-type Props = BottomTabScreenProps<TabParamList, "Home">;
+type HomeNavigation = CompositeNavigationProp<
+  BottomTabNavigationProp<TabParamList, "Home">,
+  NativeStackNavigationProp<AppStackParamList>
+>;
+type Props = BottomTabScreenProps<TabParamList, "Home"> & { navigation: HomeNavigation };
 
 /** Fondo tenue del ícono de la unidad: color de marca al ~13% de opacidad. */
 function tint(color: string): string {
@@ -69,7 +76,7 @@ async function fetchRoadmap(): Promise<CourseRoadmap> {
   return roadmap;
 }
 
-export function HomeTabScreen({}: Props) {
+export function HomeTabScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const [streak, setStreak] = useState(0);
   const [gems, setGems] = useState(0);
@@ -77,7 +84,7 @@ export function HomeTabScreen({}: Props) {
   const [roadmap, setRoadmap] = useState<CourseRoadmap | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [openLesson, setOpenLesson] = useState<RoadmapLesson | null>(null);
+  const [openLesson, setOpenLesson] = useState<{ lesson: RoadmapLesson; unitLabel: string } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -99,12 +106,10 @@ export function HomeTabScreen({}: Props) {
     }
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useFocusEffect(load);
 
-  const sheetVis = openLesson ? LESSON_STATE_VIS[openLesson.state] : null;
-  const cta = openLesson ? ctaFor(openLesson.state) : null;
+  const sheetVis = openLesson ? LESSON_STATE_VIS[openLesson.lesson.state] : null;
+  const cta = openLesson ? ctaFor(openLesson.lesson.state) : null;
 
   return (
     <View style={styles.container}>
@@ -149,7 +154,11 @@ export function HomeTabScreen({}: Props) {
           showsVerticalScrollIndicator={false}
         >
           {roadmap?.topics.map((topic) => (
-            <UnitBlock key={topic.id} topic={topic} onOpen={setOpenLesson} />
+            <UnitBlock
+              key={topic.id}
+              topic={topic}
+              onOpen={(lesson) => setOpenLesson({ lesson, unitLabel: topic.title })}
+            />
           ))}
           {roadmap && roadmap.topics.length === 0 && (
             <Text style={styles.emptyText}>Este curso todavía no tiene contenido.</Text>
@@ -190,33 +199,41 @@ export function HomeTabScreen({}: Props) {
                 >
                   <Ionicons name={sheetVis.icon} size={26} color={sheetVis.fg} />
                 </View>
-                <Text style={styles.sheetTitle}>{openLesson.name}</Text>
+                <Text style={styles.sheetTitle}>{openLesson.lesson.name}</Text>
               </View>
 
-              {!!openLesson.description && (
-                <Text style={styles.sheetDescription}>{openLesson.description}</Text>
+              {!!openLesson.lesson.description && (
+                <Text style={styles.sheetDescription}>{openLesson.lesson.description}</Text>
               )}
 
               <View style={styles.sheetMetaRow}>
                 <View style={styles.sheetMetaItem}>
                   <Ionicons name="star" size={16} color={colors.warning} />
                   <Text style={styles.sheetMetaText}>
-                    {openLesson.xpTotal > 0 ? `+${openLesson.xpTotal} XP` : "Sin XP"}
+                    {openLesson.lesson.xpTotal > 0 ? `+${openLesson.lesson.xpTotal} XP` : "Sin XP"}
                   </Text>
                 </View>
                 <View style={styles.sheetMetaItem}>
                   <Ionicons name="albums" size={16} color={colors.courseTeal} />
                   <Text style={styles.sheetMetaText}>
-                    {openLesson.blockCount === 1
+                    {openLesson.lesson.blockCount === 1
                       ? "1 ejercicio"
-                      : `${openLesson.blockCount} ejercicios`}
+                      : `${openLesson.lesson.blockCount} ejercicios`}
                   </Text>
                 </View>
               </View>
 
               <TouchableOpacity
                 style={[styles.cta, !cta.enabled && styles.ctaDisabled]}
-                onPress={() => setOpenLesson(null)}
+                onPress={() => {
+                  setOpenLesson(null);
+                  if (cta.enabled) {
+                    navigation.navigate("Lesson", {
+                      lessonId: openLesson.lesson.id,
+                      unitLabel: openLesson.unitLabel,
+                    });
+                  }
+                }}
                 disabled={!cta.enabled}
                 activeOpacity={0.86}
               >

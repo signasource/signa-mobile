@@ -2,7 +2,7 @@
 
 > Responsibility: catalog of API endpoints exposed through `src/api/`.
 > Update when: an endpoint is added, changed, or removed, or a stub becomes real.
-> Sources: src/api/auth.ts, src/api/users.ts, src/api/health.ts, src/api/shop.ts, src/features/courses/api.ts
+> Sources: src/api/auth.ts, src/api/users.ts, src/api/health.ts, src/api/shop.ts, src/api/signs.ts, src/features/courses/api.ts
 
 Types → [types.md](./types.md). Client behavior → [http-client.md](./http-client.md).
 
@@ -51,11 +51,26 @@ No endpoint lists a user's friends, so the Store screen only supports buying for
 |---|---|---|---|
 | `getAchievements(unlocked)` | `GET /achievements?unlocked=` | `Achievement[]` | pass `true` or `false` |
 
-## `learningApi` (`src/api/learning.ts`)
+## `learningApi` (`src/api/learning.ts`) — mirrors `CourseTrackingController.java`
 
 | Method | Path | Returns | Notes |
 |---|---|---|---|
 | `getProgress()` | `GET /learning/tracking/progress` | `CourseProgress[]` | per-course progress, unit info, signs learned |
+| `enroll(courseVersionId)` | `POST /learning/tracking/courses/{courseVersionId}/enroll` | `void` | not yet called from any screen |
+| `recordBlockInteraction(lessonBlockId, isCorrect)` | `POST /learning/tracking/blocks/{lessonBlockId}/interactions` | `void` | `isCorrect` is `null` for an `INFO` block view, `true`/`false` for an evaluable block attempt. Called from `LessonScreen` per block interaction (see [features/courses.md](../features/courses.md)); XP/lesson/topic/course completion is awarded server-side on the **first correct** attempt per block, so it's safe to call once per attempt (including repeated wrong taps inside `MATCH`/`VISUAL_RECOGNITION`) |
+
+## `lessonsApi` (`src/api/lessons.ts`) — mirrors `LessonController.java`
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getLesson(lessonId)` | `GET /lessons/{id}` | `LessonContent` | full block content for the lesson player. Each block's `config` is a **raw JSON string** (not camelCased by the client interceptor) — parse with `parseBlockConfig` from `features/courses/lessonContent.types.ts`; see [types.md](./types.md) |
+
+## `signsApi` (`src/api/signs.ts`) — mirrors `SignController.java`
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getSigns(signLanguageId, query?)` | `GET /signs?signLanguageId=&query=` | `Page<SignSummary>` | `SignSummary`: `{ id, meaning, description, handedness, animationUrl }`. `query` is a **contains**, case-insensitive match against `meaning` (`findBySignLanguageIdAndMeaningContainingIgnoreCase`), not exact. `animationUrl` here is the raw R2 **object key**, not a fetchable URL — don't render it directly. |
+| `getSignAnimations(meanings)` | `POST /signs/animations` `{ meanings }` | `Record<meaning, url>` | Batched, exact-meaning lookup of **presigned** animation URLs (mirrors `SignController.getSignAnimations`/`SignService.getSignAnimations`). Meanings with no matching sign, or no animation uploaded, are simply absent from the response. Used by `preloadLessonAnimations` (see [features/courses.md](../features/courses.md)) to fetch every animation a lesson needs in one request. |
 
 ## `health` (`src/api/health.ts`)
 
