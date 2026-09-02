@@ -61,6 +61,16 @@ No endpoint lists a user's friends, so the Store screen only supports buying for
 
 `pingBackend()` for the connection test: GET to the API root with a short timeout.
 
-## `courses` — STUB (`src/features/courses/api.ts`)
+## `coursesApi` (`src/features/courses/api.ts`)
 
-`GET /courses`, `GET /courses/{id}`, `GET /courses/{courseId}/lessons/{lessonId}`. **Tentative paths — backend has no content endpoints yet.** See [features/courses.md](../features/courses.md).
+Real endpoints that power the Inicio (Home) lesson roadmap:
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getSignLanguages()` | `GET /sign-languages` | `SignLanguage[]` | `{ id, code, name, countryCode }`; LSA has `code: "LSA"`. Used to resolve the `signLanguageId` the catalog needs. |
+| `getCatalog(signLanguageId)` | `GET /courses?signLanguageId=` | `Page<CourseSummary>` | Spring page; the screen uses `content[0]` (first course). `signLanguageId` is a **query param** (stays camelCase — the client snake_cases only bodies). |
+| `getRoadmap(courseId)` | `GET /learning/tracking/courses/{courseId}/roadmap` | `CourseRoadmap` | Per-user roadmap of the course's published version: `topics[]` (each with `title`, optional `subtitle`) each with ordered `lessons[]` carrying `blockCount`, `xpTotal` and `state` (`COMPLETED` / `IN_PROGRESS` / `AVAILABLE` / `LOCKED`). |
+
+Inicio load chain: `getSignLanguages()` → pick LSA → `getCatalog(lsa.id)` → first course → `getRoadmap(course.id)`. Header stats (streak/gems/XP) come from `usersApi.getStats()` + `inventoryApi.getMyInventory()`.
+
+Still **STUB** on the same file (used only by `CoursesListScreen`): `list()` / `getById()` / `getLesson()` — tentative flat-content paths, not confirmed. See [features/courses.md](../features/courses.md).
