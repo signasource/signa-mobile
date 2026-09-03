@@ -52,6 +52,19 @@ export const colors = {
   shopAmberDark: "#B85806",
   shopAmberLight: "#FBE4C8",
 
+  // Social / vino (módulo Social: encabezado, acento y estados de "me gusta")
+  socialWine: "#8A2C5E",
+  socialWineDeep: "#96406D",
+  socialWineLight: "#F6E4EC",
+
+  // Paleta de avatares (iniciales en listas sociales)
+  avatarTealLight: "#E0F4F2",
+  avatarTealDark: "#1F7E77",
+  avatarWineLight: "#FDE8F1",
+  avatarAmberLight: "#FEF0DE",
+  avatarBlueLight: "#E4F1FB",
+  avatarGreenLight: "#E9F3EB",
+
   // Legacy aliases kept for existing app screens
   accent: "#7857FF",
   white: "#FFFFFF",

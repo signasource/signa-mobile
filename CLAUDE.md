@@ -26,7 +26,7 @@ If reality already diverged from a doc, **the code wins**: fix the doc first (re
 | Change an auth screen flow | [docs/authentication/screens.md](./docs/authentication/screens.md) |
 | Change a validation rule | [docs/authentication/validation.md](./docs/authentication/validation.md) |
 | Add/change a color, font, size, or UI primitive | [docs/design-system/colors.md](./docs/design-system/colors.md) |
-| Advance a feature or flip stub↔real | [docs/features/onboarding.md](./docs/features/onboarding.md) + [docs/status.md](./docs/status.md) |
+| Advance a feature or flip stub↔real | the feature's doc under [docs/features/](./docs/features/) ([onboarding](./docs/features/onboarding.md) · [courses](./docs/features/courses.md) · [social](./docs/features/social.md) · [ml](./docs/features/ml.md)) + [docs/status.md](./docs/status.md) |
 | Change folder structure, alias, or app startup | [docs/architecture.md](./docs/architecture.md) |
 | Add/resolve tech debt | [docs/status.md](./docs/status.md) |
 
