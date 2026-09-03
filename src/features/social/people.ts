@@ -3,7 +3,6 @@ import { colors } from "@/theme";
 import { FriendEvent, FriendEventType } from "@/api/social";
 import { NotificationCode } from "@/api/notifications";
 
-/** Par de colores de un avatar: fondo tenue + iniciales. */
 export interface AvatarColors {
   bg: string;
   fg: string;
@@ -18,10 +17,7 @@ const AVATAR_PALETTE: AvatarColors[] = [
   { bg: colors.avatarGreenLight, fg: colors.successDark },
 ];
 
-/**
- * Color estable por persona: se deriva del id, así el mismo usuario mantiene su color entre
- * pantallas y entre sesiones.
- */
+/** Derived from the user id, so a person keeps the same colour everywhere. */
 export function avatarColors(seed: string): AvatarColors {
   let hash = 0;
   for (let i = 0; i < seed.length; i++) {
@@ -30,7 +26,7 @@ export function avatarColors(seed: string): AvatarColors {
   return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
 }
 
-/** Iniciales a partir del nombre; cae al usuario si el nombre viene vacío. */
+/** Falls back to the username when the name is empty. */
 export function initialsOf(name: string, username: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return username.slice(0, 2).toUpperCase();
@@ -38,7 +34,6 @@ export function initialsOf(name: string, username: string): string {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
-/** "hace 12 min", "hace 2 h", "ayer", "hace 3 d", o la fecha si es más viejo que una semana. */
 export function relativeTime(iso: string): string {
   const then = new Date(iso).getTime();
   if (Number.isNaN(then)) return "";
@@ -76,10 +71,7 @@ export function eventVisual(type: FriendEventType): EventVisual {
   return EVENT_VISUAL[type];
 }
 
-/**
- * Arma la frase del feed en tres partes para poder resaltar el sujeto en negrita, igual que el
- * diseño: "Desbloqueó el logro **Manos rápidas** — 50 señas sin errores."
- */
+/** Split in three so the subject can be bolded mid-sentence. */
 export function eventSentence(event: FriendEvent): {
   pre: string;
   highlight: string;

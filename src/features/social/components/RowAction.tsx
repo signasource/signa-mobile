@@ -6,7 +6,7 @@ import { colors } from "@/theme";
 export interface RowActionSpec {
   key: string;
   icon: keyof typeof Ionicons.glyphMap;
-  /** Sirve de `accessibilityLabel`: los botones son sólo ícono. */
+  /** Used as `accessibilityLabel`; the buttons are icon-only. */
   label: string;
   bg: string;
   color: string;
@@ -18,7 +18,6 @@ interface Props {
   busy?: boolean;
 }
 
-/** Botón cuadrado de 36px que acompaña a cada fila de persona. */
 export function RowAction({ action, busy = false }: Props) {
   return (
     <TouchableOpacity

@@ -51,7 +51,7 @@ interface PendingConfirm {
   name: string;
 }
 
-/** El backend exige al menos 2 caracteres, y esperamos a que el usuario deje de tipear. */
+/** The backend rejects anything shorter, and we wait for typing to settle. */
 const MIN_QUERY_LENGTH = 2;
 const SEARCH_DEBOUNCE_MS = 350;
 
@@ -76,7 +76,6 @@ const CONFIRM_SPEC: Record<ConfirmKind, (name: string) => ConfirmSpec> = {
   }),
 };
 
-/** Línea secundaria de una fila de búsqueda, según la relación con esa persona. */
 function searchSub(result: UserSearchResult): string {
   const handle = `@${result.username}`;
   switch (result.relation) {
@@ -164,7 +163,7 @@ export function SocialScreen({ navigation }: Props) {
   const trimmedQuery = query.trim();
   const searching = trimmedQuery.length > 0;
 
-  // Búsqueda con debounce: cada tecla cancela la petición anterior.
+  // Debounced search; each keystroke aborts the request in flight.
   useEffect(() => {
     searchAbort.current?.abort();
 
@@ -192,7 +191,7 @@ export function SocialScreen({ navigation }: Props) {
     return () => clearTimeout(timer);
   }, [trimmedQuery]);
 
-  /** Refleja en los resultados de búsqueda la relación que acaba de cambiar. */
+  /** Reflects a relation change in the search results. */
   const patchRelation = useCallback((userId: string, relation: RelationStatus) => {
     setResults((prev) =>
       prev.map((r) => (r.id === userId ? { ...r, relation } : r))
@@ -345,7 +344,7 @@ export function SocialScreen({ navigation }: Props) {
     [notify]
   );
 
-  /** Botones de una fila, según la relación con esa persona (idéntico al diseño). */
+  /** A row's buttons are a pure function of the relation. */
   const actionsFor = useCallback(
     (userId: string, name: string, username: string, relation: RelationStatus): RowActionSpec[] => {
       const add: RowActionSpec = {

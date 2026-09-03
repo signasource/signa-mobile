@@ -20,7 +20,7 @@ interface Props {
   onClose: () => void;
 }
 
-/** Hoja inferior de confirmación para las acciones destructivas (dejar de ser amigos, bloquear). */
+/** Bottom sheet guarding the destructive actions. */
 export function ConfirmSheet({ spec, busy = false, onConfirm, onClose }: Props) {
   return (
     <Modal visible={spec !== null} transparent animationType="slide" onRequestClose={onClose}>

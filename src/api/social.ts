@@ -1,6 +1,6 @@
 import { apiClient } from "./client";
 
-/** Relación del usuario autenticado con otra persona, desde su propio punto de vista. */
+/** Relationship with another user, from the caller's point of view. */
 export type RelationStatus =
   | "NONE"
   | "FRIEND"
@@ -9,7 +9,6 @@ export type RelationStatus =
   | "BLOCKED"
   | "BLOCKED_BY";
 
-/** Tipo de actividad de un amigo que aparece en el feed. */
 export type FriendEventType = "ACHIEVEMENT" | "SIGN_LEARNED";
 
 export interface Friend {
@@ -37,11 +36,8 @@ export interface SentFriendRequest {
 }
 
 /**
- * Un evento del feed. No se persiste: el backend lo deriva de los logros y señas aprendidas
- * del amigo, y lo identifica con el par (`eventType`, `eventRefId`).
- *
- * `subject` y `context` son las piezas crudas (título del logro y su descripción, o la seña y
- * su curso); la frase la arma la app para que la copy quede en el idioma de la UI.
+ * Feed events are derived, not stored, so (`eventType`, `eventRefId`) is their identity.
+ * `subject`/`context` are the raw pieces; the app composes the sentence.
  */
 export interface FriendEvent {
   friendId: string;
@@ -97,12 +93,12 @@ export const socialApi = {
   unlikeEvent: (eventType: FriendEventType, eventRefId: string) =>
     apiClient.delete<void>(`/friendships/events/${eventType}/${eventRefId}/like`),
 
-  /** Búsqueda por nombre o usuario. Acepta `AbortSignal` para cancelar al seguir tipeando. */
+  /** Contains-match on username or name. Rejects queries shorter than 2 characters. */
   searchUsers: (query: string, signal?: AbortSignal) =>
     apiClient.get<UserSearchResult[]>("/users/search", { params: { query }, signal }),
 };
 
-/** Progreso de un curso, tal como lo devuelve `CourseProgressResponse` del backend. */
+/** Mirrors `CourseProgressResponse`. Distinct from `CourseProgress` in `api/learning.ts`. */
 export interface PublicCourseProgress {
   courseName: string;
   status: "ENROLLED" | "COMPLETED" | "DROPPED";
@@ -118,7 +114,7 @@ export interface PublicCourseProgress {
   } | null;
 }
 
-/** Logro, tal como lo devuelve `AchievementResponse` del backend. */
+/** Mirrors `AchievementResponse`. Distinct from `Achievement` in `api/achievements.ts`. */
 export interface PublicAchievement {
   id: string;
   code: string;
@@ -140,11 +136,7 @@ export interface PublicUserStats {
   learnedSignsCount: number;
 }
 
-/**
- * Perfil de otra persona. Cuando `visible` es `false` la cuenta es privada y quien mira no es
- * amigo: llegan la identidad y la `relation` — para poder mandarle solicitud — pero ningún dato
- * de progreso.
- */
+/** With `visible: false` the account is private to the viewer: identity only, no progress. */
 export interface PublicUserProfile {
   id: string;
   username: string;

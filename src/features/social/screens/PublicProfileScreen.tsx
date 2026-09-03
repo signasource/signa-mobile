@@ -31,7 +31,7 @@ const SECTIONS: { key: Section; icon: string; iconActive: string }[] = [
   { key: "logros", icon: "trophy-outline", iconActive: "trophy" },
 ];
 
-/** Paleta rotativa para los cursos: el backend no manda color, se deriva del orden. */
+/** The backend sends no course colour, so it comes from the list position. */
 const COURSE_COLORS = [colors.courseTeal, colors.primary, colors.shopAmber, colors.gemsBlue];
 
 interface DayXp {
@@ -42,7 +42,7 @@ interface DayXp {
 }
 
 // ─── helpers ──────────────────────────────────────────────────
-/** Luminancia relativa, para decidir si el header lleva texto claro u oscuro. */
+/** Relative luminance, to pick light or dark text over the header. */
 function getLum(hex: string): number {
   const parse = (s: string) => parseInt(s, 16) / 255;
   const toLinear = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
@@ -77,7 +77,6 @@ function buildWeek(entries: { date: string; xpEarned: number }[]): DayXp[] {
   });
 }
 
-/** Botón principal del header, según la relación con esta persona. */
 function primaryAction(relation: RelationStatus): {
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
@@ -142,7 +141,7 @@ export function PublicProfileScreen({ route, navigation }: Props) {
   const handlePrimary = useCallback(async () => {
     if (!profile) return;
 
-    // Dejar de ser amigos pasa por confirmación; el resto se aplica directo.
+    // Unfriending is confirmed first; everything else applies straight away.
     if (profile.relation === "FRIEND") {
       setConfirmOpen(true);
       return;

@@ -22,7 +22,7 @@ export function EmptyState({ icon, title, description }: Props) {
   );
 }
 
-/** Variante en una línea, para los sub-bloques de solicitudes. */
+/** One-line variant, for sub-sections. */
 export function EmptyNote({ children }: { children: string }) {
   return (
     <View style={styles.note}>

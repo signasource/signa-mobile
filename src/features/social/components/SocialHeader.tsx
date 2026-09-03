@@ -6,14 +6,12 @@ import { colors, fonts, fontSizes } from "@/theme";
 interface Props {
   title: string;
   subtitle: string;
-  /** Se ancla a la derecha del título (la campana, o el botón de volver a la izquierda). */
   right?: React.ReactNode;
   left?: React.ReactNode;
   children?: React.ReactNode;
   paddingTop: number;
 }
 
-/** Encabezado vino del módulo Social, con el círculo decorativo del diseño. */
 export function SocialHeader({ title, subtitle, right, left, children, paddingTop }: Props) {
   return (
     <View style={[styles.header, { paddingTop }]}>
@@ -35,8 +33,7 @@ export function SocialHeader({ title, subtitle, right, left, children, paddingTo
 
 const styles = StyleSheet.create({
   header: {
-    // Mismas medidas verticales y tipografía que el header de Tienda (StoreTabScreen).
-    // El padding horizontal se queda en 20 para alinear con el resto del contenido de Social.
+    // Vertical metrics match the Tienda header; horizontal stays at 20 to align with the content.
     backgroundColor: colors.socialWine,
     paddingHorizontal: 20,
     paddingBottom: 20,

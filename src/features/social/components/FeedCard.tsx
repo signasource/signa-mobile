@@ -10,11 +10,9 @@ import { Avatar } from "./Avatar";
 interface Props {
   event: FriendEvent;
   onToggleLike: () => void;
-  /** Tocar el avatar abre el perfil del amigo. */
   onPressAvatar: () => void;
 }
 
-/** Tarjeta de actividad de un amigo, con el botón de "me gusta". */
 export function FeedCard({ event, onToggleLike, onPressAvatar }: Props) {
   const visual = eventVisual(event.eventType);
   const sentence = eventSentence(event);

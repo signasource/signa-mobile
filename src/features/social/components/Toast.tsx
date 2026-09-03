@@ -6,11 +6,10 @@ import { colors, fonts } from "@/theme";
 
 interface Props {
   message: string | null;
-  /** Separación desde el borde inferior; la pantalla la ajusta según el tab bar. */
+  /** Offset from the bottom edge; the screen accounts for the tab bar. */
   bottom: number;
 }
 
-/** Aviso flotante y no interactivo que confirma la última acción. */
 export function Toast({ message, bottom }: Props) {
   const opacity = useRef(new Animated.Value(0)).current;
 

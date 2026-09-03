@@ -17,17 +17,16 @@ interface Props {
   id: string;
   name: string;
   username: string;
-  /** Línea secundaria: "@usuario" más, según el caso, la relación o los amigos en común. */
+  /** Secondary line: handle plus the relation or the mutual-friend count. */
   sub: string;
   stats?: PersonStat[];
   actions: RowActionSpec[];
-  /** Clave de la acción en curso, para mostrar el spinner en el botón correcto. */
+  /** Key of the in-flight action, so the spinner lands on the right button. */
   busyAction?: string | null;
-  /** Tocar el avatar abre el perfil de esa persona. */
   onPressAvatar?: () => void;
 }
 
-/** Fila de persona compartida por búsqueda, lista de amigos y solicitudes. */
+/** Shared by search, friends and requests. */
 export function PersonRow({
   id,
   name,

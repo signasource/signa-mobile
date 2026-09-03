@@ -52,12 +52,12 @@ export const colors = {
   shopAmberDark: "#B85806",
   shopAmberLight: "#FBE4C8",
 
-  // Social / vino (módulo Social: encabezado, acento y estados de "me gusta")
+  // Social / wine accent
   socialWine: "#8A2C5E",
   socialWineDeep: "#96406D",
   socialWineLight: "#F6E4EC",
 
-  // Paleta de avatares (iniciales en listas sociales)
+  // Avatar palette
   avatarTealLight: "#E0F4F2",
   avatarTealDark: "#1F7E77",
   avatarWineLight: "#FDE8F1",

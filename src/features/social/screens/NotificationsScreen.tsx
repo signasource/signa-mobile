@@ -25,7 +25,7 @@ export function NotificationsScreen({ navigation }: Props) {
     try {
       const { data } = await notificationsApi.getInbox();
       setNotifications(data.content);
-      // Abrir la bandeja cuenta como leerla: el badge de la campana vuelve a cero.
+      // Opening the inbox counts as reading it, so the bell badge clears.
       if (data.content.some((n) => !n.read)) {
         await notificationsApi.markAllAsRead();
       }

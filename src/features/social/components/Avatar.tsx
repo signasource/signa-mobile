@@ -5,12 +5,12 @@ import { fonts } from "@/theme";
 import { avatarColors, initialsOf } from "@/features/social/people";
 
 interface Props {
-  /** Id del usuario: define el color, estable entre pantallas. */
+  /** Drives the avatar colour; stable across screens. */
   id: string;
   name: string;
   username: string;
   size?: number;
-  /** Cuando se pasa, el avatar se vuelve tocable (lleva al perfil de esa persona). */
+  /** When given, the avatar becomes tappable. */
   onPress?: () => void;
 }
 

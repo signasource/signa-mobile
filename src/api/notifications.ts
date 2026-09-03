@@ -18,11 +18,11 @@ export interface AppNotification {
   read: boolean;
   sentAt: string;
   readAt: string | null;
-  /** Datos del evento que la originó (p. ej. `friend`, `friendUsername`, `friendId`). */
+  /** Event data, e.g. `friend`, `friendUsername`, `friendId`. */
   metadata: Record<string, string> | null;
 }
 
-/** Página de Spring Data; sólo se declaran los campos que consume la app. */
+/** Spring page; only the fields the app reads. */
 export interface NotificationPage {
   content: AppNotification[];
   number: number;
