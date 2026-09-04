@@ -16,7 +16,7 @@ export type AppStackParamList = {
   Tabs: NavigatorScreenParams<TabParamList> | undefined;
   ChangePassword: undefined;
   Configuration: undefined;
-  Lesson: { lessonId: string; unitLabel?: string };
+  Lesson: { lessonId: string; unitLabel?: string; signsCount?: number };
   Notifications: undefined;
   PublicProfile: { username: string };
   SignRecognition: undefined;

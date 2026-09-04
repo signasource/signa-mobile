@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   View,
   ScrollView,
@@ -26,24 +26,13 @@ import {
   RoadmapLessonState,
   RoadmapTopic,
 } from "@/features/courses/api";
-import { accentFor, LESSON_STATE_VIS, progressFor } from "@/features/courses/roadmap";
+import { accentFor, progressFor } from "@/features/courses/roadmap";
 
 type HomeNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, "Home">,
   NativeStackNavigationProp<AppStackParamList>
 >;
 type Props = BottomTabScreenProps<TabParamList, "Home"> & { navigation: HomeNavigation };
-
-/** Fondo tenue del ícono de la unidad: color de marca al ~13% de opacidad. */
-function tint(color: string): string {
-  return color + "22";
-}
-
-function railColor(state: RoadmapLessonState): string {
-  if (state === "COMPLETED") return colors.success;
-  if (state === "IN_PROGRESS" || state === "AVAILABLE") return colors.primary;
-  return colors.fillDark;
-}
 
 function ctaFor(state: RoadmapLessonState): {
   label: string;
@@ -62,7 +51,6 @@ function ctaFor(state: RoadmapLessonState): {
   }
 }
 
-/** Resuelve LSA → primer curso del catálogo → recorrido del curso. */
 async function fetchRoadmap(): Promise<CourseRoadmap> {
   const { data: languages } = await coursesApi.getSignLanguages();
   const lsa = languages.find((l) => l.code === "LSA") ?? languages[0];
@@ -76,6 +64,18 @@ async function fetchRoadmap(): Promise<CourseRoadmap> {
   return roadmap;
 }
 
+function findCurrentLessonId(topics: RoadmapTopic[]): string | null {
+  for (const topic of topics) {
+    const found = topic.lessons.find((l) => l.state === "IN_PROGRESS");
+    if (found) return found.id;
+  }
+  for (const topic of topics) {
+    const found = topic.lessons.find((l) => l.state === "AVAILABLE");
+    if (found) return found.id;
+  }
+  return null;
+}
+
 export function HomeTabScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const [streak, setStreak] = useState(0);
@@ -84,12 +84,14 @@ export function HomeTabScreen({ navigation }: Props) {
   const [roadmap, setRoadmap] = useState<CourseRoadmap | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [openLesson, setOpenLesson] = useState<{ lesson: RoadmapLesson; unitLabel: string } | null>(null);
+  const [openLesson, setOpenLesson] = useState<{
+    lesson: RoadmapLesson;
+    unitLabel: string;
+  } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    // Stats del header: no bloquean el recorrido (contenido principal de la pantalla).
     Promise.all([usersApi.getStats(), inventoryApi.getMyInventory()])
       .then(([stats, inventory]) => {
         setStreak(stats.data.currentStreak);
@@ -106,36 +108,50 @@ export function HomeTabScreen({ navigation }: Props) {
     }
   }, []);
 
-  useFocusEffect(load);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const sheetVis = openLesson ? LESSON_STATE_VIS[openLesson.lesson.state] : null;
+  const currentLessonId = roadmap ? findCurrentLessonId(roadmap.topics) : null;
   const cta = openLesson ? ctaFor(openLesson.lesson.state) : null;
+
+  function navigateToLesson(lesson: RoadmapLesson, unitLabel: string) {
+    setOpenLesson(null);
+    navigation.navigate("Lesson", { lessonId: lesson.id, unitLabel, signsCount: lesson.signsCount });
+  }
 
   return (
     <View style={styles.container}>
+      {/* ── Header ── */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <View style={styles.coursePill}>
-          <Ionicons name="school" size={16} color={colors.primaryDark} />
-          <Text style={styles.coursePillText} numberOfLines={1}>
-            {roadmap?.courseName ?? "Curso"}
-          </Text>
-        </View>
+        <Text style={styles.headerKicker} numberOfLines={1}>
+          {roadmap?.courseName ?? "LSA · Nivel inicial"}
+        </Text>
+        <Text style={styles.headerTitle}>Tu recorrido</Text>
         <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Ionicons name="flame" size={20} color={colors.livesRed} />
-            <Text style={styles.statValue}>{streak}</Text>
+          <View style={styles.statChip}>
+            <Ionicons name="flame" size={18} color="#FFD9C2" />
+            <View>
+              <Text style={styles.statValue}>{streak}</Text>
+              <Text style={styles.statLabel}>Racha</Text>
+            </View>
           </View>
-          <View style={styles.statItem}>
-            <Ionicons name="diamond" size={19} color={colors.gemsBlue} />
-            <Text style={styles.statValue}>{gems.toLocaleString("es-AR")}</Text>
+          <View style={styles.statChip}>
+            <Ionicons name="diamond" size={17} color="#BDEBFB" />
+            <View>
+              <Text style={styles.statValue}>{gems.toLocaleString("es-AR")}</Text>
+              <Text style={styles.statLabel}>Gemas</Text>
+            </View>
           </View>
-          <View style={styles.statItem}>
-            <Ionicons name="flash" size={20} color={colors.streakOrange} />
-            <Text style={styles.statValue}>{xp.toLocaleString("es-AR")}</Text>
+          <View style={styles.statChip}>
+            <Ionicons name="flash" size={18} color="#FFE0B8" />
+            <View>
+              <Text style={styles.statValue}>{xp.toLocaleString("es-AR")}</Text>
+              <Text style={styles.statLabel}>XP</Text>
+            </View>
           </View>
         </View>
       </View>
 
+      {/* ── Body ── */}
       {loading ? (
         <View style={styles.centerFill}>
           <ActivityIndicator color={colors.primary} size="large" />
@@ -154,10 +170,12 @@ export function HomeTabScreen({ navigation }: Props) {
           showsVerticalScrollIndicator={false}
         >
           {roadmap?.topics.map((topic) => (
-            <UnitBlock
+            <TopicSection
               key={topic.id}
               topic={topic}
-              onOpen={(lesson) => setOpenLesson({ lesson, unitLabel: topic.title })}
+              currentLessonId={currentLessonId}
+              onInfo={(lesson) => setOpenLesson({ lesson, unitLabel: topic.title })}
+              onNavigate={(lesson) => navigateToLesson(lesson, topic.title)}
             />
           ))}
           {roadmap && roadmap.topics.length === 0 && (
@@ -166,73 +184,45 @@ export function HomeTabScreen({ navigation }: Props) {
         </ScrollView>
       )}
 
+      {/* ── Lesson info modal (centered) ── */}
       <Modal
         visible={!!openLesson}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setOpenLesson(null)}
         statusBarTranslucent
       >
-        {openLesson && sheetVis && cta && (
-          <Pressable style={styles.backdrop} onPress={() => setOpenLesson(null)}>
-            <Pressable
-              style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 24) }]}
-              onPress={() => {}}
-            >
-              <View style={styles.sheetHandle} />
-              <View style={styles.sheetCloseRow}>
-                <TouchableOpacity
-                  style={styles.sheetCloseBtn}
-                  onPress={() => setOpenLesson(null)}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="close" size={17} color={colors.neutral900} />
-                </TouchableOpacity>
+        {openLesson && cta && (
+          <Pressable style={styles.modalBackdrop} onPress={() => setOpenLesson(null)}>
+            <Pressable style={styles.modalCard} onPress={() => {}}>
+              <View style={styles.modalTitleRow}>
+                <Text style={styles.modalKicker}>Seguí acá</Text>
+                {openLesson.lesson.xpTotal > 0 && (
+                  <View style={styles.modalXpPill}>
+                    <Text style={styles.modalXpText}>+{openLesson.lesson.xpTotal} XP</Text>
+                  </View>
+                )}
               </View>
-
-              <View style={styles.sheetTitleRow}>
-                <View
-                  style={[
-                    styles.sheetMedallion,
-                    { backgroundColor: sheetVis.bg, borderColor: sheetVis.border },
-                  ]}
-                >
-                  <Ionicons name={sheetVis.icon} size={26} color={sheetVis.fg} />
-                </View>
-                <Text style={styles.sheetTitle}>{openLesson.lesson.name}</Text>
-              </View>
-
+              <Text style={styles.modalTitle}>{openLesson.lesson.name}</Text>
               {!!openLesson.lesson.description && (
-                <Text style={styles.sheetDescription}>{openLesson.lesson.description}</Text>
+                <Text style={styles.modalDescription}>{openLesson.lesson.description}</Text>
               )}
 
-              <View style={styles.sheetMetaRow}>
-                <View style={styles.sheetMetaItem}>
-                  <Ionicons name="star" size={16} color={colors.warning} />
-                  <Text style={styles.sheetMetaText}>
-                    {openLesson.lesson.xpTotal > 0 ? `+${openLesson.lesson.xpTotal} XP` : "Sin XP"}
-                  </Text>
+              {/* Sign chips */}
+              {openLesson.lesson.signsLearned && openLesson.lesson.signsLearned.length > 0 && (
+                <View style={styles.signChipsRow}>
+                  {openLesson.lesson.signsLearned.map((sign) => (
+                    <View key={sign} style={styles.signChip}>
+                      <Text style={styles.signChipText}>{sign}</Text>
+                    </View>
+                  ))}
                 </View>
-                <View style={styles.sheetMetaItem}>
-                  <Ionicons name="albums" size={16} color={colors.courseTeal} />
-                  <Text style={styles.sheetMetaText}>
-                    {openLesson.lesson.blockCount === 1
-                      ? "1 ejercicio"
-                      : `${openLesson.lesson.blockCount} ejercicios`}
-                  </Text>
-                </View>
-              </View>
+              )}
 
               <TouchableOpacity
-                style={[styles.cta, !cta.enabled && styles.ctaDisabled]}
+                style={[styles.ctaButton, !cta.enabled && styles.ctaButtonDisabled]}
                 onPress={() => {
-                  setOpenLesson(null);
-                  if (cta.enabled) {
-                    navigation.navigate("Lesson", {
-                      lessonId: openLesson.lesson.id,
-                      unitLabel: openLesson.unitLabel,
-                    });
-                  }
+                  if (cta.enabled) navigateToLesson(openLesson.lesson, openLesson.unitLabel);
                 }}
                 disabled={!cta.enabled}
                 activeOpacity={0.86}
@@ -254,129 +244,244 @@ export function HomeTabScreen({ navigation }: Props) {
   );
 }
 
-function UnitBlock({
+// ── Topic section ────────────────────────────────────────────────────────────
+
+function TopicSection({
   topic,
-  onOpen,
+  currentLessonId,
+  onInfo,
+  onNavigate,
 }: {
   topic: RoadmapTopic;
-  onOpen: (lesson: RoadmapLesson) => void;
+  currentLessonId: string | null;
+  onInfo: (lesson: RoadmapLesson) => void;
+  onNavigate: (lesson: RoadmapLesson) => void;
 }) {
-  const progress = progressFor(topic);
   const accent = accentFor(topic);
+  const progress = progressFor(topic);
   const locked = topic.lessons.every((l) => l.state === "LOCKED");
+
   return (
-    <View style={styles.unitBlock}>
-      <View style={styles.unitHeader}>
-        <View style={[styles.unitChip, { backgroundColor: tint(accent.color) }]}>
-          <Ionicons name={accent.icon} size={18} color={accent.color} />
+    <View>
+      {/* Unit header row */}
+      <View style={styles.unitRow}>
+        <View style={styles.railSegment} />
+        <View
+          style={[
+            styles.unitIcon,
+            { backgroundColor: locked ? colors.fillDark : accent.color },
+          ]}
+        >
+          <Ionicons
+            name={locked ? "lock-closed" : accent.icon}
+            size={locked ? 20 : 22}
+            color={locked ? colors.roadmapLockedIcon : colors.onPrimary}
+          />
         </View>
-        <View style={styles.unitHeaderTexts}>
-          <Text style={styles.unitKicker}>{topic.title}</Text>
+        <View style={styles.unitContent}>
+          <View style={styles.unitMeta}>
+            <Text style={styles.unitKicker}>{topic.title}</Text>
+            <Text style={styles.unitProgress}>
+              {progress.done} de {progress.total}
+            </Text>
+          </View>
           {!!topic.subtitle && (
             <Text style={[styles.unitTitle, locked && styles.unitTitleLocked]}>
               {topic.subtitle}
             </Text>
           )}
         </View>
-        <Text style={styles.unitProgress}>{progress.label}</Text>
       </View>
-      {!!topic.description && <Text style={styles.unitDescription}>{topic.description}</Text>}
 
-      <View style={styles.lessons}>
-        {topic.lessons.map((lesson) => (
-          <LessonRow key={lesson.id} lesson={lesson} onOpen={onOpen} />
-        ))}
-      </View>
+      {/* Lesson rows */}
+      {topic.lessons.map((lesson) => {
+        const isCurrent = lesson.id === currentLessonId;
+        return (
+          <LessonRow
+            key={lesson.id}
+            lesson={lesson}
+            isCurrent={isCurrent}
+            onInfo={() => onInfo(lesson)}
+            onNavigate={() => onNavigate(lesson)}
+          />
+        );
+      })}
     </View>
   );
 }
+
+// ── Lesson row dispatcher ────────────────────────────────────────────────────
 
 function LessonRow({
   lesson,
-  onOpen,
+  isCurrent,
+  onInfo,
+  onNavigate,
 }: {
   lesson: RoadmapLesson;
-  onOpen: (lesson: RoadmapLesson) => void;
+  isCurrent: boolean;
+  onInfo: () => void;
+  onNavigate: () => void;
 }) {
-  const vis = LESSON_STATE_VIS[lesson.state];
-  const isDim = lesson.state === "LOCKED";
+  if (isCurrent) {
+    return <CurrentLessonCard lesson={lesson} onInfo={onInfo} onNavigate={onNavigate} />;
+  }
+  if (lesson.state === "COMPLETED") {
+    return <CompletedLessonRow lesson={lesson} onNavigate={onNavigate} />;
+  }
+  if (lesson.state === "AVAILABLE") {
+    return <AvailableLessonRow lesson={lesson} onInfo={onInfo} />;
+  }
+  return <LockedLessonRow lesson={lesson} />;
+}
+
+function CompletedLessonRow({
+  lesson,
+  onNavigate,
+}: {
+  lesson: RoadmapLesson;
+  onNavigate: () => void;
+}) {
   return (
     <View style={styles.lessonRow}>
-      <View style={styles.rail}>
-        <View style={[styles.railLine, { backgroundColor: railColor(lesson.state) }]} />
-        <View style={[styles.node, { backgroundColor: vis.bg, borderColor: vis.border }]}>
-          <Ionicons name={vis.icon} size={21} color={vis.fg} />
-        </View>
+      <View style={styles.railSegment} />
+      <View style={styles.dotCol}>
+        <View style={[styles.dot, { backgroundColor: colors.success }]} />
       </View>
-
-      <TouchableOpacity
-        style={[styles.lessonCard, lesson.state === "IN_PROGRESS" && styles.lessonCardActive]}
-        onPress={() => onOpen(lesson)}
-        activeOpacity={0.85}
-      >
-        <View style={styles.lessonCardTop}>
-          <Text style={[styles.lessonName, isDim && styles.lessonNameDim]}>{lesson.name}</Text>
-          <View style={[styles.stateChip, { backgroundColor: vis.chipBg }]}>
-            <Text style={[styles.stateChipText, { color: vis.chipFg }]}>{vis.label}</Text>
-          </View>
-        </View>
-      </TouchableOpacity>
+      <View style={styles.lessonRowContent}>
+        <Text style={styles.completedName}>{lesson.name}</Text>
+        <TouchableOpacity style={styles.replayBtn} onPress={onNavigate} activeOpacity={0.8}>
+          <Ionicons name="refresh" size={15} color={colors.textMuted} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
-const RAIL_WIDTH = 46;
-const NODE_SIZE = 44;
+function CurrentLessonCard({
+  lesson,
+  onInfo,
+  onNavigate,
+}: {
+  lesson: RoadmapLesson;
+  onInfo: () => void;
+  onNavigate: () => void;
+}) {
+  return (
+    <View style={[styles.lessonRow, styles.lessonRowTop]}>
+      <View style={styles.railSegment} />
+      <View style={[styles.dotCol, styles.dotColTop]}>
+        <View style={styles.currentDotOuter}>
+          <View style={styles.currentDotMid}>
+            <View style={styles.currentDot} />
+          </View>
+        </View>
+      </View>
+      <View style={styles.lessonCard}>
+        <Text style={styles.cardKicker}>Seguí acá</Text>
+        <Text style={styles.cardTitle}>{lesson.name}</Text>
+        <View style={styles.cardActions}>
+          <TouchableOpacity style={styles.cardCta} onPress={onNavigate} activeOpacity={0.86}>
+            <Ionicons name="play" size={17} color={colors.surface} />
+            <Text style={styles.cardCtaText}>Seguir</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.cardInfoBtn} onPress={onInfo} activeOpacity={0.8}>
+            <Ionicons name="information-circle-outline" size={20} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function AvailableLessonRow({
+  lesson,
+  onInfo,
+}: {
+  lesson: RoadmapLesson;
+  onInfo: () => void;
+}) {
+  return (
+    <TouchableOpacity style={styles.lessonRow} onPress={onInfo} activeOpacity={0.85}>
+      <View style={styles.railSegment} />
+      <View style={styles.dotCol}>
+        <View style={[styles.dot, styles.dotAvailable]} />
+      </View>
+      <Text style={styles.availableName}>{lesson.name}</Text>
+    </TouchableOpacity>
+  );
+}
+
+function LockedLessonRow({ lesson }: { lesson: RoadmapLesson }) {
+  return (
+    <View style={styles.lessonRow}>
+      <View style={styles.railSegment} />
+      <View style={styles.dotCol}>
+        <View style={[styles.dot, { backgroundColor: colors.fillDark }]} />
+      </View>
+      <Text style={styles.lockedName}>{lesson.name}</Text>
+    </View>
+  );
+}
+
+// ── Styles ───────────────────────────────────────────────────────────────────
+
+const COL_W = 44; // left rail column width
+const DOT_SZ = 22;
+const RAIL_X = (COL_W - 2) / 2; // left edge of 2px line = 21 (centered in 44px column)
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+  container: { flex: 1, backgroundColor: colors.background },
 
   // Header
   header: {
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral200,
-    paddingHorizontal: 18,
-    paddingBottom: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 24,
+    paddingBottom: 20,
   },
-  coursePill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: colors.primaryLight,
-    borderRadius: 999,
-    paddingVertical: 6,
-    paddingLeft: 10,
-    paddingRight: 12,
-    flexShrink: 1,
+  headerKicker: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    color: "rgba(245,240,255,0.65)",
+    marginTop: 16,
   },
-  coursePillText: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: fontSizes.sm,
-    color: colors.primaryDark,
-    flexShrink: 1,
+  headerTitle: {
+    fontFamily: fonts.displayExtraBold,
+    fontSize: 27,
+    lineHeight: 30,
+    color: colors.onPrimary,
+    marginTop: 4,
   },
   statsRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
+    gap: 8,
+    marginTop: 16,
   },
-  statItem: {
+  statChip: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
+    gap: 7,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
   },
   statValue: {
     fontFamily: fonts.displayExtraBold,
-    fontSize: fontSizes.md,
-    color: colors.text,
+    fontSize: 15,
+    lineHeight: 17,
+    color: colors.surface,
+  },
+  statLabel: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 9,
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+    color: "rgba(245,240,255,0.6)",
+    marginTop: 1,
   },
 
   // Loading / error / empty
@@ -414,213 +519,266 @@ const styles = StyleSheet.create({
   },
 
   // Timeline
-  scroll: {
-    flex: 1,
-  },
+  scroll: { flex: 1 },
   scrollContent: {
-    paddingTop: 16,
+    paddingTop: 24,
+    paddingHorizontal: 24,
     paddingBottom: 40,
   },
-  unitBlock: {
-    paddingHorizontal: 26,
-    marginBottom: 4,
+
+  // Shared rail segment (absolute, spans full row height including paddingBottom)
+  railSegment: {
+    position: "absolute",
+    left: RAIL_X,
+    top: 0,
+    bottom: 0,
+    width: 2,
+    backgroundColor: colors.roadmapLockedBorder,
   },
-  unitHeader: {
+
+  // Unit header row
+  unitRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    marginBottom: 7,
+    gap: 16,
+    paddingBottom: 20,
   },
-  unitChip: {
-    width: 34,
-    height: 34,
-    borderRadius: 11,
+  unitIcon: {
+    width: COL_W,
+    height: COL_W,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 1,
   },
-  unitHeaderTexts: {
-    flex: 1,
-    minWidth: 0,
+  unitContent: { flex: 1, minWidth: 0, zIndex: 1 },
+  unitMeta: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: 8,
   },
   unitKicker: {
     fontFamily: fonts.bodyBold,
     fontSize: 10,
-    letterSpacing: 0.9,
+    letterSpacing: 1.1,
     textTransform: "uppercase",
-    color: colors.textMuted,
-  },
-  unitTitle: {
-    fontFamily: fonts.displayExtraBold,
-    fontSize: fontSizes.md,
-    lineHeight: 20,
-    color: colors.text,
-  },
-  unitTitleLocked: {
     color: colors.textMuted,
   },
   unitProgress: {
     fontFamily: fonts.displayExtraBold,
-    fontSize: fontSizes.xs,
-    color: colors.neutral600,
-  },
-  unitDescription: {
-    fontFamily: fonts.bodyRegular,
-    fontSize: fontSizes.xs,
-    lineHeight: 17,
+    fontSize: 11,
     color: colors.textMuted,
-    marginBottom: 4,
   },
-  lessons: {
-    marginTop: 4,
-  },
-
-  // Lesson row (rail + card)
-  lessonRow: {
-    flexDirection: "row",
-    gap: 14,
-  },
-  rail: {
-    width: RAIL_WIDTH,
-    alignItems: "center",
-  },
-  railLine: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    width: 3,
-    borderRadius: 2,
-  },
-  node: {
-    marginTop: 18,
-    width: NODE_SIZE,
-    height: NODE_SIZE,
-    borderRadius: NODE_SIZE / 2,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  lessonCard: {
-    flex: 1,
-    minWidth: 0,
-    marginBottom: 26,
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 18,
-    padding: 16,
-    gap: 10,
-  },
-  lessonCardActive: {
-    backgroundColor: colors.surface,
-    borderWidth: 2,
-    borderColor: colors.primary,
-  },
-  lessonCardTop: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
-  },
-  lessonName: {
-    flex: 1,
-    minWidth: 0,
-    fontFamily: fonts.displayBold,
-    fontSize: 14,
-    lineHeight: 18,
-    color: colors.text,
-  },
-  lessonNameDim: {
-    color: colors.roadmapLockedIcon,
-  },
-  stateChip: {
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  stateChipText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10,
-  },
-
-  // Lesson modal (bottom sheet)
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "flex-end",
-  },
-  sheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-  },
-  sheetHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.neutral200,
-    alignSelf: "center",
-    marginBottom: 8,
-  },
-  sheetCloseRow: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    marginBottom: 8,
-  },
-  sheetCloseBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.neutral100,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sheetTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    marginBottom: 12,
-  },
-  sheetMedallion: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sheetTitle: {
-    flex: 1,
-    minWidth: 0,
+  unitTitle: {
     fontFamily: fonts.displayExtraBold,
     fontSize: fontSizes.lg,
-    lineHeight: 24,
-    color: colors.neutral900,
+    lineHeight: 23,
+    color: colors.text,
+    marginTop: 3,
   },
-  sheetDescription: {
-    fontFamily: fonts.bodyRegular,
-    fontSize: fontSizes.sm,
-    lineHeight: 20,
-    color: colors.textMuted,
-    marginBottom: 14,
-  },
-  sheetMetaRow: {
+  unitTitleLocked: { color: colors.roadmapLockedIcon },
+
+  // Lesson rows
+  lessonRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 16,
-    marginBottom: 16,
+    paddingBottom: 16,
   },
-  sheetMetaItem: {
+  lessonRowTop: { alignItems: "flex-start" },
+
+  // Dot column
+  dotCol: {
+    width: COL_W,
+    alignItems: "center",
+    zIndex: 1,
+  },
+  dotColTop: { paddingTop: 26 },
+  dot: {
+    width: DOT_SZ,
+    height: DOT_SZ,
+    borderRadius: DOT_SZ / 2,
+  },
+  dotAvailable: {
+    backgroundColor: colors.background,
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+
+  // Current lesson concentric rings
+  currentDotOuter: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.primaryLight,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  currentDotMid: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.background,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  currentDot: {
+    width: DOT_SZ,
+    height: DOT_SZ,
+    borderRadius: DOT_SZ / 2,
+    backgroundColor: colors.primary,
+  },
+
+  // Lesson name labels
+  lessonRowContent: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    justifyContent: "space-between",
+    gap: 8,
+    zIndex: 1,
   },
-  sheetMetaText: {
+  completedName: {
+    flex: 1,
     fontFamily: fonts.bodySemiBold,
-    fontSize: fontSizes.sm,
-    color: colors.text,
+    fontSize: 15,
+    color: colors.textMuted,
   },
-  cta: {
+  availableName: {
+    flex: 1,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    color: colors.text,
+    zIndex: 1,
+  },
+  lockedName: {
+    flex: 1,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    color: colors.roadmapLockedIcon,
+    zIndex: 1,
+  },
+  replayBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.fill,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // Current lesson card
+  lessonCard: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    padding: 20,
+    zIndex: 1,
+    shadowColor: colors.text,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 4,
+  },
+  cardKicker: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
+    color: colors.primary,
+  },
+  cardTitle: {
+    fontFamily: fonts.displayExtraBold,
+    fontSize: 19,
+    lineHeight: 23,
+    color: colors.text,
+    marginTop: 6,
+  },
+  cardActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 16,
+  },
+  cardCta: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: colors.primary,
+    borderRadius: 14,
+    paddingVertical: 14,
+  },
+  cardCtaText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    color: colors.surface,
+  },
+  cardInfoBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: colors.primaryLight,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // Modal (centered overlay)
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(36,26,22,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  modalCard: {
+    width: "100%",
+    maxWidth: 340,
+    backgroundColor: colors.surface,
+    borderRadius: 24,
+    padding: 24,
+  },
+  modalTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  modalKicker: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
+    color: colors.primary,
+  },
+  modalXpPill: {
+    backgroundColor: colors.primaryLight,
+    borderRadius: 999,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+  },
+  modalXpText: {
+    fontFamily: fonts.displayExtraBold,
+    fontSize: 11,
+    color: colors.primary,
+  },
+  modalTitle: {
+    fontFamily: fonts.displayExtraBold,
+    fontSize: 22,
+    lineHeight: 27,
+    color: colors.text,
+    marginTop: 8,
+  },
+  modalDescription: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 14,
+    lineHeight: 22,
+    color: colors.textMuted,
+    marginTop: 8,
+  },
+  ctaButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -628,16 +786,37 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 15,
     backgroundColor: colors.primary,
+    marginTop: 20,
   },
-  ctaDisabled: {
-    backgroundColor: colors.neutral100,
-  },
+  ctaButtonDisabled: { backgroundColor: colors.neutral100 },
   ctaText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 15,
     color: colors.surface,
   },
-  ctaTextDisabled: {
-    color: colors.roadmapLockedIcon,
+  ctaTextDisabled: { color: colors.roadmapLockedIcon },
+
+  // Sign chips inside the lesson modal
+  signChipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 7,
+    marginTop: 14,
+  },
+  signChip: {
+    backgroundColor: colors.primaryLight,
+    borderRadius: 999,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+  },
+  signChipText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 12.5,
+    color: colors.primaryDark,
+  },
+  signChipSkeleton: {
+    width: 60,
+    height: 26,
+    backgroundColor: colors.fill,
   },
 });

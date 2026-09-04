@@ -1,16 +1,48 @@
-import { Image } from "react-native";
 import { signsApi } from "@/api/signs";
 import { BlockType, LessonContentBlock, parseBlockConfig } from "./lessonContent.types";
 
 /**
- * Meaning -> animation URL, shared across the app for the lifetime of the
- * process. `null` means "looked up, no animation found" (still cached, so we
- * don't refetch on every lesson).
+ * Meaning → presigned URL from the API. `null` = looked up, no animation.
+ * Undefined = not yet looked up.
  */
 const animationUrlCache = new Map<string, string | null>();
 
+/**
+ * Meaning → GLB data URL (`data:model/gltf-binary;base64,…`).
+ * Populated by `preloadLessonAnimations` after the binary is downloaded.
+ * Preferred over the presigned URL so the WebView needs no network request.
+ */
+const glbDataCache = new Map<string, string>();
+
+/**
+ * Returns the best available URL for a meaning:
+ * - A data URL (GLB already downloaded, WebView renders from memory)
+ * - Or the presigned URL (WebView will fetch from R2)
+ * - Or null/undefined while still loading
+ */
 export function getCachedAnimationUrl(meaning: string): string | null | undefined {
-  return animationUrlCache.get(meaning);
+  return glbDataCache.get(meaning) ?? animationUrlCache.get(meaning);
+}
+
+function arrayBufferToDataUrl(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 1024) {
+    binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + 1024, bytes.length)));
+  }
+  return `data:model/gltf-binary;base64,${btoa(binary)}`;
+}
+
+async function downloadGlb(meaning: string, url: string): Promise<void> {
+  if (glbDataCache.has(meaning)) return;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return;
+    const buffer = await response.arrayBuffer();
+    glbDataCache.set(meaning, arrayBufferToDataUrl(buffer));
+  } catch {
+    // Network error — keep presigned URL as fallback, don't cache failure
+  }
 }
 
 /**
@@ -65,15 +97,19 @@ export async function preloadLessonAnimations(blocks: LessonContentBlock[]): Pro
     const res = await signsApi.getSignAnimations(pending);
     const urlsByMeaning = res.data;
 
-    await Promise.all(
-      pending.map(async (meaning) => {
-        const url = urlsByMeaning[meaning] ?? null;
-        animationUrlCache.set(meaning, url);
-        if (url) {
-          await Image.prefetch(url).catch(() => {});
-        }
-      })
-    );
+    // Store presigned URLs immediately so components can render a fallback
+    // while the binary downloads in the background.
+    const toDownload: Array<{ meaning: string; url: string }> = [];
+    for (const meaning of pending) {
+      const url = urlsByMeaning[meaning] ?? null;
+      animationUrlCache.set(meaning, url);
+      if (url) toDownload.push({ meaning, url });
+    }
+
+    // Download GLB binaries in parallel and store as data URLs.
+    // WebViews that use getCachedAnimationUrl after this completes will find
+    // the data URL and skip any network request entirely.
+    await Promise.all(toDownload.map(({ meaning, url }) => downloadGlb(meaning, url)));
   } catch {
     pending.forEach((meaning) => animationUrlCache.set(meaning, null));
   }

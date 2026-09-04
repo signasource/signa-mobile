@@ -1,9 +1,11 @@
-﻿import React, { useMemo, useState } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import React, { useMemo, useRef, useState } from "react";
+import { StyleSheet, TouchableOpacity, View, ViewStyle } from "react-native";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "@/theme";
-import { SignAnimation } from "../SignAnimation";
+import { MultiGlbView } from "@/features/animations/MultiGlbView";
+import { getCachedAnimationUrl } from "@/features/courses/animationPreload";
+import { SignPlaceholder } from "../SignPlaceholder";
 import { XpChip } from "../XpChip";
 import { FeedbackBar } from "../FeedbackBar";
 import { LessonButton } from "../LessonButton";
@@ -20,6 +22,92 @@ interface SignCarouselBlockProps {
   onAnswer: (correct: boolean) => void;
   onContinue: () => void;
 }
+
+// ── Carousel animation ───────────────────────────────────────────────────────
+
+interface CarouselAnimationProps {
+  options: string[];
+  activeIndex: number;
+  tone: "neutral" | "wrong";
+  paused: boolean;
+  style?: ViewStyle;
+}
+
+/**
+ * Renders all carousel option models inside ONE persistent WebView.
+ * Switching options is a JS injection — zero WebView reload on swipe.
+ */
+function CarouselAnimation({ options, activeIndex, tone, paused, style }: CarouselAnimationProps) {
+  // Resolved once on mount from the pre-warm cache.
+  const urls = useRef(options.map((m) => getCachedAnimationUrl(m) ?? ""));
+  const [failed, setFailed] = useState(false);
+  const wrong = tone === "wrong";
+  const activeUrl = urls.current[activeIndex];
+  const anyUrl = urls.current.some(Boolean);
+
+  return (
+    <View style={[animStyles.container, wrong && animStyles.containerWrong, style]}>
+      <View style={animStyles.badge}>
+        <Text style={animStyles.badgeText}>
+          Opción {activeIndex + 1} de {options.length}
+        </Text>
+      </View>
+
+      {anyUrl && !failed ? (
+        <MultiGlbView
+          urls={urls.current}
+          activeIndex={activeIndex}
+          paused={paused}
+          onError={() => setFailed(true)}
+        />
+      ) : null}
+
+      {/* Overlay placeholder when the active slot has no URL yet. */}
+      {(!activeUrl || failed) && (
+        <View style={StyleSheet.absoluteFillObject}>
+          <SignPlaceholder
+            label={`avatar 3D · seña ${activeIndex + 1}`}
+            height={330}
+            tone={tone}
+          />
+        </View>
+      )}
+    </View>
+  );
+}
+
+const animStyles = StyleSheet.create({
+  container: {
+    height: 330,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.fill,
+    overflow: "hidden",
+  },
+  containerWrong: {
+    borderWidth: 2,
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerLight,
+  },
+  badge: {
+    position: "absolute",
+    top: 14,
+    left: 14,
+    zIndex: 1,
+    backgroundColor: "rgba(255,255,255,0.94)",
+    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 9,
+  },
+  badgeText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 11.5,
+    color: colors.textMuted,
+  },
+});
+
+// ── Block ────────────────────────────────────────────────────────────────────
 
 /** Carrusel de cards apiladas compartido por SELECT_SIGN y CONTEXT_RESPONSE. */
 export function SignCarouselBlock({
@@ -64,19 +152,26 @@ export function SignCarouselBlock({
       <View style={styles.body}>
         <View style={styles.headerRow}>
           <Text style={styles.question}>{question}</Text>
-          <XpChip xp={xp} state={status === "correct" ? "correct" : status === "incorrect" || status === "revealed" ? "incorrect" : "idle"} />
+          <XpChip
+            xp={xp}
+            state={
+              status === "correct"
+                ? "correct"
+                : status === "incorrect" || status === "revealed"
+                  ? "incorrect"
+                  : "idle"
+            }
+          />
         </View>
 
         <View style={styles.stack}>
           <View style={[styles.stackLayer, styles.stackLayerBack]} />
           <View style={[styles.stackLayer, styles.stackLayerMid]} />
-          <SignAnimation
-            meaning={options[index]}
-            label={`avatar 3D · seña ${index + 1}`}
-            height={330}
+          <CarouselAnimation
+            options={options}
+            activeIndex={index}
             tone={cardTone}
             paused={answered}
-            badge={`Opción ${index + 1} de ${options.length}`}
             style={styles.stackFront}
           />
           {status === "incorrect" && (
@@ -99,17 +194,30 @@ export function SignCarouselBlock({
               const isCurrent = i === index;
               let dotColor = colors.neutral200;
               if (isCurrent) {
-                dotColor = status === "incorrect" ? colors.danger : status === "correct" || status === "revealed" ? colors.success : colors.primary;
+                dotColor =
+                  status === "incorrect"
+                    ? colors.danger
+                    : status === "correct" || status === "revealed"
+                      ? colors.success
+                      : colors.primary;
               } else if (status === "revealed" && i === correctIndex) {
                 dotColor = colors.success;
               }
-              return <View key={i} style={[styles.dot, isCurrent && styles.dotActive, { backgroundColor: dotColor }]} />;
+              return (
+                <View
+                  key={i}
+                  style={[styles.dot, isCurrent && styles.dotActive, { backgroundColor: dotColor }]}
+                />
+              );
             })}
           </View>
           <TouchableOpacity
             onPress={() => move(1)}
             disabled={answered || index === options.length - 1}
-            style={[styles.navButton, (answered || index === options.length - 1) && styles.navButtonDisabled]}
+            style={[
+              styles.navButton,
+              (answered || index === options.length - 1) && styles.navButtonDisabled,
+            ]}
           >
             <Ionicons name="chevron-forward" size={19} color={colors.text} />
           </TouchableOpacity>
@@ -117,9 +225,7 @@ export function SignCarouselBlock({
       </View>
 
       <View style={styles.footer}>
-        {status === "idle" && (
-          <LessonButton label={confirmLabel} icon={confirmIcon} onPress={confirm} />
-        )}
+        {status === "idle" && <LessonButton label={confirmLabel} icon={confirmIcon} onPress={confirm} />}
         {status === "correct" && (
           <>
             <FeedbackBar correct title="¡Correcto!" detail={correctDetail} />
@@ -128,13 +234,21 @@ export function SignCarouselBlock({
         )}
         {status === "incorrect" && (
           <>
-            <FeedbackBar correct={false} title="No era esa" detail={wrongDetail(correctIndex, answer)} />
+            <FeedbackBar
+              correct={false}
+              title="No era esa"
+              detail={wrongDetail(correctIndex, answer)}
+            />
             <LessonButton label="Ver la correcta" onPress={reveal} />
           </>
         )}
         {status === "revealed" && (
           <>
-            <FeedbackBar correct={false} title="No era esa" detail={wrongDetail(correctIndex, answer)} />
+            <FeedbackBar
+              correct={false}
+              title="No era esa"
+              detail={wrongDetail(correctIndex, answer)}
+            />
             <LessonButton label="Continuar" onPress={onContinue} />
           </>
         )}
@@ -146,7 +260,12 @@ export function SignCarouselBlock({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   body: { flex: 1, paddingHorizontal: 20, paddingTop: 20, gap: 14 },
-  headerRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 10 },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 10,
+  },
   question: {
     flex: 1,
     minWidth: 0,
@@ -182,7 +301,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  navRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 14 },
+  navRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 14,
+  },
   navButton: {
     width: 44,
     height: 44,
