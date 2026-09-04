@@ -2,7 +2,7 @@
 
 > Responsibility: DTOs mirrored 1:1 from `signa-api` records.
 > Update when: a backend DTO changes or a request/response type is added.
-> Sources: src/types/index.ts
+> Sources: src/types/index.ts, src/api/social.ts, src/api/notifications.ts
 
 - `AuthResponse { accessToken, refreshToken }` — **carries no user data**.
 - `LoginRequest { identifier, password }` — `identifier` is email or username.
@@ -17,6 +17,19 @@
 - `ShopInventory { gems, streakShields, livesMode, currentLives, nextLifeAt, effectiveXpMultiplier, xpMultiplierExpiresAt, xpMultiplierActive, unlimitedLivesExpiresAt, unlimitedLivesActive }` — mirrors `UserInventoryResponse`; `livesMode` is `INFINITE | LIMITED`. Distinct from `UserInventory` (`inventoryApi`), which only covers the fields the Profile screen reads.
 - `AppliedEffect { type, gemsGranted, livesGranted, streakShieldsGranted, xpMultiplierValue, durationMinutes }` — mirrors `AppliedEffectResponse`; for a `MYSTERY_CHEST` purchase, `type` is the resolved reward, not the chest itself.
 - `PurchaseResult { id, item, gemsSpent, purchasedAt, effect, inventory }` — mirrors `PurchaseResponse`.
+- `RelationStatus` — `NONE | FRIEND | INCOMING | OUTGOING | BLOCKED | BLOCKED_BY`, from the **caller's** point of view: `OUTGOING` means "I sent it", `BLOCKED` means "I blocked them". `BLOCKED_BY` exists on the backend enum but never reaches the client — search filters those users out. A `REJECTED` friendship maps to `NONE`, so the request can be sent again.
+- `FriendEventType` — `ACHIEVEMENT | SIGN_LEARNED`.
+- `Friend { id, username, name, acceptedAt, currentStreak, totalXp, learnedSignsCount }` — mirrors `FriendResponse`. The three stats come from the friend's `UserStats` and are **0** when that row doesn't exist yet.
+- `FriendRequest { requesterId, requesterUsername, requesterName, requestedAt }` — mirrors `FriendRequestResponse` (requests received).
+- `SentFriendRequest { addresseeId, addresseeUsername, addresseeName, requestedAt }` — mirrors `SentFriendRequestResponse` (requests sent).
+- `FriendEvent { friendId, friendUsername, friendName, eventType, eventRefId, subject, context, liked, createdAt }` — mirrors `FriendEventResponse`. Feed events are **derived, not stored**, so `(eventType, eventRefId)` is their identity: `eventRefId` is the id of the `user_achievements` / `user_learned_signs` row behind it. `subject`/`context` are the raw pieces (achievement title + its description, or the sign + its course); the sentence is composed client-side by `eventSentence()` so the copy stays in the UI language.
+- `UserSearchResult { id, username, name, relation, mutualFriends }` — mirrors `UserSearchResultResponse`; already resolved against the caller.
+- `PublicUserProfile { id, username, name, profileHeaderColor, relation, visible, stats, weeklyXp, achievements, courses }` — mirrors `PublicUserProfileResponse`. When `visible` is `false` the account is private and the viewer isn't a friend: identity and `relation` are real, every progress field is empty.
+- `PublicUserStats { currentStreak, longestStreak, totalXp, weeklyXp, learnedSignsCount }` — mirrors `PublicUserStatsResponse`; progress only, no wallet.
+- `PublicCourseProgress` / `PublicAchievement` — mirror `CourseProgressResponse` and `AchievementResponse` **as the backend actually sends them**. Note these differ from the older `CourseProgress` (`src/api/learning.ts`) and `Achievement` (`src/api/achievements.ts`) types, which do not match the backend — see [../status.md](../status.md).
+- `NotificationCode` — `DAILY_REMINDER | COURSE_COMPLETED | STREAK_REMINDER | NEW_COURSE_AVAILABLE | GLOBAL_ANNOUNCEMENT | FRIEND_REQUEST_RECEIVED | FRIEND_REQUEST_ACCEPTED | FRIEND_EVENT_LIKED`. The UI maps unknown codes to a neutral icon, so a new backend code doesn't break the inbox.
+- `AppNotification { id, code, title, body, read, sentAt, readAt, metadata }` — mirrors `NotificationResponse`. `title`/`body` are already rendered server-side from the template; `metadata` carries the event data (`friend`, `friendUsername`, `friendId`).
+- `NotificationPage { content, number, totalElements, last }` — the subset of the Spring page the app reads.
 - `LessonContent { id, name, description, order, blocks }` — mirrors `LessonDetailResponse`, from `features/courses/lessonContent.types.ts`.
 - `LessonContentBlock { id, type, order, config, xpReward }` — mirrors `LessonBlockResponse`. `type` is `INFO | SELECT_MEANING | SELECT_SIGN | CONTEXT_RESPONSE | MATCH | VISUAL_RECOGNITION` (backend `BlockType`). `config` is a **raw JSON string** — it's the same JSON `ContentLoader` builds straight from the lesson's YAML (`signa-api/content/dto/yaml/LessonBlockDto.java`), so it keeps the YAML's own key casing instead of the API's usual snake_case, and the client interceptor never touches it (it's a string leaf, not a nested object). Parse it with `parseBlockConfig<T>(block)`.
 - Per-type block configs (parsed from `config`, keys exactly as authored in the lesson `.yml`, see `signa-api/content/content/LSA/basic-course/topic-01.yml`):

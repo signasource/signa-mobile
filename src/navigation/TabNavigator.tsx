@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { HomeTabScreen } from "@/screens/tabs/HomeTabScreen";
 import { PracticeTabScreen } from "@/screens/tabs/PracticeTabScreen";
 import { StoreTabScreen } from "@/screens/tabs/StoreTabScreen";
-import { SocialTabScreen } from "@/screens/tabs/SocialTabScreen";
+import { SocialScreen } from "@/features/social/screens/SocialScreen";
 import { ProfileScreen } from "@/screens/ProfileScreen";
 import { colors } from "@/theme";
 
@@ -63,7 +63,7 @@ export function TabNavigator() {
       />
       <Tab.Screen
         name="Social"
-        component={SocialTabScreen}
+        component={SocialScreen}
         options={{ tabBarLabel: "Social" }}
       />
       <Tab.Screen

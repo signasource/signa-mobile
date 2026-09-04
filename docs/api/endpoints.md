@@ -2,7 +2,7 @@
 
 > Responsibility: catalog of API endpoints exposed through `src/api/`.
 > Update when: an endpoint is added, changed, or removed, or a stub becomes real.
-> Sources: src/api/auth.ts, src/api/users.ts, src/api/health.ts, src/api/shop.ts, src/api/signs.ts, src/features/courses/api.ts
+> Sources: src/api/auth.ts, src/api/users.ts, src/api/health.ts, src/api/shop.ts, src/api/signs.ts, src/api/social.ts, src/api/notifications.ts, src/features/courses/api.ts
 
 Types → [types.md](./types.md). Client behavior → [http-client.md](./http-client.md).
 
@@ -29,6 +29,8 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 | `getSettings()` | `GET /users/settings` | `UserSettings` | returns full settings; front-end uses `profileHeaderColor` |
 | `updateSettings(payload)` | `PATCH /users/settings` | `UserSettings` | partial patch; all fields optional |
 
+> `usersApi.getStats()` (`GET /users/me/stats`) and `recordActivity()` (`POST /users/me/activity`) have **no counterpart in `UserController.java`** — they 404. Pre-existing, used by Inicio and Perfil; see [status.md](../status.md).
+
 ## `inventoryApi` (`src/api/inventory.ts`)
 
 | Method | Path | Returns | Notes |
@@ -43,7 +45,45 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 | `getMyInventory()` | `GET /inventories/me` | `ShopInventory` | full inventory shape (gems, `livesMode`, `currentLives`, streak shields, XP multiplier/unlimited-lives status) — **not** the narrower `UserInventory` from `inventoryApi` |
 | `purchase(shopItemId)` | `POST /store/purchases` | `PurchaseResult` | `{ shopItemId }`; response includes `effect` (resolved reward, notably for `MYSTERY_CHEST`) and the refreshed `inventory` |
 
-No endpoint lists a user's friends, so the Store screen only supports buying for yourself — the "regalar a un amigo" flow from the design (`POST /store/gifts` etc.) is not wired into the UI.
+The Store screen only supports buying for yourself: the "regalar a un amigo" flow (`POST /store/gifts`) is not wired into the UI. Friends *are* listable now (`socialApi.getFriends()`), so this is a UI gap, not an API one.
+
+## `socialApi` (`src/api/social.ts`) — mirrors `FriendshipController.java` + `UserController.searchUsers`
+
+Powers the Social tab (see [features/social.md](../features/social.md)).
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getFriends()` | `GET /friendships` | `Friend[]` | `{ id, username, name, acceptedAt, currentStreak, totalXp, learnedSignsCount }`. The stats come from the friend's `UserStats` and are **0 when they have no stats row yet** |
+| `getReceivedRequests()` | `GET /friendships/requests` | `FriendRequest[]` | pending requests **addressed to** the user |
+| `getSentRequests()` | `GET /friendships/requests/sent` | `SentFriendRequest[]` | pending requests the user **sent** |
+| `getEvents(limit?)` | `GET /friendships/events?limit=` | `FriendEvent[]` | default 50. Events are derived, not stored — identified by (`eventType`, `eventRefId`); `subject`/`context` are raw pieces, the app composes the sentence |
+| `sendRequest(addresseeId)` | `POST /friendships/request/{id}` | 201 | |
+| `cancelRequest(addresseeId)` | `DELETE /friendships/request/{id}` | 204 | withdraws a request the user sent; only while `PENDING` |
+| `acceptRequest(requesterId)` | `PATCH /friendships/accept/{id}` | 200 | notifies the requester |
+| `rejectRequest(requesterId)` | `PATCH /friendships/reject/{id}` | 200 | keeps the row as `REJECTED`, so it can be re-sent later |
+| `removeFriend(userId)` | `DELETE /friendships/{id}` | 204 | only an `ACCEPTED` friendship |
+| `blockUser(userId)` | `PATCH /friendships/block/{id}` | 200 | |
+| `unblockUser(userId)` | `PATCH /friendships/unblock/{id}` | 200 | deletes the relation entirely |
+| `likeEvent(type, refId)` | `POST /friendships/events/{type}/{refId}/like` | 204 | idempotent; notifies the event's owner. Rejects your own activity and non-friends |
+| `unlikeEvent(type, refId)` | `DELETE /friendships/events/{type}/{refId}/like` | 204 | no-op if there was no like |
+| `searchUsers(query, signal?)` | `GET /users/search?query=&limit=` | `UserSearchResult[]` | `query` is a **contains** match on username or display name, min 2 chars (shorter → 400), max 50 results. Each result carries `relation` and `mutualFriends` already resolved against the caller. Users who blocked the caller are filtered out. Accepts `AbortSignal` |
+
+## `publicProfileApi` (`src/api/social.ts`) — mirrors `UserController.getByUsername`
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getByUsername(username)` | `GET /users/{username}` | `PublicUserProfile` | Everything the read-only profile screen needs in one call: identity, header colour, relation, stats, weekly XP, achievements and course progress. **Gems, lives and boosters are deliberately absent** — those are private. A private account the caller isn't friends with comes back with `visible: false`: identity and `relation` only, so a request can still be sent. A disabled or unknown user 404s. |
+
+## `notificationsApi` (`src/api/notifications.ts`) — mirrors `NotificationController.java`
+
+Read-only: notifications are produced server-side by whatever triggers them.
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getInbox(page?, size?)` | `GET /notifications?page=&size=` | `NotificationPage` | Spring page, newest first; default `size` 30, capped at 100 |
+| `getUnreadCount()` | `GET /notifications/unread-count` | `{ unreadCount: number }` | drives the bell badge |
+| `markAsRead(id)` | `PATCH /notifications/{id}/read` | 204 | |
+| `markAllAsRead()` | `PATCH /notifications/read-all` | 204 | called when the inbox is opened |
 
 ## `achievementsApi` (`src/api/achievements.ts`)
 

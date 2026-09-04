@@ -48,6 +48,8 @@ Post-login screens with tab navigation. `screenOptions` use a dark header: `head
 | `Tabs` | `NavigatorScreenParams<TabParamList>` (optional) — lets a caller deep-link into a tab, e.g. `navigation.navigate("Tabs", { screen: "Store" })` | (no header) | `navigation/TabNavigator` |
 | `ChangePassword` | — | "Cambiar contrasena" | `screens/ChangePasswordScreen` |
 | `Lesson` | `{ lessonId: string; unitLabel?: string }` | (no header, screen renders its own) | `features/courses/screens/LessonScreen` |
+| `Notifications` | — | (no header, screen renders its own) | `features/social/screens/NotificationsScreen` |
+| `PublicProfile` | `{ username: string }` | (no header, screen renders its own) | `features/social/screens/PublicProfileScreen` |
 | `SignRecognition` | — | "Practicar" | `features/ml/screens/SignRecognitionScreen` |
 | `ConnectionTest` | — | "Test de conexion" | `screens/ConnectionTestScreen` |
 
@@ -64,10 +66,12 @@ Bottom tab navigation with five tabs. Uses `@react-navigation/bottom-tabs`. Tab 
 | `Home` | home/home-outline | `screens/tabs/HomeTabScreen` |
 | `Practice` | hand-left/hand-left-outline | `screens/tabs/PracticeTabScreen` |
 | `Store` | storefront/storefront-outline | `screens/tabs/StoreTabScreen` |
-| `Social` | people/people-outline | `screens/tabs/SocialTabScreen` |
+| `Social` | people/people-outline | `features/social/screens/SocialScreen` |
 | `Profile` | person/person-outline | `screens/ProfileScreen` |
 
-Tab screens Practice and Social are currently placeholders. Home (Inicio lesson roadmap — see [features/courses.md](./features/courses.md#inicio-home-roadmap-screen)), Store and Profile have full implementations.
+Practice is still a placeholder. Home (Inicio lesson roadmap — see [features/courses.md](./features/courses.md#inicio-home-roadmap-screen)), Store, Social (see [features/social.md](./features/social.md)) and Profile have full implementations.
+
+Social is the one tab whose screen does **not** live under `screens/tabs/`: it is mounted straight from `features/social/`, like `LessonScreen`.
 
 ## Add a screen
 

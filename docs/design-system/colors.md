@@ -50,6 +50,31 @@ has no equivalent in the palettes above.
 | `colors.roadmapLockedIcon` | `#A9A09A` | locked node icon, dimmed lesson label, disabled CTA text |
 | `colors.roadmapLockedBorder` | `#DCD2C8` | locked node border |
 
+## Social module (vino)
+
+The Social tab and the notifications inbox use a wine accent instead of the brand violet, matching
+`Modulo Social.dc.html`. See [../features/social.md](../features/social.md).
+
+| Token | Hex | Use |
+|---|---|---|
+| `colors.socialWine` | `#8A2C5E` | Social header, active tab, primary action, unread dot |
+| `colors.socialWineDeep` | `#96406D` | decorative circle inside the header |
+| `colors.socialWineLight` | `#F6E4EC` | active "me gusta" background, unread notification row |
+
+### Avatar palette
+
+Avatars show initials over one of six pairs, picked **deterministically from the user's id**
+(`avatarColors()` in `features/social/people.ts`) so a person keeps the same color everywhere.
+
+| Token | Hex | Paired foreground |
+|---|---|---|
+| `colors.primaryLight` | `#EEE8FF` | `colors.primaryDark` |
+| `colors.avatarTealLight` | `#E0F4F2` | `colors.avatarTealDark` (`#1F7E77`) |
+| `colors.avatarWineLight` | `#FDE8F1` | `colors.socialWine` |
+| `colors.avatarAmberLight` | `#FEF0DE` | `colors.shopAmberDark` |
+| `colors.avatarBlueLight` | `#E4F1FB` | `colors.gemsBlueDark` |
+| `colors.avatarGreenLight` | `#E9F3EB` | `colors.successDark` |
+
 ## Neutral grays (profile screen uses a pure-gray palette)
 
 The profile / stats screens use a pure-gray palette rather than the warm-toned one. Use these tokens in those screens.
