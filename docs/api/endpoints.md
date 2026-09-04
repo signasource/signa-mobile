@@ -84,7 +84,7 @@ Real endpoints that power the Inicio (Home) lesson roadmap:
 |---|---|---|---|
 | `getSignLanguages()` | `GET /sign-languages` | `SignLanguage[]` | `{ id, code, name, countryCode }`; LSA has `code: "LSA"`. Used to resolve the `signLanguageId` the catalog needs. |
 | `getCatalog(signLanguageId)` | `GET /courses?signLanguageId=` | `Page<CourseSummary>` | Spring page; the screen uses `content[0]` (first course). `signLanguageId` is a **query param** (stays camelCase — the client snake_cases only bodies). |
-| `getRoadmap(courseId)` | `GET /learning/tracking/courses/{courseId}/roadmap` | `CourseRoadmap` | Per-user roadmap of the course's published version: `topics[]` (each with `title`, optional `subtitle`) each with ordered `lessons[]` carrying `blockCount`, `xpTotal` and `state` (`COMPLETED` / `IN_PROGRESS` / `AVAILABLE` / `LOCKED`). |
+| `getRoadmap(courseId)` | `GET /learning/tracking/courses/{courseId}/roadmap` | `CourseRoadmap` | Per-user roadmap of the course's published version: `topics[]` (each with `title`, optional `subtitle`) each with ordered `lessons[]` carrying `blockCount`, `xpTotal`, `signsCount` and `state` (`COMPLETED` / `IN_PROGRESS` / `AVAILABLE` / `LOCKED`). **Backend TODO:** add `signsLearned: string[]` to `RoadmapLesson` (populate via `BlockSignExtractor`) so the lesson-detail modal can show sign chips without fetching the full lesson content. The mobile type already has `signsLearned?: string[]` and falls back to client-side extraction in the meantime. |
 
 Inicio load chain: `getSignLanguages()` → pick LSA → `getCatalog(lsa.id)` → first course → `getRoadmap(course.id)`. Header stats (streak/gems/XP) come from `usersApi.getStats()` + `inventoryApi.getMyInventory()`.
 

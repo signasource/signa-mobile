@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useState } from "react";
+﻿import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -9,6 +9,8 @@ import { lessonsApi } from "@/api/lessons";
 import { learningApi } from "@/api/learning";
 import { shopApi } from "@/api/shop";
 import { preloadLessonAnimations } from "@/features/courses/animationPreload";
+import { warmLesson } from "@/features/courses/lessonPreload";
+import { getCachedLesson, setCachedLesson } from "@/features/courses/lessonCache";
 import { BlockType, LessonContent, LessonContentBlock, parseBlockConfig } from "@/features/courses/lessonContent.types";
 import { LessonButton } from "@/features/courses/components/lesson/LessonButton";
 import { LessonHeader } from "@/features/courses/components/lesson/LessonHeader";
@@ -25,32 +27,8 @@ type Props = NativeStackScreenProps<AppStackParamList, "Lesson">;
 
 const STARTING_LIVES = 5;
 
-function estimateSignsLearned(blocks: LessonContentBlock[]): number {
-  const signs = new Set<string>();
-  for (const block of blocks) {
-    switch (block.type) {
-      case "SELECT_MEANING":
-        signs.add(parseBlockConfig<"SELECT_MEANING">(block).sign);
-        break;
-      case "SELECT_SIGN":
-        signs.add(parseBlockConfig<"SELECT_SIGN">(block).word);
-        break;
-      case "CONTEXT_RESPONSE":
-        signs.add(parseBlockConfig<"CONTEXT_RESPONSE">(block).answer);
-        break;
-      case "MATCH":
-        parseBlockConfig<"MATCH">(block).concepts.forEach((c) => signs.add(c));
-        break;
-      case "VISUAL_RECOGNITION":
-        parseBlockConfig<"VISUAL_RECOGNITION">(block).sign_sequence.forEach((s) => signs.add(s));
-        break;
-    }
-  }
-  return signs.size;
-}
-
 export function LessonScreen({ route, navigation }: Props) {
-  const { lessonId, unitLabel } = route.params;
+  const { lessonId, unitLabel, signsCount, nextLessonId } = route.params;
   const insets = useSafeAreaInsets();
 
   const [lesson, setLesson] = useState<LessonContent | null>(null);
@@ -71,16 +49,32 @@ export function LessonScreen({ route, navigation }: Props) {
       return;
     }
     setError(null);
-    setLoading(true);
-    Promise.all([lessonsApi.getLesson(lessonId), shopApi.getMyInventory().catch(() => null)])
-      .then(([lessonRes, inventoryRes]) => {
-        setLesson(lessonRes.data);
+
+    const inventoryPromise = shopApi.getMyInventory().catch(() => null);
+
+    const cached = getCachedLesson(lessonId);
+    if (cached) {
+      setLesson(cached);
+      setLoading(false);
+      inventoryPromise.then((inventoryRes) => {
         if (inventoryRes?.data) {
           setUnlimitedLives(inventoryRes.data.livesMode === "INFINITE");
           setLives(inventoryRes.data.currentLives ?? STARTING_LIVES);
         }
+      });
+      preloadLessonAnimations(cached.blocks).catch(() => {});
+      return;
+    }
 
-        // Preload de animaciones: no bloquea la UI, silencioso ante errores.
+    setLoading(true);
+    Promise.all([lessonsApi.getLesson(lessonId), inventoryPromise])
+      .then(([lessonRes, inventoryRes]) => {
+        setLesson(lessonRes.data);
+        setCachedLesson(lessonId, lessonRes.data);
+        if (inventoryRes?.data) {
+          setUnlimitedLives(inventoryRes.data.livesMode === "INFINITE");
+          setLives(inventoryRes.data.currentLives ?? STARTING_LIVES);
+        }
         preloadLessonAnimations(lessonRes.data.blocks).catch(() => {});
       })
       .catch((err: any) => setError(err?.response?.data?.message ?? "No pudimos cargar la lección."))
@@ -90,6 +84,10 @@ export function LessonScreen({ route, navigation }: Props) {
   useEffect(() => {
     loadLesson();
   }, [loadLesson]);
+
+  useEffect(() => {
+    if (nextLessonId) warmLesson(nextLessonId);
+  }, [nextLessonId]);
 
   function resetProgress() {
     setBlockIndex(0);
@@ -132,6 +130,12 @@ export function LessonScreen({ route, navigation }: Props) {
     goToNextBlock();
   }
 
+  // Sorted once per lesson load; stable identity avoids downstream re-renders.
+  const blocks = useMemo(
+    () => (lesson ? [...lesson.blocks].sort((a, b) => a.order - b.order) : []),
+    [lesson]
+  );
+
   if (loading) {
     return (
       <View style={[styles.centerFill, { paddingTop: insets.top }]}>
@@ -150,7 +154,6 @@ export function LessonScreen({ route, navigation }: Props) {
     );
   }
 
-  const blocks = [...lesson.blocks].sort((a, b) => a.order - b.order);
   const noLives = lives <= 0 && !unlimitedLives && !completed;
 
   if (completed) {
@@ -163,7 +166,7 @@ export function LessonScreen({ route, navigation }: Props) {
           xpEarned={xpEarned}
           correctBlocks={correctBlockIds.size}
           totalBlocks={blocks.length}
-          signsLearned={estimateSignsLearned(blocks)}
+          signsLearned={signsCount ?? 0}
           onClose={() => navigation.goBack()}
           onRestart={resetProgress}
         />
@@ -171,8 +174,7 @@ export function LessonScreen({ route, navigation }: Props) {
     );
   }
 
-  const currentBlock = blocks[blockIndex];
-  const progress = blockIndex / blocks.length;
+  const progress = blocks.length > 0 ? blockIndex / blocks.length : 0;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
@@ -185,13 +187,25 @@ export function LessonScreen({ route, navigation }: Props) {
         onBack={() => navigation.goBack()}
       />
 
+      {/*
+       * All blocks are mounted simultaneously so their WebViews (and 3D models)
+       * start loading immediately. Switching blocks is a visibility toggle —
+       * no unmount/remount, no model reload.
+       */}
       <View style={styles.blockArea}>
-        <BlockRenderer
-          key={currentBlock.id}
-          block={currentBlock}
-          onAnswer={(correct) => handleAnswer(currentBlock, correct)}
-          onContinue={currentBlock.type === "INFO" ? () => handleInfoContinue(currentBlock) : goToNextBlock}
-        />
+        {blocks.map((block, i) => (
+          <View
+            key={block.id}
+            style={[StyleSheet.absoluteFillObject, { opacity: i === blockIndex ? 1 : 0 }]}
+            pointerEvents={i === blockIndex ? "auto" : "none"}
+          >
+            <BlockRenderer
+              block={block}
+              onAnswer={(correct) => handleAnswer(block, correct)}
+              onContinue={block.type === "INFO" ? () => handleInfoContinue(block) : goToNextBlock}
+            />
+          </View>
+        ))}
       </View>
 
       {noLives && (
