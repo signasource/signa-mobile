@@ -9,8 +9,6 @@ import { lessonsApi } from "@/api/lessons";
 import { learningApi } from "@/api/learning";
 import { shopApi } from "@/api/shop";
 import { preloadLessonAnimations } from "@/features/courses/animationPreload";
-import { warmLesson } from "@/features/courses/lessonPreload";
-import { getCachedLesson, setCachedLesson } from "@/features/courses/lessonCache";
 import { BlockType, LessonContent, LessonContentBlock, parseBlockConfig } from "@/features/courses/lessonContent.types";
 import { LessonButton } from "@/features/courses/components/lesson/LessonButton";
 import { LessonHeader } from "@/features/courses/components/lesson/LessonHeader";
@@ -28,7 +26,7 @@ type Props = NativeStackScreenProps<AppStackParamList, "Lesson">;
 const STARTING_LIVES = 5;
 
 export function LessonScreen({ route, navigation }: Props) {
-  const { lessonId, unitLabel, signsCount, nextLessonId } = route.params;
+  const { lessonId, unitLabel, signsCount } = route.params;
   const insets = useSafeAreaInsets();
 
   const [lesson, setLesson] = useState<LessonContent | null>(null);
@@ -49,28 +47,10 @@ export function LessonScreen({ route, navigation }: Props) {
       return;
     }
     setError(null);
-
-    const inventoryPromise = shopApi.getMyInventory().catch(() => null);
-
-    const cached = getCachedLesson(lessonId);
-    if (cached) {
-      setLesson(cached);
-      setLoading(false);
-      inventoryPromise.then((inventoryRes) => {
-        if (inventoryRes?.data) {
-          setUnlimitedLives(inventoryRes.data.livesMode === "INFINITE");
-          setLives(inventoryRes.data.currentLives ?? STARTING_LIVES);
-        }
-      });
-      preloadLessonAnimations(cached.blocks).catch(() => {});
-      return;
-    }
-
     setLoading(true);
-    Promise.all([lessonsApi.getLesson(lessonId), inventoryPromise])
+    Promise.all([lessonsApi.getLesson(lessonId), shopApi.getMyInventory().catch(() => null)])
       .then(([lessonRes, inventoryRes]) => {
         setLesson(lessonRes.data);
-        setCachedLesson(lessonId, lessonRes.data);
         if (inventoryRes?.data) {
           setUnlimitedLives(inventoryRes.data.livesMode === "INFINITE");
           setLives(inventoryRes.data.currentLives ?? STARTING_LIVES);
@@ -84,10 +64,6 @@ export function LessonScreen({ route, navigation }: Props) {
   useEffect(() => {
     loadLesson();
   }, [loadLesson]);
-
-  useEffect(() => {
-    if (nextLessonId) warmLesson(nextLessonId);
-  }, [nextLessonId]);
 
   function resetProgress() {
     setBlockIndex(0);

@@ -27,10 +27,6 @@ import {
   RoadmapTopic,
 } from "@/features/courses/api";
 import { accentFor, progressFor } from "@/features/courses/roadmap";
-import { warmLessons } from "@/features/courses/lessonPreload";
-import { getCachedLesson } from "@/features/courses/lessonCache";
-import { lessonsApi } from "@/api/lessons";
-import { extractLessonSignNames } from "@/features/courses/lessonContent.types";
 
 type HomeNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, "Home">,
@@ -68,32 +64,16 @@ async function fetchRoadmap(): Promise<CourseRoadmap> {
   return roadmap;
 }
 
-function getOrderedLessons(topics: RoadmapTopic[]): RoadmapLesson[] {
-  return [...topics]
-    .sort((a, b) => a.order - b.order)
-    .flatMap((t) => [...t.lessons].sort((a, b) => a.order - b.order));
-}
-
 function findCurrentLessonId(topics: RoadmapTopic[]): string | null {
-  const ordered = getOrderedLessons(topics);
-  return (
-    ordered.find((l) => l.state === "IN_PROGRESS")?.id ??
-    ordered.find((l) => l.state === "AVAILABLE")?.id ??
-    null
-  );
-}
-
-function findNextLessonId(topics: RoadmapTopic[], afterLessonId: string): string | undefined {
-  const ordered = getOrderedLessons(topics);
-  const idx = ordered.findIndex((l) => l.id === afterLessonId);
-  return idx !== -1 ? ordered[idx + 1]?.id : undefined;
-}
-
-function getUpcomingLessonIds(topics: RoadmapTopic[], n: number): string[] {
-  return getOrderedLessons(topics)
-    .filter((l) => l.state !== "LOCKED")
-    .slice(0, n)
-    .map((l) => l.id);
+  for (const topic of topics) {
+    const found = topic.lessons.find((l) => l.state === "IN_PROGRESS");
+    if (found) return found.id;
+  }
+  for (const topic of topics) {
+    const found = topic.lessons.find((l) => l.state === "AVAILABLE");
+    if (found) return found.id;
+  }
+  return null;
 }
 
 export function HomeTabScreen({ navigation }: Props) {
@@ -108,8 +88,6 @@ export function HomeTabScreen({ navigation }: Props) {
     lesson: RoadmapLesson;
     unitLabel: string;
   } | null>(null);
-  // null = loading; string[] = resolved (may be empty)
-  const [modalSigns, setModalSigns] = useState<string[] | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -122,9 +100,7 @@ export function HomeTabScreen({ navigation }: Props) {
       })
       .catch(() => {});
     try {
-      const roadmapData = await fetchRoadmap();
-      setRoadmap(roadmapData);
-      warmLessons(getUpcomingLessonIds(roadmapData.topics, 3));
+      setRoadmap(await fetchRoadmap());
     } catch (err: any) {
       setError(err?.response?.data?.message ?? err?.message ?? "No pudimos cargar tu curso.");
     } finally {
@@ -137,38 +113,9 @@ export function HomeTabScreen({ navigation }: Props) {
   const currentLessonId = roadmap ? findCurrentLessonId(roadmap.topics) : null;
   const cta = openLesson ? ctaFor(openLesson.lesson.state) : null;
 
-  function openLessonModal(lesson: RoadmapLesson, unitLabel: string) {
-    setOpenLesson({ lesson, unitLabel });
-
-    if (lesson.signsLearned) {
-      setModalSigns(lesson.signsLearned);
-      return;
-    }
-
-    setModalSigns(null);
-    const resolve = (content: { blocks: Parameters<typeof extractLessonSignNames>[0]["blocks"] }) =>
-      setModalSigns(extractLessonSignNames(content));
-
-    const cached = getCachedLesson(lesson.id);
-    if (cached) {
-      resolve(cached);
-    } else {
-      lessonsApi
-        .getLesson(lesson.id)
-        .then((res) => resolve(res.data))
-        .catch(() => setModalSigns([]));
-    }
-  }
-
   function navigateToLesson(lesson: RoadmapLesson, unitLabel: string) {
     setOpenLesson(null);
-    const nextLessonId = roadmap ? findNextLessonId(roadmap.topics, lesson.id) : undefined;
-    navigation.navigate("Lesson", {
-      lessonId: lesson.id,
-      unitLabel,
-      signsCount: lesson.signsCount,
-      nextLessonId,
-    });
+    navigation.navigate("Lesson", { lessonId: lesson.id, unitLabel, signsCount: lesson.signsCount });
   }
 
   return (
@@ -227,7 +174,7 @@ export function HomeTabScreen({ navigation }: Props) {
               key={topic.id}
               topic={topic}
               currentLessonId={currentLessonId}
-              onInfo={(lesson) => openLessonModal(lesson, topic.title)}
+              onInfo={(lesson) => setOpenLesson({ lesson, unitLabel: topic.title })}
               onNavigate={(lesson) => navigateToLesson(lesson, topic.title)}
             />
           ))}
@@ -262,21 +209,15 @@ export function HomeTabScreen({ navigation }: Props) {
               )}
 
               {/* Sign chips */}
-              {modalSigns === null ? (
+              {openLesson.lesson.signsLearned && openLesson.lesson.signsLearned.length > 0 && (
                 <View style={styles.signChipsRow}>
-                  {Array.from({ length: openLesson.lesson.signsCount || 3 }).map((_, i) => (
-                    <View key={i} style={[styles.signChip, styles.signChipSkeleton]} />
-                  ))}
-                </View>
-              ) : modalSigns.length > 0 ? (
-                <View style={styles.signChipsRow}>
-                  {modalSigns.map((sign) => (
+                  {openLesson.lesson.signsLearned.map((sign) => (
                     <View key={sign} style={styles.signChip}>
                       <Text style={styles.signChipText}>{sign}</Text>
                     </View>
                   ))}
                 </View>
-              ) : null}
+              )}
 
               <TouchableOpacity
                 style={[styles.ctaButton, !cta.enabled && styles.ctaButtonDisabled]}
