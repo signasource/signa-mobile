@@ -60,6 +60,9 @@ export function collectSignMeanings(blocks: LessonContentBlock[]): string[] {
 
   for (const block of blocks) {
     switch (block.type as BlockType) {
+      case "INTRODUCE_SIGN":
+        meanings.add(parseBlockConfig<"INTRODUCE_SIGN">(block).meaning);
+        break;
       case "SELECT_MEANING":
         meanings.add(parseBlockConfig<"SELECT_MEANING">(block).sign);
         break;

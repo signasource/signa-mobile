@@ -18,7 +18,7 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
 `config` is the yaml's `config:` section, serialized to JSON with the same key casing (see
 [../api/types.md](../api/types.md) for the exact per-type shape).
 
-- `lessonContent.types.ts`: `LessonContent`, `LessonContentBlock`, the six `BlockType`s and their
+- `lessonContent.types.ts`: `LessonContent`, `LessonContentBlock`, the seven `BlockType`s and their
   config interfaces, plus `parseBlockConfig<T>(block)` to `JSON.parse` a block's `config` string.
 - `screens/LessonScreen.tsx`: orchestrates the player — loads the lesson (checking
   `lessonCache.ts` first, falling back to `lessonsApi.getLesson`) and the caller's lives
@@ -53,8 +53,10 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   to `SignPlaceholder`), `NoLivesOverlay`, `LessonComplete` (its three tiles — XP, aciertos, señas
   nuevas — are filtered to the ones actually **earned**, `> 0`; the row disappears when none is),
   and `blocks/` with one component per
-  `BlockType` (`InfoBlock`, `SelectMeaningBlock`, `SelectSignBlock`, `ContextResponseBlock` and
-  `SelectSignBlock` share `SignCarouselBlock`, `MatchBlock`, `VisualRecognitionBlock`).
+  `BlockType` (`InfoBlock`, `IntroduceSignBlock`, `SelectMeaningBlock`, `SelectSignBlock`,
+  `ContextResponseBlock` and `SelectSignBlock` share `SignCarouselBlock`, `MatchBlock`,
+  `VisualRecognitionBlock`). `IntroduceSignBlock` presents a new sign with its full-height
+  `SignAnimation` and a "Continuar" button — no answer required, `xpReward` is ignored.
   `SelectMeaningBlock` and `SignCarouselBlock` (so `SelectSignBlock`/`ContextResponseBlock`) render
   the sign via `SignAnimation`; `MatchBlock`/`VisualRecognitionBlock` still use static
   cards/swatches (they show many signs at once, not one at a time).
@@ -71,9 +73,10 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   doesn't block the UI. Called in two places: from `HomeTabScreen` as soon as the roadmap loads
   (pre-fetches the current lesson's animations before the user taps "Comenzar"), and from
   `LessonScreen` on mount as a fallback (idempotent — cached meanings are skipped).
-  `collectSignMeanings(blocks)` picks the sign *meanings* to look up per block type: `SELECT_MEANING.sign`,
-  `SELECT_SIGN.options`, `CONTEXT_RESPONSE.options`, `MATCH.concepts`,
-  `VISUAL_RECOGNITION.sign_sequence` (its `options` are plain text, not animated). All pending
+  `collectSignMeanings(blocks)` picks the sign *meanings* to look up per block type:
+  `INTRODUCE_SIGN.meaning`, `SELECT_MEANING.sign`, `SELECT_SIGN.options`,
+  `CONTEXT_RESPONSE.options`, `MATCH.concepts`, `VISUAL_RECOGNITION.sign_sequence`
+  (its `options` are plain text, not animated). All pending
   meanings are resolved in **one** batched request, `signsApi.getSignAnimations` (`POST
   /signs/animations`, exact-meaning match, presigned URLs). Each URL is cached in
   `animationUrlCache` immediately (presigned URL); then the GLB binary is downloaded via `fetch()`

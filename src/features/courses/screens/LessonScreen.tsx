@@ -20,6 +20,7 @@ import { SelectSignBlock } from "@/features/courses/components/lesson/blocks/Sel
 import { ContextResponseBlock } from "@/features/courses/components/lesson/blocks/ContextResponseBlock";
 import { MatchBlock } from "@/features/courses/components/lesson/blocks/MatchBlock";
 import { VisualRecognitionBlock } from "@/features/courses/components/lesson/blocks/VisualRecognitionBlock";
+import { IntroduceSignBlock } from "@/features/courses/components/lesson/blocks/IntroduceSignBlock";
 
 type Props = NativeStackScreenProps<AppStackParamList, "Lesson">;
 
@@ -210,6 +211,8 @@ function BlockRenderer({ block, onAnswer, onContinue }: BlockRendererProps) {
   switch (block.type as BlockType) {
     case "INFO":
       return <InfoBlock config={parseBlockConfig<"INFO">(block)} onContinue={onContinue} />;
+    case "INTRODUCE_SIGN":
+      return <IntroduceSignBlock config={parseBlockConfig<"INTRODUCE_SIGN">(block)} onContinue={onContinue} />;
     case "SELECT_MEANING":
       return (
         <SelectMeaningBlock config={parseBlockConfig<"SELECT_MEANING">(block)} xp={xp} onAnswer={onAnswer} onContinue={onContinue} />

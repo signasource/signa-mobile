@@ -7,6 +7,7 @@ export interface SignSummary {
   description: string | null;
   handedness: string;
   animationUrl: string | null;
+  youtubeUrl: string | null;
 }
 
 interface SignsPage {
@@ -29,4 +30,24 @@ export const signsApi = {
    */
   getSignAnimations: (meanings: string[]) =>
     apiClient.post<Record<string, string>>("/signs/animations", { meanings }),
+};
+
+export type ReportReason =
+  | "INCORRECT_SIGN"
+  | "UNCLEAR_ANIMATION"
+  | "WRONG_MEANING"
+  | "MISSING_CONTEXT"
+  | "REGIONAL_VARIANT"
+  | "TECHNICAL_PROBLEM"
+  | "OTHER";
+
+export interface CreateSignReportRequest {
+  signMeaning: string;
+  reason: ReportReason;
+  description?: string;
+}
+
+export const signReportsApi = {
+  createReport: (req: CreateSignReportRequest) =>
+    apiClient.post("/sign-reports", req),
 };
