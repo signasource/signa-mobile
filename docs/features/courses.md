@@ -40,7 +40,12 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   is sourced from the roadmap (`RoadmapLesson.signsCount`) — computed server-side by
   `BlockSignExtractor`. `route.params`: `{ lessonId: string; unitLabel?: string; signsCount?: number }` —
   `unitLabel` is supplied by the caller; `signsCount` is passed from `HomeTabScreen` via the
-  roadmap response (falls back to `0` if absent for backward compatibility).
+  roadmap response (falls back to `0` if absent for backward compatibility). Only the current block
+  and the next one are mounted at a time (a windowed `blockIndex`/`blockIndex + 1` render, not the
+  whole lesson) — each block's WebView can hold several concurrent 3D models, and mounting every
+  block up front used to pile up WebGL contexts until Android silently OOM-killed the app (no JS
+  error, just closes). Blocks only ever advance forward, so a 2-wide window is enough to keep the
+  next block's WebView warm without unmount/remount.
 - `components/lesson/`: `LessonHeader` (back + progress + lives), `XpChip`, `FeedbackBar`,
   `LessonButton`, `SignPlaceholder` (fallback card shown while a meaning's animation URL isn't
   cached yet — still loading, no animation for that meaning, or the model failed), `SignAnimation`
@@ -92,7 +97,11 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   fires, JS reframes the camera target ~30% up from the bounding-box center (upper body/chest) and
   sets `fieldOfView="15deg"`. Reports loaded animation clip names and load errors back to RN via
   `postMessage`; `paused` toggles `play()`/`pause()` on the `<model-viewer>` through
-  `injectJavaScript` without reloading the model. Depends on `react-native-webview`.
+  `injectJavaScript` without reloading the model. Depends on `react-native-webview`. Both
+  `GlbAnimationView` and `MultiGlbView` (the carousel's one-WebView-many-models variant) handle
+  `onRenderProcessGone` by calling the same `onError` callback the caller already uses to fall back
+  to `SignPlaceholder` — without it, an Android WebView renderer crash (e.g. from a low-memory
+  device) took the whole host app process down with it instead of just that one card.
 
 To advance: wire the Inicio roadmap's lesson CTA to navigate into this real `LessonScreen` with a
 real `unitLabel` (currently it just closes the sheet — see below). Once `signa-api` #60 merges,

@@ -2,8 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   DimensionValue,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -642,12 +641,16 @@ export function ConfigurationScreen({ navigation }: Props) {
 
       {/* ── Edit profile modal ── */}
       {modal === "edit" && (
-        <KeyboardAvoidingView
-          style={StyleSheet.absoluteFillObject}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
+        <View style={StyleSheet.absoluteFillObject}>
           <Pressable style={styles.modalOverlay} onPress={() => setModal(null)}>
-            <View style={styles.modalCard} onStartShouldSetResponder={() => true}>
+            <KeyboardAwareScrollView
+              style={styles.modalCard}
+              contentContainerStyle={styles.modalCardContent}
+              onStartShouldSetResponder={() => true}
+              keyboardShouldPersistTaps="handled"
+              enableOnAndroid
+              extraScrollHeight={20}
+            >
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Editar perfil</Text>
                 <TouchableOpacity
@@ -753,19 +756,23 @@ export function ConfigurationScreen({ navigation }: Props) {
               >
                 <Text style={styles.secondaryBtnText}>Cancelar</Text>
               </TouchableOpacity>
-            </View>
+            </KeyboardAwareScrollView>
           </Pressable>
-        </KeyboardAvoidingView>
+        </View>
       )}
 
       {/* ── Change password modal ── */}
       {modal === "password" && (
-        <KeyboardAvoidingView
-          style={StyleSheet.absoluteFillObject}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
+        <View style={StyleSheet.absoluteFillObject}>
           <Pressable style={styles.modalOverlay} onPress={() => setModal(null)}>
-            <View style={styles.modalCard} onStartShouldSetResponder={() => true}>
+            <KeyboardAwareScrollView
+              style={styles.modalCard}
+              contentContainerStyle={styles.modalCardContent}
+              onStartShouldSetResponder={() => true}
+              keyboardShouldPersistTaps="handled"
+              enableOnAndroid
+              extraScrollHeight={20}
+            >
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Cambiar contraseña</Text>
                 <TouchableOpacity
@@ -909,9 +916,9 @@ export function ConfigurationScreen({ navigation }: Props) {
               >
                 <Text style={styles.secondaryBtnText}>Cancelar</Text>
               </TouchableOpacity>
-            </View>
+            </KeyboardAwareScrollView>
           </Pressable>
-        </KeyboardAvoidingView>
+        </View>
       )}
 
       {/* ── Bottom sheets ── */}
@@ -1370,8 +1377,10 @@ const styles = StyleSheet.create({
   modalCard: {
     backgroundColor: colors.surface,
     borderRadius: 24,
-    padding: 18,
     maxHeight: "90%",
+  },
+  modalCardContent: {
+    padding: 18,
   },
   modalHeader: {
     flexDirection: "row",

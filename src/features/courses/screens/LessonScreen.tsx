@@ -164,24 +164,28 @@ export function LessonScreen({ route, navigation }: Props) {
       />
 
       {/*
-       * All blocks are mounted simultaneously so their WebViews (and 3D models)
-       * start loading immediately. Switching blocks is a visibility toggle —
-       * no unmount/remount, no model reload.
+       * Only the current block and the next one are mounted (each block's WebView
+       * can hold several concurrent 3D models). Mounting every block in the lesson
+       * at once used to pile up WebGL contexts until Android OOM-killed the app
+       * with no JS error — see docs/features/courses.md.
        */}
       <View style={styles.blockArea}>
-        {blocks.map((block, i) => (
-          <View
-            key={block.id}
-            style={[StyleSheet.absoluteFillObject, { opacity: i === blockIndex ? 1 : 0 }]}
-            pointerEvents={i === blockIndex ? "auto" : "none"}
-          >
-            <BlockRenderer
-              block={block}
-              onAnswer={(correct) => handleAnswer(block, correct)}
-              onContinue={block.type === "INFO" ? () => handleInfoContinue(block) : goToNextBlock}
-            />
-          </View>
-        ))}
+        {blocks.map((block, i) => {
+          if (i < blockIndex || i > blockIndex + 1) return null;
+          return (
+            <View
+              key={block.id}
+              style={[StyleSheet.absoluteFillObject, { opacity: i === blockIndex ? 1 : 0 }]}
+              pointerEvents={i === blockIndex ? "auto" : "none"}
+            >
+              <BlockRenderer
+                block={block}
+                onAnswer={(correct) => handleAnswer(block, correct)}
+                onContinue={block.type === "INFO" ? () => handleInfoContinue(block) : goToNextBlock}
+              />
+            </View>
+          );
+        })}
       </View>
 
       {noLives && (

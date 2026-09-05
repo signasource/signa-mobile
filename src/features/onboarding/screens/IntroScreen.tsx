@@ -195,6 +195,7 @@ const styles = StyleSheet.create({
     fontSize: 15.5,
     lineHeight: 24,
     color: colors.textMuted,
+    textAlign: "justify",
   },
   bodySpacing: {
     marginTop: 12,

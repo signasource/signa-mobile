@@ -547,6 +547,7 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     lineHeight: 21,
     color: colors.textMuted,
+    textAlign: "justify",
   },
   cardDescFeatured: {
     color: "rgba(251,246,242,0.9)",
