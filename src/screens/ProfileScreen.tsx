@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   Pressable,
   DimensionValue,
+  StyleProp,
+  ViewStyle,
 } from "react-native";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -142,6 +144,25 @@ function processWeeklyXp(data: WeeklyXpEntry[]): DayXp[] {
     const dateStr = d.toISOString().slice(0, 10);
     return { label, name: DAY_NAMES[i], value: xpMap.get(dateStr) ?? 0, isPast: i <= todayIdx };
   });
+}
+
+interface SectionTitleProps {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  style?: StyleProp<ViewStyle>;
+}
+
+/**
+ * Section heading. The icons that used to live inside the tab selector sit here
+ * instead, so each section names itself and the selector stays text-only.
+ */
+function SectionTitle({ icon, label, style }: SectionTitleProps) {
+  return (
+    <View style={[styles.sectionTitleRow, style]}>
+      <Ionicons name={icon} size={17} color={colors.neutral900} />
+      <Text style={styles.sectionTitle}>{label}</Text>
+    </View>
+  );
 }
 
 // ─── main component ───────────────────────────────────────────
@@ -328,10 +349,10 @@ export function ProfileScreen({ navigation }: Props) {
   const achievementDetail = achievements.find((a) => a.id === achievementDetailId) ?? null;
 
   const sections: ReadonlyArray<Segment<Section>> = [
-    { key: "general", label: "General", icon: "stats-chart" },
-    { key: "cursos", label: "Cursos", icon: "school" },
-    { key: "inventario", label: "Inventario", icon: "cube" },
-    { key: "logros", label: "Logros", icon: "trophy" },
+    { key: "general", label: "General" },
+    { key: "cursos", label: "Cursos" },
+    { key: "inventario", label: "Inventario" },
+    { key: "logros", label: "Logros" },
   ];
 
   const achFilters: ReadonlyArray<SubTab<AchFilter>> = [
@@ -355,8 +376,8 @@ export function ProfileScreen({ navigation }: Props) {
 
     return (
       <ScreenHeader
-        title="Perfil"
-        description={`${displayName || user?.name || "—"} · @${username || "—"}`}
+        title={displayName || user?.name || "Perfil"}
+        description={username ? `@${username}` : "—"}
         paddingTop={insets.top + 14}
         tone={headerColor}
         stats={[
@@ -410,7 +431,7 @@ export function ProfileScreen({ navigation }: Props) {
     return (
       <View style={styles.section}>
         {/* Stats */}
-        <Text style={styles.sectionTitle}>General</Text>
+        <SectionTitle icon="stats-chart" label="General" />
         <View style={styles.statsGrid}>
           {[
             { icon: "flash", color: colors.warning, value: (userStats?.totalXp ?? 0).toLocaleString("es-AR"), label: "XP total" },
@@ -432,7 +453,7 @@ export function ProfileScreen({ navigation }: Props) {
 
         {/* Weekly XP chart */}
         <View style={styles.chartHeader}>
-          <Text style={styles.sectionTitle}>XP de la semana</Text>
+          <SectionTitle icon="bar-chart" label="XP de la semana" />
           <Text style={styles.chartSelected}>
             {selectedDayName} · {selectedDay?.value ?? 0} XP
           </Text>
@@ -493,7 +514,7 @@ export function ProfileScreen({ navigation }: Props) {
 
         {/* Daily goal */}
         <View style={styles.goalHeader}>
-          <Text style={styles.sectionTitle}>Meta diaria</Text>
+          <SectionTitle icon="flag" label="Meta diaria" />
           <TouchableOpacity
             style={styles.goalEditBtn}
             onPress={() => { setGoalDraft(dailyGoalMinutes); setGoalOpen(true); }}
@@ -533,7 +554,7 @@ export function ProfileScreen({ navigation }: Props) {
     if (courses.length === 0) {
       return (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Cursos</Text>
+          <SectionTitle icon="school" label="Cursos" />
           <EmptyState
             icon="school-outline"
             title="Sin cursos todavía"
@@ -544,7 +565,7 @@ export function ProfileScreen({ navigation }: Props) {
     }
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Cursos</Text>
+        <SectionTitle icon="school" label="Cursos" />
         {courses.map((c) => {
           const courseColor = c.color;
           return (
@@ -673,7 +694,7 @@ export function ProfileScreen({ navigation }: Props) {
 
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Inventario</Text>
+        <SectionTitle icon="cube" label="Inventario" />
 
         {/* Lives */}
         <View style={styles.invCard}>
@@ -745,7 +766,7 @@ export function ProfileScreen({ navigation }: Props) {
           </View>
         </View>
 
-        <Text style={[styles.sectionTitle, { marginTop: 18 }]}>Potenciadores</Text>
+        <SectionTitle icon="rocket" label="Potenciadores" style={{ marginTop: 18 }} />
         {boosters.map((b) => {
           const ready = b.qty > 0 && !b.active;
           return (
@@ -793,7 +814,7 @@ export function ProfileScreen({ navigation }: Props) {
   function renderLogros() {
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Logros</Text>
+        <SectionTitle icon="trophy" label="Logros" />
 
         <SubTabs options={achFilters} value={achFilter} onChange={setAchFilter} />
 
@@ -1037,9 +1058,9 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   avatar: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     backgroundColor: colors.primaryLight,
     borderWidth: 2,
     alignItems: "center",
@@ -1048,7 +1069,7 @@ const styles = StyleSheet.create({
   },
   avatarInitials: {
     fontFamily: fonts.displayExtraBold,
-    fontSize: 18,
+    fontSize: 23,
     color: colors.primary,
   },
 
@@ -1067,11 +1088,16 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 28,
   },
+  sectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 14,
+  },
   sectionTitle: {
     fontFamily: fonts.displaySemiBold,
     fontSize: 17,
     color: colors.neutral900,
-    marginBottom: 14,
   },
   divider: {
     height: 1,
@@ -1119,7 +1145,7 @@ const styles = StyleSheet.create({
   // Weekly XP chart
   chartHeader: {
     flexDirection: "row",
-    alignItems: "baseline",
+    alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 8,
   },

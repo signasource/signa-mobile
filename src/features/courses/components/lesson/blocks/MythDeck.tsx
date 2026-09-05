@@ -120,12 +120,11 @@ export function MythDeck({ myths, onFinished }: MythDeckProps) {
       <View style={styles.deck}>
         {stack
           .slice(1)
-          .map((_, depth) => (
+          .map((myth, depth) => (
             <View
               key={index + depth + 1}
               style={[
                 styles.card,
-                styles.cardBehind,
                 {
                   transform: [
                     { translateY: (depth + 1) * 9 },
@@ -133,7 +132,14 @@ export function MythDeck({ myths, onFinished }: MythDeckProps) {
                   ],
                 },
               ]}
-            />
+            >
+              <CardFace
+                kind="myth"
+                title={myth.title}
+                body={myth.myth}
+                counter={`${index + depth + 2}/${myths.length}`}
+              />
+            </View>
           ))
           .reverse()}
 
@@ -203,12 +209,14 @@ function CardFace({ kind, title, body, counter }: CardFaceProps) {
         <Text style={styles.counter}>{counter}</Text>
       </View>
 
-      <Text style={styles.faceTitle} numberOfLines={2}>
-        {title}
-      </Text>
-      <Text style={[styles.faceBody, !isMyth && styles.faceBodyReality]}>
-        {renderTextWithLinks(body, styles.link)}
-      </Text>
+      <View style={styles.faceCenter}>
+        <Text style={styles.faceTitle} numberOfLines={2}>
+          {title}
+        </Text>
+        <Text style={[styles.faceBody, !isMyth && styles.faceBodyReality]}>
+          {renderTextWithLinks(body, styles.link)}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -237,18 +245,21 @@ const styles = StyleSheet.create({
   cardFace: {
     backfaceVisibility: "hidden",
   },
-  cardBehind: {
-    backgroundColor: colors.fill,
-  },
   faceContent: {
     flex: 1,
     padding: 18,
+  },
+  /** Title + body sit centred in whatever room the badge row leaves. */
+  faceCenter: {
+    flex: 1,
+    justifyContent: "center",
     gap: 10,
   },
   faceTop: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    marginBottom: 10,
   },
   badge: {
     flexDirection: "row",
@@ -276,7 +287,6 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   faceBody: {
-    flex: 1,
     fontFamily: fonts.bodyRegular,
     fontSize: 14.5,
     lineHeight: 21,

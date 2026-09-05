@@ -58,7 +58,9 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   When the config carries `myths`, they render as `blocks/MythDeck.tsx` instead of a static list:
   a stack of two-sided cards (front = `myth`, back = `reality`) built on `Animated` + `PanResponder`
   — **tap flips**, **drag sideways past ~100px discards**, and discarding the last card calls
-  `onContinue()`, so the block advances on its own. The "Continuar" button stays available for
+  `onContinue()`, so the block advances on its own. The next two cards are rendered with their real
+  content behind the top one (not empty placeholders), so nothing pops in mid-swipe; on each face
+  the title and body are centred vertically under the MITO/VERDAD badge. The "Continuar" button stays available for
   anyone who wants to skip ahead.
 - `animationPreload.ts`: `preloadLessonAnimations(blocks)` — fire-and-forget, errors swallowed,
   doesn't block the UI. Called in two places: from `HomeTabScreen` as soon as the roadmap loads
