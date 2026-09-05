@@ -69,7 +69,7 @@ Bottom tab navigation with five tabs. Uses `@react-navigation/bottom-tabs`. Tab 
 | `Social` | people/people-outline | `features/social/screens/SocialScreen` |
 | `Profile` | person/person-outline | `screens/ProfileScreen` |
 
-Practice is still a placeholder. Home (Inicio lesson roadmap — see [features/courses.md](./features/courses.md#inicio-home-roadmap-screen)), Store, Social (see [features/social.md](./features/social.md)) and Profile have full implementations.
+Practice is a stub (real UI, hardcoded content — see [features/practice.md](./features/practice.md)). Home (Inicio lesson roadmap — see [features/courses.md](./features/courses.md#inicio-home-roadmap-screen)), Store, Social (see [features/social.md](./features/social.md)) and Profile have full implementations.
 
 Social is the one tab whose screen does **not** live under `screens/tabs/`: it is mounted straight from `features/social/`, like `LessonScreen`.
 

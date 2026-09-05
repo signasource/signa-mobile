@@ -35,6 +35,7 @@ Import: `import { colors } from "@/theme"`. Rule: every visual value comes from 
 | `colors.gemsBlue` | `#29B6E8` | gems icon/border |
 | `colors.gemsBlueDark` | `#1B84AB` | gems text/count |
 | `colors.courseTeal` | `#2FA8A0` | courses, sign count |
+| `colors.courseTealLight` | `#E4F1EC` | icon medallion tint for `courseTeal`-toned items (Práctica libre) |
 | `colors.livesRed` | `#E03B3B` | heart / lives icon |
 | `colors.infinitePink` | `#E86AA6` | infinite lives booster |
 | `colors.successDark` | `#2E7D45` | active booster text |
