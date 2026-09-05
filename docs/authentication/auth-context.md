@@ -23,6 +23,8 @@ Single global state. Consumed via `useAuth()` (throws if used outside `<AuthProv
 
 - `buildUserFromToken` builds `user` by decoding the email from the JWT + looking up the name in `profileCache`. The JWT carries no name (see [../api/session-persistence.md](../api/session-persistence.md)).
 - `restoreSession` runs once on mount: no tokens → stop; expired access token → try `refresh`; any failure → clear tokens (anonymous session). Sets `isLoading=false` at the end.
+- **AppState listener**: on mount, `AuthProvider` subscribes to `AppState`. When the app returns from background/inactive to `active`, `checkSession` runs: if the access token is expired it attempts a refresh; if the refresh fails it clears tokens and sets `user = null`.
+- **Interceptor ↔ context bridge**: `setOnRefreshFailure` (from `src/api/client.ts`) is called on mount with a callback that sets `user = null`. This ensures that when the Axios 401 interceptor exhausts the refresh token, the user is sent back to the auth stack without needing to navigate manually.
 - Operations set `error` with `err?.response?.data?.message ?? "<fallback>"` **and re-throw**, so the screen can also react in its `catch`.
 - Switching auth↔app is **not** manual navigation: mutating `user` makes `RootNavigator` swap stacks (see [../navigation.md](../navigation.md)).
 - Async operations follow the standard loading/error pattern in [`CLAUDE.md`](../../CLAUDE.md).
