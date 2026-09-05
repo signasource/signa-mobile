@@ -1,0 +1,131 @@
+# Endpoints
+
+> Responsibility: catalog of API endpoints exposed through `src/api/`.
+> Update when: an endpoint is added, changed, or removed, or a stub becomes real.
+> Sources: src/api/auth.ts, src/api/users.ts, src/api/health.ts, src/api/shop.ts, src/api/signs.ts, src/api/social.ts, src/api/notifications.ts, src/features/courses/api.ts
+
+Types → [types.md](./types.md). Client behavior → [http-client.md](./http-client.md).
+
+## `authApi` (`src/api/auth.ts`) — mirrors `AuthController.java`
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `register(RegisterRequest)` | `POST /auth/register` | `AuthResponse` | 201 with `{ accessToken, refreshToken }`. **Auto-logs in.** Backend sends a verification email (`verified` flag) but it is **not required** to use the app; the mobile app exposes no verify/resend UI. |
+| `login(LoginRequest)` | `POST /auth/login` | `AuthResponse` | `{ accessToken, refreshToken }` |
+| `refresh(refreshToken)` | `POST /auth/refresh` | `AuthResponse` | also used by the interceptor |
+| `forgotPassword(ForgotPasswordRequest)` | `POST /auth/forgot-password` | `void` | |
+| `resetPassword(ResetPasswordRequest, token)` | `POST /auth/reset-password?token=` | `void` | `token` is a **query param**, separate from the body |
+
+## `usersApi` (`src/api/users.ts`) — mirrors `UserController.java`
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `changePassword(ChangePasswordRequest)` | `PUT /users/password` | `AuthResponse` | returns **new tokens** |
+| `checkUsernameAvailability(username, signal?)` | `GET /users/username-availability?username=` | `{ available: boolean }` | **public**; accepts `AbortSignal` |
+| `getMe()` | `GET /users/me` | `UserProfile` | `{ name, username }` |
+| `getWeeklyXp()` | `GET /users/me/weekly-xp` | `WeeklyXpEntry[]` | `[{ date, xpEarned }]` Mon–today; zeros for inactive days |
+| `getDailyGoal()` | `GET /users/daily-goal` | `{ dailyGoalMinutes }` | |
+| `updateDailyGoal(minutes)` | `PATCH /users/daily-goal` | `void` | body: `{ daily_goal_minutes }` (snake_case via interceptor) |
+| `getSettings()` | `GET /users/settings` | `UserSettings` | returns full settings; front-end uses `profileHeaderColor` |
+| `updateSettings(payload)` | `PATCH /users/settings` | `UserSettings` | partial patch; all fields optional |
+
+> `usersApi.getStats()` (`GET /users/me/stats`) and `recordActivity()` (`POST /users/me/activity`) have **no counterpart in `UserController.java`** — they 404. Pre-existing, used by Inicio and Perfil; see [status.md](../status.md).
+
+## `inventoryApi` (`src/api/inventory.ts`)
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getMyInventory()` | `GET /inventories/me` | `UserInventory` | gems, streakShields, lives, xpMultiplier, totalSignsLearned |
+
+## `shopApi` (`src/api/shop.ts`) — mirrors `ShopItemController`/`PurchaseController`
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getItems()` | `GET /store/items` | `ShopItem[]` | full catalog; screen groups client-side by `itemType` into tabs (Vidas / Potenciadores / Especiales) |
+| `getMyInventory()` | `GET /inventories/me` | `ShopInventory` | full inventory shape (gems, `livesMode`, `currentLives`, streak shields, XP multiplier/unlimited-lives status) — **not** the narrower `UserInventory` from `inventoryApi` |
+| `purchase(shopItemId)` | `POST /store/purchases` | `PurchaseResult` | `{ shopItemId }`; response includes `effect` (resolved reward, notably for `MYSTERY_CHEST`) and the refreshed `inventory` |
+
+The Store screen only supports buying for yourself: the "regalar a un amigo" flow (`POST /store/gifts`) is not wired into the UI. Friends *are* listable now (`socialApi.getFriends()`), so this is a UI gap, not an API one.
+
+## `socialApi` (`src/api/social.ts`) — mirrors `FriendshipController.java` + `UserController.searchUsers`
+
+Powers the Social tab (see [features/social.md](../features/social.md)).
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getFriends()` | `GET /friendships` | `Friend[]` | `{ id, username, name, acceptedAt, currentStreak, totalXp, learnedSignsCount }`. The stats come from the friend's `UserStats` and are **0 when they have no stats row yet** |
+| `getReceivedRequests()` | `GET /friendships/requests` | `FriendRequest[]` | pending requests **addressed to** the user |
+| `getSentRequests()` | `GET /friendships/requests/sent` | `SentFriendRequest[]` | pending requests the user **sent** |
+| `getEvents(limit?)` | `GET /friendships/events?limit=` | `FriendEvent[]` | default 50. Events are derived, not stored — identified by (`eventType`, `eventRefId`); `subject`/`context` are raw pieces, the app composes the sentence |
+| `sendRequest(addresseeId)` | `POST /friendships/request/{id}` | 201 | |
+| `cancelRequest(addresseeId)` | `DELETE /friendships/request/{id}` | 204 | withdraws a request the user sent; only while `PENDING` |
+| `acceptRequest(requesterId)` | `PATCH /friendships/accept/{id}` | 200 | notifies the requester |
+| `rejectRequest(requesterId)` | `PATCH /friendships/reject/{id}` | 200 | keeps the row as `REJECTED`, so it can be re-sent later |
+| `removeFriend(userId)` | `DELETE /friendships/{id}` | 204 | only an `ACCEPTED` friendship |
+| `blockUser(userId)` | `PATCH /friendships/block/{id}` | 200 | |
+| `unblockUser(userId)` | `PATCH /friendships/unblock/{id}` | 200 | deletes the relation entirely |
+| `likeEvent(type, refId)` | `POST /friendships/events/{type}/{refId}/like` | 204 | idempotent; notifies the event's owner. Rejects your own activity and non-friends |
+| `unlikeEvent(type, refId)` | `DELETE /friendships/events/{type}/{refId}/like` | 204 | no-op if there was no like |
+| `searchUsers(query, signal?)` | `GET /users/search?query=&limit=` | `UserSearchResult[]` | `query` is a **contains** match on username or display name, min 2 chars (shorter → 400), max 50 results. Each result carries `relation` and `mutualFriends` already resolved against the caller. Users who blocked the caller are filtered out. Accepts `AbortSignal` |
+
+## `publicProfileApi` (`src/api/social.ts`) — mirrors `UserController.getByUsername`
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getByUsername(username)` | `GET /users/{username}` | `PublicUserProfile` | Everything the read-only profile screen needs in one call: identity, header colour, relation, stats, weekly XP, achievements and course progress. **Gems, lives and boosters are deliberately absent** — those are private. A private account the caller isn't friends with comes back with `visible: false`: identity and `relation` only, so a request can still be sent. A disabled or unknown user 404s. |
+
+## `notificationsApi` (`src/api/notifications.ts`) — mirrors `NotificationController.java`
+
+Read-only: notifications are produced server-side by whatever triggers them.
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getInbox(page?, size?)` | `GET /notifications?page=&size=` | `NotificationPage` | Spring page, newest first; default `size` 30, capped at 100 |
+| `getUnreadCount()` | `GET /notifications/unread-count` | `{ unreadCount: number }` | drives the bell badge |
+| `markAsRead(id)` | `PATCH /notifications/{id}/read` | 204 | |
+| `markAllAsRead()` | `PATCH /notifications/read-all` | 204 | called when the inbox is opened |
+
+## `achievementsApi` (`src/api/achievements.ts`)
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getAchievements(unlocked)` | `GET /achievements?unlocked=` | `Achievement[]` | pass `true` or `false` |
+
+## `learningApi` (`src/api/learning.ts`) — mirrors `CourseTrackingController.java`
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getProgress()` | `GET /learning/tracking/progress` | `CourseProgress[]` | per-course progress, unit info, signs learned |
+| `enroll(courseVersionId)` | `POST /learning/tracking/courses/{courseVersionId}/enroll` | `void` | not yet called from any screen |
+| `recordBlockInteraction(lessonBlockId, isCorrect)` | `POST /learning/tracking/blocks/{lessonBlockId}/interactions` | `void` | `isCorrect` is `null` for an `INFO` block view, `true`/`false` for an evaluable block attempt. Called from `LessonScreen` per block interaction (see [features/courses.md](../features/courses.md)); XP/lesson/topic/course completion is awarded server-side on the **first correct** attempt per block, so it's safe to call once per attempt (including repeated wrong taps inside `MATCH`/`VISUAL_RECOGNITION`) |
+
+## `lessonsApi` (`src/api/lessons.ts`) — mirrors `LessonController.java`
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getLesson(lessonId)` | `GET /lessons/{id}` | `LessonContent` | full block content for the lesson player. Each block's `config` is a **raw JSON string** (not camelCased by the client interceptor) — parse with `parseBlockConfig` from `features/courses/lessonContent.types.ts`; see [types.md](./types.md) |
+
+## `signsApi` (`src/api/signs.ts`) — mirrors `SignController.java`
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getSigns(signLanguageId, query?)` | `GET /signs?signLanguageId=&query=` | `Page<SignSummary>` | `SignSummary`: `{ id, meaning, description, handedness, animationUrl }`. `query` is a **contains**, case-insensitive match against `meaning` (`findBySignLanguageIdAndMeaningContainingIgnoreCase`), not exact. `animationUrl` here is the raw R2 **object key**, not a fetchable URL — don't render it directly. |
+| `getSignAnimations(meanings)` | `POST /signs/animations` `{ meanings }` | `Record<meaning, url>` | Batched, exact-meaning lookup of **presigned** animation URLs (mirrors `SignController.getSignAnimations`/`SignService.getSignAnimations`). Meanings with no matching sign, or no animation uploaded, are simply absent from the response. Used by `preloadLessonAnimations` (see [features/courses.md](../features/courses.md)) to fetch every animation a lesson needs in one request. |
+
+## `health` (`src/api/health.ts`)
+
+`pingBackend()` for the connection test: GET to the API root with a short timeout.
+
+## `coursesApi` (`src/features/courses/api.ts`)
+
+Real endpoints that power the Inicio (Home) lesson roadmap:
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getSignLanguages()` | `GET /sign-languages` | `SignLanguage[]` | `{ id, code, name, countryCode }`; LSA has `code: "LSA"`. Used to resolve the `signLanguageId` the catalog needs. |
+| `getCatalog(signLanguageId)` | `GET /courses?signLanguageId=` | `Page<CourseSummary>` | Spring page; the screen uses `content[0]` (first course). `signLanguageId` is a **query param** (stays camelCase — the client snake_cases only bodies). |
+| `getRoadmap(courseId)` | `GET /learning/tracking/courses/{courseId}/roadmap` | `CourseRoadmap` | Per-user roadmap of the course's published version: `topics[]` (each with `title`, optional `subtitle`) each with ordered `lessons[]` carrying `blockCount`, `xpTotal`, `signsCount`, `signsLearned` and `state` (`COMPLETED` / `IN_PROGRESS` / `AVAILABLE` / `LOCKED`). `signsLearned: string[]` lists the sign meanings taught by each lesson, computed by `BlockSignExtractor` on the backend — used by `HomeTabScreen` to show sign chips in the lesson-detail modal without an extra request. |
+
+Inicio load chain: `getSignLanguages()` → pick LSA → `getCatalog(lsa.id)` → first course → `getRoadmap(course.id)`. Header stats (streak/gems/XP) come from `usersApi.getStats()` + `inventoryApi.getMyInventory()`.
+
+Still **STUB** on the same file (used only by `CoursesListScreen`): `list()` / `getById()` / `getLesson()` — tentative flat-content paths, not confirmed. See [features/courses.md](../features/courses.md).
