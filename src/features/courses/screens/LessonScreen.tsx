@@ -8,7 +8,6 @@ import { AppStackParamList } from "@/navigation/AppNavigator";
 import { lessonsApi } from "@/api/lessons";
 import { learningApi } from "@/api/learning";
 import { shopApi } from "@/api/shop";
-import { preloadLessonAnimations } from "@/features/courses/animationPreload";
 import { useActivityTracker } from "@/hooks/useActivityTracker";
 import { BlockType, LessonContent, LessonContentBlock, parseBlockConfig } from "@/features/courses/lessonContent.types";
 import { LessonButton } from "@/features/courses/components/lesson/LessonButton";
@@ -59,7 +58,6 @@ export function LessonScreen({ route, navigation }: Props) {
           setUnlimitedLives(inventoryRes.data.livesMode === "INFINITE");
           setLives(inventoryRes.data.currentLives ?? STARTING_LIVES);
         }
-        preloadLessonAnimations(lessonRes.data.blocks).catch(() => {});
       })
       .catch((err: any) => setError(err?.response?.data?.message ?? "No pudimos cargar la lección."))
       .finally(() => setLoading(false));
