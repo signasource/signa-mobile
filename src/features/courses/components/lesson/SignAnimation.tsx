@@ -1,15 +1,14 @@
-﻿import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, View, ViewStyle } from "react-native";
 import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
 import { GlbAnimationView } from "@/features/animations/GlbAnimationView";
-import { getCachedAnimationUrl } from "@/features/courses/animationPreload";
+import { signsApi } from "@/api/signs";
 import { SignPlaceholder } from "./SignPlaceholder";
 
 type Tone = "neutral" | "wrong";
 
 interface SignAnimationProps {
-  /** Sign meaning to render; looked up in the preload cache filled by animationPreload.ts. */
   meaning: string;
   label: string;
   height?: number;
@@ -19,15 +18,18 @@ interface SignAnimationProps {
   style?: ViewStyle;
 }
 
-/**
- * Renders the 3D avatar animation for a sign meaning, falling back to
- * `SignPlaceholder` while the URL isn't cached yet (still loading, no
- * animation for that meaning, or the model failed to load).
- */
 export function SignAnimation({ meaning, label, height = 320, tone = "neutral", paused, badge, style }: SignAnimationProps) {
+  const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
-  const url = getCachedAnimationUrl(meaning);
   const wrong = tone === "wrong";
+
+  useEffect(() => {
+    setUrl(null);
+    setFailed(false);
+    signsApi.getSignAnimations([meaning]).then((res) => {
+      setUrl(res.data[meaning] ?? null);
+    }).catch(() => {});
+  }, [meaning]);
 
   if (!url || failed) {
     return <SignPlaceholder label={label} height={height} tone={tone} badge={badge} style={style} />;

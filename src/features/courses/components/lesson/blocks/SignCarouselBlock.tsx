@@ -1,10 +1,10 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, TouchableOpacity, View, ViewStyle } from "react-native";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "@/theme";
 import { MultiGlbView } from "@/features/animations/MultiGlbView";
-import { getCachedAnimationUrl } from "@/features/courses/animationPreload";
+import { signsApi } from "@/api/signs";
 import { SignPlaceholder } from "../SignPlaceholder";
 import { XpChip } from "../XpChip";
 import { FeedbackBar } from "../FeedbackBar";
@@ -38,12 +38,17 @@ interface CarouselAnimationProps {
  * Switching options is a JS injection — zero WebView reload on swipe.
  */
 function CarouselAnimation({ options, activeIndex, tone, paused, style }: CarouselAnimationProps) {
-  // Resolved once on mount from the pre-warm cache.
-  const urls = useRef(options.map((m) => getCachedAnimationUrl(m) ?? ""));
+  const [urls, setUrls] = useState<string[]>(options.map(() => ""));
   const [failed, setFailed] = useState(false);
   const wrong = tone === "wrong";
-  const activeUrl = urls.current[activeIndex];
-  const anyUrl = urls.current.some(Boolean);
+  const activeUrl = urls[activeIndex];
+  const anyUrl = urls.some(Boolean);
+
+  useEffect(() => {
+    signsApi.getSignAnimations(options).then((res) => {
+      setUrls(options.map((m) => res.data[m] ?? ""));
+    }).catch(() => {});
+  }, []);
 
   return (
     <View style={[animStyles.container, wrong && animStyles.containerWrong, style]}>
@@ -55,7 +60,7 @@ function CarouselAnimation({ options, activeIndex, tone, paused, style }: Carous
 
       {anyUrl && !failed ? (
         <MultiGlbView
-          urls={urls.current}
+          urls={urls}
           activeIndex={activeIndex}
           paused={paused}
           onError={() => setFailed(true)}
