@@ -9,6 +9,7 @@ import { lessonsApi } from "@/api/lessons";
 import { learningApi } from "@/api/learning";
 import { shopApi } from "@/api/shop";
 import { preloadLessonAnimations } from "@/features/courses/animationPreload";
+import { useActivityTracker } from "@/hooks/useActivityTracker";
 import { BlockType, LessonContent, LessonContentBlock, parseBlockConfig } from "@/features/courses/lessonContent.types";
 import { LessonButton } from "@/features/courses/components/lesson/LessonButton";
 import { LessonHeader } from "@/features/courses/components/lesson/LessonHeader";
@@ -29,6 +30,8 @@ const STARTING_LIVES = 5;
 export function LessonScreen({ route, navigation }: Props) {
   const { lessonId, unitLabel, signsCount } = route.params;
   const insets = useSafeAreaInsets();
+
+  useActivityTracker();
 
   const [lesson, setLesson] = useState<LessonContent | null>(null);
   const [loading, setLoading] = useState(true);

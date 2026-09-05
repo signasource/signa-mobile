@@ -32,10 +32,10 @@ Per-feature detail is owned by each feature doc; this is the index.
 - **Password-reset token pasted by hand.** No deep linking; the user copies the token from the email. Email verification still exists on the backend (`verified` flag) but registration auto-logs in and the app surfaces no verify/resend UI.
 - **No ESLint/Prettier config.** `npm run lint` runs eslint without configured rules; the real check today is `npm run typecheck` (tsc strict).
 - **Legacy theme tokens** (`accent`, `morado`, `azulOscuro`, `headingSemiBold`, …) still used by `AppNavigator` and old screens; migrate to current tokens.
-- **`GET /users/me/stats` and `POST /users/me/activity` do not exist.** `src/api/users.ts` calls both (`usersApi.getStats()`, `usersApi.recordActivity()`) but `UserController.java` has no such mappings — they 404. Consumed by Inicio and Perfil. Pre-existing, unrelated to Social.
 - **Gifting has no UI.** `POST /store/gifts` exists and friends are now listable (`socialApi.getFriends()`), but the Store screen still only buys for yourself.
 - **No leaderboard.** `signa-api` has nothing resembling a ranking or league, so the Social header shows *Solicitudes* where the mockup had *Ranking*. Deferred to a later iteration; `UserStats.weeklyXp` already exists to build it on.
 - **`CourseProgress` and `Achievement` client types do not match the backend.** `src/api/learning.ts` declares `CourseProgress { courseId, icon, color, progressPercent, lessonsCompleted, currentUnit, unitProgressPercent, lastPractice }` and `src/api/achievements.ts` declares `Achievement { id: number, name, icon, color, unlocked }`, but `CourseProgressResponse` and `AchievementResponse` send entirely different fields. `ProfileScreen`'s **Cursos** and **Logros** sections therefore render `undefined`. Pre-existing. `PublicProfileScreen` sidesteps it by typing against the real shapes (`PublicCourseProgress` / `PublicAchievement` in `src/api/social.ts`).
+- **`inventoryApi` and `shopApi` declare separate client types for the same endpoint.** Both call `GET /inventories/me`; `shopApi.ts`'s `ShopInventory` matches the backend `UserInventoryResponse` field-for-field, while `inventoryApi.ts`'s `UserInventory` used to declare its own (wrong) `lives`/`xpMultiplier` fields — fixed to mirror `ShopInventory` plus `learnedSignsCount`, but the duplication itself remains: a backend field rename only needs fixing in one of the two files to silently break the other.
 - **CI:** GitHub Actions (`.github/workflows/release.yml`, semantic-release on push to `master`). No GitLab pipeline.
 
 - **No practice-session or mistakes-review backend for `PracticeTabScreen`.** `signa-api` has no
@@ -47,7 +47,6 @@ Per-feature detail is owned by each feature doc; this is the index.
 
 - Deep linking for password reset.
 - Wire the Inicio roadmap lesson CTA to navigate into the now-real `LessonScreen`.
-- Add `GET /users/me/stats` and `POST /users/me/activity` to `signa-api`, or drop the calls.
 - Leaderboard endpoint + the Social *Ranking* tile.
 - Fix `CourseProgress` / `Achievement` client types and re-point `ProfileScreen` at them.
 - Confirm real `courses` endpoints for the flat browse stub, or retire it in favor of the Inicio roadmap.

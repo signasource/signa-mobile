@@ -97,9 +97,15 @@ const HEADER_COLORS = [
 const DEFAULT_INVENTORY: UserInventory = {
   gems: 0,
   streakShields: 0,
-  lives: MAX_LIVES,
-  xpMultiplier: 1,
-  totalSignsLearned: 0,
+  livesMode: "LIMITED",
+  currentLives: MAX_LIVES,
+  nextLifeAt: null,
+  effectiveXpMultiplier: 1,
+  xpMultiplierExpiresAt: null,
+  xpMultiplierActive: false,
+  unlimitedLivesExpiresAt: null,
+  unlimitedLivesActive: false,
+  learnedSignsCount: 0,
 };
 
 
@@ -198,7 +204,7 @@ export function ProfileScreen({ navigation }: Props) {
   const [minutesToday, setMinutesToday] = useState(0);
 
   // Local inventory actions (optimistic)
-  const [livesCount, setLivesCount] = useState(DEFAULT_INVENTORY.lives);
+  const [livesCount, setLivesCount] = useState<number>(DEFAULT_INVENTORY.currentLives ?? MAX_LIVES);
   const [gemsCount, setGemsCount] = useState(DEFAULT_INVENTORY.gems);
   const [xpBoostActive, setXpBoostActive] = useState(false);
   const [infiniteActive, setInfiniteActive] = useState(false);
@@ -219,6 +225,9 @@ export function ProfileScreen({ navigation }: Props) {
       usersApi.getSettings().then((res) => {
         const color = res.data.profileHeaderColor;
         setHeaderColor(color);
+      }).catch(() => {});
+      usersApi.getDailyGoal().then((res) => {
+        setMinutesToday(res.data.minutesToday);
       }).catch(() => {});
     }, [])
   );
@@ -282,7 +291,7 @@ export function ProfileScreen({ navigation }: Props) {
     if (invRes.status === "fulfilled") {
       const inv = invRes.value.data;
       setInventory(inv);
-      setLivesCount(inv.lives);
+      setLivesCount(inv.currentLives ?? MAX_LIVES);
       setGemsCount(inv.gems);
       // xpBoostQty e infiniteQty no tienen campo en la API todavía; quedan en 0
     }
@@ -435,7 +444,7 @@ export function ProfileScreen({ navigation }: Props) {
         <View style={styles.statsGrid}>
           {[
             { icon: "flash", color: colors.warning, value: (userStats?.totalXp ?? 0).toLocaleString("es-AR"), label: "XP total" },
-            { icon: "hand-left", color: colors.courseTeal, value: String(inventory.totalSignsLearned ?? 0), label: "Señas aprendidas" },
+            { icon: "hand-left", color: colors.courseTeal, value: String(inventory.learnedSignsCount ?? 0), label: "Señas aprendidas" },
           ].map((s) => (
             <View key={s.label} style={styles.statCard}>
               <View style={[styles.statChip, { backgroundColor: s.color + "1F" }]}>
