@@ -16,9 +16,9 @@ Import: `import { colors } from "@/theme"`. Rule: every visual value comes from 
 | `colors.primaryMedallion` | `#E0D5FF` | `AuthIconBadge` background |
 | `colors.background` | `#FAF6F2` | screen background |
 | `colors.surface` | `#FFFFFF` | cards / surfaces |
-| `colors.fill` | `#F2ECE6` | field / secondary-button fill |
+| `colors.fill` | `#F2ECE6` | field fill, inactive `SegmentedControl` segment |
 | `colors.fillDark` | `#EBE3DB` | stronger fill |
-| `colors.text` | `#241A16` | primary text (and `PrimaryButton` background) |
+| `colors.text` | `#241A16` | primary text, **every primary button**, active selector |
 | `colors.textMuted` | `#8C817A` | muted text / subtitles |
 | `colors.onPrimary` | `#F5F0FF` | text over primary |
 | `colors.onDark` | `#FBF6F2` | text over dark surfaces |
@@ -57,7 +57,7 @@ The Social tab and the notifications inbox use a wine accent instead of the bran
 
 | Token | Hex | Use |
 |---|---|---|
-| `colors.socialWine` | `#8A2C5E` | Social header, active tab, primary action, unread dot |
+| `colors.socialWine` | `#8A2C5E` | Social / Notificaciones header, unread dot |
 | `colors.socialWineDeep` | `#96406D` | decorative circle inside the header |
 | `colors.socialWineLight` | `#F6E4EC` | active "me gusta" background, unread notification row |
 
@@ -84,7 +84,7 @@ The profile / stats screens use a pure-gray palette rather than the warm-toned o
 | `colors.neutral900` | `#111111` | primary text (profile) |
 | `colors.neutral600` | `#86868B` | muted text (profile) |
 | `colors.neutral200` | `#E7E7E9` | borders (profile) |
-| `colors.neutral100` | `#F2F2F3` | fills / inputs (profile) |
+| `colors.neutral100` | `#F2F2F3` | fills / inputs (profile), **every secondary button** |
 
 ## Shop / tienda palette (use in the Store tab)
 
@@ -95,6 +95,9 @@ The profile / stats screens use a pure-gray palette rather than the warm-toned o
 | `colors.shopAmberLight` | `#FBE4C8` | icon medallion tint for amber-toned items |
 | `colors.warningLight` | `#FEF3D6` | icon medallion tint for `warning`-toned items (XP boosters) |
 | `colors.dangerLight` | `#FBE0D8` | icon medallion tint for `danger`-toned items (lives) |
+
+> Module colors (wine, amber, violet) no longer tint selectors or CTAs: those are always
+> `colors.text` / `colors.neutral100`. Module colors survive in headers, medallions and accents.
 
 ## Legacy tokens (do NOT use in new screens)
 

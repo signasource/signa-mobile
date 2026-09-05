@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { View, Pressable, ScrollView, StyleSheet, StatusBar } from "react-native";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -169,11 +169,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.text,
     borderRadius: 18,
     paddingHorizontal: 16,
-    shadowColor: colors.text,
-    shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.5,
-    shadowRadius: 18,
-    elevation: 6,
   },
   btnPressed: { opacity: 0.88 },
   btnLabel: { fontFamily: fonts.bodySemiBold, fontSize: 16.5, color: colors.onDark },

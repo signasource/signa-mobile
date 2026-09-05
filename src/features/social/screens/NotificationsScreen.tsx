@@ -8,8 +8,9 @@ import { colors, fonts } from "@/theme";
 import { AppStackParamList } from "@/navigation/AppNavigator";
 import { AppNotification, notificationsApi } from "@/api/notifications";
 import { notificationVisual, relativeTime } from "@/features/social/people";
-import { SocialHeader } from "@/features/social/components/SocialHeader";
-import { EmptyState } from "@/features/social/components/EmptyState";
+import { ScreenHeader } from "@/components/ScreenHeader";
+import { BackButton } from "@/components/BackButton";
+import { EmptyState } from "@/components/EmptyState";
 
 type Props = NativeStackScreenProps<AppStackParamList, "Notifications">;
 
@@ -18,6 +19,7 @@ export function NotificationsScreen({ navigation }: Props) {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [unreadOnOpen, setUnreadOnOpen] = useState(0);
 
   const load = useCallback(async () => {
     setError(null);
@@ -25,6 +27,7 @@ export function NotificationsScreen({ navigation }: Props) {
     try {
       const { data } = await notificationsApi.getInbox();
       setNotifications(data.content);
+      setUnreadOnOpen(data.content.filter((n) => !n.read).length);
       // Opening the inbox counts as reading it, so the bell badge clears.
       if (data.content.some((n) => !n.read)) {
         await notificationsApi.markAllAsRead();
@@ -42,19 +45,27 @@ export function NotificationsScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <SocialHeader
+      <ScreenHeader
         title="Notificaciones"
-        subtitle="Me gusta, logros de tus amigos y solicitudes."
+        description="Me gusta, logros de tus amigos y solicitudes."
         paddingTop={insets.top + 14}
+        tone={colors.socialWine}
+        stats={[
+          {
+            key: "total",
+            label: "Novedades",
+            value: String(notifications.length),
+            icon: "notifications",
+          },
+          {
+            key: "unread",
+            label: "Sin leer",
+            value: String(unreadOnOpen),
+            icon: "ellipse",
+          },
+        ]}
         left={
-          <TouchableOpacity
-            style={styles.back}
-            onPress={() => navigation.goBack()}
-            accessibilityRole="button"
-            accessibilityLabel="Volver"
-          >
-            <Ionicons name="arrow-back" size={21} color={colors.onDark} />
-          </TouchableOpacity>
+          <BackButton onPress={() => navigation.goBack()} color={colors.onDark} />
         }
       />
 
@@ -113,14 +124,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  back: {
-    width: 42,
-    height: 42,
-    borderRadius: 13,
-    backgroundColor: "rgba(255,255,255,0.16)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
   centered: {
     flex: 1,
     alignItems: "center",
@@ -129,10 +132,10 @@ const styles = StyleSheet.create({
   },
   retry: {
     marginTop: 4,
-    borderRadius: 12,
-    paddingVertical: 11,
-    paddingHorizontal: 20,
-    backgroundColor: colors.socialWine,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 22,
+    backgroundColor: colors.text,
   },
   retryLabel: {
     fontFamily: fonts.bodySemiBold,

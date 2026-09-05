@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
@@ -33,7 +33,7 @@ export function LessonButton({ label, onPress, variant = "primary", icon, disabl
 const styles = StyleSheet.create({
   base: {
     minHeight: 58,
-    borderRadius: 18,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -52,13 +52,13 @@ const styles = StyleSheet.create({
 });
 
 const variantStyles = StyleSheet.create({
-  primary: { backgroundColor: colors.primary },
-  muted: { backgroundColor: colors.fill },
-  outline: { backgroundColor: "transparent", borderWidth: 1, borderColor: colors.neutral200 },
+  primary: { backgroundColor: colors.text },
+  muted: { backgroundColor: colors.neutral100 },
+  outline: { backgroundColor: colors.neutral100 },
 });
 
 const textColor: Record<Variant, string> = {
-  primary: colors.onPrimary,
-  muted: colors.text,
-  outline: colors.primaryDark,
+  primary: colors.onDark,
+  muted: colors.neutral900,
+  outline: colors.neutral900,
 };

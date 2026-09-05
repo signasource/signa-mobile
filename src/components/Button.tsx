@@ -1,9 +1,9 @@
-﻿import React from "react";
+import React from "react";
 import { ActivityIndicator, Pressable, StyleSheet, ViewStyle } from "react-native";
 import { Text } from "@/components/Text";
 import { colors, fonts, fontSizes } from "@/theme";
 
-type Variant = "primary" | "secondary" | "outline";
+type Variant = "primary" | "secondary";
 
 interface ButtonProps {
   label: string;
@@ -14,8 +14,10 @@ interface ButtonProps {
   style?: ViewStyle;
 }
 
+/** Primary = black CTA. Secondary = the neutral "Cancelar" button. No shadows. */
 export function Button({ label, onPress, variant = "primary", loading, disabled, style }: ButtonProps) {
   const isDisabled = disabled || loading;
+  const secondary = variant === "secondary";
 
   return (
     <Pressable
@@ -23,16 +25,16 @@ export function Button({ label, onPress, variant = "primary", loading, disabled,
       disabled={isDisabled}
       style={({ pressed }) => [
         styles.base,
-        variantStyles[variant],
+        secondary ? styles.secondary : styles.primary,
         isDisabled && styles.disabled,
         pressed && !isDisabled && styles.pressed,
         style,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={variant === "outline" ? colors.primary : colors.white} />
+        <ActivityIndicator color={secondary ? colors.neutral900 : colors.onDark} />
       ) : (
-        <Text style={[styles.label, variant === "outline" && { color: colors.primary }]}>{label}</Text>
+        <Text style={[styles.label, secondary && styles.labelSecondary]}>{label}</Text>
       )}
     </Pressable>
   );
@@ -45,10 +47,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  primary: { backgroundColor: colors.text },
+  secondary: { backgroundColor: colors.neutral100 },
   label: {
-    color: colors.white,
+    color: colors.onDark,
     fontFamily: fonts.bodySemiBold,
     fontSize: fontSizes.md,
+  },
+  labelSecondary: {
+    color: colors.neutral900,
   },
   disabled: {
     opacity: 0.5,
@@ -57,9 +64,3 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
 });
-
-const variantStyles: Record<Variant, ViewStyle> = {
-  primary: { backgroundColor: colors.primary },
-  secondary: { backgroundColor: colors.accent },
-  outline: { backgroundColor: "transparent", borderWidth: 1.5, borderColor: colors.primary },
-};

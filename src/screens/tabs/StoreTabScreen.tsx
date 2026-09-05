@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   ScrollView,
@@ -11,7 +11,10 @@ import {
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, fonts, fontSizes } from "@/theme";
+import { colors, fonts } from "@/theme";
+import { ScreenHeader } from "@/components/ScreenHeader";
+import { SegmentedControl, Segment } from "@/components/SegmentedControl";
+import { EmptyState } from "@/components/EmptyState";
 import { shopApi, ShopItem, ShopItemType, ShopInventory, AppliedEffect } from "@/api/shop";
 
 type TabKey = "vidas" | "potenciadores" | "especiales";
@@ -23,11 +26,11 @@ interface Flow {
   effect?: AppliedEffect;
 }
 
-const TAB_LABEL: Record<TabKey, string> = {
-  vidas: "Vidas",
-  potenciadores: "Potenciadores",
-  especiales: "Especiales",
-};
+const TABS: ReadonlyArray<Segment<TabKey>> = [
+  { key: "vidas", label: "Vidas" },
+  { key: "potenciadores", label: "Potenciadores" },
+  { key: "especiales", label: "Especiales" },
+];
 
 const TAB_TYPES: Record<TabKey, ShopItemType[]> = {
   vidas: ["LIFE", "UNLIMITED_LIVES"],
@@ -174,54 +177,19 @@ export function StoreTabScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
-        <View style={styles.headerGlow} />
-        <Text style={styles.headerTitle}>Tienda</Text>
-        <Text style={styles.headerSubtitle}>
-          Gastá tus gemas en vidas y potenciadores para seguir aprendiendo.
-        </Text>
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Gemas</Text>
-            <View style={styles.statValueRow}>
-              <Ionicons name="diamond" size={17} color={colors.onPrimary} />
-              <Text style={styles.statValue}>{gems}</Text>
-            </View>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Vidas</Text>
-            <View style={styles.statValueRow}>
-              <Ionicons name="heart" size={17} color={colors.onPrimary} />
-              <Text style={styles.statValue}>{livesLabel}</Text>
-            </View>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Escudos</Text>
-            <View style={styles.statValueRow}>
-              <Ionicons name="shield-half" size={17} color={colors.onPrimary} />
-              <Text style={styles.statValue}>{shields}</Text>
-            </View>
-          </View>
-        </View>
-      </View>
+      <ScreenHeader
+        title="Tienda"
+        description="Gastá tus gemas en vidas y potenciadores para seguir aprendiendo."
+        paddingTop={insets.top + 14}
+        tone={colors.shopAmber}
+        stats={[
+          { key: "gems", label: "Gemas", value: String(gems), icon: "diamond" },
+          { key: "lives", label: "Vidas", value: livesLabel, icon: "heart" },
+          { key: "shields", label: "Escudos", value: String(shields), icon: "shield-half" },
+        ]}
+      />
 
-      <View style={styles.tabsRow}>
-        {(Object.keys(TAB_LABEL) as TabKey[]).map((key) => {
-          const active = tab === key;
-          return (
-            <TouchableOpacity
-              key={key}
-              onPress={() => setTab(key)}
-              style={[styles.chip, active && styles.chipActive]}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                {TAB_LABEL[key]}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      <SegmentedControl options={TABS} value={tab} onChange={setTab} />
 
       {loading ? (
         <View style={styles.centerFill}>
@@ -229,7 +197,7 @@ export function StoreTabScreen() {
         </View>
       ) : error && items.length === 0 ? (
         <View style={styles.centerFill}>
-          <Text style={styles.errorText}>{error}</Text>
+          <EmptyState icon="cloud-offline-outline" title="No pudimos cargar la tienda" description={error} />
           <TouchableOpacity style={styles.retryButton} onPress={loadShop} activeOpacity={0.85}>
             <Text style={styles.retryButtonText}>Reintentar</Text>
           </TouchableOpacity>
@@ -314,7 +282,11 @@ export function StoreTabScreen() {
             );
           })}
           {visibleItems.length === 0 && (
-            <Text style={styles.emptyText}>No hay ítems disponibles en esta categoría.</Text>
+            <EmptyState
+              icon="pricetags-outline"
+              title="Sin ítems por ahora"
+              description="No hay ítems disponibles en esta categoría."
+            />
           )}
         </ScrollView>
       )}
@@ -369,8 +341,13 @@ export function StoreTabScreen() {
                   <Text style={styles.darkButtonText}>Comprar</Text>
                 )}
               </TouchableOpacity>
-              <TouchableOpacity style={styles.ghostButton} onPress={closeFlow} disabled={purchasing}>
-                <Text style={styles.ghostButtonText}>Cancelar</Text>
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={closeFlow}
+                disabled={purchasing}
+                activeOpacity={0.86}
+              >
+                <Text style={styles.secondaryButtonText}>Cancelar</Text>
               </TouchableOpacity>
             </Pressable>
           </Pressable>
@@ -463,107 +440,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  header: {
-    backgroundColor: colors.shopAmber,
-    paddingHorizontal: 30,
-    paddingBottom: 20,
-    overflow: "hidden",
-  },
-  headerGlow: {
-    position: "absolute",
-    top: -90,
-    right: -50,
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: "rgba(255,255,255,0.09)",
-  },
-  headerTitle: {
-    fontFamily: fonts.displayBold,
-    fontSize: fontSizes.xxl,
-    color: colors.onDark,
-    letterSpacing: -1,
-  },
-  headerSubtitle: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.onDark,
-    opacity: 0.88,
-    marginTop: 8,
-    maxWidth: 280,
-  },
-  statsRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 18,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: "rgba(255,255,255,0.16)",
-    borderRadius: 16,
-    padding: 11,
-  },
-  statLabel: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 10,
-    letterSpacing: 0.8,
-    textTransform: "uppercase",
-    color: colors.onDark,
-    opacity: 0.75,
-  },
-  statValueRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 4,
-  },
-  statValue: {
-    fontFamily: fonts.displayBold,
-    fontSize: 21,
-    color: colors.onDark,
-  },
-  tabsRow: {
-    flexDirection: "row",
-    gap: 9,
-    paddingHorizontal: 30,
-    paddingTop: 16,
-    paddingBottom: 6,
-  },
-  chip: {
-    height: 34,
-    paddingHorizontal: 15,
-    borderRadius: 999,
-    justifyContent: "center",
-    backgroundColor: colors.fill,
-  },
-  chipActive: {
-    backgroundColor: colors.text,
-  },
-  chipText: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 12.5,
-    color: colors.textMuted,
-  },
-  chipTextActive: {
-    color: colors.onDark,
-  },
   centerFill: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     gap: 14,
-    paddingHorizontal: 30,
-  },
-  errorText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 14,
-    color: colors.textMuted,
-    textAlign: "center",
+    paddingHorizontal: 20,
   },
   retryButton: {
     backgroundColor: colors.text,
-    borderRadius: 16,
+    borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 24,
   },
@@ -573,7 +459,7 @@ const styles = StyleSheet.create({
     color: colors.onDark,
   },
   list: {
-    padding: 30,
+    padding: 20,
     paddingTop: 14,
     gap: 14,
   },
@@ -690,20 +576,13 @@ const styles = StyleSheet.create({
     width: "100%",
     marginTop: 16,
     minHeight: 48,
-    borderRadius: 16,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.text,
-    shadowColor: colors.text,
-    shadowOpacity: 0.22,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
   },
   buyButtonFeatured: {
     backgroundColor: colors.onDark,
-    shadowOpacity: 0,
-    elevation: 0,
   },
   buyButtonText: {
     fontFamily: fonts.bodySemiBold,
@@ -713,13 +592,6 @@ const styles = StyleSheet.create({
   },
   buyButtonTextFeatured: {
     color: colors.shopAmberDark,
-  },
-  emptyText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 14,
-    color: colors.textMuted,
-    textAlign: "center",
-    paddingTop: 40,
   },
   backdrop: {
     flex: 1,
@@ -801,7 +673,7 @@ const styles = StyleSheet.create({
   },
   darkButton: {
     minHeight: 58,
-    borderRadius: 18,
+    borderRadius: 14,
     backgroundColor: colors.text,
     alignItems: "center",
     justifyContent: "center",
@@ -812,14 +684,18 @@ const styles = StyleSheet.create({
     fontSize: 16.5,
     color: colors.onDark,
   },
-  ghostButton: {
+  secondaryButton: {
+    minHeight: 52,
+    borderRadius: 14,
+    backgroundColor: colors.neutral100,
     alignItems: "center",
-    paddingTop: 10,
+    justifyContent: "center",
+    marginTop: 10,
   },
-  ghostButtonText: {
+  secondaryButtonText: {
     fontFamily: fonts.bodySemiBold,
-    fontSize: 14,
-    color: colors.textMuted,
+    fontSize: 15,
+    color: colors.neutral900,
   },
   insufficientIcon: {
     width: 72,

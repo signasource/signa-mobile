@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -17,6 +17,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AppStackParamList } from "@/navigation/AppNavigator";
 import { colors, fonts } from "@/theme";
+import { ScreenHeader } from "@/components/ScreenHeader";
+import { BackButton } from "@/components/BackButton";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { usersApi } from "@/api/users";
@@ -313,7 +315,6 @@ export function ConfigurationScreen({ navigation }: Props) {
   const headerLight = isLight(headerColor);
   const onHeader = headerLight ? colors.neutral900 : colors.surface;
   const accent = fillAccent(headerColor);
-  const accentFg = isLight(accent) ? colors.neutral900 : colors.surface;
   const accentSoft = accent + "1F";
 
   const currentVis = VISIBILITIES.find((v) => v.id === accountVisibility) ?? VISIBILITIES[0];
@@ -387,14 +388,14 @@ export function ConfigurationScreen({ navigation }: Props) {
         : colors.danger
       : disabled
         ? colors.neutral200
-        : accent;
+        : colors.text;
     const fg = danger
       ? disabled
         ? "#D9A697"
         : colors.surface
       : disabled
         ? colors.neutral600
-        : accentFg;
+        : colors.onDark;
     return (
       <TouchableOpacity
         style={[styles.primaryBtn, { backgroundColor: bg }]}
@@ -410,19 +411,13 @@ export function ConfigurationScreen({ navigation }: Props) {
   return (
     <View style={styles.root}>
       {/* header */}
-      <View style={{ backgroundColor: headerColor }}>
-        <View style={{ height: insets.top }} />
-        <View style={styles.headerBar}>
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="chevron-back" size={20} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: onHeader }]}>Configuración</Text>
-        </View>
-      </View>
+      <ScreenHeader
+        title="Configuración"
+        description="Ajustá tu cuenta, tus preferencias y tus notificaciones."
+        paddingTop={insets.top + 14}
+        tone={headerColor}
+        left={<BackButton onPress={() => navigation.goBack()} color={onHeader} />}
+      />
 
       {loading ? (
         <View style={styles.loadingWrap}>
@@ -751,11 +746,11 @@ export function ConfigurationScreen({ navigation }: Props) {
                 onPress={handleSaveProfile}
               />
               <TouchableOpacity
-                style={styles.cancelRow}
+                style={styles.secondaryBtn}
                 onPress={() => setModal(null)}
-                activeOpacity={0.7}
+                activeOpacity={0.85}
               >
-                <Text style={styles.cancelText}>Cancelar</Text>
+                <Text style={styles.secondaryBtnText}>Cancelar</Text>
               </TouchableOpacity>
             </View>
           </Pressable>
@@ -907,11 +902,11 @@ export function ConfigurationScreen({ navigation }: Props) {
                 onPress={handleChangePassword}
               />
               <TouchableOpacity
-                style={styles.cancelRow}
+                style={styles.secondaryBtn}
                 onPress={() => setModal(null)}
-                activeOpacity={0.7}
+                activeOpacity={0.85}
               >
-                <Text style={styles.cancelText}>Cancelar</Text>
+                <Text style={styles.secondaryBtnText}>Cancelar</Text>
               </TouchableOpacity>
             </View>
           </Pressable>
@@ -976,7 +971,7 @@ export function ConfigurationScreen({ navigation }: Props) {
                     })}
                   </View>
                   <TouchableOpacity
-                    style={[styles.primaryBtn, { marginTop: 16, backgroundColor: accent }]}
+                    style={[styles.primaryBtn, { marginTop: 16 }]}
                     onPress={async () => {
                       setHeaderColor(headerColorDraft);
                       setSheet(null);
@@ -985,7 +980,7 @@ export function ConfigurationScreen({ navigation }: Props) {
                     }}
                     activeOpacity={0.85}
                   >
-                    <Text style={[styles.primaryBtnText, { color: accentFg }]}>Listo</Text>
+                    <Text style={styles.primaryBtnText}>Listo</Text>
                   </TouchableOpacity>
                 </>
               )}
@@ -1107,7 +1102,7 @@ export function ConfigurationScreen({ navigation }: Props) {
                   </View>
                   <Text style={styles.wheelHint}>Hora · minuto</Text>
                   <TouchableOpacity
-                    style={[styles.primaryBtn, { marginTop: 16, backgroundColor: accent }]}
+                    style={[styles.primaryBtn, { marginTop: 16 }]}
                     onPress={async () => {
                       setReminderHour(draftHour);
                       setReminderMinute(draftMinute);
@@ -1118,7 +1113,7 @@ export function ConfigurationScreen({ navigation }: Props) {
                     }}
                     activeOpacity={0.85}
                   >
-                    <Text style={[styles.primaryBtnText, { color: accentFg }]}>Listo</Text>
+                    <Text style={styles.primaryBtnText}>Listo</Text>
                   </TouchableOpacity>
                 </>
               )}
@@ -1190,7 +1185,7 @@ export function ConfigurationScreen({ navigation }: Props) {
                           ? deleteReady
                             ? colors.danger
                             : "#F6D7CD"
-                          : accent,
+                          : colors.text,
                     },
                   ]}
                   onPress={
@@ -1211,7 +1206,7 @@ export function ConfigurationScreen({ navigation }: Props) {
                             ? deleteReady
                               ? colors.surface
                               : "#D9A697"
-                            : accentFg,
+                            : colors.onDark,
                       },
                     ]}
                   >
@@ -1238,27 +1233,6 @@ export function ConfigurationScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
 
-  headerBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 16,
-  },
-  backBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: colors.fill,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  headerTitle: {
-    fontFamily: fonts.displayExtraBold,
-    fontSize: 26,
-  },
 
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
 
@@ -1492,21 +1466,30 @@ const styles = StyleSheet.create({
   ruleText: { fontFamily: fonts.bodyMedium, fontSize: 12 },
 
   primaryBtn: {
-    borderRadius: 18,
+    borderRadius: 14,
     minHeight: 50,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 12,
+    backgroundColor: colors.text,
   },
   primaryBtnText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 16,
+    color: colors.onDark,
   },
-  cancelRow: { alignItems: "center", paddingVertical: 14 },
-  cancelText: {
+  secondaryBtn: {
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 14,
+    minHeight: 50,
+    marginTop: 10,
+    backgroundColor: colors.neutral100,
+  },
+  secondaryBtnText: {
     fontFamily: fonts.bodySemiBold,
-    fontSize: 14,
-    color: colors.neutral600,
+    fontSize: 15,
+    color: colors.neutral900,
   },
 
   // Bottom sheet
@@ -1546,8 +1529,6 @@ const styles = StyleSheet.create({
   sheetClose: {
     width: 28,
     height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.neutral100,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1713,11 +1694,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 13,
     paddingHorizontal: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.22,
-    shadowRadius: 24,
-    elevation: 8,
   },
   toastText: {
     fontFamily: fonts.bodySemiBold,

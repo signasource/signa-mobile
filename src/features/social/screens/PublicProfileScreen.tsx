@@ -15,7 +15,11 @@ import {
   socialApi,
 } from "@/api/social";
 import { avatarColors, formatXp, initialsOf } from "@/features/social/people";
-import { EmptyState } from "@/features/social/components/EmptyState";
+import { EmptyState } from "@/components/EmptyState";
+import { ScreenHeader } from "@/components/ScreenHeader";
+import { SegmentedControl, Segment } from "@/components/SegmentedControl";
+import { BackButton } from "@/components/BackButton";
+import { isLightColor } from "@/utils/color";
 import { ConfirmSheet, ConfirmSpec } from "@/features/social/components/ConfirmSheet";
 import { Toast } from "@/features/social/components/Toast";
 
@@ -25,10 +29,10 @@ type Section = "general" | "cursos" | "logros";
 const DAY_LABELS = ["L", "M", "M", "J", "V", "S", "D"];
 const DAY_NAMES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
-const SECTIONS: { key: Section; icon: string; iconActive: string }[] = [
-  { key: "general", icon: "person-outline", iconActive: "person" },
-  { key: "cursos", icon: "school-outline", iconActive: "school" },
-  { key: "logros", icon: "trophy-outline", iconActive: "trophy" },
+const SECTIONS: ReadonlyArray<Segment<Section>> = [
+  { key: "general", label: "General", icon: "person" },
+  { key: "cursos", label: "Cursos", icon: "school" },
+  { key: "logros", label: "Logros", icon: "trophy" },
 ];
 
 /** The backend sends no course colour, so it comes from the list position. */
@@ -42,20 +46,6 @@ interface DayXp {
 }
 
 // ─── helpers ──────────────────────────────────────────────────
-/** Relative luminance, to pick light or dark text over the header. */
-function getLum(hex: string): number {
-  const parse = (s: string) => parseInt(s, 16) / 255;
-  const toLinear = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
-  const r = toLinear(parse(hex.slice(1, 3)));
-  const g = toLinear(parse(hex.slice(3, 5)));
-  const b = toLinear(parse(hex.slice(5, 7)));
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-
-function isLight(hex: string): boolean {
-  return getLum(hex) > 0.42;
-}
-
 function getTodayIndex(): number {
   return (new Date().getDay() + 6) % 7;
 }
@@ -218,11 +208,7 @@ export function PublicProfileScreen({ route, navigation }: Props) {
   }
 
   const headerColor = profile.profileHeaderColor ?? colors.surface;
-  const headerLight = isLight(headerColor);
-  const onHeader = headerLight ? colors.neutral900 : colors.surface;
-  const onHeaderSoft = headerLight ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.74)";
-  const headerBorderColor = headerLight ? colors.neutral200 : "rgba(255,255,255,0.16)";
-  const pillBg = headerLight ? "rgba(0,0,0,0.10)" : "rgba(255,255,255,0.20)";
+  const onHeader = isLightColor(headerColor) ? colors.neutral900 : colors.onDark;
 
   const avatar = avatarColors(profile.id);
   const action = primaryAction(profile.relation);
@@ -245,108 +231,64 @@ export function PublicProfileScreen({ route, navigation }: Props) {
     <View style={styles.container}>
       <ScrollView stickyHeaderIndices={[0]} contentContainerStyle={styles.scrollContent}>
         {/* ─── header ─────────────────────────────────────── */}
-        <View style={{ backgroundColor: headerColor }}>
-          <View style={{ paddingTop: insets.top }}>
-            <View style={styles.titleBar}>
-              <TouchableOpacity
-                style={styles.iconBtn}
-                onPress={() => navigation.goBack()}
-                accessibilityRole="button"
-                accessibilityLabel="Volver"
-              >
-                <Ionicons name="arrow-back" size={23} color={onHeader} />
-              </TouchableOpacity>
-              <Text style={[styles.headerTitle, { color: onHeader }]}>Perfil</Text>
-              <View style={styles.iconBtn} />
-            </View>
-
-            <View style={styles.profileRow}>
-              <View style={styles.avatarWrap}>
-                <View
-                  style={[styles.avatar, { borderColor: onHeader, backgroundColor: avatar.bg }]}
-                >
-                  <Text style={[styles.avatarInitials, { color: avatar.fg }]}>
-                    {initialsOf(profile.name, profile.username)}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.streakBadge,
-                    {
-                      backgroundColor:
-                        profile.stats.currentStreak > 0
-                          ? colors.streakOrange
-                          : colors.neutral600,
-                    },
-                  ]}
-                >
-                  <Ionicons name="flame" size={14} color={colors.surface} />
-                  <Text style={styles.streakDays}>{profile.stats.currentStreak}</Text>
-                </View>
-              </View>
-
-              <View style={styles.profileInfo}>
-                <Text style={[styles.profileName, { color: onHeader }]} numberOfLines={1}>
-                  {profile.name}
+        <View style={styles.stickyHeader}>
+          <ScreenHeader
+            title="Perfil"
+            description={`${profile.name} · @${profile.username}`}
+            paddingTop={insets.top + 14}
+            tone={headerColor}
+            stats={[
+              {
+                key: "streak",
+                label: "Racha",
+                value: String(profile.stats.currentStreak),
+                icon: "flame",
+              },
+              {
+                key: "xp",
+                label: "XP total",
+                value: formatXp(profile.stats.totalXp),
+                icon: "flash",
+              },
+              {
+                key: "signs",
+                label: "Señas",
+                value: String(profile.stats.learnedSignsCount),
+                icon: "hand-left",
+              },
+            ]}
+            left={<BackButton onPress={() => navigation.goBack()} color={onHeader} />}
+            right={
+              <View style={[styles.avatar, { borderColor: onHeader, backgroundColor: avatar.bg }]}>
+                <Text style={[styles.avatarInitials, { color: avatar.fg }]}>
+                  {initialsOf(profile.name, profile.username)}
                 </Text>
-                <View style={styles.usernameRow}>
-                  <Ionicons name="at-outline" size={14} color={onHeaderSoft} />
-                  <Text style={[styles.usernameText, { color: onHeaderSoft }]}>
-                    {profile.username}
-                  </Text>
-                </View>
-
-                {action && (
-                  <TouchableOpacity
-                    style={[styles.actionBtn, { backgroundColor: pillBg }]}
-                    onPress={handlePrimary}
-                    disabled={busy}
-                    activeOpacity={0.7}
-                  >
-                    {busy ? (
-                      <ActivityIndicator size="small" color={onHeader} />
-                    ) : (
-                      <>
-                        <Ionicons name={action.icon} size={14} color={onHeader} />
-                        <Text style={[styles.actionLabel, { color: onHeader }]}>
-                          {action.label}
-                        </Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                )}
               </View>
+            }
+          />
+
+          {action && (
+            <View style={styles.actionRow}>
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={handlePrimary}
+                disabled={busy}
+                activeOpacity={0.86}
+              >
+                {busy ? (
+                  <ActivityIndicator size="small" color={colors.onDark} />
+                ) : (
+                  <>
+                    <Ionicons name={action.icon} size={15} color={colors.onDark} />
+                    <Text style={styles.actionLabel}>{action.label}</Text>
+                  </>
+                )}
+              </TouchableOpacity>
             </View>
-          </View>
+          )}
 
           {profile.visible && (
-            <View style={[styles.sectionBar, { borderBottomColor: headerBorderColor }]}>
-              {SECTIONS.map((s) => {
-                const active = s.key === section;
-                return (
-                  <TouchableOpacity
-                    key={s.key}
-                    style={[styles.sectionTab, active && { borderBottomColor: onHeader }]}
-                    onPress={() => setSection(s.key)}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons
-                      name={(active ? s.iconActive : s.icon) as any}
-                      size={23}
-                      color={
-                        headerLight
-                          ? active
-                            ? colors.neutral900
-                            : "#B8B8BD"
-                          : active
-                          ? colors.surface
-                          : "rgba(255,255,255,0.6)"
-                      }
-                    />
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            <SegmentedControl options={SECTIONS} value={section} onChange={setSection} />
           )}
         </View>
 
@@ -626,10 +568,10 @@ const styles = StyleSheet.create({
   },
   retry: {
     marginTop: 4,
-    borderRadius: 12,
-    paddingVertical: 11,
-    paddingHorizontal: 20,
-    backgroundColor: colors.primary,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 22,
+    backgroundColor: colors.text,
   },
   retryLabel: {
     fontFamily: fonts.bodySemiBold,
@@ -639,104 +581,39 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 32,
   },
-  titleBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 12,
-    paddingTop: 8,
-  },
-  headerTitle: {
-    fontFamily: fonts.displayBold,
-    fontSize: 19,
-  },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  profileRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 18,
-  },
-  avatarWrap: {
-    alignItems: "center",
+  stickyHeader: {
+    backgroundColor: colors.background,
   },
   avatar: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
   },
   avatarInitials: {
     fontFamily: fonts.displayExtraBold,
-    fontSize: 26,
+    fontSize: 18,
   },
-  streakBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    marginTop: -10,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  streakDays: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 12,
-    color: colors.surface,
-  },
-  profileInfo: {
-    flex: 1,
-    minWidth: 0,
-  },
-  profileName: {
-    fontFamily: fonts.displayBold,
-    fontSize: 21,
-  },
-  usernameRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-    marginTop: 2,
-  },
-  usernameText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 13,
+  actionRow: {
+    paddingHorizontal: 20,
+    paddingTop: 14,
   },
   actionBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    alignSelf: "flex-start",
-    gap: 6,
-    marginTop: 10,
-    height: 32,
-    minWidth: 110,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+    gap: 7,
+    minHeight: 48,
+    borderRadius: 14,
+    backgroundColor: colors.text,
   },
   actionLabel: {
     fontFamily: fonts.bodySemiBold,
-    fontSize: 12.5,
-  },
-  sectionBar: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-  },
-  sectionTab: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 11,
-    borderBottomWidth: 2,
-    borderBottomColor: "transparent",
+    fontSize: 15,
+    color: colors.onDark,
   },
   section: {
     paddingHorizontal: 20,

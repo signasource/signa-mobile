@@ -98,9 +98,10 @@ error) instead of the local optimistic decrement, to remove the drift risk on a 
   course from `getCatalog(lsa.id)`, and loads `getRoadmap(course.id)`. Shows a spinner while
   loading and an error + "Reintentar" on failure. Units = topics; each unit header shows `topic.title`
   as the (uppercase) kicker, `topic.subtitle` as the bold line, and `X de Y` progress.
-- **Header** (purple `#7857FF`): course name kicker, "Tu recorrido" title, and 3 frosted-glass
-  stat chips (racha / gemas / XP). Stats come from `usersApi.getStats()` +
-  `inventoryApi.getMyInventory()`, loaded in parallel and non-blocking.
+- **Header**: the shared `ScreenHeader` with `tone={colors.primary}`, the "Tu recorrido" title, a
+  description and 3 stat tiles (racha / gemas / XP) in the common uppercase-label + icon + value
+  format. The old course-name kicker ("CURSO BÁSICO") was removed. Stats come from
+  `usersApi.getStats()` + `inventoryApi.getMyInventory()`, loaded in parallel and non-blocking.
 - **Editorial rail**: single continuous 2px vertical line (`#DCD2C8`) running behind all rows.
   Each row has `position: relative` with an absolute rail segment spanning full row height
   (including `paddingBottom`) so lines connect without gaps. Node types:

@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -61,7 +61,7 @@ export function SecondaryButton({ label, onPress, loading, disabled, style }: Au
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={colors.text} />
+        <ActivityIndicator color={colors.neutral900} />
       ) : (
         <Text style={styles.secondaryLabel}>{label}</Text>
       )}
@@ -75,12 +75,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     minHeight: 58,
     backgroundColor: colors.text,
-    borderRadius: 18,
-    shadowColor: colors.text,
-    shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.5,
-    shadowRadius: 18,
-    elevation: 6,
+    borderRadius: 14,
   },
   primaryLabel: { fontFamily: fonts.bodySemiBold, fontSize: 16.5, color: colors.onDark },
   pressed: { opacity: 0.88 },
@@ -89,9 +84,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     minHeight: 58,
-    backgroundColor: colors.fill,
-    borderRadius: 18,
+    backgroundColor: colors.neutral100,
+    borderRadius: 14,
   },
-  secondaryPressed: { backgroundColor: colors.fillDark },
-  secondaryLabel: { fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.text },
+  secondaryPressed: { backgroundColor: colors.neutral200 },
+  secondaryLabel: { fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.neutral900 },
 });

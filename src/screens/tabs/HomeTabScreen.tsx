@@ -15,6 +15,8 @@ import { BottomTabNavigationProp, BottomTabScreenProps } from "@react-navigation
 import { CompositeNavigationProp, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { colors, fonts, fontSizes } from "@/theme";
+import { ScreenHeader } from "@/components/ScreenHeader";
+import { EmptyState } from "@/components/EmptyState";
 import { TabParamList } from "@/navigation/TabNavigator";
 import { AppStackParamList } from "@/navigation/AppNavigator";
 import { usersApi } from "@/api/users";
@@ -121,35 +123,17 @@ export function HomeTabScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       {/* ── Header ── */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Text style={styles.headerKicker} numberOfLines={1}>
-          {roadmap?.courseName ?? "LSA · Nivel inicial"}
-        </Text>
-        <Text style={styles.headerTitle}>Tu recorrido</Text>
-        <View style={styles.statsRow}>
-          <View style={styles.statChip}>
-            <Ionicons name="flame" size={18} color="#FFD9C2" />
-            <View>
-              <Text style={styles.statValue}>{streak}</Text>
-              <Text style={styles.statLabel}>Racha</Text>
-            </View>
-          </View>
-          <View style={styles.statChip}>
-            <Ionicons name="diamond" size={17} color="#BDEBFB" />
-            <View>
-              <Text style={styles.statValue}>{gems.toLocaleString("es-AR")}</Text>
-              <Text style={styles.statLabel}>Gemas</Text>
-            </View>
-          </View>
-          <View style={styles.statChip}>
-            <Ionicons name="flash" size={18} color="#FFE0B8" />
-            <View>
-              <Text style={styles.statValue}>{xp.toLocaleString("es-AR")}</Text>
-              <Text style={styles.statLabel}>XP</Text>
-            </View>
-          </View>
-        </View>
-      </View>
+      <ScreenHeader
+        title="Tu recorrido"
+        description="Seguí la ruta lección por lección y sumá señas todos los días."
+        paddingTop={insets.top + 14}
+        tone={colors.primary}
+        stats={[
+          { key: "streak", label: "Racha", value: String(streak), icon: "flame" },
+          { key: "gems", label: "Gemas", value: gems.toLocaleString("es-AR"), icon: "diamond" },
+          { key: "xp", label: "XP", value: xp.toLocaleString("es-AR"), icon: "flash" },
+        ]}
+      />
 
       {/* ── Body ── */}
       {loading ? (
@@ -158,7 +142,7 @@ export function HomeTabScreen({ navigation }: Props) {
         </View>
       ) : error ? (
         <View style={styles.centerFill}>
-          <Text style={styles.errorText}>{error}</Text>
+          <EmptyState icon="cloud-offline-outline" title="No pudimos cargar tu curso" description={error} />
           <TouchableOpacity style={styles.retryButton} onPress={load} activeOpacity={0.85}>
             <Text style={styles.retryButtonText}>Reintentar</Text>
           </TouchableOpacity>
@@ -179,7 +163,11 @@ export function HomeTabScreen({ navigation }: Props) {
             />
           ))}
           {roadmap && roadmap.topics.length === 0 && (
-            <Text style={styles.emptyText}>Este curso todavía no tiene contenido.</Text>
+            <EmptyState
+              icon="book-outline"
+              title="Todavía no hay contenido"
+              description="Cuando este curso tenga lecciones, las vas a ver acá."
+            />
           )}
         </ScrollView>
       )}
@@ -230,7 +218,7 @@ export function HomeTabScreen({ navigation }: Props) {
                 <Ionicons
                   name={cta.icon}
                   size={17}
-                  color={cta.enabled ? colors.surface : colors.roadmapLockedIcon}
+                  color={cta.enabled ? colors.onDark : colors.roadmapLockedIcon}
                 />
                 <Text style={[styles.ctaText, !cta.enabled && styles.ctaTextDisabled]}>
                   {cta.label}
@@ -382,11 +370,11 @@ function CurrentLessonCard({
         <Text style={styles.cardTitle}>{lesson.name}</Text>
         <View style={styles.cardActions}>
           <TouchableOpacity style={styles.cardCta} onPress={onNavigate} activeOpacity={0.86}>
-            <Ionicons name="play" size={17} color={colors.surface} />
+            <Ionicons name="play" size={17} color={colors.onDark} />
             <Text style={styles.cardCtaText}>Seguir</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.cardInfoBtn} onPress={onInfo} activeOpacity={0.8}>
-            <Ionicons name="information-circle-outline" size={20} color={colors.primary} />
+            <Ionicons name="information-circle-outline" size={20} color={colors.neutral900} />
           </TouchableOpacity>
         </View>
       </View>
@@ -433,57 +421,6 @@ const RAIL_X = (COL_W - 2) / 2; // left edge of 2px line = 21 (centered in 44px 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
 
-  // Header
-  header: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 24,
-    paddingBottom: 20,
-  },
-  headerKicker: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-    color: "rgba(245,240,255,0.65)",
-    marginTop: 16,
-  },
-  headerTitle: {
-    fontFamily: fonts.displayExtraBold,
-    fontSize: 27,
-    lineHeight: 30,
-    color: colors.onPrimary,
-    marginTop: 4,
-  },
-  statsRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 16,
-  },
-  statChip: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
-    backgroundColor: "rgba(255,255,255,0.14)",
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-  },
-  statValue: {
-    fontFamily: fonts.displayExtraBold,
-    fontSize: 15,
-    lineHeight: 17,
-    color: colors.surface,
-  },
-  statLabel: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 9,
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
-    color: "rgba(245,240,255,0.6)",
-    marginTop: 1,
-  },
-
   // Loading / error / empty
   centerFill: {
     flex: 1,
@@ -492,14 +429,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     gap: 16,
   },
-  errorText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: fontSizes.sm,
-    color: colors.textMuted,
-    textAlign: "center",
-  },
   retryButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.text,
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 24,
@@ -507,22 +438,14 @@ const styles = StyleSheet.create({
   retryButtonText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: fontSizes.sm,
-    color: colors.surface,
-  },
-  emptyText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: fontSizes.sm,
-    color: colors.textMuted,
-    textAlign: "center",
-    paddingHorizontal: 26,
-    paddingTop: 24,
+    color: colors.onDark,
   },
 
   // Timeline
   scroll: { flex: 1 },
   scrollContent: {
     paddingTop: 24,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingBottom: 40,
   },
 
@@ -707,20 +630,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.text,
     borderRadius: 14,
     paddingVertical: 14,
   },
   cardCtaText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 15,
-    color: colors.surface,
+    color: colors.onDark,
   },
   cardInfoBtn: {
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: colors.primaryLight,
+    backgroundColor: colors.neutral100,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -785,14 +708,14 @@ const styles = StyleSheet.create({
     gap: 8,
     borderRadius: 14,
     paddingVertical: 15,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.text,
     marginTop: 20,
   },
   ctaButtonDisabled: { backgroundColor: colors.neutral100 },
   ctaText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 15,
-    color: colors.surface,
+    color: colors.onDark,
   },
   ctaTextDisabled: { color: colors.roadmapLockedIcon },
 

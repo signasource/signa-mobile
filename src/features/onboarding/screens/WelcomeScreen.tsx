@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { View, Pressable, StyleSheet, StatusBar } from "react-native";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -150,11 +150,6 @@ const styles = StyleSheet.create({
     paddingRight: 9,
     paddingVertical: 9,
     minHeight: 66,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 18 },
-    shadowOpacity: 0.5,
-    shadowRadius: 24,
-    elevation: 10,
   },
   ctaBtnPressed: {
     opacity: 0.9,

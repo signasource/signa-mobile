@@ -34,14 +34,12 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.fill,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
   },
   backBtnPressed: {
-    backgroundColor: colors.fillDark,
+    opacity: 0.55,
   },
   arrow: {
     width: 10,
