@@ -34,6 +34,7 @@ export interface InfoConfig {
 export interface IntroduceSignConfig {
   meaning: string;
   word: string;
+  video_url?: string;
 }
 
 export interface SelectMeaningConfig {

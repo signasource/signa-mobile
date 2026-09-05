@@ -73,7 +73,10 @@ export function LessonComplete({
         {stats.length > 0 && (
           <View style={styles.statsRow}>
             {stats.map((stat) => (
-              <View key={stat.key} style={styles.statCard}>
+              <View
+                key={stat.key}
+                style={[styles.statCard, stats.length > 1 ? styles.statCardFlex : styles.statCardSingle]}
+              >
                 <Ionicons name={stat.icon} size={22} color={stat.color} />
                 <Text style={styles.statValue}>{stat.value}</Text>
                 <Text style={styles.statLabel}>{stat.label}</Text>
@@ -119,9 +122,8 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: "center",
   },
-  statsRow: { flexDirection: "row", gap: 10, width: "100%", marginTop: 8 },
+  statsRow: { flexDirection: "row", gap: 10, width: "100%", marginTop: 8, justifyContent: "center" },
   statCard: {
-    flex: 1,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
@@ -142,5 +144,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: "center",
   },
+  statCardFlex: { flex: 1 },
+  statCardSingle: { width: 160 },
   footer: { padding: 20, gap: 10 },
 });
