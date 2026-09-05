@@ -116,14 +116,16 @@ const styles = StyleSheet.create({
     color: colors.onDark,
   },
   cancel: {
-    height: 44,
-    marginTop: 6,
+    height: 52,
+    marginTop: 10,
+    borderRadius: 14,
+    backgroundColor: colors.neutral100,
     alignItems: "center",
     justifyContent: "center",
   },
   cancelLabel: {
     fontFamily: fonts.bodySemiBold,
-    fontSize: 14,
-    color: colors.textMuted,
+    fontSize: 15,
+    color: colors.neutral900,
   },
 });

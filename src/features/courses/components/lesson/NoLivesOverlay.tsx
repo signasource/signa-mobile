@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,7 +23,7 @@ export function NoLivesOverlay({ onGoToStore, onExit }: NoLivesOverlayProps) {
         </Text>
         <View style={styles.actions}>
           <TouchableOpacity style={styles.primary} onPress={onGoToStore} activeOpacity={0.85}>
-            <Ionicons name="storefront" size={18} color={colors.onPrimary} />
+            <Ionicons name="storefront" size={18} color={colors.onDark} />
             <Text style={styles.primaryText}>Ir a la tienda</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.ghost} onPress={onExit} activeOpacity={0.85}>
@@ -81,8 +81,8 @@ const styles = StyleSheet.create({
   },
   primary: {
     minHeight: 58,
-    borderRadius: 18,
-    backgroundColor: colors.primary,
+    borderRadius: 14,
+    backgroundColor: colors.text,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -91,15 +91,18 @@ const styles = StyleSheet.create({
   primaryText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 16.5,
-    color: colors.onPrimary,
+    color: colors.onDark,
   },
   ghost: {
+    minHeight: 52,
+    borderRadius: 14,
+    backgroundColor: colors.neutral100,
     alignItems: "center",
-    paddingVertical: 12,
+    justifyContent: "center",
   },
   ghostText: {
     fontFamily: fonts.bodySemiBold,
-    fontSize: 14,
-    color: colors.textMuted,
+    fontSize: 15,
+    color: colors.neutral900,
   },
 });

@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   ScrollView,
@@ -6,7 +6,9 @@ import {
   StyleSheet,
   ActivityIndicator,
   Pressable,
-  Dimensions,
+  DimensionValue,
+  StyleProp,
+  ViewStyle,
 } from "react-native";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -17,6 +19,12 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { TabParamList } from "@/navigation/TabNavigator";
 import { AppStackParamList } from "@/navigation/AppNavigator";
 import { colors, fonts } from "@/theme";
+import { ScreenHeader } from "@/components/ScreenHeader";
+import { SegmentedControl, Segment } from "@/components/SegmentedControl";
+import { SubTabs, SubTab } from "@/components/SubTabs";
+import { EmptyState } from "@/components/EmptyState";
+import { NavIconButton } from "@/components/BackButton";
+import { isLightColor } from "@/utils/color";
 import { useAuth } from "@/context/AuthContext";
 import { usersApi, WeeklyXpEntry, UserStats } from "@/api/users";
 import { inventoryApi, UserInventory } from "@/api/inventory";
@@ -47,8 +55,11 @@ const DAY_NAMES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábad
 
 const SWATCH_COLS = 6;
 const SWATCH_GAP = 10;
-const SWATCH_SIZE =
-  (Dimensions.get("window").width - 40 - (SWATCH_COLS - 1) * SWATCH_GAP) / SWATCH_COLS;
+const SWATCH_CELL_WIDTH: DimensionValue = `${100 / SWATCH_COLS}%`;
+
+const ACH_COLS = 3;
+const ACH_GUTTER = 14;
+const ACH_CELL_WIDTH: DimensionValue = `${100 / ACH_COLS}%`;
 
 const HEADER_COLORS = [
   { name: "Blanco", hex: "#FFFFFF" },
@@ -93,20 +104,6 @@ const DEFAULT_INVENTORY: UserInventory = {
 
 
 // ─── helpers ──────────────────────────────────────────────────
-function getLum(hex: string): number {
-  const parse = (s: string) => parseInt(s, 16) / 255;
-  const toLinear = (c: number) =>
-    c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-  const r = toLinear(parse(hex.slice(1, 3)));
-  const g = toLinear(parse(hex.slice(3, 5)));
-  const b = toLinear(parse(hex.slice(5, 7)));
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-
-function isLight(hex: string): boolean {
-  return getLum(hex) > 0.42;
-}
-
 function initials(name: string): string {
   return name
     .split(" ")
@@ -149,6 +146,25 @@ function processWeeklyXp(data: WeeklyXpEntry[]): DayXp[] {
   });
 }
 
+interface SectionTitleProps {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  style?: StyleProp<ViewStyle>;
+}
+
+/**
+ * Section heading. The icons that used to live inside the tab selector sit here
+ * instead, so each section names itself and the selector stays text-only.
+ */
+function SectionTitle({ icon, label, style }: SectionTitleProps) {
+  return (
+    <View style={[styles.sectionTitleRow, style]}>
+      <Ionicons name={icon} size={17} color={colors.neutral900} />
+      <Text style={styles.sectionTitle}>{label}</Text>
+    </View>
+  );
+}
+
 // ─── main component ───────────────────────────────────────────
 export function ProfileScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
@@ -159,7 +175,6 @@ export function ProfileScreen({ navigation }: Props) {
   // UI state
   const [activeSection, setActiveSection] = useState<Section>("general");
   const [headerColor, setHeaderColor] = useState(colors.surface);
-  const [headerColorDraft, setHeaderColorDraft] = useState(colors.surface);
   const [headerColorOpen, setHeaderColorOpen] = useState(false);
   const [goalOpen, setGoalOpen] = useState(false);
   const [goalDraft, setGoalDraft] = useState(15);
@@ -204,7 +219,6 @@ export function ProfileScreen({ navigation }: Props) {
       usersApi.getSettings().then((res) => {
         const color = res.data.profileHeaderColor;
         setHeaderColor(color);
-        setHeaderColorDraft(color);
       }).catch(() => {});
     }, [])
   );
@@ -286,10 +300,19 @@ export function ProfileScreen({ navigation }: Props) {
     if (settingsRes.status === "fulfilled") {
       const color = settingsRes.value.data.profileHeaderColor;
       setHeaderColor(color);
-      setHeaderColorDraft(color);
     }
 
     setLoading(false);
+  }
+
+  /** Picking a swatch applies it immediately and persists it — no confirm step. */
+  async function applyHeaderColor(hex: string) {
+    setHeaderColor(hex);
+    try {
+      await usersApi.updateSettings({ profileHeaderColor: hex });
+    } catch {
+      // optimistic update: keep local change even if API fails
+    }
   }
 
   async function handleSaveGoal() {
@@ -306,10 +329,6 @@ export function ProfileScreen({ navigation }: Props) {
   }
 
   // ─── computed ────────────────────────────────────────────────
-  const headerLight = isLight(headerColor);
-  const onHeader = headerLight ? colors.neutral900 : colors.surface;
-  const onHeaderSoft = headerLight ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.74)";
-  const headerBorderColor = headerLight ? colors.neutral200 : "rgba(255,255,255,0.16)";
 
   const goalPct = Math.min(100, Math.round((minutesToday / dailyGoalMinutes) * 100));
   const goalDone = minutesToday >= dailyGoalMinutes;
@@ -329,102 +348,80 @@ export function ProfileScreen({ navigation }: Props) {
   );
   const achievementDetail = achievements.find((a) => a.id === achievementDetailId) ?? null;
 
-  const sections: Array<{ key: Section; iconActive: string; icon: string }> = [
-    { key: "general", icon: "stats-chart-outline", iconActive: "stats-chart" },
-    { key: "cursos", icon: "school-outline", iconActive: "school" },
-    { key: "inventario", icon: "cube-outline", iconActive: "cube" },
-    { key: "logros", icon: "trophy-outline", iconActive: "trophy" },
+  const sections: ReadonlyArray<Segment<Section>> = [
+    { key: "general", label: "General" },
+    { key: "cursos", label: "Cursos" },
+    { key: "inventario", label: "Inventario" },
+    { key: "logros", label: "Logros" },
+  ];
+
+  const achFilters: ReadonlyArray<SubTab<AchFilter>> = [
+    {
+      key: "unlocked",
+      label: "Conseguidos",
+      icon: "checkmark-circle",
+      count: achievements.filter((a) => a.unlocked).length,
+    },
+    {
+      key: "locked",
+      label: "Bloqueados",
+      icon: "lock-closed",
+      count: achievements.filter((a) => !a.unlocked).length,
+    },
   ];
 
   // ─── render helpers ──────────────────────────────────────────
   function renderHeader() {
+    const fg = isLightColor(headerColor) ? colors.neutral900 : colors.onDark;
+
     return (
-      <View style={{ backgroundColor: headerColor }}>
-        <View style={{ paddingTop: insets.top }}>
-          {/* Title bar */}
-          <View style={styles.titleBar}>
-            <Text style={[styles.headerTitle, { color: onHeader }]}>Perfil</Text>
-            <View style={styles.headerActions}>
-              <TouchableOpacity
-                style={styles.iconBtn}
-                onPress={() => { setHeaderColorDraft(headerColor); setHeaderColorOpen(true); }}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="color-palette-outline" size={23} color={onHeader} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.iconBtn}
-                onPress={() => navigation.navigate("Configuration")}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="settings-outline" size={23} color={onHeader} />
-              </TouchableOpacity>
-            </View>
+      <ScreenHeader
+        title={displayName || user?.name || "Perfil"}
+        description={username ? `@${username}` : "—"}
+        paddingTop={insets.top + 14}
+        tone={headerColor}
+        stats={[
+          {
+            key: "streak",
+            label: "Racha",
+            value: String(userStats?.currentStreak ?? 0),
+            icon: "flame",
+          },
+          {
+            key: "xp",
+            label: "XP total",
+            value: (userStats?.totalXp ?? 0).toLocaleString("es-AR"),
+            icon: "flash",
+          },
+          {
+            key: "rank",
+            label: "Ranking",
+            value: userStats?.weeklyRank != null ? `#${userStats.weeklyRank}` : "—",
+            icon: "ribbon",
+          },
+        ]}
+        left={
+          <View style={[styles.avatar, { borderColor: fg }]}>
+            <Text style={styles.avatarInitials}>{initials(displayName || "?")}</Text>
           </View>
-
-          {/* Profile info row */}
-          <View style={styles.profileRow}>
-            {/* Avatar + streak badge */}
-            <View style={styles.avatarWrap}>
-              <View style={[styles.avatar, { borderColor: onHeader }]}>
-                <Text style={[styles.avatarInitials, { color: colors.primary }]}>
-                  {initials(displayName || "?")}
-                </Text>
-              </View>
-              <View style={[styles.streakBadge, { backgroundColor: minutesToday >= 1 ? colors.streakOrange : colors.neutral600 }]}>
-                <Ionicons name="flame" size={14} color={colors.surface} />
-                <Text style={styles.streakDays}>{userStats?.currentStreak ?? 0}</Text>
-              </View>
-            </View>
-
-            {/* Name + username + rank */}
-            <View style={styles.profileInfo}>
-              <Text style={[styles.profileName, { color: onHeader }]} numberOfLines={1}>
-                {displayName || user?.name || "—"}
-              </Text>
-              <View style={styles.usernameRow}>
-                <Ionicons name="at-outline" size={14} color={onHeaderSoft} />
-                <Text style={[styles.usernameText, { color: onHeaderSoft }]}>
-                  {username || "—"}
-                </Text>
-              </View>
-              <View style={styles.pillsRow}>
-                <View style={[styles.rankPill, { backgroundColor: headerLight ? "rgba(0,0,0,0.10)" : "rgba(255,255,255,0.20)" }]}>
-                  <Ionicons name="ribbon" size={13} color={onHeader} />
-                  <Text style={[styles.rankPillText, { color: onHeader }]}>
-                    {userStats?.weeklyRank != null ? `#${userStats.weeklyRank}` : "—"}
-                  </Text>
-                </View>
-              </View>
-            </View>
+        }
+        right={
+          <View style={styles.headerActions}>
+            <NavIconButton
+              icon="color-palette-outline"
+              label="Color del encabezado"
+              color={fg}
+              onPress={() => setHeaderColorOpen(true)}
+            />
+            <NavIconButton
+              icon="settings-outline"
+              label="Configuración"
+              color={fg}
+              onPress={() => navigation.navigate("Configuration")}
+            />
           </View>
-        </View>
-
-        {/* Section tabs */}
-        <View style={[styles.sectionBar, { borderBottomColor: headerBorderColor }]}>
-          {sections.map((s) => {
-            const active = s.key === activeSection;
-            return (
-              <TouchableOpacity
-                key={s.key}
-                style={[styles.sectionTab, active && { borderBottomColor: onHeader }]}
-                onPress={() => setActiveSection(s.key)}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name={(active ? s.iconActive : s.icon) as any}
-                  size={23}
-                  color={
-                    headerLight
-                      ? active ? colors.neutral900 : "#B8B8BD"
-                      : active ? colors.surface : "rgba(255,255,255,0.6)"
-                  }
-                />
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
+        }
+      />
     );
   }
 
@@ -434,7 +431,7 @@ export function ProfileScreen({ navigation }: Props) {
     return (
       <View style={styles.section}>
         {/* Stats */}
-        <Text style={styles.sectionTitle}>General</Text>
+        <SectionTitle icon="stats-chart" label="General" />
         <View style={styles.statsGrid}>
           {[
             { icon: "flash", color: colors.warning, value: (userStats?.totalXp ?? 0).toLocaleString("es-AR"), label: "XP total" },
@@ -456,7 +453,7 @@ export function ProfileScreen({ navigation }: Props) {
 
         {/* Weekly XP chart */}
         <View style={styles.chartHeader}>
-          <Text style={styles.sectionTitle}>XP de la semana</Text>
+          <SectionTitle icon="bar-chart" label="XP de la semana" />
           <Text style={styles.chartSelected}>
             {selectedDayName} · {selectedDay?.value ?? 0} XP
           </Text>
@@ -517,7 +514,7 @@ export function ProfileScreen({ navigation }: Props) {
 
         {/* Daily goal */}
         <View style={styles.goalHeader}>
-          <Text style={styles.sectionTitle}>Meta diaria</Text>
+          <SectionTitle icon="flag" label="Meta diaria" />
           <TouchableOpacity
             style={styles.goalEditBtn}
             onPress={() => { setGoalDraft(dailyGoalMinutes); setGoalOpen(true); }}
@@ -557,22 +554,18 @@ export function ProfileScreen({ navigation }: Props) {
     if (courses.length === 0) {
       return (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Cursos</Text>
-          <View style={styles.emptyState}>
-            <View style={styles.emptyStateIcon}>
-              <Ionicons name="school-outline" size={28} color={colors.neutral600} />
-            </View>
-            <Text style={styles.emptyStateTitle}>Sin cursos todavía</Text>
-            <Text style={styles.emptyStateDesc}>
-              Cuando empieces un curso va a aparecer acá tu progreso.
-            </Text>
-          </View>
+          <SectionTitle icon="school" label="Cursos" />
+          <EmptyState
+            icon="school-outline"
+            title="Sin cursos todavía"
+            description="Cuando empieces un curso va a aparecer acá tu progreso."
+          />
         </View>
       );
     }
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Cursos</Text>
+        <SectionTitle icon="school" label="Cursos" />
         {courses.map((c) => {
           const courseColor = c.color;
           return (
@@ -628,18 +621,18 @@ export function ProfileScreen({ navigation }: Props) {
                   </View>
                 </View>
                 <TouchableOpacity
-                  style={[styles.courseCtaBtn, { backgroundColor: courseColor }]}
+                  style={styles.courseCtaBtn}
                   activeOpacity={0.8}
                 >
                   <Text style={styles.courseCtaText}>Seguir</Text>
-                  <Ionicons name="arrow-forward" size={13} color={colors.surface} />
+                  <Ionicons name="arrow-forward" size={13} color={colors.onDark} />
                 </TouchableOpacity>
               </View>
             </View>
           );
         })}
         <TouchableOpacity style={styles.moreCoursesBtn} activeOpacity={0.7}>
-          <Ionicons name="add-circle-outline" size={16} color={colors.primary} />
+          <Ionicons name="add-circle-outline" size={16} color={colors.neutral900} />
           <Text style={styles.moreCoursesText}>Ver más cursos</Text>
         </TouchableOpacity>
       </View>
@@ -701,7 +694,7 @@ export function ProfileScreen({ navigation }: Props) {
 
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Inventario</Text>
+        <SectionTitle icon="cube" label="Inventario" />
 
         {/* Lives */}
         <View style={styles.invCard}>
@@ -733,7 +726,7 @@ export function ProfileScreen({ navigation }: Props) {
               }}
               activeOpacity={canBuyLife ? 0.8 : 1}
             >
-              <Ionicons name="add-circle" size={15} color={canBuyLife ? colors.surface : "#B8B8BD"} />
+              <Ionicons name="add-circle" size={15} color={canBuyLife ? colors.onDark : "#B8B8BD"} />
               <Text style={[styles.lifeBtnText, !canBuyLife && styles.lifeBtnTextDisabled]}>
                 Vida extra
               </Text>
@@ -743,7 +736,7 @@ export function ProfileScreen({ navigation }: Props) {
               onPress={() => { if (canUseInfinite) { setInfiniteActive(true); setInfiniteQty((q) => q - 1); } }}
               activeOpacity={canUseInfinite ? 0.8 : 1}
             >
-              <Ionicons name="infinite" size={16} color={canUseInfinite ? colors.primaryDark : "#B8B8BD"} />
+              <Ionicons name="infinite" size={16} color={canUseInfinite ? colors.neutral900 : "#B8B8BD"} />
               <Text style={[styles.infiniteBtnText, !canUseInfinite && styles.infiniteBtnTextDisabled]}>
                 Vidas infinitas
               </Text>
@@ -773,7 +766,7 @@ export function ProfileScreen({ navigation }: Props) {
           </View>
         </View>
 
-        <Text style={[styles.sectionTitle, { marginTop: 18 }]}>Potenciadores</Text>
+        <SectionTitle icon="rocket" label="Potenciadores" style={{ marginTop: 18 }} />
         {boosters.map((b) => {
           const ready = b.qty > 0 && !b.active;
           return (
@@ -819,78 +812,23 @@ export function ProfileScreen({ navigation }: Props) {
   }
 
   function renderLogros() {
-    const unlockedCount = achievements.filter((a) => a.unlocked).length;
-    const lockedCount = achievements.filter((a) => !a.unlocked).length;
-    const unlockedOn = achFilter === "unlocked";
-
     return (
       <View style={styles.section}>
-        <View style={styles.logrosHeader}>
-          <Text style={styles.sectionTitle}>Logros</Text>
-          <View style={styles.logrosPill}>
-            <Text style={styles.logrosPillText}>
-              {unlockedCount}/{achievements.length}
-            </Text>
-          </View>
-        </View>
+        <SectionTitle icon="trophy" label="Logros" />
 
-        {/* Filter tabs */}
-        <View style={styles.achFilters}>
-          <TouchableOpacity
-            style={[styles.achFilterBtn, unlockedOn && styles.achFilterBtnActive]}
-            onPress={() => setAchFilter("unlocked")}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name="checkmark-circle"
-              size={14}
-              color={unlockedOn ? colors.primaryDark : "#B0B0B5"}
-            />
-            <Text style={[styles.achFilterText, unlockedOn && styles.achFilterTextActive]}>
-              Conseguidos
-            </Text>
-            <View style={[styles.achFilterCount, unlockedOn && styles.achFilterCountActive]}>
-              <Text style={[styles.achFilterCountText, unlockedOn && styles.achFilterCountTextActive]}>
-                {unlockedCount}
-              </Text>
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.achFilterBtn, !unlockedOn && styles.achFilterBtnActive]}
-            onPress={() => setAchFilter("locked")}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name="lock-closed"
-              size={13}
-              color={!unlockedOn ? colors.primaryDark : "#B0B0B5"}
-            />
-            <Text style={[styles.achFilterText, !unlockedOn && styles.achFilterTextActive]}>
-              Bloqueados
-            </Text>
-            <View style={[styles.achFilterCount, !unlockedOn && styles.achFilterCountActive]}>
-              <Text style={[styles.achFilterCountText, !unlockedOn && styles.achFilterCountTextActive]}>
-                {lockedCount}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </View>
+        <SubTabs options={achFilters} value={achFilter} onChange={setAchFilter} />
 
         {/* Grid */}
         {achievementsShown.length === 0 ? (
-          <View style={styles.emptyState}>
-            <View style={styles.emptyStateIcon}>
-              <Ionicons name="trophy-outline" size={28} color={colors.neutral600} />
-            </View>
-            <Text style={styles.emptyStateTitle}>
-              {achFilter === "unlocked" ? "Sin logros conseguidos" : "Sin logros bloqueados"}
-            </Text>
-            <Text style={styles.emptyStateDesc}>
-              {achFilter === "unlocked"
+          <EmptyState
+            icon="trophy-outline"
+            title={achFilter === "unlocked" ? "Sin logros conseguidos" : "Sin logros bloqueados"}
+            description={
+              achFilter === "unlocked"
                 ? "Completá lecciones y mantené tu racha para desbloquear logros."
-                : "¡Ya desbloqueaste todos los logros disponibles!"}
-            </Text>
-          </View>
+                : "¡Ya desbloqueaste todos los logros disponibles!"
+            }
+          />
         ) : (
         <View style={styles.achGrid}>
           {achievementsShown.map((a) => (
@@ -969,7 +907,7 @@ export function ProfileScreen({ navigation }: Props) {
         activeOpacity={disabled ? 1 : 0.85}
       >
         {btnLoading ? (
-          <ActivityIndicator color={colors.surface} size="small" />
+          <ActivityIndicator color={colors.onDark} size="small" />
         ) : (
           <Text style={styles.primaryBtnText}>{label}</Text>
         )}
@@ -989,6 +927,7 @@ export function ProfileScreen({ navigation }: Props) {
       ) : (
         <>
           {renderHeader()}
+          <SegmentedControl options={sections} value={activeSection} onChange={setActiveSection} />
           <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
             {activeSection === "general" && renderGeneral()}
             {activeSection === "cursos" && renderCursos()}
@@ -1001,42 +940,33 @@ export function ProfileScreen({ navigation }: Props) {
       {/* Header color modal */}
       <BottomSheet
         open={headerColorOpen}
-        onClose={() => { setHeaderColorDraft(headerColor); setHeaderColorOpen(false); }}
+        onClose={() => setHeaderColorOpen(false)}
         title="Color del encabezado"
       >
         <View style={styles.colorGrid}>
           {HEADER_COLORS.map((c) => {
-            const selected = c.hex.toLowerCase() === headerColorDraft.toLowerCase();
-            const light = isLight(c.hex);
+            const selected = c.hex.toLowerCase() === headerColor.toLowerCase();
+            const light = isLightColor(c.hex);
             return (
-              <TouchableOpacity
-                key={c.hex}
-                style={[
-                  styles.colorSwatch,
-                  { backgroundColor: c.hex, borderColor: selected ? colors.neutral900 : light ? "rgba(0,0,0,0.12)" : "transparent" },
-                ]}
-                onPress={() => setHeaderColorDraft(c.hex)}
-                activeOpacity={0.8}
-              >
-                {selected && (
-                  <Ionicons name="checkmark" size={15} color={light ? colors.neutral900 : colors.surface} />
-                )}
-              </TouchableOpacity>
+              <View key={c.hex} style={styles.colorCell}>
+                <TouchableOpacity
+                  style={[
+                    styles.colorSwatch,
+                    { backgroundColor: c.hex, borderColor: selected ? colors.neutral900 : light ? "rgba(0,0,0,0.12)" : "transparent" },
+                  ]}
+                  onPress={() => applyHeaderColor(c.hex)}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel={c.name}
+                >
+                  {selected && (
+                    <Ionicons name="checkmark" size={15} color={light ? colors.neutral900 : colors.surface} />
+                  )}
+                </TouchableOpacity>
+              </View>
             );
           })}
         </View>
-        <PrimaryButton
-          label="Listo"
-          onPress={async () => {
-            setHeaderColor(headerColorDraft);
-            setHeaderColorOpen(false);
-            try {
-              await usersApi.updateSettings({ profileHeaderColor: headerColorDraft });
-            } catch {
-              // keep local change even if API fails
-            }
-          }}
-        />
       </BottomSheet>
 
       {/* Daily goal modal */}
@@ -1119,133 +1049,28 @@ export function ProfileScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
   },
 
-  // Header
-  titleBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 6,
-  },
-  headerTitle: {
-    fontFamily: fonts.displayExtraBold,
-    fontSize: 26,
-  },
   headerActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-  },
-  iconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  profileRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 18,
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 20,
-  },
-  avatarWrap: {
-    position: "relative",
-    width: 96,
-    height: 96,
-    flexShrink: 0,
+    gap: 2,
   },
   avatar: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     backgroundColor: colors.primaryLight,
-    borderWidth: 3,
+    borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
   },
   avatarInitials: {
     fontFamily: fonts.displayExtraBold,
-    fontSize: 28,
-  },
-  streakBadge: {
-    position: "absolute",
-    bottom: -10,
-    alignSelf: "center",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    paddingVertical: 3,
-    paddingLeft: 8,
-    paddingRight: 10,
-    borderRadius: 999,
-    borderWidth: 2,
-    borderColor: colors.surface,
-  },
-  streakDays: {
-    fontFamily: fonts.displayExtraBold,
-    fontSize: 14,
-    color: colors.surface,
-  },
-  profileInfo: {
-    flex: 1,
-    minWidth: 0,
-    gap: 7,
-  },
-  profileName: {
-    fontFamily: fonts.displayExtraBold,
-    fontSize: 22,
-    lineHeight: 26,
-  },
-  usernameRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-  },
-  usernameText: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 13,
-  },
-  pillsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 2,
-  },
-  rankPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    borderRadius: 999,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-  },
-  rankPillText: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 12,
-  },
-
-  // Section tabs
-  sectionBar: {
-    flexDirection: "row",
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-  },
-  sectionTab: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingTop: 13,
-    paddingBottom: 11,
-    borderBottomWidth: 3,
-    borderBottomColor: "transparent",
-    marginBottom: -1,
+    fontSize: 23,
+    color: colors.primary,
   },
 
   // Scroll
@@ -1263,11 +1088,16 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 28,
   },
+  sectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 14,
+  },
   sectionTitle: {
     fontFamily: fonts.displaySemiBold,
     fontSize: 17,
     color: colors.neutral900,
-    marginBottom: 14,
   },
   divider: {
     height: 1,
@@ -1315,7 +1145,7 @@ const styles = StyleSheet.create({
   // Weekly XP chart
   chartHeader: {
     flexDirection: "row",
-    alignItems: "baseline",
+    alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 8,
   },
@@ -1538,58 +1368,30 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    borderRadius: 999,
-    paddingVertical: 7,
-    paddingHorizontal: 13,
+    borderRadius: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    backgroundColor: colors.text,
   },
   courseCtaText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 12,
-    color: colors.surface,
+    color: colors.onDark,
   },
   moreCoursesBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: colors.neutral200,
-    borderRadius: 16,
+    backgroundColor: colors.neutral100,
+    borderRadius: 14,
     padding: 14,
     marginTop: 2,
   },
   moreCoursesText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 13,
-    color: colors.primaryDark,
-  },
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: 40,
-    paddingHorizontal: 24,
-  },
-  emptyStateIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.neutral100,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-  },
-  emptyStateTitle: {
-    fontFamily: fonts.displayBold,
-    fontSize: 18,
     color: colors.neutral900,
-    marginBottom: 6,
-  },
-  emptyStateDesc: {
-    fontFamily: fonts.bodyRegular,
-    fontSize: 13,
-    color: colors.neutral600,
-    lineHeight: 20,
-    textAlign: "center",
   },
 
   // Inventory
@@ -1641,7 +1443,7 @@ const styles = StyleSheet.create({
     gap: 6,
     borderRadius: 14,
     paddingVertical: 11,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.text,
   },
   lifeBtnDisabled: {
     backgroundColor: colors.neutral100,
@@ -1649,7 +1451,7 @@ const styles = StyleSheet.create({
   lifeBtnText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 13,
-    color: colors.surface,
+    color: colors.onDark,
   },
   lifeBtnTextDisabled: {
     color: "#B8B8BD",
@@ -1662,17 +1464,15 @@ const styles = StyleSheet.create({
     gap: 6,
     borderRadius: 14,
     paddingVertical: 11,
-    borderWidth: 1,
-    borderColor: colors.neutral200,
-    backgroundColor: "transparent",
+    backgroundColor: colors.neutral100,
   },
   infiniteBtnDisabled: {
-    borderColor: colors.neutral100,
+    opacity: 0.6,
   },
   infiniteBtnText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 13,
-    color: colors.primaryDark,
+    color: colors.neutral900,
   },
   infiniteBtnTextDisabled: {
     color: "#B8B8BD",
@@ -1762,10 +1562,10 @@ const styles = StyleSheet.create({
     color: colors.neutral600,
   },
   boosterAction: {
-    borderRadius: 999,
-    paddingVertical: 7,
+    borderRadius: 14,
+    paddingVertical: 8,
     paddingHorizontal: 14,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.text,
     flexShrink: 0,
   },
   boosterActionActive: {
@@ -1777,7 +1577,7 @@ const styles = StyleSheet.create({
   boosterActionText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 12,
-    color: colors.surface,
+    color: colors.onDark,
   },
   boosterActionTextActive: {
     color: colors.successDark,
@@ -1786,77 +1586,16 @@ const styles = StyleSheet.create({
     color: "#B8B8BD",
   },
 
-  // Achievements
-  logrosHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 14,
-  },
-  logrosPill: {
-    backgroundColor: colors.primaryLight,
-    borderRadius: 10,
-    paddingVertical: 3,
-    paddingHorizontal: 9,
-  },
-  logrosPillText: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 12,
-    color: colors.primaryDark,
-  },
-  achFilters: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 18,
-  },
-  achFilterBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderRadius: 14,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: colors.neutral200,
-    backgroundColor: colors.surface,
-  },
-  achFilterBtnActive: {
-    backgroundColor: colors.primaryLight,
-    borderColor: colors.primary + "59",
-  },
-  achFilterText: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 13,
-    color: colors.neutral600,
-  },
-  achFilterTextActive: {
-    color: colors.primaryDark,
-  },
-  achFilterCount: {
-    backgroundColor: colors.neutral100,
-    borderRadius: 8,
-    paddingVertical: 1,
-    paddingHorizontal: 6,
-  },
-  achFilterCountActive: {
-    backgroundColor: colors.surface,
-  },
-  achFilterCountText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 12,
-    color: colors.neutral600,
-  },
-  achFilterCountTextActive: {
-    color: colors.primaryDark,
-  },
+  // Achievements — three responsive columns that span the full width.
   achGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 20,
-    rowGap: 8,
+    rowGap: 14,
+    marginHorizontal: -ACH_GUTTER / 2,
   },
   achItem: {
-    width: "30%",
+    width: ACH_CELL_WIDTH,
+    paddingHorizontal: ACH_GUTTER / 2,
     alignItems: "center",
     gap: 8,
     paddingTop: 4,
@@ -1924,21 +1663,24 @@ const styles = StyleSheet.create({
   sheetCloseBtn: {
     width: 28,
     height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.neutral100,
     alignItems: "center",
     justifyContent: "center",
   },
-  // Color picker
+  // Color picker — the swatches span the full width of the sheet.
   colorGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: SWATCH_GAP,
+    marginHorizontal: -SWATCH_GAP / 2,
+  },
+  colorCell: {
+    width: SWATCH_CELL_WIDTH,
+    paddingHorizontal: SWATCH_GAP / 2,
+    marginBottom: SWATCH_GAP,
   },
   colorSwatch: {
-    width: SWATCH_SIZE,
-    height: SWATCH_SIZE,
-    borderRadius: SWATCH_SIZE / 2,
+    width: "100%",
+    aspectRatio: 1,
+    borderRadius: 999,
     borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
@@ -1979,7 +1721,7 @@ const styles = StyleSheet.create({
   // Primary button
   primaryBtn: {
     width: "100%",
-    backgroundColor: colors.primary,
+    backgroundColor: colors.text,
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: "center",
@@ -1991,7 +1733,7 @@ const styles = StyleSheet.create({
   primaryBtnText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 15,
-    color: colors.surface,
+    color: colors.onDark,
   },
   // Achievement detail
   achDetailBody: {

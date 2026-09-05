@@ -1,7 +1,8 @@
-﻿import React from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import React from "react";
+import { StyleSheet, View } from "react-native";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
+import { BackButton } from "@/components/BackButton";
 import { colors, fonts } from "@/theme";
 
 interface LessonHeaderProps {
@@ -17,9 +18,7 @@ export function LessonHeader({ unitLabel, lessonName, progress, lives, unlimited
   return (
     <View style={styles.container}>
       <View style={styles.topRow}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.85}>
-          <Ionicons name="chevron-back" size={20} color={colors.text} />
-        </TouchableOpacity>
+        <BackButton onPress={onBack} />
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` }]} />
         </View>
@@ -54,14 +53,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.fill,
-    alignItems: "center",
-    justifyContent: "center",
   },
   progressTrack: {
     flex: 1,

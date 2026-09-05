@@ -1,42 +1,83 @@
 import React from "react";
-import { Pressable, View, StyleSheet } from "react-native";
+import { Pressable, View, StyleSheet, StyleProp, ViewStyle } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/theme";
 
 interface BackButtonProps {
   onPress: () => void;
   visible?: boolean;
+  /** Arrow color — pass the header foreground when it sits on a colored header. */
+  color?: string;
+  style?: StyleProp<ViewStyle>;
 }
 
-export function BackButton({ onPress, visible = true }: BackButtonProps) {
+/**
+ * Navigation "back". No background, and the same chevron drawn in onboarding.
+ */
+export function BackButton({ onPress, visible = true, color = colors.text, style }: BackButtonProps) {
   if (!visible) return null;
   return (
     <Pressable
       onPress={onPress}
+      hitSlop={8}
       accessibilityRole="button"
       accessibilityLabel="Volver"
-      style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}
+      style={({ pressed }) => [styles.btn, pressed && styles.pressed, style]}
     >
-      <View style={styles.arrow} />
+      <View style={[styles.arrow, { borderColor: color }]} />
+    </Pressable>
+  );
+}
+
+interface NavIconButtonProps {
+  icon: keyof typeof Ionicons.glyphMap;
+  onPress: () => void;
+  color?: string;
+  size?: number;
+  label: string;
+  children?: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
+}
+
+/** Backgroundless icon button for header navigation (bell, settings, …). */
+export function NavIconButton({
+  icon,
+  onPress,
+  color = colors.text,
+  size = 22,
+  label,
+  children,
+  style,
+}: NavIconButtonProps) {
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => [styles.btn, pressed && styles.pressed, style]}
+    >
+      <Ionicons name={icon} size={size} color={color} />
+      {children}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   btn: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: colors.fill,
+    width: 40,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "transparent",
+    flexShrink: 0,
   },
-  btnPressed: { backgroundColor: colors.fillDark },
+  pressed: { opacity: 0.55 },
   arrow: {
-    width: 10,
-    height: 10,
+    width: 11,
+    height: 11,
     borderLeftWidth: 2.4,
     borderBottomWidth: 2.4,
-    borderColor: colors.text,
     transform: [{ rotate: "45deg" }, { translateX: 2 }],
   },
 });

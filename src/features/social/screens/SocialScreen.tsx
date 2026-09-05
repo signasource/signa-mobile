@@ -27,11 +27,14 @@ import {
 } from "@/api/social";
 import { notificationsApi } from "@/api/notifications";
 import { formatXp, mutualLabel } from "@/features/social/people";
-import { SocialHeader } from "@/features/social/components/SocialHeader";
+import { ScreenHeader } from "@/components/ScreenHeader";
+import { SegmentedControl, Segment } from "@/components/SegmentedControl";
+import { SubTabs, SubTab } from "@/components/SubTabs";
+import { NavIconButton } from "@/components/BackButton";
 import { PersonRow, PersonStat } from "@/features/social/components/PersonRow";
 import { RowActionSpec, ROW_ACTION_STYLE } from "@/features/social/components/RowAction";
 import { FeedCard } from "@/features/social/components/FeedCard";
-import { EmptyNote, EmptyState } from "@/features/social/components/EmptyState";
+import { EmptyNote, EmptyState } from "@/components/EmptyState";
 import { ConfirmSheet, ConfirmSpec } from "@/features/social/components/ConfirmSheet";
 import { Toast } from "@/features/social/components/Toast";
 
@@ -43,6 +46,11 @@ type Props = BottomTabScreenProps<TabParamList, "Social"> & { navigation: Social
 
 type Tab = "feed" | "amigos";
 type Section = "amigos" | "solicitudes";
+
+const SECTION_TABS: ReadonlyArray<SubTab<Section>> = [
+  { key: "amigos", label: "Mis amigos", icon: "people" },
+  { key: "solicitudes", label: "Solicitudes", icon: "mail-open" },
+];
 type ConfirmKind = "remove" | "block";
 
 interface PendingConfirm {
@@ -430,61 +438,49 @@ export function SocialScreen({ navigation }: Props) {
 
   const headerPaddingTop = insets.top + 14;
   const isFeed = tab === "feed";
+  const tabs: ReadonlyArray<Segment<Tab>> = [
+    { key: "feed", label: "Feed" },
+    { key: "amigos", label: "Amigos", badge: incoming.length },
+  ];
 
   return (
     <View style={styles.container}>
-      <SocialHeader
+      <ScreenHeader
         title="Social"
-        subtitle="Mirá qué están logrando tus amigos y sumá los tuyos."
+        description="Mirá qué están logrando tus amigos y sumá los tuyos."
         paddingTop={headerPaddingTop}
+        tone={colors.socialWine}
+        stats={[
+          { key: "friends", label: "Amigos", value: String(friends.length), icon: "people" },
+          {
+            key: "requests",
+            label: "Solicitudes",
+            value: String(incoming.length),
+            icon: "mail-open",
+          },
+        ]}
         right={
-          <TouchableOpacity
-            style={styles.bell}
+          <NavIconButton
+            icon="notifications-outline"
+            label="Notificaciones"
+            color={colors.onDark}
+            size={22}
             onPress={() => navigation.navigate("Notifications")}
-            accessibilityRole="button"
-            accessibilityLabel="Notificaciones"
           >
-            <Ionicons name="notifications-outline" size={21} color={colors.onDark} />
             {unreadCount > 0 && (
               <View style={styles.bellBadge}>
                 <Text style={styles.bellBadgeLabel}>{unreadCount > 99 ? "99+" : unreadCount}</Text>
               </View>
             )}
-          </TouchableOpacity>
+          </NavIconButton>
         }
-      >
-        <View style={styles.stats}>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>AMIGOS</Text>
-            <Text style={styles.statValue}>{friends.length}</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>SOLICITUDES</Text>
-            <Text style={styles.statValue}>{incoming.length}</Text>
-          </View>
-        </View>
-      </SocialHeader>
+      />
 
-      <View style={styles.tabs}>
-        <TouchableOpacity
-          style={[styles.tab, isFeed && styles.tabActive]}
-          onPress={() => setTab("feed")}
-        >
-          <Text style={[styles.tabLabel, isFeed && styles.tabLabelActive]}>Feed</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tab, !isFeed && styles.tabActive]}
-          onPress={() => setTab("amigos")}
-        >
-          <Text style={[styles.tabLabel, !isFeed && styles.tabLabelActive]}>Amigos</Text>
-          {incoming.length > 0 && (
-            <View style={[styles.tabBadge, !isFeed && styles.tabBadgeActive]}>
-              <Text style={styles.tabBadgeLabel}>{incoming.length}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      </View>
+      <SegmentedControl
+        options={tabs}
+        value={tab}
+        onChange={setTab}
+      />
 
       {loading ? (
         <View style={styles.centered}>
@@ -590,57 +586,15 @@ export function SocialScreen({ navigation }: Props) {
                 </View>
               ) : (
                 <View>
-                  <View style={styles.sectionTabs}>
-                    <TouchableOpacity
-                      style={[
-                        styles.sectionTab,
-                        section === "amigos" && styles.sectionTabActive,
-                      ]}
-                      onPress={() => setSection("amigos")}
-                    >
-                      <Text
-                        style={[
-                          styles.sectionTabLabel,
-                          section === "amigos" && styles.sectionTabLabelActive,
-                        ]}
-                      >
-                        Mis amigos
-                      </Text>
-                      <Text
-                        style={[
-                          styles.sectionTabCount,
-                          section === "amigos" && styles.sectionTabCountActive,
-                        ]}
-                      >
-                        {friends.length}
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[
-                        styles.sectionTab,
-                        section === "solicitudes" && styles.sectionTabActive,
-                      ]}
-                      onPress={() => setSection("solicitudes")}
-                    >
-                      <Text
-                        style={[
-                          styles.sectionTabLabel,
-                          section === "solicitudes" && styles.sectionTabLabelActive,
-                        ]}
-                      >
-                        Solicitudes
-                      </Text>
-                      <Text
-                        style={[
-                          styles.sectionTabCount,
-                          section === "solicitudes" && styles.sectionTabCountActive,
-                        ]}
-                      >
-                        {incoming.length + outgoing.length}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
+                  <SubTabs
+                    options={SECTION_TABS.map((t) =>
+                      t.key === "amigos"
+                        ? { ...t, count: friends.length }
+                        : { ...t, count: incoming.length + outgoing.length }
+                    )}
+                    value={section}
+                    onChange={setSection}
+                  />
 
                   {section === "amigos" ? (
                     friends.length === 0 ? (
@@ -744,25 +698,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  bell: {
-    width: 42,
-    height: 42,
-    borderRadius: 13,
-    backgroundColor: "rgba(255,255,255,0.16)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
   bellBadge: {
     position: "absolute",
-    top: -5,
-    right: -5,
+    top: 0,
+    right: 0,
     minWidth: 19,
     height: 19,
     paddingHorizontal: 5,
     borderRadius: 7,
     backgroundColor: colors.onDark,
-    borderWidth: 2,
-    borderColor: colors.socialWine,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -770,76 +714,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 11,
     color: colors.socialWine,
-  },
-  stats: {
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 16,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: "rgba(255,255,255,0.16)",
-    borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 11,
-  },
-  statLabel: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 9.5,
-    letterSpacing: 0.8,
-    color: colors.onDark,
-    opacity: 0.75,
-  },
-  statValue: {
-    fontFamily: fonts.displayBold,
-    fontSize: 20,
-    color: colors.onDark,
-    marginTop: 3,
-  },
-  tabs: {
-    flexDirection: "row",
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 8,
-  },
-  tab: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 7,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: colors.fill,
-  },
-  tabActive: {
-    backgroundColor: colors.socialWine,
-  },
-  tabLabel: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 13,
-    color: colors.textMuted,
-  },
-  tabLabelActive: {
-    color: colors.onDark,
-  },
-  tabBadge: {
-    minWidth: 18,
-    height: 18,
-    paddingHorizontal: 5,
-    borderRadius: 6,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.socialWine,
-  },
-  tabBadgeActive: {
-    backgroundColor: "rgba(255,255,255,0.22)",
-  },
-  tabBadgeLabel: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 11,
-    color: colors.onDark,
   },
   scroll: {
     flex: 1,
@@ -857,10 +731,10 @@ const styles = StyleSheet.create({
   },
   retry: {
     marginTop: 4,
-    borderRadius: 12,
-    paddingVertical: 11,
-    paddingHorizontal: 20,
-    backgroundColor: colors.socialWine,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 22,
+    backgroundColor: colors.text,
   },
   retryLabel: {
     fontFamily: fonts.bodySemiBold,
@@ -911,41 +785,5 @@ const styles = StyleSheet.create({
     backgroundColor: colors.fill,
     alignItems: "center",
     justifyContent: "center",
-  },
-  sectionTabs: {
-    flexDirection: "row",
-    gap: 8,
-    paddingBottom: 14,
-  },
-  sectionTab: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    height: 34,
-    paddingHorizontal: 13,
-    borderRadius: 11,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  sectionTabActive: {
-    borderColor: colors.socialWine,
-    backgroundColor: colors.surface,
-  },
-  sectionTabLabel: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 12.5,
-    color: colors.textMuted,
-  },
-  sectionTabLabelActive: {
-    color: colors.socialWine,
-  },
-  sectionTabCount: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 11.5,
-    color: colors.textMuted,
-    opacity: 0.7,
-  },
-  sectionTabCountActive: {
-    color: colors.socialWine,
   },
 });

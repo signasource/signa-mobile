@@ -37,7 +37,7 @@ export function RowAction({ action, busy = false }: Props) {
 }
 
 export const ROW_ACTION_STYLE = {
-  add: { bg: colors.socialWine, color: colors.onDark },
+  add: { bg: colors.text, color: colors.onDark },
   accept: { bg: colors.successLight, color: colors.successDark },
   reject: { bg: colors.dangerLight, color: colors.danger },
   neutral: { bg: colors.fill, color: colors.text },

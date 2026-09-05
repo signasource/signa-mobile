@@ -21,15 +21,16 @@ directly, like `LessonScreen` in `features/courses`.
 
 ## SocialScreen
 
-Wine header (`colors.socialWine`) with the bell (unread badge from
-`notificationsApi.getUnreadCount()`) and two stat tiles: **Amigos** and **Solicitudes**. `SocialHeader`
-matches the Tienda header's vertical metrics and typography (`fontSizes.xxl` title, `insets.top + 14`),
-keeping its own 20px horizontal padding so it lines up with the rest of the Social content.
+Wine `ScreenHeader` (`tone={colors.socialWine}`) with the background-less bell (unread badge from
+`notificationsApi.getUnreadCount()`) and two stat tiles: **Amigos** and **Solicitudes**. The header is
+the shared one — same title size, description, top-right bubble and `minHeight` as every other
+top-level screen.
 
 > The mockup's second tile was a **Ranking** (`#3`). The backend has no leaderboard at all, and
 > ranking was explicitly deferred to a later iteration, so the tile shows pending requests instead.
 
-Two tabs below the header:
+Two tabs below the header, rendered by the shared `SegmentedControl` (full width, black active
+state); the **Mis amigos / Solicitudes** sub-selector uses `SubTabs`:
 
 ### Feed
 
@@ -86,6 +87,9 @@ server-side.
 
 ## NotificationsScreen
 
+Compact wine `ScreenHeader` (`compact`, no `description` and no stats) — a secondary screen, so it
+matches Configuración's header height instead of the tall top-level one.
+
 `GET /notifications` (Spring page; the screen reads the first page). **Opening the inbox marks it
 read**: if anything was unread it calls `PATCH /notifications/read-all`, so the bell badge clears
 when the user comes back. An unread row is marked **only by the wine dot on its right** — no tinted
@@ -127,8 +131,9 @@ colours are derived from list position since the backend sends none.
 
 ## Components — `features/social/components/`
 
-`Avatar`, `PersonRow` (+ `RowAction`), `FeedCard`, `SocialHeader`, `EmptyState` / `EmptyNote`,
-`ConfirmSheet`, `Toast`.
+`Avatar`, `PersonRow` (+ `RowAction`), `FeedCard`, `ConfirmSheet`, `Toast`.
+`EmptyState` / `EmptyNote` now live in `@/components/EmptyState` (the local file only re-exports them);
+the header comes from `@/components/ScreenHeader`.
 
 ## Not implemented
 

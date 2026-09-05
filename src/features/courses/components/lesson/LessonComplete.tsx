@@ -1,8 +1,9 @@
-﻿import React from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import React from "react";
+import { StyleSheet, View } from "react-native";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "@/theme";
+import { NavIconButton } from "@/components/BackButton";
 import { LessonButton } from "./LessonButton";
 
 interface LessonCompleteProps {
@@ -26,12 +27,38 @@ export function LessonComplete({
   onClose,
   onRestart,
 }: LessonCompleteProps) {
+  // Only what the user actually earned is worth a card; zeroes read as failure.
+  const stats = [
+    {
+      key: "xp",
+      icon: "flash" as const,
+      color: colors.primary,
+      value: `+${xpEarned}`,
+      label: "XP ganado",
+      earned: xpEarned > 0,
+    },
+    {
+      key: "correct",
+      icon: "checkmark-done" as const,
+      color: colors.success,
+      value: `${correctBlocks}/${totalBlocks}`,
+      label: "Aciertos",
+      earned: correctBlocks > 0,
+    },
+    {
+      key: "signs",
+      icon: "hand-left" as const,
+      color: colors.courseTeal,
+      value: String(signsLearned),
+      label: "Señas nuevas",
+      earned: signsLearned > 0,
+    },
+  ].filter((stat) => stat.earned);
+
   return (
     <View style={styles.container}>
       <View style={styles.topRow}>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton} activeOpacity={0.85}>
-          <Ionicons name="close" size={20} color={colors.text} />
-        </TouchableOpacity>
+        <NavIconButton icon="close" label="Cerrar" size={22} onPress={onClose} />
       </View>
 
       <View style={styles.body}>
@@ -43,25 +70,17 @@ export function LessonComplete({
           {lessonName} · {unitLabel}
         </Text>
 
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Ionicons name="flash" size={22} color={colors.primary} />
-            <Text style={styles.statValue}>+{xpEarned}</Text>
-            <Text style={styles.statLabel}>XP ganado</Text>
+        {stats.length > 0 && (
+          <View style={styles.statsRow}>
+            {stats.map((stat) => (
+              <View key={stat.key} style={styles.statCard}>
+                <Ionicons name={stat.icon} size={22} color={stat.color} />
+                <Text style={styles.statValue}>{stat.value}</Text>
+                <Text style={styles.statLabel}>{stat.label}</Text>
+              </View>
+            ))}
           </View>
-          <View style={styles.statCard}>
-            <Ionicons name="checkmark-done" size={22} color={colors.success} />
-            <Text style={styles.statValue}>
-              {correctBlocks}/{totalBlocks}
-            </Text>
-            <Text style={styles.statLabel}>Aciertos</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Ionicons name="hand-left" size={22} color={colors.courseTeal} />
-            <Text style={styles.statValue}>{signsLearned}</Text>
-            <Text style={styles.statLabel}>Señas nuevas</Text>
-          </View>
-        </View>
+        )}
       </View>
 
       <View style={styles.footer}>
@@ -75,14 +94,6 @@ export function LessonComplete({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   topRow: { paddingHorizontal: 20, alignItems: "flex-end" },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.fill,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   body: { flex: 1, paddingHorizontal: 24, alignItems: "center", gap: 14 },
   trophy: {
     width: 108,

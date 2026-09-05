@@ -1,10 +1,18 @@
 # Typography
 
-> Responsibility: font families, sizes, and font loading.
-> Update when: a font family/weight or a `fontSizes` value changes.
-> Sources: src/theme/typography.ts, App.tsx
+> Responsibility: font families, sizes, font loading, and the shared `Text` wrapper.
+> Update when: a font family/weight, a `fontSizes` value, or `Text`'s base style changes.
+> Sources: src/theme/typography.ts, src/components/Text.tsx, App.tsx
 
 Import: `import { fonts, fontSizes } from "@/theme"`.
+
+## The `Text` wrapper
+
+Always render copy through `@/components/Text`, never React Native's `Text`. It applies the
+accessibility font scale from `SettingsContext` **and a base `textAlign: "justify"`**, so body copy
+is justified app-wide. That only affects lines that actually wrap — single-line labels look the
+same — and any style setting its own `textAlign` still wins, because the local style comes after
+the base one in the style array.
 
 ## Families
 
