@@ -1,10 +1,9 @@
 import React from "react";
-import { View, Pressable, StyleSheet, StatusBar } from "react-native";
+import { View, Image, Pressable, StyleSheet, StatusBar } from "react-native";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "@/navigation/AuthNavigator";
-import { SignaLogo } from "@/components/SignaLogo";
 import { colors, fonts, fontSizes } from "@/theme";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Welcome">;
@@ -22,7 +21,7 @@ export function WelcomeScreen({ navigation }: Props) {
       <View style={[styles.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}>
         {/* Logo */}
         <View style={styles.logoRow}>
-          <SignaLogo size={38} barColor={colors.primary} bgColor={colors.onPrimary} />
+          <Image source={require("@assets/images/icon.jpg")} style={styles.logoIcon} />
           <Text style={styles.logoText}>Signa</Text>
         </View>
 
@@ -92,6 +91,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 9,
+  },
+  logoIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
   },
   logoText: {
     fontFamily: fonts.displayBold,

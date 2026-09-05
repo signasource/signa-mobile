@@ -45,12 +45,21 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   `LessonButton`, `SignPlaceholder` (fallback card shown while a meaning's animation URL isn't
   cached yet — still loading, no animation for that meaning, or the model failed), `SignAnimation`
   (looks up the meaning in `animationPreload`'s cache and renders `GlbAnimationView`, falling back
-  to `SignPlaceholder`), `NoLivesOverlay`, `LessonComplete`, and `blocks/` with one component per
+  to `SignPlaceholder`), `NoLivesOverlay`, `LessonComplete` (its three tiles — XP, aciertos, señas
+  nuevas — are filtered to the ones actually **earned**, `> 0`; the row disappears when none is),
+  and `blocks/` with one component per
   `BlockType` (`InfoBlock`, `SelectMeaningBlock`, `SelectSignBlock`, `ContextResponseBlock` and
   `SelectSignBlock` share `SignCarouselBlock`, `MatchBlock`, `VisualRecognitionBlock`).
   `SelectMeaningBlock` and `SignCarouselBlock` (so `SelectSignBlock`/`ContextResponseBlock`) render
   the sign via `SignAnimation`; `MatchBlock`/`VisualRecognitionBlock` still use static
   cards/swatches (they show many signs at once, not one at a time).
+- `InfoBlock`: paragraphs are linkified by `blocks/richText.tsx` (`renderTextWithLinks`), which
+  understands both markdown `[label](url)` and bare `http(s)://…` and opens them with `Linking`.
+  When the config carries `myths`, they render as `blocks/MythDeck.tsx` instead of a static list:
+  a stack of two-sided cards (front = `myth`, back = `reality`) built on `Animated` + `PanResponder`
+  — **tap flips**, **drag sideways past ~100px discards**, and discarding the last card calls
+  `onContinue()`, so the block advances on its own. The "Continuar" button stays available for
+  anyone who wants to skip ahead.
 - `animationPreload.ts`: `preloadLessonAnimations(blocks)` — fire-and-forget, errors swallowed,
   doesn't block the UI. Called in two places: from `HomeTabScreen` as soon as the roadmap loads
   (pre-fetches the current lesson's animations before the user taps "Comenzar"), and from

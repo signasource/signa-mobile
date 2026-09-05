@@ -15,8 +15,8 @@ export interface HeaderStat {
 
 interface ScreenHeaderProps {
   title: string;
-  /** Every header carries a one-line description under the title. */
-  description: string;
+  /** One-line description under the title. Omitted on compact headers. */
+  description?: string;
   /** Safe-area top inset already added by the caller. */
   paddingTop: number;
   /** Header background. Foreground and tints are derived from it. */
@@ -25,13 +25,19 @@ interface ScreenHeaderProps {
   left?: React.ReactNode;
   right?: React.ReactNode;
   children?: React.ReactNode;
+  /**
+   * Drops the shared minimum height so the header hugs its content. Used by
+   * secondary screens (Configuración, Notificaciones), which show only a title
+   * and therefore all end up at the same compact height.
+   */
+  compact?: boolean;
 }
 
 /**
  * Colored hero header shared by every top-level screen: same title size, a
  * description, a bubble in the top-right corner, and an optional stats strip.
  * `MIN_CONTENT_HEIGHT` keeps all of them at the same height even when a screen
- * has no stats to show.
+ * has no stats to show; `compact` opts out of it for title-only headers.
  */
 const MIN_CONTENT_HEIGHT = 186;
 
@@ -44,6 +50,7 @@ export function ScreenHeader({
   left,
   right,
   children,
+  compact = false,
 }: ScreenHeaderProps) {
   const light = isLightColor(tone);
   const fg = light ? colors.neutral900 : colors.onDark;
@@ -54,7 +61,10 @@ export function ScreenHeader({
     <View
       style={[
         styles.header,
-        { backgroundColor: tone, paddingTop, minHeight: paddingTop + MIN_CONTENT_HEIGHT },
+        { backgroundColor: tone, paddingTop },
+        compact
+          ? styles.headerCompact
+          : { minHeight: paddingTop + MIN_CONTENT_HEIGHT },
       ]}
     >
       <View style={[styles.bubble, { backgroundColor: bubble }]} />
@@ -65,9 +75,11 @@ export function ScreenHeader({
           <Text style={[styles.title, { color: fg }]} numberOfLines={1}>
             {title}
           </Text>
-          <Text style={[styles.description, { color: fg }]} numberOfLines={2}>
-            {description}
-          </Text>
+          {!!description && (
+            <Text style={[styles.description, { color: fg }]} numberOfLines={2}>
+              {description}
+            </Text>
+          )}
         </View>
         {right}
       </View>
@@ -108,6 +120,9 @@ const styles = StyleSheet.create({
     width: 220,
     height: 220,
     borderRadius: 110,
+  },
+  headerCompact: {
+    paddingBottom: 14,
   },
   row: {
     flexDirection: "row",

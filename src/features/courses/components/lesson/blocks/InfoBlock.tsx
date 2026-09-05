@@ -5,6 +5,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "@/theme";
 import { InfoConfig } from "@/features/courses/lessonContent.types";
 import { LessonButton } from "../LessonButton";
+import { MythDeck } from "./MythDeck";
+import { renderTextWithLinks } from "./richText";
 
 interface InfoBlockProps {
   config: InfoConfig;
@@ -40,33 +42,17 @@ export function InfoBlock({ config, onContinue }: InfoBlockProps) {
           {paragraphs.map((paragraph, index) =>
             isCitation(paragraph) ? (
               <Text key={index} style={styles.citation}>
-                {paragraph.replace(/^\*|\*$/g, "")}
+                {renderTextWithLinks(paragraph.replace(/^\*|\*$/g, ""), styles.link)}
               </Text>
             ) : (
               <Text key={index} style={styles.paragraph}>
-                {paragraph}
+                {renderTextWithLinks(paragraph, styles.link)}
               </Text>
             )
           )}
         </View>
 
-        {hasMyths && (
-          <View style={styles.myths}>
-            {config.myths!.map((myth, index) => (
-              <View key={index} style={styles.mythCard}>
-                <Text style={styles.mythTitle}>{myth.title}</Text>
-                <View style={styles.mythRow}>
-                  <Ionicons name="close-circle" size={15} color={colors.danger} style={styles.mythIcon} />
-                  <Text style={styles.mythLine}>{myth.myth}</Text>
-                </View>
-                <View style={styles.mythRow}>
-                  <Ionicons name="checkmark-circle" size={15} color={colors.success} style={styles.mythIcon} />
-                  <Text style={[styles.mythLine, styles.mythReality]}>{myth.reality}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
+        {hasMyths && <MythDeck myths={config.myths!} onFinished={onContinue} />}
       </ScrollView>
 
       <View style={styles.footer}>
@@ -120,33 +106,10 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: colors.textMuted,
   },
-  myths: { gap: 10, marginTop: 2 },
-  mythCard: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
-    padding: 14,
-    gap: 9,
-  },
-  mythTitle: {
-    fontFamily: fonts.displayBold,
-    fontSize: 15,
-    lineHeight: 19,
-    color: colors.text,
-  },
-  mythRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
-  mythIcon: { marginTop: 2 },
-  mythLine: {
-    flex: 1,
-    fontFamily: fonts.bodyRegular,
-    fontSize: 12.5,
-    lineHeight: 17,
-    color: colors.textMuted,
-  },
-  mythReality: {
-    fontFamily: fonts.bodyMedium,
-    color: "#3D332E",
+  link: {
+    fontFamily: fonts.bodySemiBold,
+    color: colors.primaryDark,
+    textDecorationLine: "underline",
   },
   footer: { padding: 20, paddingTop: 14 },
 });

@@ -6,7 +6,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Pressable,
-  Dimensions,
+  DimensionValue,
 } from "react-native";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -53,8 +53,11 @@ const DAY_NAMES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábad
 
 const SWATCH_COLS = 6;
 const SWATCH_GAP = 10;
-const SWATCH_SIZE =
-  (Dimensions.get("window").width - 40 - (SWATCH_COLS - 1) * SWATCH_GAP) / SWATCH_COLS;
+const SWATCH_CELL_WIDTH: DimensionValue = `${100 / SWATCH_COLS}%`;
+
+const ACH_COLS = 3;
+const ACH_GUTTER = 14;
+const ACH_CELL_WIDTH: DimensionValue = `${100 / ACH_COLS}%`;
 
 const HEADER_COLORS = [
   { name: "Blanco", hex: "#FFFFFF" },
@@ -151,7 +154,6 @@ export function ProfileScreen({ navigation }: Props) {
   // UI state
   const [activeSection, setActiveSection] = useState<Section>("general");
   const [headerColor, setHeaderColor] = useState(colors.surface);
-  const [headerColorDraft, setHeaderColorDraft] = useState(colors.surface);
   const [headerColorOpen, setHeaderColorOpen] = useState(false);
   const [goalOpen, setGoalOpen] = useState(false);
   const [goalDraft, setGoalDraft] = useState(15);
@@ -196,7 +198,6 @@ export function ProfileScreen({ navigation }: Props) {
       usersApi.getSettings().then((res) => {
         const color = res.data.profileHeaderColor;
         setHeaderColor(color);
-        setHeaderColorDraft(color);
       }).catch(() => {});
     }, [])
   );
@@ -278,10 +279,19 @@ export function ProfileScreen({ navigation }: Props) {
     if (settingsRes.status === "fulfilled") {
       const color = settingsRes.value.data.profileHeaderColor;
       setHeaderColor(color);
-      setHeaderColorDraft(color);
     }
 
     setLoading(false);
+  }
+
+  /** Picking a swatch applies it immediately and persists it — no confirm step. */
+  async function applyHeaderColor(hex: string) {
+    setHeaderColor(hex);
+    try {
+      await usersApi.updateSettings({ profileHeaderColor: hex });
+    } catch {
+      // optimistic update: keep local change even if API fails
+    }
   }
 
   async function handleSaveGoal() {
@@ -380,10 +390,7 @@ export function ProfileScreen({ navigation }: Props) {
               icon="color-palette-outline"
               label="Color del encabezado"
               color={fg}
-              onPress={() => {
-                setHeaderColorDraft(headerColor);
-                setHeaderColorOpen(true);
-              }}
+              onPress={() => setHeaderColorOpen(true)}
             />
             <NavIconButton
               icon="settings-outline"
@@ -912,42 +919,33 @@ export function ProfileScreen({ navigation }: Props) {
       {/* Header color modal */}
       <BottomSheet
         open={headerColorOpen}
-        onClose={() => { setHeaderColorDraft(headerColor); setHeaderColorOpen(false); }}
+        onClose={() => setHeaderColorOpen(false)}
         title="Color del encabezado"
       >
         <View style={styles.colorGrid}>
           {HEADER_COLORS.map((c) => {
-            const selected = c.hex.toLowerCase() === headerColorDraft.toLowerCase();
+            const selected = c.hex.toLowerCase() === headerColor.toLowerCase();
             const light = isLightColor(c.hex);
             return (
-              <TouchableOpacity
-                key={c.hex}
-                style={[
-                  styles.colorSwatch,
-                  { backgroundColor: c.hex, borderColor: selected ? colors.neutral900 : light ? "rgba(0,0,0,0.12)" : "transparent" },
-                ]}
-                onPress={() => setHeaderColorDraft(c.hex)}
-                activeOpacity={0.8}
-              >
-                {selected && (
-                  <Ionicons name="checkmark" size={15} color={light ? colors.neutral900 : colors.surface} />
-                )}
-              </TouchableOpacity>
+              <View key={c.hex} style={styles.colorCell}>
+                <TouchableOpacity
+                  style={[
+                    styles.colorSwatch,
+                    { backgroundColor: c.hex, borderColor: selected ? colors.neutral900 : light ? "rgba(0,0,0,0.12)" : "transparent" },
+                  ]}
+                  onPress={() => applyHeaderColor(c.hex)}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel={c.name}
+                >
+                  {selected && (
+                    <Ionicons name="checkmark" size={15} color={light ? colors.neutral900 : colors.surface} />
+                  )}
+                </TouchableOpacity>
+              </View>
             );
           })}
         </View>
-        <PrimaryButton
-          label="Listo"
-          onPress={async () => {
-            setHeaderColor(headerColorDraft);
-            setHeaderColorOpen(false);
-            try {
-              await usersApi.updateSettings({ profileHeaderColor: headerColorDraft });
-            } catch {
-              // keep local change even if API fails
-            }
-          }}
-        />
       </BottomSheet>
 
       {/* Daily goal modal */}
@@ -1030,7 +1028,7 @@ export function ProfileScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
   },
 
   headerActions: {
@@ -1562,15 +1560,16 @@ const styles = StyleSheet.create({
     color: "#B8B8BD",
   },
 
-  // Achievements
+  // Achievements — three responsive columns that span the full width.
   achGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 20,
-    rowGap: 8,
+    rowGap: 14,
+    marginHorizontal: -ACH_GUTTER / 2,
   },
   achItem: {
-    width: "30%",
+    width: ACH_CELL_WIDTH,
+    paddingHorizontal: ACH_GUTTER / 2,
     alignItems: "center",
     gap: 8,
     paddingTop: 4,
@@ -1641,16 +1640,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  // Color picker
+  // Color picker — the swatches span the full width of the sheet.
   colorGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: SWATCH_GAP,
+    marginHorizontal: -SWATCH_GAP / 2,
+  },
+  colorCell: {
+    width: SWATCH_CELL_WIDTH,
+    paddingHorizontal: SWATCH_GAP / 2,
+    marginBottom: SWATCH_GAP,
   },
   colorSwatch: {
-    width: SWATCH_SIZE,
-    height: SWATCH_SIZE,
-    borderRadius: SWATCH_SIZE / 2,
+    width: "100%",
+    aspectRatio: 1,
+    borderRadius: 999,
     borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",

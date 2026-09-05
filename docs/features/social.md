@@ -23,7 +23,8 @@ directly, like `LessonScreen` in `features/courses`.
 
 Wine `ScreenHeader` (`tone={colors.socialWine}`) with the background-less bell (unread badge from
 `notificationsApi.getUnreadCount()`) and two stat tiles: **Amigos** and **Solicitudes**. The header is
-the shared one — same title size, description, top-right bubble and `minHeight` as every other screen.
+the shared one — same title size, description, top-right bubble and `minHeight` as every other
+top-level screen.
 
 > The mockup's second tile was a **Ranking** (`#3`). The backend has no leaderboard at all, and
 > ranking was explicitly deferred to a later iteration, so the tile shows pending requests instead.
@@ -85,6 +86,9 @@ the exception — it refetches `GET /friendships` because the new friend's stats
 server-side.
 
 ## NotificationsScreen
+
+Compact wine `ScreenHeader` (`compact`, no `description` and no stats) — a secondary screen, so it
+matches Configuración's header height instead of the tall top-level one.
 
 `GET /notifications` (Spring page; the screen reads the first page). **Opening the inbox marks it
 read**: if anything was unread it calls `PATCH /notifications/read-all`, so the bell badge clears

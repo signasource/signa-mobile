@@ -26,10 +26,11 @@
 
 ## Import alias
 
-- `@/` → `src/`. Defined in **two files that must stay in sync**:
+- `@/` → `src/` and `@assets/` → `assets/` (bundled images, e.g. the app icon used by the
+  Welcome screen). Both are defined in **two files that must stay in sync**:
   - `babel.config.js` → `module-resolver` plugin (runtime/bundling resolution).
   - `tsconfig.json` → `compilerOptions.paths` (type resolution).
-- Always import with `@/...`; never long relative paths (`../../..`).
+- Always import with `@/...` / `@assets/...`; never long relative paths (`../../..`).
 
 ## Technology choices
 

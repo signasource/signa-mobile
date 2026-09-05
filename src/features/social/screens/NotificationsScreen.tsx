@@ -19,7 +19,6 @@ export function NotificationsScreen({ navigation }: Props) {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [unreadOnOpen, setUnreadOnOpen] = useState(0);
 
   const load = useCallback(async () => {
     setError(null);
@@ -27,7 +26,6 @@ export function NotificationsScreen({ navigation }: Props) {
     try {
       const { data } = await notificationsApi.getInbox();
       setNotifications(data.content);
-      setUnreadOnOpen(data.content.filter((n) => !n.read).length);
       // Opening the inbox counts as reading it, so the bell badge clears.
       if (data.content.some((n) => !n.read)) {
         await notificationsApi.markAllAsRead();
@@ -47,23 +45,9 @@ export function NotificationsScreen({ navigation }: Props) {
     <View style={styles.container}>
       <ScreenHeader
         title="Notificaciones"
-        description="Me gusta, logros de tus amigos y solicitudes."
+        compact
         paddingTop={insets.top + 14}
         tone={colors.socialWine}
-        stats={[
-          {
-            key: "total",
-            label: "Novedades",
-            value: String(notifications.length),
-            icon: "notifications",
-          },
-          {
-            key: "unread",
-            label: "Sin leer",
-            value: String(unreadOnOpen),
-            icon: "ellipse",
-          },
-        ]}
         left={
           <BackButton onPress={() => navigation.goBack()} color={colors.onDark} />
         }

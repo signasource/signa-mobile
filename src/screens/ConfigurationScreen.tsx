@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Dimensions,
+  DimensionValue,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -33,8 +33,7 @@ type VisibilityId = "PUBLIC" | "PRIVATE";
 
 const SWATCH_COLS = 6;
 const SWATCH_GAP = 10;
-const SWATCH_SIZE =
-  (Dimensions.get("window").width - 40 - (SWATCH_COLS - 1) * SWATCH_GAP) / SWATCH_COLS;
+const SWATCH_CELL_WIDTH: DimensionValue = `${100 / SWATCH_COLS}%`;
 
 const HEADER_COLORS = [
   { name: "Blanco", hex: "#FFFFFF" },
@@ -140,7 +139,6 @@ export function ConfigurationScreen({ navigation }: Props) {
   const [reminderMinute, setReminderMinute] = useState("00");
 
   // Sheet drafts
-  const [headerColorDraft, setHeaderColorDraft] = useState("#7857FF");
   const [draftHour, setDraftHour] = useState("20");
   const [draftMinute, setDraftMinute] = useState("00");
 
@@ -207,7 +205,6 @@ export function ConfigurationScreen({ navigation }: Props) {
     if (settingsRes.status === "fulfilled") {
       const s = settingsRes.value.data;
       setHeaderColor(s.profileHeaderColor);
-      setHeaderColorDraft(s.profileHeaderColor);
       if (s.fontSize) setFontSize(s.fontSize as FontSizeId);
       if (s.vibrationEnabled !== undefined) setVibrationEnabled(s.vibrationEnabled);
       if (s.notificationsEnabled !== undefined) setNotificationsEnabled(s.notificationsEnabled);
@@ -237,6 +234,13 @@ export function ConfigurationScreen({ navigation }: Props) {
     setToast(text);
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(null), 2200);
+  }
+
+  /** Picking a swatch applies it immediately and persists it — no confirm step. */
+  function applyHeaderColor(hex: string) {
+    setHeaderColor(hex);
+    showToast("Cambios guardados");
+    saveSetting({ profileHeaderColor: hex });
   }
 
   async function saveSetting(patch: Parameters<typeof usersApi.updateSettings>[0]) {
@@ -413,7 +417,7 @@ export function ConfigurationScreen({ navigation }: Props) {
       {/* header */}
       <ScreenHeader
         title="Configuración"
-        description="Ajustá tu cuenta, tus preferencias y tus notificaciones."
+        compact
         paddingTop={insets.top + 14}
         tone={headerColor}
         left={<BackButton onPress={() => navigation.goBack()} color={onHeader} />}
@@ -581,10 +585,7 @@ export function ConfigurationScreen({ navigation }: Props) {
 
           <TouchableOpacity
             style={[styles.settingRow, styles.borderBottom]}
-            onPress={() => {
-              setHeaderColorDraft(headerColor);
-              setSheet("color");
-            }}
+            onPress={() => setSheet("color")}
             activeOpacity={0.7}
           >
             <Ionicons name="color-palette-outline" size={20} color={colors.neutral600} />
@@ -940,48 +941,39 @@ export function ConfigurationScreen({ navigation }: Props) {
                 <>
                   <View style={styles.colorGrid}>
                     {HEADER_COLORS.map((c) => {
-                      const selected = c.hex.toLowerCase() === headerColorDraft.toLowerCase();
+                      const selected = c.hex.toLowerCase() === headerColor.toLowerCase();
                       const light = isLight(c.hex);
                       return (
-                        <TouchableOpacity
-                          key={c.hex}
-                          style={[
-                            styles.colorSwatch,
-                            {
-                              backgroundColor: c.hex,
-                              borderColor: selected
-                                ? colors.neutral900
-                                : light
-                                  ? "rgba(0,0,0,0.12)"
-                                  : "transparent",
-                            },
-                          ]}
-                          onPress={() => setHeaderColorDraft(c.hex)}
-                          activeOpacity={0.8}
-                        >
-                          {selected && (
-                            <Ionicons
-                              name="checkmark"
-                              size={15}
-                              color={light ? colors.neutral900 : colors.surface}
-                            />
-                          )}
-                        </TouchableOpacity>
+                        <View key={c.hex} style={styles.colorCell}>
+                          <TouchableOpacity
+                            style={[
+                              styles.colorSwatch,
+                              {
+                                backgroundColor: c.hex,
+                                borderColor: selected
+                                  ? colors.neutral900
+                                  : light
+                                    ? "rgba(0,0,0,0.12)"
+                                    : "transparent",
+                              },
+                            ]}
+                            onPress={() => applyHeaderColor(c.hex)}
+                            activeOpacity={0.8}
+                            accessibilityRole="button"
+                            accessibilityLabel={c.name}
+                          >
+                            {selected && (
+                              <Ionicons
+                                name="checkmark"
+                                size={15}
+                                color={light ? colors.neutral900 : colors.surface}
+                              />
+                            )}
+                          </TouchableOpacity>
+                        </View>
                       );
                     })}
                   </View>
-                  <TouchableOpacity
-                    style={[styles.primaryBtn, { marginTop: 16 }]}
-                    onPress={async () => {
-                      setHeaderColor(headerColorDraft);
-                      setSheet(null);
-                      showToast("Cambios guardados");
-                      await saveSetting({ profileHeaderColor: headerColorDraft });
-                    }}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={styles.primaryBtnText}>Listo</Text>
-                  </TouchableOpacity>
                 </>
               )}
 
@@ -1533,15 +1525,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
+  // The swatches span the full width of the sheet, whatever the screen size.
   colorGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: SWATCH_GAP,
+    marginHorizontal: -SWATCH_GAP / 2,
+  },
+  colorCell: {
+    width: SWATCH_CELL_WIDTH,
+    paddingHorizontal: SWATCH_GAP / 2,
+    marginBottom: SWATCH_GAP,
   },
   colorSwatch: {
-    width: SWATCH_SIZE,
-    height: SWATCH_SIZE,
-    borderRadius: SWATCH_SIZE / 2,
+    width: "100%",
+    aspectRatio: 1,
+    borderRadius: 999,
     borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
