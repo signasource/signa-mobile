@@ -12,6 +12,7 @@
 
 export type BlockType =
   | "INFO"
+  | "INTRODUCE_SIGN"
   | "SELECT_MEANING"
   | "SELECT_SIGN"
   | "CONTEXT_RESPONSE"
@@ -28,6 +29,11 @@ export interface InfoConfig {
   title: string;
   text: string;
   myths?: MythEntry[];
+}
+
+export interface IntroduceSignConfig {
+  meaning: string;
+  word: string;
 }
 
 export interface SelectMeaningConfig {
@@ -58,15 +64,17 @@ export interface VisualRecognitionConfig {
 
 export type BlockConfigFor<T extends BlockType> = T extends "INFO"
   ? InfoConfig
-  : T extends "SELECT_MEANING"
-    ? SelectMeaningConfig
-    : T extends "SELECT_SIGN"
-      ? SelectSignConfig
-      : T extends "CONTEXT_RESPONSE"
-        ? ContextResponseConfig
-        : T extends "MATCH"
-          ? MatchConfig
-          : VisualRecognitionConfig;
+  : T extends "INTRODUCE_SIGN"
+    ? IntroduceSignConfig
+    : T extends "SELECT_MEANING"
+      ? SelectMeaningConfig
+      : T extends "SELECT_SIGN"
+        ? SelectSignConfig
+        : T extends "CONTEXT_RESPONSE"
+          ? ContextResponseConfig
+          : T extends "MATCH"
+            ? MatchConfig
+            : VisualRecognitionConfig;
 
 /** Espeja LessonBlockResponse.java: config llega como string, no parseado. */
 export interface LessonContentBlock {
@@ -94,6 +102,7 @@ export function parseBlockConfig<T extends BlockType>(block: LessonContentBlock)
  * Returns the set of sign meanings that are the *subject* of each block —
  * i.e. the signs a user is actively learning, not distractor options.
  *
+ * - INTRODUCE_SIGN → `meaning` (the sign being presented)
  * - SELECT_MEANING → `sign` (the animation shown)
  * - SELECT_SIGN    → `word`  (the concept whose sign the user must find)
  * - CONTEXT_RESPONSE → `answer`
@@ -105,6 +114,9 @@ export function extractLessonSignNames(lesson: { blocks: LessonContentBlock[] })
   const names = new Set<string>();
   for (const block of lesson.blocks) {
     switch (block.type as BlockType) {
+      case "INTRODUCE_SIGN":
+        names.add(parseBlockConfig<"INTRODUCE_SIGN">(block).meaning);
+        break;
       case "SELECT_MEANING":
         names.add(parseBlockConfig<"SELECT_MEANING">(block).sign);
         break;
