@@ -120,6 +120,7 @@ export function MultiGlbView({ urls, activeIndex, paused = false, style, onError
       source={{ html, baseUrl: "https://localhost" }}
       onMessage={handleMessage}
       onError={() => onError?.(activeIndexRef.current)}
+      onRenderProcessGone={() => onError?.(activeIndexRef.current)}
       javaScriptEnabled
       domStorageEnabled
       allowsInlineMediaPlayback

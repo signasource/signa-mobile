@@ -103,6 +103,7 @@ export function GlbAnimationView({
       source={{ html, baseUrl: "https://localhost" }}
       onMessage={handleMessage}
       onError={(e) => onError?.(e.nativeEvent.description || "Error del WebView.")}
+      onRenderProcessGone={() => onError?.("El visor 3D se quedo sin memoria.")}
       javaScriptEnabled
       domStorageEnabled
       allowsInlineMediaPlayback
