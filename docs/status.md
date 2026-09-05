@@ -23,6 +23,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 | Notifications inbox | real | [features/social.md](./features/social.md#notificationsscreen) |
 | Public profile (read-only, of another user) | real | [features/social.md](./features/social.md#publicprofilescreen) |
 | Courses flat browse (`CoursesListScreen`) | stub | [features/courses.md](./features/courses.md#course-catalog--stub) |
+| Práctica libre (`PracticeTabScreen`) | stub | [features/practice.md](./features/practice.md) |
 | ML (sign recognition) | placeholder | [features/ml.md](./features/ml.md) |
 
 ## Cross-cutting tech debt
@@ -36,6 +37,11 @@ Per-feature detail is owned by each feature doc; this is the index.
 - **No leaderboard.** `signa-api` has nothing resembling a ranking or league, so the Social header shows *Solicitudes* where the mockup had *Ranking*. Deferred to a later iteration; `UserStats.weeklyXp` already exists to build it on.
 - **`CourseProgress` and `Achievement` client types do not match the backend.** `src/api/learning.ts` declares `CourseProgress { courseId, icon, color, progressPercent, lessonsCompleted, currentUnit, unitProgressPercent, lastPractice }` and `src/api/achievements.ts` declares `Achievement { id: number, name, icon, color, unlocked }`, but `CourseProgressResponse` and `AchievementResponse` send entirely different fields. `ProfileScreen`'s **Cursos** and **Logros** sections therefore render `undefined`. Pre-existing. `PublicProfileScreen` sidesteps it by typing against the real shapes (`PublicCourseProgress` / `PublicAchievement` in `src/api/social.ts`).
 - **CI:** GitHub Actions (`.github/workflows/release.yml`, semantic-release on push to `master`). No GitLab pipeline.
+
+- **No practice-session or mistakes-review backend for `PracticeTabScreen`.** `signa-api` has no
+  endpoint for a standalone single-exercise-type session, a per-user learned-signs list, or a
+  missed-answers queue, so the whole "Práctica libre" tab runs on hardcoded content in
+  `src/features/practice/types.ts` with no-op CTAs. See [features/practice.md](./features/practice.md).
 
 ## Next steps
 

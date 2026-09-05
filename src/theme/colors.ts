@@ -32,6 +32,7 @@ export const colors = {
   gemsBlue: "#29B6E8",
   gemsBlueDark: "#1B84AB",
   courseTeal: "#2FA8A0",
+  courseTealLight: "#E4F1EC",
   livesRed: "#E03B3B",
   infinitePink: "#E86AA6",
   successDark: "#2E7D45",
