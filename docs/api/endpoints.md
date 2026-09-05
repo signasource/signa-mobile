@@ -24,18 +24,19 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 | `checkUsernameAvailability(username, signal?)` | `GET /users/username-availability?username=` | `{ available: boolean }` | **public**; accepts `AbortSignal` |
 | `getMe()` | `GET /users/me` | `UserProfile` | `{ name, username }` |
 | `getWeeklyXp()` | `GET /users/me/weekly-xp` | `WeeklyXpEntry[]` | `[{ date, xpEarned }]` Mon–today; zeros for inactive days |
-| `getDailyGoal()` | `GET /users/daily-goal` | `{ dailyGoalMinutes }` | |
+| `getDailyGoal()` | `GET /users/daily-goal` | `{ dailyGoalMinutes, minutesToday }` | `minutesToday` comes from `UserDailyActivity` (today's row, UTC date) |
 | `updateDailyGoal(minutes)` | `PATCH /users/daily-goal` | `void` | body: `{ daily_goal_minutes }` (snake_case via interceptor) |
+| `recordActivity(minutes)` | `POST /users/me/activity` | `void` (204) | body: `{ minutes }`, server clamps `1..5` per call; upserts today's `UserDailyActivity` row. Called by `useActivityTracker()` (`src/hooks/useActivityTracker.ts`), used from `LessonScreen` — tracks foreground time only, flushed every ~60s and on unmount |
 | `getSettings()` | `GET /users/settings` | `UserSettings` | returns full settings; front-end uses `profileHeaderColor` |
 | `updateSettings(payload)` | `PATCH /users/settings` | `UserSettings` | partial patch; all fields optional |
 
-> `usersApi.getStats()` (`GET /users/me/stats`) and `recordActivity()` (`POST /users/me/activity`) have **no counterpart in `UserController.java`** — they 404. Pre-existing, used by Inicio and Perfil; see [status.md](../status.md).
+> `usersApi.getStats()` (`GET /users/me/stats`) exists in `UserController.java`.
 
 ## `inventoryApi` (`src/api/inventory.ts`)
 
 | Method | Path | Returns | Notes |
 |---|---|---|---|
-| `getMyInventory()` | `GET /inventories/me` | `UserInventory` | gems, streakShields, lives, xpMultiplier, totalSignsLearned |
+| `getMyInventory()` | `GET /inventories/me` | `UserInventory` | gems, streakShields, livesMode, currentLives, nextLifeAt, effectiveXpMultiplier, xpMultiplierExpiresAt, xpMultiplierActive, unlimitedLivesExpiresAt, unlimitedLivesActive, learnedSignsCount — same endpoint and shape as `shopApi.getMyInventory()` (`ShopInventory`), plus `learnedSignsCount` |
 
 ## `shopApi` (`src/api/shop.ts`) — mirrors `ShopItemController`/`PurchaseController`
 

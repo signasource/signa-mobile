@@ -45,7 +45,13 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   whole lesson) — each block's WebView can hold several concurrent 3D models, and mounting every
   block up front used to pile up WebGL contexts until Android silently OOM-killed the app (no JS
   error, just closes). Blocks only ever advance forward, so a 2-wide window is enough to keep the
-  next block's WebView warm without unmount/remount.
+  next block's WebView warm without unmount/remount. `LessonScreen` also calls
+  `useActivityTracker()` (`src/hooks/useActivityTracker.ts`) on mount: it accumulates
+  foreground-only seconds (via `AppState`) for as long as the screen is mounted and flushes whole
+  minutes to `usersApi.recordActivity()` (`POST /users/me/activity`) roughly every 60s and again on
+  unmount, capped at 5 minutes per request to match the backend's `RecordActivityRequest` validation.
+  This is what backs `minutesToday`/"Meta diaria" in `ProfileScreen` — see
+  [../api/endpoints.md](../api/endpoints.md).
 - `components/lesson/`: `LessonHeader` (back + progress + lives), `XpChip`, `FeedbackBar`,
   `LessonButton`, `SignPlaceholder` (fallback card shown while a meaning's animation URL isn't
   cached yet — still loading, no animation for that meaning, or the model failed), `SignAnimation`
