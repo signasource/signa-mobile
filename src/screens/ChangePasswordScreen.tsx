@@ -1,5 +1,6 @@
 ﻿import React, { useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from "react-native";
+import { Alert, StyleSheet } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { Text } from "@/components/Text";
 import { colors, fonts, fontSizes } from "@/theme";
 import { Button } from "@/components/Button";
@@ -34,26 +35,29 @@ export function ChangePasswordScreen({ navigation }: Props) {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Cambiar contrasena</Text>
-        <Input
-          label="Contrasena actual"
-          value={currentPassword}
-          onChangeText={setCurrentPassword}
-          secureTextEntry
-          placeholder="********"
-        />
-        <Input
-          label="Nueva contrasena"
-          value={newPassword}
-          onChangeText={setNewPassword}
-          secureTextEntry
-          placeholder="********"
-        />
-        <Button label="Guardar" onPress={handleSubmit} loading={loading} style={styles.mt} />
-      </ScrollView>
-    </KeyboardAvoidingView>
+    <KeyboardAwareScrollView
+      style={styles.flex}
+      contentContainerStyle={styles.container}
+      enableOnAndroid
+      extraScrollHeight={20}
+    >
+      <Text style={styles.title}>Cambiar contrasena</Text>
+      <Input
+        label="Contrasena actual"
+        value={currentPassword}
+        onChangeText={setCurrentPassword}
+        secureTextEntry
+        placeholder="********"
+      />
+      <Input
+        label="Nueva contrasena"
+        value={newPassword}
+        onChangeText={setNewPassword}
+        secureTextEntry
+        placeholder="********"
+      />
+      <Button label="Guardar" onPress={handleSubmit} loading={loading} style={styles.mt} />
+    </KeyboardAwareScrollView>
   );
 }
 

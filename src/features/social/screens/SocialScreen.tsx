@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
-  ScrollView,
   TextInput,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomTabNavigationProp, BottomTabScreenProps } from "@react-navigation/bottom-tabs";
@@ -494,10 +494,12 @@ export function SocialScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView
+        <KeyboardAwareScrollView
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          enableOnAndroid
+          extraScrollHeight={20}
         >
           {isFeed ? (
             <View style={styles.feed}>
@@ -678,7 +680,7 @@ export function SocialScreen({ navigation }: Props) {
               )}
             </View>
           )}
-        </ScrollView>
+        </KeyboardAwareScrollView>
       )}
 
       <Toast message={toast} bottom={16} />
