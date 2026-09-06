@@ -27,6 +27,9 @@ function buildHtml(url: string, autoRotate: boolean): string {
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="preconnect" href="https://pub-f40a1de4d1fc46b0b6f07299847c66e0.r2.dev">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="preload" as="fetch" crossorigin href=${JSON.stringify(url)}>
   <style>
     html, body { margin: 0; height: 100%; background: ${colors.fill}; }
     model-viewer { width: 100%; height: 100%; }
@@ -34,7 +37,7 @@ function buildHtml(url: string, autoRotate: boolean): string {
   <script type="module" src="${MODEL_VIEWER_CDN}"></script>
 </head>
 <body>
-  <model-viewer id="mv" autoplay camera-controls ${autoRotate ? "auto-rotate" : ""}
+  <model-viewer id="mv" autoplay loading="eager" camera-controls ${autoRotate ? "auto-rotate" : ""}
     camera-orbit="0deg 85deg 100%"
     min-camera-orbit="auto 60deg auto"
     max-camera-orbit="auto 110deg auto"
