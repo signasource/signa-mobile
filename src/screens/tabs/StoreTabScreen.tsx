@@ -300,7 +300,7 @@ export function StoreTabScreen() {
       >
         {flow?.step === "confirm" && (
           <Pressable style={styles.backdrop} onPress={closeFlow}>
-            <Pressable style={styles.sheet} onPress={() => {}}>
+            <Pressable style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 34) }]} onPress={() => {}}>
               <View style={styles.sheetHandle} />
               <Text style={styles.sheetTitle}>Confirmar compra</Text>
               <View style={styles.itemRow}>
@@ -355,7 +355,7 @@ export function StoreTabScreen() {
 
         {flow?.step === "insufficient" && (
           <Pressable style={styles.backdrop} onPress={closeFlow}>
-            <Pressable style={styles.sheet} onPress={() => {}}>
+            <Pressable style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 34) }]} onPress={() => {}}>
               <View style={styles.sheetHandle} />
               <View style={styles.insufficientIcon}>
                 <Ionicons name="diamond" size={34} color={colors.danger} />
@@ -605,7 +605,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     paddingHorizontal: 26,
     paddingTop: 22,
-    paddingBottom: 34,
   },
   sheetHandle: {
     width: 44,

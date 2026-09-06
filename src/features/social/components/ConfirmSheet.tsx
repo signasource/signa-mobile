@@ -1,5 +1,6 @@
 import React from "react";
 import { View, StyleSheet, Modal, Pressable, TouchableOpacity, ActivityIndicator } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
@@ -22,10 +23,11 @@ interface Props {
 
 /** Bottom sheet guarding the destructive actions. */
 export function ConfirmSheet({ spec, busy = false, onConfirm, onClose }: Props) {
+  const insets = useSafeAreaInsets();
   return (
     <Modal visible={spec !== null} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={busy ? undefined : onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+        <Pressable style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 30) }]} onPress={(e) => e.stopPropagation()}>
           {spec && (
             <>
               <View style={styles.grabber} />
@@ -70,7 +72,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 26,
     paddingHorizontal: 22,
     paddingTop: 20,
-    paddingBottom: 30,
   },
   grabber: {
     width: 40,

@@ -229,7 +229,7 @@ export function PublicProfileScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <ScrollView stickyHeaderIndices={[0]} contentContainerStyle={styles.scrollContent}>
+      <ScrollView stickyHeaderIndices={[0]} contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 32 }]}>
         {/* ─── header ─────────────────────────────────────── */}
         <View style={styles.stickyHeader}>
           <ScreenHeader
@@ -578,9 +578,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.onDark,
   },
-  scrollContent: {
-    paddingBottom: 32,
-  },
+  scrollContent: {},
   stickyHeader: {
     backgroundColor: colors.background,
   },

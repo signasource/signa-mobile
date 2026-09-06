@@ -925,7 +925,7 @@ export function ConfigurationScreen({ navigation }: Props) {
       {sheet !== null && (
         <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
           <Pressable style={styles.overlay} onPress={() => setSheet(null)}>
-            <View style={styles.sheetCard} onStartShouldSetResponder={() => true}>
+            <View style={[styles.sheetCard, { paddingBottom: Math.max(insets.bottom, 32) }]} onStartShouldSetResponder={() => true}>
               <View style={styles.sheetHandle} />
               <View style={styles.sheetTitleRow}>
                 <Text style={styles.sheetTitle}>
@@ -1504,7 +1504,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
-    paddingBottom: 32,
     maxHeight: "80%",
   },
   sheetHandle: {
