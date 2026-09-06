@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { StyleSheet, View, ViewStyle } from "react-native";
 import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
 import { GlbAnimationView } from "@/features/animations/GlbAnimationView";
-import { signsApi } from "@/api/signs";
+import { getGlbUrl } from "@/features/animations/glbUrl";
 import { SignPlaceholder } from "./SignPlaceholder";
 
 type Tone = "neutral" | "wrong";
@@ -19,19 +19,10 @@ interface SignAnimationProps {
 }
 
 export function SignAnimation({ meaning, label, height = 320, tone = "neutral", paused, badge, style }: SignAnimationProps) {
-  const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const wrong = tone === "wrong";
 
-  useEffect(() => {
-    setUrl(null);
-    setFailed(false);
-    signsApi.getSignAnimations([meaning]).then((res) => {
-      setUrl(res.data[meaning] ?? null);
-    }).catch(() => {});
-  }, [meaning]);
-
-  if (!url || failed) {
+  if (failed) {
     return <SignPlaceholder label={label} height={height} tone={tone} badge={badge} style={style} />;
   }
 
@@ -42,7 +33,7 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
           <Text style={styles.badgeText}>{badge}</Text>
         </View>
       )}
-      <GlbAnimationView url={url} paused={paused} onError={() => setFailed(true)} />
+      <GlbAnimationView url={getGlbUrl(meaning)} paused={paused} onError={() => setFailed(true)} />
     </View>
   );
 }

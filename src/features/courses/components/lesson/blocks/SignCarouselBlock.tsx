@@ -1,10 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { StyleSheet, TouchableOpacity, View, ViewStyle } from "react-native";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "@/theme";
 import { MultiGlbView } from "@/features/animations/MultiGlbView";
-import { signsApi } from "@/api/signs";
+import { getGlbUrl } from "@/features/animations/glbUrl";
 import { SignPlaceholder } from "../SignPlaceholder";
 import { XpChip } from "../XpChip";
 import { FeedbackBar } from "../FeedbackBar";
@@ -38,17 +38,9 @@ interface CarouselAnimationProps {
  * Switching options is a JS injection — zero WebView reload on swipe.
  */
 function CarouselAnimation({ options, activeIndex, tone, paused, style }: CarouselAnimationProps) {
-  const [urls, setUrls] = useState<string[]>(options.map(() => ""));
   const [failed, setFailed] = useState(false);
   const wrong = tone === "wrong";
-  const activeUrl = urls[activeIndex];
-  const anyUrl = urls.some(Boolean);
-
-  useEffect(() => {
-    signsApi.getSignAnimations(options).then((res) => {
-      setUrls(options.map((m) => res.data[m] ?? ""));
-    }).catch(() => {});
-  }, []);
+  const urls = useMemo(() => options.map(getGlbUrl), [options]);
 
   return (
     <View style={[animStyles.container, wrong && animStyles.containerWrong, style]}>
@@ -58,24 +50,19 @@ function CarouselAnimation({ options, activeIndex, tone, paused, style }: Carous
         </Text>
       </View>
 
-      {anyUrl && !failed ? (
+      {!failed ? (
         <MultiGlbView
           urls={urls}
           activeIndex={activeIndex}
           paused={paused}
           onError={() => setFailed(true)}
         />
-      ) : null}
-
-      {/* Overlay placeholder when the active slot has no URL yet. */}
-      {(!activeUrl || failed) && (
-        <View style={StyleSheet.absoluteFillObject}>
-          <SignPlaceholder
-            label={`avatar 3D · seña ${activeIndex + 1}`}
-            height={330}
-            tone={tone}
-          />
-        </View>
+      ) : (
+        <SignPlaceholder
+          label={`avatar 3D · seña ${activeIndex + 1}`}
+          height={330}
+          tone={tone}
+        />
       )}
     </View>
   );

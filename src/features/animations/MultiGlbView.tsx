@@ -10,7 +10,7 @@ function buildHtml(urls: string[], initialActiveIndex: number): string {
   const viewers = urls
     .map(
       (_, i) =>
-        `<model-viewer class="mv${i === initialActiveIndex ? " active" : ""}" id="mv${i}" autoplay camera-controls camera-orbit="0deg 85deg 100%" min-camera-orbit="auto 60deg auto" max-camera-orbit="auto 110deg auto" interaction-prompt="none" shadow-intensity="1" exposure="1"></model-viewer>`
+        `<model-viewer class="mv${i === initialActiveIndex ? " active" : ""}" id="mv${i}" autoplay loading="eager" camera-controls camera-orbit="0deg 85deg 100%" min-camera-orbit="auto 60deg auto" max-camera-orbit="auto 110deg auto" interaction-prompt="none" shadow-intensity="0" exposure="1"></model-viewer>`
     )
     .join("");
 
@@ -18,10 +18,18 @@ function buildHtml(urls: string[], initialActiveIndex: number): string {
     .map((url, i) => (url ? `ns[${i}].src=${JSON.stringify(url)};` : ""))
     .join("");
 
+  const activeUrl = urls[initialActiveIndex];
+  const preloadActive = activeUrl
+    ? `<link rel="preload" as="fetch" crossorigin href=${JSON.stringify(activeUrl)}>`
+    : "";
+
   return `<!doctype html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<link rel="preconnect" href="https://pub-f40a1de4d1fc46b0b6f07299847c66e0.r2.dev">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+${preloadActive}
 <style>
 html,body{margin:0;height:100%;background:${colors.fill};}
 .mv{position:absolute;inset:0;display:none;}

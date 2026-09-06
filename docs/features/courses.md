@@ -53,13 +53,12 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   This is what backs `minutesToday`/"Meta diaria" in `ProfileScreen` — see
   [../api/endpoints.md](../api/endpoints.md).
 - `components/lesson/`: `LessonHeader` (back + progress + lives), `XpChip`, `FeedbackBar`,
-  `LessonButton`, `SignPlaceholder` (fallback card shown while a meaning's animation URL isn't
-  cached yet — still loading, no animation for that meaning, or the model failed), `SignAnimation`
-  (looks up the meaning in `animationPreload`'s cache and renders `GlbAnimationView`, falling back
-  to `SignPlaceholder`), `NoLivesOverlay`, `LessonComplete` (its three tiles — XP, aciertos, señas
-  nuevas — are filtered to the ones actually **earned**, `> 0`; the row disappears when none is),
-  and `blocks/` with one component per
-  `BlockType` (`InfoBlock`, `IntroduceSignBlock`, `SelectMeaningBlock`, `SelectSignBlock`,
+  `LessonButton`, `SignPlaceholder` (fallback when a model fails to load or a meaning has no
+  animation), `SignAnimation` (derives the GLB URL deterministically via `getGlbUrl(meaning)` and
+  renders `GlbAnimationView`; falls back to `SignPlaceholder` on error), `NoLivesOverlay`,
+  `LessonComplete` (its three tiles — XP, aciertos, señas nuevas — are filtered to the ones
+  actually **earned**, `> 0`; the row disappears when none is), and `blocks/` with one component
+  per `BlockType` (`InfoBlock`, `IntroduceSignBlock`, `SelectMeaningBlock`, `SelectSignBlock`,
   `ContextResponseBlock` and `SelectSignBlock` share `SignCarouselBlock`, `MatchBlock`,
   `VisualRecognitionBlock`). `IntroduceSignBlock` presents a new sign with its full-height
   `SignAnimation` and a "Continuar" button — no answer required, `xpReward` is ignored.
@@ -75,24 +74,13 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   content behind the top one (not empty placeholders), so nothing pops in mid-swipe; on each face
   the title and body are centred vertically under the MITO/VERDAD badge. The "Continuar" button stays available for
   anyone who wants to skip ahead.
-- `animationPreload.ts`: `preloadLessonAnimations(blocks)` — fire-and-forget, errors swallowed,
-  doesn't block the UI. Called in two places: from `HomeTabScreen` as soon as the roadmap loads
-  (pre-fetches the current lesson's animations before the user taps "Comenzar"), and from
-  `LessonScreen` on mount as a fallback (idempotent — cached meanings are skipped).
-  `collectSignMeanings(blocks)` picks the sign *meanings* to look up per block type:
-  `INTRODUCE_SIGN.meaning`, `SELECT_MEANING.sign`, `SELECT_SIGN.options`,
-  `CONTEXT_RESPONSE.options`, `MATCH.concepts`, `VISUAL_RECOGNITION.sign_sequence`
-  (its `options` are plain text, not animated). All pending
-  meanings are resolved in **one** batched request, `signsApi.getSignAnimations` (`POST
-  /signs/animations`, exact-meaning match, presigned URLs). Each URL is cached in
-  `animationUrlCache` immediately (presigned URL); then the GLB binary is downloaded via `fetch()`
-  in the RN layer and converted to a `data:model/gltf-binary;base64,…` URL stored in
-  `glbDataUrlCache`. `getCachedAnimationUrl(meaning)` prefers the data URL so the WebView renders
-  from memory with no network request; it falls back to the presigned URL while the download is
-  still in progress. A meaning absent from the response is cached as `null` — `SignAnimation` falls
-  back to `SignPlaceholder` without retrying. `extractLessonSignNames(lesson)` (in
-  `lessonContent.types.ts`) returns the *taught* meanings (correct answers only, no distractors)
-  for display in the lesson-detail modal chips.
+- **GLB URL construction** (`src/features/animations/glbUrl.ts`): `getGlbUrl(meaning)` builds the
+  public R2 URL deterministically — `https://pub-f40a1de4d1fc46b0b6f07299847c66e0.r2.dev/lsa/{meaning}.glb`.
+  No backend round-trip; no presigned URLs; no cache layer in JS. The WebView engine handles HTTP
+  caching natively (browser cache, shared across all WebView instances in the process). File names
+  are the lowercase meaning, URL-encoded by `encodeURIComponent`. `extractLessonSignNames(lesson)`
+  (in `lessonContent.types.ts`) returns the *taught* meanings (correct answers only, no
+  distractors) for display in the lesson-detail modal chips.
 - `lessonCache.ts`: module-level `Map<lessonId, LessonContent>`. `HomeTabScreen` populates it
   after fetching the current lesson in the background; `LessonScreen` checks it on mount before
   calling the API (cache hit → no loading spinner on lesson entry). The cache is invalidated
