@@ -10,7 +10,7 @@ function buildHtml(urls: string[], initialActiveIndex: number): string {
   const viewers = urls
     .map(
       (_, i) =>
-        `<model-viewer class="mv${i === initialActiveIndex ? " active" : ""}" id="mv${i}" autoplay loading="eager" camera-controls camera-orbit="0deg 85deg 100%" min-camera-orbit="auto 60deg auto" max-camera-orbit="auto 110deg auto" interaction-prompt="none" shadow-intensity="1" exposure="1"></model-viewer>`
+        `<model-viewer class="mv${i === initialActiveIndex ? " active" : ""}" id="mv${i}" autoplay loading="eager" camera-controls camera-orbit="0deg 85deg 100%" min-camera-orbit="auto 60deg auto" max-camera-orbit="auto 110deg auto" interaction-prompt="none" shadow-intensity="0" exposure="1"></model-viewer>`
     )
     .join("");
 
