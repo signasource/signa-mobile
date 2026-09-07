@@ -2,7 +2,7 @@
 
 > Responsibility: UI primitive catalog and shared visual conventions.
 > Update when: a primitive is added/changed, or a shared visual convention changes.
-> Sources: src/components/, src/components/auth/index.ts, src/utils/color.ts
+> Sources: src/components/, src/components/auth/index.ts, src/utils/color.ts, metro.config.js, svg.d.ts
 
 Reuse a primitive before creating a new one. Tokens → [colors.md](./colors.md), [typography.md](./typography.md). Styling rule: `StyleSheet.create()` at file end, tokens only (see [`CLAUDE.md`](../../CLAUDE.md)).
 
@@ -35,6 +35,18 @@ Reuse a primitive before creating a new one. Tokens → [colors.md](./colors.md)
 | `AuthDivider` / `AuthFooter` / `StatusText` | see source | "or" divider, footer with link, status/error text |
 
 Barrel exports (`src/components/auth/index.ts`): `AuthScreen`, `AuthField`, `PrimaryButton`, `SecondaryButton`, `AuthHeading`, `AuthIconBadge`, `AuthDivider`, `AuthFooter`, `StatusText`, `PasswordChecklist`.
+
+## SVG icons & illustrations
+
+- `@expo/vector-icons` (Ionicons, via `FieldIcon`) stays the default for **UI icons** (buttons, fields, badges) — do not switch those to SVG.
+- For one-off vector **icons/illustrations** that aren't in Ionicons (empty states, onboarding art, brand marks), import the `.svg` file directly as a component: `react-native-svg` + `react-native-svg-transformer` are wired in `metro.config.js` (`.svg` moved from `assetExts` to `sourceExts`), with the module type declared in `svg.d.ts`.
+  ```tsx
+  import Illustration from "@assets/illustrations/empty-friends.svg";
+  // ...
+  <Illustration width={120} height={120} />
+  ```
+- Never hardcode a fill/stroke color inside the `.svg` file for anything that must follow theme tokens — leave the color attribute off the root shapes (or set `fill="currentColor"`) and pass `color={colors.*}` as a prop instead, so light/dark and per-screen tinting works like the rest of the design system.
+- Keep source `.svg` files under `assets/` (bundled) alongside existing images; components importing them use `@assets/...`, per the alias rule in [architecture.md](../architecture.md).
 
 `FieldIconName`: `name, user, email, password, token, key, eye, eyeOff` (mapped to Ionicons outline in `FieldIcon`).
 
