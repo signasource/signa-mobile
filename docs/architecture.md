@@ -2,7 +2,7 @@
 
 > Responsibility: layers, folder responsibilities, `screens/` vs `features/` rule, `@/` alias, app boot sequence.
 > Update when: folder structure, import alias, or `App.tsx` startup changes.
-> Sources: App.tsx, babel.config.js, tsconfig.json, app.json, src/
+> Sources: App.tsx, babel.config.js, metro.config.js, tsconfig.json, app.json, src/
 
 ## Layers (`src/`)
 
@@ -43,7 +43,7 @@ Versions live in `package.json` — not duplicated here.
 - Global state: Context API only (no Redux/Zustand).
 - Storage: `expo-secure-store` (tokens) + `@react-native-async-storage/async-storage` (non-sensitive).
 - Fonts: `@expo-google-fonts/*` (Bricolage Grotesque + Figtree).
-- Icons: `@expo/vector-icons` (Ionicons).
+- Icons: `@expo/vector-icons` (Ionicons) for the icon font set; `react-native-svg` for one-off SVG icons/illustrations. See [design-system/components.md](./design-system/components.md#svg-icons--illustrations).
 
 ## Boot sequence (`App.tsx`)
 
@@ -55,5 +55,6 @@ Versions live in `package.json` — not duplicated here.
 
 - `app.json` — app name "Signa", bundle `com.signasource.signamobile`, plugins `expo-font` + `expo-secure-store`, `userInterfaceStyle: light`.
 - `tsconfig.json` — extends `expo/tsconfig.base`, `strict: true`, alias `@/*`.
+- `metro.config.js` — Expo default config plus `react-native-svg-transformer`: `.svg` files are removed from `assetExts` and added to `sourceExts` so they import as React components (`import Icon from "@assets/icon.svg"`) instead of static image assets. Type declaration in `svg.d.ts` (project root, picked up by `tsconfig.json`'s `include`).
 - `.env` — `EXPO_PUBLIC_API_URL` (see [api/http-client.md](./api/http-client.md)).
 - No ESLint/Prettier config (see [status.md](./status.md)).
