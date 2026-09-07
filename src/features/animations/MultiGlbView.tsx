@@ -6,7 +6,13 @@ import { colors } from "@/theme";
 const MODEL_VIEWER_CDN =
   "https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js";
 
-function buildHtml(urls: string[], initialActiveIndex: number): string {
+interface HtmlOptions {
+  layout: GlbLayout;
+  rowHeight: number;
+  rowGap: number;
+}
+
+function buildHtml(urls: string[], initialActiveIndex: number, opts: HtmlOptions): string {
   const viewers = urls
     .map(
       (_, i) =>
@@ -32,13 +38,21 @@ function buildHtml(urls: string[], initialActiveIndex: number): string {
 ${preloadActive}
 <style>
 html,body{margin:0;height:100%;background:${colors.fill};}
-/* width/height are required: model-viewer's :host sets 300x150, and inset:0 only
-   stretches an element whose width/height are auto — without these the canvas stays
-   300x150 CSS px in the corner of the card instead of filling it.
-   visibility (not display:none) keeps the element's layout box: a 0x0 viewer
-   frames its camera wrong, and model-viewer never re-frames when shown. */
-.mv{position:absolute;inset:0;width:100%;height:100%;visibility:hidden;}
-.mv.active{visibility:visible;}
+/* width/height are required in both layouts: model-viewer's :host sets 300x150, and
+   neither inset:0 nor normal flow stretches an element whose width/height are not auto
+   — without them the canvas stays 300x150 CSS px in a corner instead of filling its box. */
+${
+  opts.layout === "rows"
+    ? // Every model visible at once, one per row. CSS px == RN dp, so rowHeight/rowGap
+      // line the rows up with the RN tiles rendered next to them.
+      `.mv{position:relative;display:block;width:100%;height:${opts.rowHeight}px;}
+.mv + .mv{margin-top:${opts.rowGap}px;}`
+    : // One model visible at a time. visibility (not display:none) keeps the element's
+      // layout box: a 0x0 viewer frames its camera wrong, and model-viewer never
+      // re-frames when shown.
+      `.mv{position:absolute;inset:0;width:100%;height:100%;visibility:hidden;}
+.mv.active{visibility:visible;}`
+}
 </style>
 <script type="module" src="${MODEL_VIEWER_CDN}"></script>
 </head>
@@ -65,6 +79,12 @@ ${srcs}
 </html>`;
 }
 
+/**
+ * `stack`: all models occupy the same box, only `activeIndex` is visible (carousel).
+ * `rows`: every model is visible at once, stacked vertically one per row (match grid).
+ */
+export type GlbLayout = "stack" | "rows";
+
 export interface MultiGlbViewProps {
   /**
    * Ordered list of GLB URLs (one per meaning/option).
@@ -72,9 +92,15 @@ export interface MultiGlbViewProps {
    * element gets no src, so the slot stays blank inside the WebView.
    */
   urls: string[];
-  /** 0-based index of the model to display. */
+  /** 0-based index of the model to display. Ignored when `layout` is `rows`. */
   activeIndex: number;
   paused?: boolean;
+  /** Defaults to `stack`. */
+  layout?: GlbLayout;
+  /** `rows` only: height of each row, in dp. */
+  rowHeight?: number;
+  /** `rows` only: vertical space between rows, in dp. */
+  rowGap?: number;
   style?: ViewStyle;
   onError?: (index: number) => void;
 }
@@ -84,13 +110,26 @@ export interface MultiGlbViewProps {
  * model-viewer and switches between them by injecting JS — zero WebView
  * reload when the active model changes.
  */
-export function MultiGlbView({ urls, activeIndex, paused = false, style, onError }: MultiGlbViewProps) {
+export function MultiGlbView({
+  urls,
+  activeIndex,
+  paused = false,
+  layout = "stack",
+  rowHeight = 96,
+  rowGap = 10,
+  style,
+  onError,
+}: MultiGlbViewProps) {
   const webviewRef = useRef<WebView>(null);
 
   // Snapshot initial values so the HTML is built exactly once and never changes.
   const initialUrls = useRef(urls);
   const initialIndex = useRef(activeIndex);
-  const html = useMemo(() => buildHtml(initialUrls.current, initialIndex.current), []);
+  const initialLayout = useRef({ layout, rowHeight, rowGap });
+  const html = useMemo(
+    () => buildHtml(initialUrls.current, initialIndex.current, initialLayout.current),
+    []
+  );
 
   // Always-current refs — updated synchronously during render so effects can
   // read them without stale-closure issues.
@@ -103,6 +142,7 @@ export function MultiGlbView({ urls, activeIndex, paused = false, style, onError
   // state is already encoded in the HTML).
   const prevIndexRef = useRef(activeIndex);
   useEffect(() => {
+    if (initialLayout.current.layout === "rows") return;
     if (prevIndexRef.current === activeIndex) return;
     prevIndexRef.current = activeIndex;
     const play = pausedRef.current ? "" : "mv.play();";
@@ -116,10 +156,12 @@ export function MultiGlbView({ urls, activeIndex, paused = false, style, onError
   useEffect(() => {
     if (prevPausedRef.current === paused) return;
     prevPausedRef.current = paused;
-    const idx = activeIndexRef.current;
-    webviewRef.current?.injectJavaScript(
-      `(function(){var mv=ns[${idx}];if(mv)mv.${paused ? "pause" : "play"}();})();true;`
-    );
+    const method = paused ? "pause" : "play";
+    const target =
+      initialLayout.current.layout === "rows"
+        ? `Object.keys(ns).forEach(function(k){ns[k].${method}();});`
+        : `var mv=ns[${activeIndexRef.current}];if(mv)mv.${method}();`;
+    webviewRef.current?.injectJavaScript(`(function(){${target}})();true;`);
   }, [paused]);
 
   function handleMessage(event: WebViewMessageEvent) {
