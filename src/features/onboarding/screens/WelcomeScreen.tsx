@@ -29,8 +29,11 @@ export function WelcomeScreen({ navigation }: Props) {
         <View style={styles.avatarContainer}>
           <View style={styles.pulseRing} />
           <View style={styles.avatarCircle}>
-            {/* Placeholder de Lisa */}
-            <Text style={styles.lisaPlaceholderText}>Lisa</Text>
+            <Image
+              source={require("@assets/images/lisa-waving.png")}
+              style={styles.lisaImage}
+              resizeMode="contain"
+            />
           </View>
         </View>
 
@@ -130,12 +133,10 @@ const styles = StyleSheet.create({
     shadowRadius: 25,
     elevation: 12,
   },
-  lisaPlaceholderText: {
-    fontFamily: fonts.displaySemiBold,
-    fontSize: 34,
-    color: colors.onPrimary,
-    opacity: 0.85,
-  },
+  // El PNG es cuadrado y la figura esta anclada abajo: el corte de la cadera cae
+  // en la tangente inferior del circulo, donde la curva lo tapa, en vez de quedar
+  // flotando como un tajo horizontal a media altura.
+  lisaImage: { width: "100%", height: "100%" },
   headline: {
     fontFamily: fonts.displaySemiBold,
     fontSize: 40,
