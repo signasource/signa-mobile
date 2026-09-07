@@ -32,8 +32,13 @@ function buildHtml(urls: string[], initialActiveIndex: number): string {
 ${preloadActive}
 <style>
 html,body{margin:0;height:100%;background:${colors.fill};}
-.mv{position:absolute;inset:0;display:none;}
-.mv.active{display:block;}
+/* width/height are required: model-viewer's :host sets 300x150, and inset:0 only
+   stretches an element whose width/height are auto — without these the canvas stays
+   300x150 CSS px in the corner of the card instead of filling it.
+   visibility (not display:none) keeps the element's layout box: a 0x0 viewer
+   frames its camera wrong, and model-viewer never re-frames when shown. */
+.mv{position:absolute;inset:0;width:100%;height:100%;visibility:hidden;}
+.mv.active{visibility:visible;}
 </style>
 <script type="module" src="${MODEL_VIEWER_CDN}"></script>
 </head>
@@ -42,10 +47,14 @@ ${viewers}
 <script>
 var post=function(m){if(window.ReactNativeWebView)window.ReactNativeWebView.postMessage(JSON.stringify(m));};
 var ns={};
+// Frame the upper body. Exposed on window so switching options can re-frame.
+window.frameMv=function(mv){
+  try{var d=mv.getDimensions(),c=mv.getBoundingBoxCenter(),ty=c.y+d.y*0.30;mv.cameraTarget='0m '+ty.toFixed(3)+'m 0m';mv.fieldOfView='15deg';}catch(_){}
+};
 document.querySelectorAll('.mv').forEach(function(mv,i){
   ns[i]=mv;
   mv.addEventListener('load',function(){
-    try{var d=mv.getDimensions(),c=mv.getBoundingBoxCenter(),ty=c.y+d.y*0.30;mv.cameraTarget='0m '+ty.toFixed(3)+'m 0m';mv.fieldOfView='15deg';}catch(_){}
+    window.frameMv(mv);
     post({type:'loaded',index:i});
   });
   mv.addEventListener('error',function(e){post({type:'error',index:i,message:(e&&e.detail&&e.detail.type)||'error'});});
@@ -98,7 +107,7 @@ export function MultiGlbView({ urls, activeIndex, paused = false, style, onError
     prevIndexRef.current = activeIndex;
     const play = pausedRef.current ? "" : "mv.play();";
     webviewRef.current?.injectJavaScript(
-      `(function(){Object.keys(ns).forEach(function(k){ns[k].className=ns[k].className.replace(/\\bactive\\b/,"").trim();ns[k].pause();});var mv=ns[${activeIndex}];if(mv){mv.className+=" active";${play}}})();true;`
+      `(function(){Object.keys(ns).forEach(function(k){ns[k].className=ns[k].className.replace(/\\bactive\\b/,"").trim();ns[k].pause();});var mv=ns[${activeIndex}];if(mv){mv.className+=" active";window.frameMv(mv);${play}}})();true;`
     );
   }, [activeIndex]);
 
