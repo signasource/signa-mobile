@@ -3,6 +3,7 @@ import { NavigatorScreenParams } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ChangePasswordScreen } from "@/screens/ChangePasswordScreen";
 import { ConfigurationScreen } from "@/screens/ConfigurationScreen";
+import { EditProfileScreen } from "@/screens/EditProfileScreen";
 import { ConnectionTestScreen } from "@/screens/ConnectionTestScreen";
 import { LessonScreen } from "@/features/courses/screens/LessonScreen";
 import { SignRecognitionScreen } from "@/features/ml/screens/SignRecognitionScreen";
@@ -16,6 +17,7 @@ export type AppStackParamList = {
   Tabs: NavigatorScreenParams<TabParamList> | undefined;
   ChangePassword: undefined;
   Configuration: undefined;
+  EditProfile: { name: string; lastName: string; username: string };
   Lesson: { lessonId: string; unitLabel?: string; signsCount?: number };
   Notifications: undefined;
   PublicProfile: { username: string };
@@ -41,8 +43,9 @@ export function AppNavigator() {
       }}
     >
       <Stack.Screen name="Tabs" component={TabNavigator} options={{ headerShown: false }} />
-      <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} options={{ title: "Cambiar contrasena" }} />
+      <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Configuration" component={ConfigurationScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Lesson" component={LessonScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="PublicProfile" component={PublicProfileScreen} options={{ headerShown: false }} />

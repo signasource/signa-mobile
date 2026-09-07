@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   DimensionValue,
@@ -9,10 +9,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AppStackParamList } from "@/navigation/AppNavigator";
 import { colors, fonts } from "@/theme";
@@ -21,10 +21,8 @@ import { BackButton } from "@/components/BackButton";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { usersApi } from "@/api/users";
-import { useUsernameAvailability } from "@/hooks/useUsernameAvailability";
 
 type Props = NativeStackScreenProps<AppStackParamList, "Configuration">;
-type Modal = null | "edit" | "password";
 type Sheet = null | "color" | "vis" | "time";
 type Dialog = null | "logout" | "delete";
 type FontSizeId = "SMALL" | "MEDIUM" | "LARGE";
@@ -123,7 +121,7 @@ function fillAccent(hex: string): string {
 
 export function ConfigurationScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { changePassword, logout } = useAuth();
+  const { logout } = useAuth();
   const { fontSizeId: fontSize, setFontSizeId: setFontSize } = useSettings();
 
   const [loading, setLoading] = useState(true);
@@ -146,23 +144,7 @@ export function ConfigurationScreen({ navigation }: Props) {
   const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
 
-  // Edit profile draft
-  const [editName, setEditName] = useState("");
-  const [editLastName, setEditLastName] = useState("");
-  const [editUsername, setEditUsername] = useState("");
-
-  // Password state
-  const [pwCurrent, setPwCurrent] = useState("");
-  const [pwNext, setPwNext] = useState("");
-  const [pwRepeat, setPwRepeat] = useState("");
-  const [showCur, setShowCur] = useState(false);
-  const [showNext, setShowNext] = useState(false);
-  const [showRepeat, setShowRepeat] = useState(false);
-  const [savingPassword, setSavingPassword] = useState(false);
-  const [pwError, setPwError] = useState<string | null>(null);
-
   // UI overlays
-  const [modal, setModal] = useState<Modal>(null);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [dialog, setDialog] = useState<Dialog>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -172,16 +154,17 @@ export function ConfigurationScreen({ navigation }: Props) {
   const minuteScrollRef = useRef<ScrollView>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { status: usernameStatus, message: usernameMessage } = useUsernameAvailability(
-    editUsername.trim() === username ? "" : editUsername
-  );
-
   useEffect(() => {
-    loadData();
     return () => {
       if (toastTimer.current) clearTimeout(toastTimer.current);
     };
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
 
   useEffect(() => {
     if (sheet !== "time") return;
@@ -251,52 +234,11 @@ export function ConfigurationScreen({ navigation }: Props) {
   }
 
   function openEdit() {
-    setEditName(displayName);
-    setEditLastName(lastName);
-    setEditUsername(username);
-    setModal("edit");
+    navigation.navigate("EditProfile", { name: displayName, lastName, username });
   }
 
   function openPassword() {
-    setPwCurrent("");
-    setPwNext("");
-    setPwRepeat("");
-    setShowCur(false);
-    setShowNext(false);
-    setShowRepeat(false);
-    setPwError(null);
-    setModal("password");
-  }
-
-  async function handleSaveProfile() {
-    const trimmed = editUsername.trim();
-    if (trimmed !== username) {
-      try {
-        await usersApi.updateUsername(trimmed);
-        setUsername(trimmed);
-      } catch {
-        // keep local
-      }
-    }
-    setDisplayName(editName.trim());
-    setLastName(editLastName.trim());
-    setModal(null);
-    showToast("Perfil actualizado");
-  }
-
-  async function handleChangePassword() {
-    if (savingPassword) return;
-    setSavingPassword(true);
-    setPwError(null);
-    try {
-      await changePassword({ currentPassword: pwCurrent, newPassword: pwNext });
-      setModal(null);
-      showToast("Contraseña actualizada");
-    } catch (err: any) {
-      setPwError(err?.response?.data?.message ?? "No se pudo cambiar la contraseña");
-    } finally {
-      setSavingPassword(false);
-    }
+    navigation.navigate("ChangePassword");
   }
 
   async function handleLogout() {
@@ -326,15 +268,6 @@ export function ConfigurationScreen({ navigation }: Props) {
     headerColor;
   const fullName = [displayName, lastName].filter(Boolean).join(" ");
 
-  const pwLenOk = pwNext.length >= 8;
-  const pwRepeatMismatch = pwRepeat.length > 0 && pwRepeat !== pwNext;
-  const pwReady =
-    pwCurrent.length > 0 && pwLenOk && pwRepeat === pwNext && pwRepeat.length > 0;
-  const profileReady =
-    editName.trim().length > 0 &&
-    usernameStatus !== "taken" &&
-    usernameStatus !== "invalid" &&
-    usernameStatus !== "checking";
   const deleteReady = deleteConfirm.trim().toUpperCase() === "ELIMINAR";
 
   // ─── sub-components ───────────────────────────────────────────
@@ -637,288 +570,6 @@ export function ConfigurationScreen({ navigation }: Props) {
 
           <Text style={styles.versionText}>Signa 1.4.0</Text>
         </ScrollView>
-      )}
-
-      {/* ── Edit profile modal ── */}
-      {modal === "edit" && (
-        <View style={StyleSheet.absoluteFillObject}>
-          <Pressable style={styles.modalOverlay} onPress={() => setModal(null)}>
-            <KeyboardAwareScrollView
-              style={styles.modalCard}
-              contentContainerStyle={styles.modalCardContent}
-              onStartShouldSetResponder={() => true}
-              keyboardShouldPersistTaps="handled"
-              enableOnAndroid
-              extraScrollHeight={20}
-            >
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Editar perfil</Text>
-                <TouchableOpacity
-                  style={styles.modalClose}
-                  onPress={() => setModal(null)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="close-outline" size={16} color={colors.neutral900} />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.avatarSection}>
-                <View style={[styles.avatar, { backgroundColor: accentSoft }]}>
-                  <Text style={[styles.avatarInitials, { color: accent }]}>
-                    {(editName[0] ?? "").toUpperCase()}
-                    {(editLastName[0] ?? editName[1] ?? "").toUpperCase()}
-                  </Text>
-                </View>
-              </View>
-
-              <Text style={styles.fieldLabel}>Nombre</Text>
-              <View style={styles.fieldWrap}>
-                <Ionicons name="person-outline" size={20} color={colors.textMuted} />
-                <TextInput
-                  style={styles.fieldInput}
-                  value={editName}
-                  onChangeText={setEditName}
-                  placeholder="Tu nombre"
-                  placeholderTextColor={colors.neutral600}
-                />
-              </View>
-
-              <Text style={styles.fieldLabel}>Apellido</Text>
-              <View style={styles.fieldWrap}>
-                <Ionicons name="person-outline" size={20} color={colors.textMuted} />
-                <TextInput
-                  style={styles.fieldInput}
-                  value={editLastName}
-                  onChangeText={setEditLastName}
-                  placeholder="Tu apellido"
-                  placeholderTextColor={colors.neutral600}
-                />
-              </View>
-
-              <Text style={styles.fieldLabel}>Usuario</Text>
-              <View
-                style={[
-                  styles.fieldWrap,
-                  (usernameStatus === "taken" || usernameStatus === "invalid") && {
-                    backgroundColor: colors.surface,
-                    shadowColor: colors.danger,
-                    shadowOffset: { width: 0, height: 0 },
-                    shadowOpacity: 1,
-                    shadowRadius: 0,
-                    elevation: 0,
-                    borderWidth: 1.5,
-                    borderColor: colors.danger,
-                  },
-                ]}
-              >
-                <Ionicons name="at-outline" size={20} color={colors.textMuted} />
-                <TextInput
-                  style={styles.fieldInput}
-                  value={editUsername}
-                  onChangeText={setEditUsername}
-                  placeholder="usuario"
-                  placeholderTextColor={colors.neutral600}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                {usernameStatus === "available" && (
-                  <Ionicons name="checkmark-circle" size={19} color={colors.success} />
-                )}
-                {(usernameStatus === "taken" || usernameStatus === "invalid") && (
-                  <Ionicons name="close-circle" size={19} color={colors.danger} />
-                )}
-                {usernameStatus === "checking" && (
-                  <Ionicons name="ellipsis-horizontal" size={19} color={colors.neutral600} />
-                )}
-              </View>
-              {usernameMessage && (
-                <Text
-                  style={[
-                    styles.fieldHint,
-                    usernameStatus === "available"
-                      ? { color: colors.success }
-                      : { color: colors.danger },
-                  ]}
-                >
-                  {usernameMessage}
-                </Text>
-              )}
-
-              <PrimaryBtn
-                label="Guardar cambios"
-                disabled={!profileReady}
-                onPress={handleSaveProfile}
-              />
-              <TouchableOpacity
-                style={styles.secondaryBtn}
-                onPress={() => setModal(null)}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.secondaryBtnText}>Cancelar</Text>
-              </TouchableOpacity>
-            </KeyboardAwareScrollView>
-          </Pressable>
-        </View>
-      )}
-
-      {/* ── Change password modal ── */}
-      {modal === "password" && (
-        <View style={StyleSheet.absoluteFillObject}>
-          <Pressable style={styles.modalOverlay} onPress={() => setModal(null)}>
-            <KeyboardAwareScrollView
-              style={styles.modalCard}
-              contentContainerStyle={styles.modalCardContent}
-              onStartShouldSetResponder={() => true}
-              keyboardShouldPersistTaps="handled"
-              enableOnAndroid
-              extraScrollHeight={20}
-            >
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Cambiar contraseña</Text>
-                <TouchableOpacity
-                  style={styles.modalClose}
-                  onPress={() => setModal(null)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="close-outline" size={16} color={colors.neutral900} />
-                </TouchableOpacity>
-              </View>
-
-              <Text style={styles.pwNote}>
-                Vas a necesitar tu contraseña actual. Después de guardar seguís con la sesión
-                abierta en este dispositivo.
-              </Text>
-
-              <Text style={styles.fieldLabel}>Contraseña actual</Text>
-              <View style={styles.fieldWrap}>
-                <Ionicons name="lock-closed-outline" size={20} color={colors.textMuted} />
-                <TextInput
-                  style={styles.fieldInput}
-                  value={pwCurrent}
-                  onChangeText={setPwCurrent}
-                  placeholder="••••••••"
-                  placeholderTextColor={colors.neutral600}
-                  secureTextEntry={!showCur}
-                />
-                <TouchableOpacity onPress={() => setShowCur((v) => !v)} style={styles.eyeBtn}>
-                  <Ionicons
-                    name={showCur ? "eye-off-outline" : "eye-outline"}
-                    size={20}
-                    color={colors.textMuted}
-                  />
-                </TouchableOpacity>
-              </View>
-
-              <Text style={styles.fieldLabel}>Nueva contraseña</Text>
-              <View style={styles.fieldWrap}>
-                <Ionicons name="key-outline" size={20} color={colors.textMuted} />
-                <TextInput
-                  style={styles.fieldInput}
-                  value={pwNext}
-                  onChangeText={setPwNext}
-                  placeholder="••••••••"
-                  placeholderTextColor={colors.neutral600}
-                  secureTextEntry={!showNext}
-                />
-                <TouchableOpacity onPress={() => setShowNext((v) => !v)} style={styles.eyeBtn}>
-                  <Ionicons
-                    name={showNext ? "eye-off-outline" : "eye-outline"}
-                    size={20}
-                    color={colors.textMuted}
-                  />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.ruleRow}>
-                <Text
-                  style={[
-                    styles.ruleMark,
-                    {
-                      color: pwLenOk
-                        ? colors.success
-                        : pwNext.length === 0
-                          ? colors.neutral600
-                          : colors.danger,
-                    },
-                  ]}
-                >
-                  {pwLenOk ? "✓" : "✗"}
-                </Text>
-                <Text
-                  style={[
-                    styles.ruleText,
-                    {
-                      color: pwLenOk
-                        ? colors.success
-                        : pwNext.length === 0
-                          ? colors.neutral600
-                          : colors.danger,
-                    },
-                  ]}
-                >
-                  Al menos 8 caracteres
-                </Text>
-              </View>
-
-              <Text style={styles.fieldLabel}>Repetir nueva contraseña</Text>
-              <View
-                style={[
-                  styles.fieldWrap,
-                  pwRepeatMismatch && {
-                    backgroundColor: colors.surface,
-                    borderWidth: 1.5,
-                    borderColor: colors.danger,
-                  },
-                ]}
-              >
-                <Ionicons name="key-outline" size={20} color={colors.textMuted} />
-                <TextInput
-                  style={styles.fieldInput}
-                  value={pwRepeat}
-                  onChangeText={setPwRepeat}
-                  placeholder="••••••••"
-                  placeholderTextColor={colors.neutral600}
-                  secureTextEntry={!showRepeat}
-                />
-                <TouchableOpacity onPress={() => setShowRepeat((v) => !v)} style={styles.eyeBtn}>
-                  <Ionicons
-                    name={showRepeat ? "eye-off-outline" : "eye-outline"}
-                    size={20}
-                    color={colors.textMuted}
-                  />
-                </TouchableOpacity>
-              </View>
-              {(pwRepeatMismatch || (pwRepeat.length > 0 && !pwRepeatMismatch)) && (
-                <Text
-                  style={[
-                    styles.fieldHint,
-                    { color: pwRepeatMismatch ? colors.danger : colors.success },
-                  ]}
-                >
-                  {pwRepeatMismatch ? "Las contraseñas no coinciden" : "Coinciden"}
-                </Text>
-              )}
-
-              {pwError && (
-                <Text style={[styles.fieldHint, { color: colors.danger, marginTop: 4 }]}>
-                  {pwError}
-                </Text>
-              )}
-
-              <PrimaryBtn
-                label={savingPassword ? "Guardando…" : "Guardar"}
-                disabled={!pwReady}
-                onPress={handleChangePassword}
-              />
-              <TouchableOpacity
-                style={styles.secondaryBtn}
-                onPress={() => setModal(null)}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.secondaryBtnText}>Cancelar</Text>
-              </TouchableOpacity>
-            </KeyboardAwareScrollView>
-          </Pressable>
-        </View>
       )}
 
       {/* ── Bottom sheets ── */}
