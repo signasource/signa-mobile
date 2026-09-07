@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Pressable, ScrollView, StyleSheet, StatusBar } from "react-native";
+import { View, Image, Pressable, ScrollView, StyleSheet, StatusBar } from "react-native";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -27,8 +27,11 @@ export function IntroScreen({ navigation }: Props) {
           <View style={styles.circleTopRight} />
           <View style={styles.circleTopLeft} />
           <View style={styles.lisaPlaceholder}>
-            {/* Placeholder de Lisa */}
-            <Text style={styles.lisaPlaceholderText}>Lisa</Text>
+            <Image
+              source={require("@assets/images/lisa-arms-crossed.png")}
+              style={styles.lisaImage}
+              resizeMode="contain"
+            />
           </View>
           {/* Name badge */}
           <View style={styles.badge}>
@@ -122,12 +125,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  lisaPlaceholderText: {
-    fontFamily: fonts.displaySemiBold,
-    fontSize: 40,
-    color: colors.white,
-    opacity: 0.8,
-  },
+  // `contain` sobre el alto de la card: la figura queda centrada y el recorte
+  // llega hasta la cadera, asi que la esquina inferior izquierda queda libre
+  // para el badge.
+  lisaImage: { width: "100%", height: "100%" },
   badge: {
     position: "absolute",
     left: 16,
