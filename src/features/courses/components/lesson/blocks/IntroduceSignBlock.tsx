@@ -92,11 +92,11 @@ export function IntroduceSignBlock({ config, onContinue }: IntroduceSignBlockPro
         </View>
 
         <Text style={styles.word}>{config.word}</Text>
-        <SignAnimation meaning={config.meaning} label={config.word} height={340} />
+        <SignAnimation meaning={config.meaning} label={config.word} badge="animación LSA" height={340} />
       </View>
 
       <View style={styles.footer}>
-        <LessonButton label="Continuar" onPress={onContinue} />
+        <LessonButton label="La practico" onPress={onContinue} />
       </View>
 
       <Modal visible={view !== null} transparent animationType="slide" onRequestClose={closeModal}>

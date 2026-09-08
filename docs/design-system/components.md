@@ -40,7 +40,7 @@ Barrel exports (`src/components/auth/index.ts`): `AuthScreen`, `AuthField`, `Pri
 ## SVG icons & illustrations
 
 - `@expo/vector-icons` (Ionicons, via `FieldIcon`) stays the default for **UI icons** (buttons, fields, badges) — do not switch those to SVG.
-- For one-off vector **icons/illustrations** that aren't in Ionicons (empty states, onboarding art, brand marks), import the `.svg` file directly as a component: `react-native-svg` + `react-native-svg-transformer` are wired in `metro.config.js` (`.svg` moved from `assetExts` to `sourceExts`), with the module type declared in `svg.d.ts`.
+- For one-off vector **icons/illustrations** that aren't in Ionicons (empty states, onboarding art, brand marks), import the `.svg` file directly as a component: `react-native-svg` + `react-native-svg-transformer` are wired in `metro.config.js` (`.svg` moved from `assetExts` to `sourceExts`), with the module type declared in `svg.d.ts`. Exception: the lesson blocks' correct/incorrect indicators (`assets/ilus/check.svg`, `assets/ilus/denied.svg` — two-tone spot illustrations, not line icons) replace the Ionicons `checkmark-circle`/`close-circle` glyphs in `FeedbackBar` and the option-button states in `SelectMeaningBlock`/`VisualRecognitionBlock`/`MatchBlock`.
   ```tsx
   import Illustration from "@assets/illustrations/empty-friends.svg";
   // ...
