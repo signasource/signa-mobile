@@ -142,7 +142,7 @@ export function HomeTabScreen({ navigation }: Props) {
         </View>
       ) : error ? (
         <View style={styles.centerFill}>
-          <EmptyState icon="cloud-offline-outline" title="No pudimos cargar tu curso" description={error} />
+          <EmptyState title="No pudimos cargar tu curso" description={error} />
           <TouchableOpacity style={styles.retryButton} onPress={load} activeOpacity={0.85}>
             <Text style={styles.retryButtonText}>Reintentar</Text>
           </TouchableOpacity>
@@ -164,7 +164,6 @@ export function HomeTabScreen({ navigation }: Props) {
           ))}
           {roadmap && roadmap.topics.length === 0 && (
             <EmptyState
-              icon="book-outline"
               title="Todavía no hay contenido"
               description="Cuando este curso tenga lecciones, las vas a ver acá."
             />

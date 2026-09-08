@@ -488,7 +488,7 @@ export function SocialScreen({ navigation }: Props) {
         </View>
       ) : error ? (
         <View style={styles.centered}>
-          <EmptyState icon="cloud-offline-outline" title="No pudimos cargar" description={error} />
+          <EmptyState title="No pudimos cargar" description={error} />
           <TouchableOpacity style={styles.retry} onPress={load}>
             <Text style={styles.retryLabel}>Reintentar</Text>
           </TouchableOpacity>
@@ -506,7 +506,6 @@ export function SocialScreen({ navigation }: Props) {
               <Text style={styles.sectionLabel}>ACTIVIDAD RECIENTE</Text>
               {events.length === 0 ? (
                 <EmptyState
-                  icon="pulse-outline"
                   title="Todavía no hay actividad"
                   description="Cuando tus amigos completen lecciones o desbloqueen logros, lo vas a ver acá."
                 />
@@ -580,7 +579,6 @@ export function SocialScreen({ navigation }: Props) {
                     results.length === 0 &&
                     trimmedQuery.length >= MIN_QUERY_LENGTH && (
                       <EmptyState
-                        icon="search"
                         title="Sin resultados"
                         description="Probá con el nombre completo o el usuario exacto."
                       />
@@ -601,7 +599,6 @@ export function SocialScreen({ navigation }: Props) {
                   {section === "amigos" ? (
                     friends.length === 0 ? (
                       <EmptyState
-                        icon="people-outline"
                         title="Todavía no tenés amigos"
                         description="Buscá a alguien por su usuario y mandale una solicitud."
                       />

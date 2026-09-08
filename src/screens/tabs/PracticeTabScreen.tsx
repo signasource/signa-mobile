@@ -166,7 +166,6 @@ function SignsTab({
 
       {noResults ? (
         <EmptyState
-          icon="search"
           title="Sin resultados"
           description="Probá con otra palabra: sólo aparecen las señas que ya aprendiste."
         />

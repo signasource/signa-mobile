@@ -304,7 +304,7 @@ export function StoreTabScreen() {
         </View>
       ) : error && items.length === 0 ? (
         <View style={styles.centerFill}>
-          <EmptyState icon="cloud-offline-outline" title="No pudimos cargar la tienda" description={error} />
+          <EmptyState title="No pudimos cargar la tienda" description={error} />
           <TouchableOpacity style={styles.retryButton} onPress={loadShop} activeOpacity={0.85}>
             <Text style={styles.retryButtonText}>Reintentar</Text>
           </TouchableOpacity>
@@ -390,7 +390,6 @@ export function StoreTabScreen() {
           })}
           {visibleItems.length === 0 && (
             <EmptyState
-              icon="pricetags-outline"
               title="Sin ítems por ahora"
               description="No hay ítems disponibles en esta categoría."
             />

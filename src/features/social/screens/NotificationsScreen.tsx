@@ -59,7 +59,7 @@ export function NotificationsScreen({ navigation }: Props) {
         </View>
       ) : error ? (
         <View style={styles.centered}>
-          <EmptyState icon="cloud-offline-outline" title="No pudimos cargar" description={error} />
+          <EmptyState title="No pudimos cargar" description={error} />
           <TouchableOpacity style={styles.retry} onPress={load}>
             <Text style={styles.retryLabel}>Reintentar</Text>
           </TouchableOpacity>
@@ -67,7 +67,6 @@ export function NotificationsScreen({ navigation }: Props) {
       ) : notifications.length === 0 ? (
         <View style={styles.centered}>
           <EmptyState
-            icon="notifications-outline"
             title="Sin notificaciones"
             description="Acá vas a ver los me gusta, las solicitudes y los logros de tus amigos."
           />

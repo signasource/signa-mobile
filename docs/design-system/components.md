@@ -14,7 +14,7 @@ Reuse a primitive before creating a new one. Tokens → [colors.md](./colors.md)
 | `ScreenHeader` | `title, description?, paddingTop, tone, stats?, left?, right?, children?, compact?` | **the** colored hero header of every top-level screen |
 | `SegmentedControl` | `options(Segment[]), value, onChange, style?` | primary selector (full width, black active) |
 | `SubTabs` | `options(SubTab[]), value, onChange, style?` | secondary selector (outlined pills + icon) |
-| `EmptyState` / `EmptyNote` | `icon, title, description` / `children` | the single empty-state style |
+| `EmptyState` / `EmptyNote` | `title, description` / `children` | the single empty-state style; illustration is a random pick from `EmptyStateArt`'s spiderweb pool (`@assets/ilus/spiderweb.svg`, `mano-con-spiderweb-1/2.svg`, `mano-con-spiderweb-negra.svg`) |
 | `Input` | `label, error?` + `TextInputProps` | generic form field |
 | `Card` | `style?` + `ViewProps` | soft-shadow container, radius 16 |
 | `BackButton` | `onPress, visible?, color?, style?` | back chevron, no background |
