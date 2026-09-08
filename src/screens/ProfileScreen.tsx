@@ -564,7 +564,6 @@ export function ProfileScreen({ navigation }: Props) {
         <View style={styles.section}>
           <SectionTitle icon="school" label="Cursos" />
           <EmptyState
-            icon="school-outline"
             title="Sin cursos todavía"
             description="Cuando empieces un curso va a aparecer acá tu progreso."
           />
