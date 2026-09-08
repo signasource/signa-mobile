@@ -15,7 +15,7 @@ const BASE_TAB_BAR_PADDING_TOP = 12;
 export type TabParamList = {
   Home: undefined;
   Practice: undefined;
-  Store: undefined;
+  Store: { fromLesson?: boolean } | undefined;
   Social: undefined;
   Profile: undefined;
 };
