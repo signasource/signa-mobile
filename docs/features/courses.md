@@ -52,19 +52,26 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   unmount, capped at 5 minutes per request to match the backend's `RecordActivityRequest` validation.
   This is what backs `minutesToday`/"Meta diaria" in `ProfileScreen` — see
   [../api/endpoints.md](../api/endpoints.md).
-- `components/lesson/`: `LessonHeader` (back + progress + lives), `XpChip`, `FeedbackBar`,
-  `LessonButton`, `SignPlaceholder` (fallback when a model fails to load or a meaning has no
-  animation), `SignAnimation` (derives the GLB URL deterministically via `getGlbUrl(meaning)` and
-  renders `GlbAnimationView`; falls back to `SignPlaceholder` on error), `NoLivesOverlay`,
-  `LessonComplete` (its three tiles — XP, aciertos, señas nuevas — are filtered to the ones
-  actually **earned**, `> 0`; the row disappears when none is), and `blocks/` with one component
-  per `BlockType` (`InfoBlock`, `IntroduceSignBlock`, `SelectMeaningBlock`, `SelectSignBlock`,
-  `ContextResponseBlock` and `SelectSignBlock` share `SignCarouselBlock`, `MatchBlock`,
-  `VisualRecognitionBlock`). `IntroduceSignBlock` presents a new sign with its full-height
-  `SignAnimation` and a "Continuar" button — no answer required, `xpReward` is ignored.
-  `SelectMeaningBlock` and `SignCarouselBlock` (so `SelectSignBlock`/`ContextResponseBlock`) render
-  the sign via `SignAnimation`; `MatchBlock`/`VisualRecognitionBlock` still use static
-  cards/swatches (they show many signs at once, not one at a time).
+- `components/lesson/`: `LessonHeader` (back + progress + lives), `XpChip`, `FeedbackBar`
+  (correct/incorrect banner — icon is the `check.svg`/`denied.svg` spot illustration, not an
+  Ionicon), `LessonButton`, `SignPlaceholder` (fallback when a model fails to load or a meaning has
+  no animation; also used in a `preparing` mode — `pajaros-grupo-pequeno.svg` illustration +
+  "La animación se está preparando" — while the GLB is still loading), `SignAnimation` (derives the
+  GLB URL deterministically via `getGlbUrl(meaning)`, renders `GlbAnimationView`, and overlays
+  `SignPlaceholder preparing` until the model's `onLoaded` fires or `SignPlaceholder` on `onError`),
+  `NoLivesOverlay`, `LessonComplete` (its three tiles — XP, aciertos, señas nuevas — are filtered to
+  the ones actually **earned**, `> 0`; the row disappears when none is), and `blocks/` with one
+  component per `BlockType` (`InfoBlock`, `IntroduceSignBlock`, `SelectMeaningBlock`,
+  `SelectSignBlock`, `ContextResponseBlock` and `SelectSignBlock` share `SignCarouselBlock`,
+  `MatchBlock`, `VisualRecognitionBlock`). `IntroduceSignBlock` presents a new sign with its
+  full-height `SignAnimation` and a "La practico" button — no answer required, `xpReward` is
+  ignored. `SelectMeaningBlock` and `SignCarouselBlock` (so `SelectSignBlock`/`ContextResponseBlock`)
+  render the sign via `SignAnimation`; `MatchBlock`/`VisualRecognitionBlock` still use static
+  cards/swatches (they show many signs at once, not one at a time). Answer-option buttons across
+  `SelectMeaningBlock`/`VisualRecognitionBlock`/`MatchBlock` share the same idle look — flat
+  `colors.fill` background, no border — and the same `check.svg`/`denied.svg` icons for the
+  correct/wrong states (no shared `OptionButton` component yet, each block still owns its own
+  option styles).
 - `InfoBlock`: paragraphs are linkified by `blocks/richText.tsx` (`renderTextWithLinks`), which
   understands both markdown `[label](url)` and bare `http(s)://…` and opens them with `Linking`.
   When the config carries `myths`, they render as `blocks/MythDeck.tsx` instead of a static list:

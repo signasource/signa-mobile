@@ -1,13 +1,14 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Text } from "@/components/Text";
-import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "@/theme";
 import { MatchConfig } from "@/features/courses/lessonContent.types";
 import { MultiGlbView } from "@/features/animations/MultiGlbView";
 import { getGlbUrl } from "@/features/animations/glbUrl";
 import { XpChip } from "../XpChip";
 import { LessonButton } from "../LessonButton";
+import Check from "@assets/ilus/check.svg";
+import Denied from "@assets/ilus/denied.svg";
 
 interface MatchBlockProps {
   config: MatchConfig;
@@ -92,13 +93,8 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
 
   function StateIcon({ state }: { state: ReturnType<typeof tileState> }) {
     if (state !== "matched" && state !== "wrong") return null;
-    return (
-      <Ionicons
-        name={state === "matched" ? "checkmark-circle" : "close-circle"}
-        size={18}
-        color={state === "matched" ? colors.successDark : colors.danger}
-      />
-    );
+    const Icon = state === "matched" ? Check : Denied;
+    return <Icon width={18} height={18} />;
   }
 
   /**
@@ -228,9 +224,8 @@ const styles = StyleSheet.create({
   tile: {
     height: ROW_HEIGHT,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderWidth: 0,
+    backgroundColor: colors.fill,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

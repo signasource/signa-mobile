@@ -10,6 +10,8 @@ import { getGlbUrl } from "@/features/animations/glbUrl";
 import { XpChip } from "../XpChip";
 import { FeedbackBar } from "../FeedbackBar";
 import { LessonButton } from "../LessonButton";
+import Check from "@assets/ilus/check.svg";
+import Denied from "@assets/ilus/denied.svg";
 
 interface VisualRecognitionBlockProps {
   config: VisualRecognitionConfig;
@@ -117,8 +119,8 @@ export function VisualRecognitionBlock({ config, xp, onAnswer, onContinue }: Vis
                 activeOpacity={0.85}
                 style={[styles.option, isMarked && styles.optionMarked, isWrong && styles.optionWrong]}
               >
-                {isMarked && <Ionicons name="checkmark-circle" size={17} color={colors.successDark} />}
-                {isWrong && <Ionicons name="close-circle" size={17} color={colors.danger} />}
+                {isMarked && <Check width={18} height={18} />}
+                {isWrong && <Denied width={18} height={18} />}
                 <Text
                   style={[
                     styles.optionText,
@@ -200,9 +202,8 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     minHeight: 56,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderWidth: 0,
+    backgroundColor: colors.fill,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

@@ -20,6 +20,7 @@ interface SignAnimationProps {
 
 export function SignAnimation({ meaning, label, height = 320, tone = "neutral", paused, badge, style }: SignAnimationProps) {
   const [failed, setFailed] = useState(false);
+  const [ready, setReady] = useState(false);
   const wrong = tone === "wrong";
 
   if (failed) {
@@ -33,7 +34,15 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
           <Text style={styles.badgeText}>{badge}</Text>
         </View>
       )}
-      <GlbAnimationView url={getGlbUrl(meaning)} paused={paused} onError={() => setFailed(true)} />
+      <GlbAnimationView
+        url={getGlbUrl(meaning)}
+        paused={paused}
+        onLoaded={() => setReady(true)}
+        onError={() => setFailed(true)}
+      />
+      {!ready && (
+        <SignPlaceholder label={label} height={height} tone={tone} preparing style={StyleSheet.absoluteFillObject} />
+      )}
     </View>
   );
 }
