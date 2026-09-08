@@ -10,6 +10,7 @@ import {
   StyleProp,
   ViewStyle,
 } from "react-native";
+import PictureIllustration from "@assets/ilus/picture.svg";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -368,13 +369,11 @@ export function ProfileScreen({ navigation }: Props) {
     {
       key: "unlocked",
       label: "Conseguidos",
-      icon: "checkmark-circle",
       count: achievements.filter((a) => a.unlocked).length,
     },
     {
       key: "locked",
       label: "Bloqueados",
-      icon: "lock-closed",
       count: achievements.filter((a) => !a.unlocked).length,
     },
   ];
@@ -829,15 +828,12 @@ export function ProfileScreen({ navigation }: Props) {
 
         {/* Grid */}
         {achievementsShown.length === 0 ? (
-          <EmptyState
-            icon="trophy-outline"
-            title={achFilter === "unlocked" ? "Sin logros conseguidos" : "Sin logros bloqueados"}
-            description={
-              achFilter === "unlocked"
-                ? "Completá lecciones y mantené tu racha para desbloquear logros."
-                : "¡Ya desbloqueaste todos los logros disponibles!"
-            }
-          />
+          <View style={styles.achEmpty}>
+            <PictureIllustration width={178} height={119} />
+            <Text style={styles.achEmptyText}>
+              {achFilter === "unlocked" ? "Mostrá tus logros acá" : "¡Ya desbloqueaste todos los logros!"}
+            </Text>
+          </View>
         ) : (
         <View style={styles.achGrid}>
           {achievementsShown.map((a) => (
@@ -1593,6 +1589,19 @@ const styles = StyleSheet.create({
   },
   boosterActionTextDisabled: {
     color: "#B8B8BD",
+  },
+
+  // Achievements empty state
+  achEmpty: {
+    alignItems: "center",
+    paddingVertical: 50,
+    gap: 38,
+  },
+  achEmptyText: {
+    fontFamily: fonts.displayBold,
+    fontSize: 16,
+    color: colors.neutral900,
+    textAlign: "center",
   },
 
   // Achievements — three responsive columns that span the full width.
