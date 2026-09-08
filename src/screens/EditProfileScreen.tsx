@@ -50,7 +50,6 @@ export function EditProfileScreen({ navigation, route }: Props) {
         },
       });
     } catch {
-      // keep local values; Configuration will retry on next load
       navigation.goBack();
     } finally {
       setSaving(false);
@@ -65,44 +64,41 @@ export function EditProfileScreen({ navigation, route }: Props) {
       />
 
       <KeyboardAwareScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
+        contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         enableOnAndroid
         extraScrollHeight={20}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.illustrationWrap}>
-          <ManoCelularPerfil width={180} height={270} />
+          <ManoCelularPerfil width={140} height={210} />
         </View>
 
         <Text style={styles.title}>Editar perfil</Text>
         <Text style={styles.subtitle}>Así te van a ver los demás.</Text>
 
-        <Text style={styles.fieldLabel}>Nombre</Text>
         <View style={styles.fieldWrap}>
           <Ionicons name="person-outline" size={20} color={colors.textMuted} />
           <TextInput
             style={styles.fieldInput}
             value={name}
             onChangeText={setName}
-            placeholder="Tu nombre"
+            placeholder="Nombre"
             placeholderTextColor={colors.neutral600}
           />
         </View>
 
-        <Text style={styles.fieldLabel}>Apellido</Text>
         <View style={styles.fieldWrap}>
           <Ionicons name="person-outline" size={20} color={colors.textMuted} />
           <TextInput
             style={styles.fieldInput}
             value={lastNameValue}
             onChangeText={setLastNameValue}
-            placeholder="Tu apellido"
+            placeholder="Apellido"
             placeholderTextColor={colors.neutral600}
           />
         </View>
 
-        <Text style={styles.fieldLabel}>Usuario</Text>
         <View
           style={[
             styles.fieldWrap,
@@ -114,7 +110,7 @@ export function EditProfileScreen({ navigation, route }: Props) {
             style={styles.fieldInput}
             value={usernameValue}
             onChangeText={setUsernameValue}
-            placeholder="usuario"
+            placeholder="Usuario"
             placeholderTextColor={colors.neutral600}
             autoCapitalize="none"
             autoCorrect={false}
@@ -141,36 +137,36 @@ export function EditProfileScreen({ navigation, route }: Props) {
         )}
 
         <TouchableOpacity
-          style={[styles.primaryBtn, { backgroundColor: ready ? colors.text : colors.neutral200 }]}
+          style={[styles.primaryBtn, !ready && { opacity: 0.45 }]}
           onPress={handleSave}
           activeOpacity={ready ? 0.85 : 1}
         >
-          <Text style={[styles.primaryBtnText, { color: ready ? colors.onDark : colors.neutral600 }]}>
+          <Text style={styles.primaryBtnText}>
             {saving ? "Guardando…" : "Guardar cambios"}
           </Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.cancelBtn}
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.cancelText}>Cancelar</Text>
-        </TouchableOpacity>
       </KeyboardAwareScrollView>
+
+      <TouchableOpacity
+        style={[styles.cancelBtn, { paddingBottom: insets.bottom + 12 }]}
+        onPress={() => navigation.goBack()}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.cancelText}>Cancelar</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: 24, paddingTop: 4 },
+  content: { paddingHorizontal: 24, paddingTop: 4, paddingBottom: 16 },
 
   illustrationWrap: { alignItems: "center", marginBottom: 8 },
 
   title: {
     fontFamily: fonts.displayBold,
-    fontSize: 26,
+    fontSize: 32,
     color: colors.neutral900,
     marginTop: 4,
   },
@@ -178,26 +174,21 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyRegular,
     fontSize: 14,
     color: colors.neutral600,
-    marginTop: 4,
-    marginBottom: 24,
+    lineHeight: 20,
+    marginTop: 6,
+    marginBottom: 28,
   },
 
-  fieldLabel: {
-    fontFamily: fonts.bodyRegular,
-    fontSize: 12,
-    color: colors.neutral600,
-    marginBottom: 4,
-    marginLeft: 6,
-  },
   fieldWrap: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     backgroundColor: colors.fill,
     borderRadius: 16,
-    paddingHorizontal: 15,
+    paddingHorizontal: 16,
     marginBottom: 12,
     borderWidth: 0,
+    minHeight: 58,
   },
   fieldWrapError: {
     backgroundColor: colors.surface,
@@ -209,7 +200,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyMedium,
     fontSize: 15,
     color: colors.text,
-    paddingVertical: 12,
+    paddingVertical: 18,
   },
   fieldHint: {
     fontFamily: fonts.bodySemiBold,
@@ -222,19 +213,22 @@ const styles = StyleSheet.create({
 
   primaryBtn: {
     borderRadius: 14,
-    minHeight: 50,
+    minHeight: 56,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 16,
+    marginTop: 24,
+    backgroundColor: colors.neutral900,
   },
   primaryBtnText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 16,
+    color: "#FFFFFF",
   },
   cancelBtn: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 20,
+    paddingTop: 12,
+    backgroundColor: colors.background,
   },
   cancelText: {
     fontFamily: fonts.bodySemiBold,

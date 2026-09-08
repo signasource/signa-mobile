@@ -53,7 +53,7 @@ export function ChangePasswordScreen({ navigation }: Props) {
       />
 
       <KeyboardAwareScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
+        contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         enableOnAndroid
         extraScrollHeight={20}
@@ -63,20 +63,18 @@ export function ChangePasswordScreen({ navigation }: Props) {
           <ManoCelularClave width={200} height={200} />
         </View>
 
-        <Text style={styles.title}>Cambiar contraseña</Text>
+        <Text style={styles.title}>Nueva contraseña</Text>
         <Text style={styles.subtitle}>
-          Vas a necesitar tu contraseña actual. Después de guardar seguís con la sesión abierta
-          en este dispositivo.
+          Después de guardar seguís con la sesión abierta en este dispositivo.
         </Text>
 
-        <Text style={styles.fieldLabel}>Contraseña actual</Text>
         <View style={styles.fieldWrap}>
-          <Ionicons name="lock-closed-outline" size={20} color={colors.textMuted} />
+          <Ionicons name="key-outline" size={20} color={colors.textMuted} />
           <TextInput
             style={styles.fieldInput}
             value={pwCurrent}
             onChangeText={setPwCurrent}
-            placeholder="••••••••"
+            placeholder="Contraseña actual"
             placeholderTextColor={colors.neutral600}
             secureTextEntry={!showCur}
           />
@@ -89,14 +87,13 @@ export function ChangePasswordScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.fieldLabel}>Nueva contraseña</Text>
         <View style={styles.fieldWrap}>
-          <Ionicons name="key-outline" size={20} color={colors.textMuted} />
+          <Ionicons name="lock-closed-outline" size={20} color={colors.textMuted} />
           <TextInput
             style={styles.fieldInput}
             value={pwNext}
             onChangeText={setPwNext}
-            placeholder="••••••••"
+            placeholder="Contraseña nueva"
             placeholderTextColor={colors.neutral600}
             secureTextEntry={!showNext}
           />
@@ -109,20 +106,11 @@ export function ChangePasswordScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
         <View style={styles.ruleRow}>
-          <Text
-            style={[
-              styles.ruleMark,
-              {
-                color: pwLenOk
-                  ? colors.success
-                  : pwNext.length === 0
-                    ? colors.neutral600
-                    : colors.danger,
-              },
-            ]}
-          >
-            {pwLenOk ? "✓" : "✗"}
-          </Text>
+          <Ionicons
+            name={pwLenOk ? "checkmark-circle" : pwNext.length === 0 ? "ellipse-outline" : "close-circle"}
+            size={16}
+            color={pwLenOk ? colors.success : pwNext.length === 0 ? colors.neutral600 : colors.danger}
+          />
           <Text
             style={[
               styles.ruleText,
@@ -139,14 +127,13 @@ export function ChangePasswordScreen({ navigation }: Props) {
           </Text>
         </View>
 
-        <Text style={styles.fieldLabel}>Repetir nueva contraseña</Text>
         <View style={[styles.fieldWrap, pwRepeatMismatch && styles.fieldWrapError]}>
-          <Ionicons name="key-outline" size={20} color={colors.textMuted} />
+          <Ionicons name="lock-closed-outline" size={20} color={colors.textMuted} />
           <TextInput
             style={styles.fieldInput}
             value={pwRepeat}
             onChangeText={setPwRepeat}
-            placeholder="••••••••"
+            placeholder="Repetir contraseña"
             placeholderTextColor={colors.neutral600}
             secureTextEntry={!showRepeat}
           />
@@ -169,32 +156,36 @@ export function ChangePasswordScreen({ navigation }: Props) {
         {error && <Text style={[styles.fieldHint, { color: colors.danger, marginTop: 4 }]}>{error}</Text>}
 
         <TouchableOpacity
-          style={[styles.primaryBtn, { backgroundColor: ready ? colors.text : colors.neutral200 }]}
+          style={[styles.primaryBtn, !ready && { opacity: 0.45 }]}
           onPress={handleSave}
           activeOpacity={ready ? 0.85 : 1}
         >
-          <Text style={[styles.primaryBtnText, { color: ready ? colors.onDark : colors.neutral600 }]}>
+          <Text style={styles.primaryBtnText}>
             {saving ? "Guardando…" : "Guardar contraseña"}
           </Text>
         </TouchableOpacity>
-
-        <TouchableOpacity style={styles.cancelBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
-          <Text style={styles.cancelText}>Cancelar</Text>
-        </TouchableOpacity>
       </KeyboardAwareScrollView>
+
+      <TouchableOpacity
+        style={[styles.cancelBtn, { paddingBottom: insets.bottom + 12 }]}
+        onPress={() => navigation.goBack()}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.cancelText}>Cancelar</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: 24, paddingTop: 4 },
+  content: { paddingHorizontal: 24, paddingTop: 4, paddingBottom: 16 },
 
   illustrationWrap: { alignItems: "center", marginBottom: 8 },
 
   title: {
     fontFamily: fonts.displayBold,
-    fontSize: 26,
+    fontSize: 32,
     color: colors.neutral900,
     marginTop: 4,
   },
@@ -202,27 +193,21 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyRegular,
     fontSize: 14,
     color: colors.neutral600,
-    lineHeight: 19,
-    marginTop: 4,
-    marginBottom: 24,
+    lineHeight: 20,
+    marginTop: 6,
+    marginBottom: 28,
   },
 
-  fieldLabel: {
-    fontFamily: fonts.bodyRegular,
-    fontSize: 12,
-    color: colors.neutral600,
-    marginBottom: 4,
-    marginLeft: 6,
-  },
   fieldWrap: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     backgroundColor: colors.fill,
     borderRadius: 16,
-    paddingHorizontal: 15,
+    paddingHorizontal: 16,
     marginBottom: 12,
     borderWidth: 0,
+    minHeight: 58,
   },
   fieldWrapError: {
     backgroundColor: colors.surface,
@@ -234,7 +219,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyMedium,
     fontSize: 15,
     color: colors.text,
-    paddingVertical: 12,
+    paddingVertical: 18,
   },
   fieldHint: {
     fontFamily: fonts.bodySemiBold,
@@ -254,24 +239,26 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     marginLeft: 6,
   },
-  ruleMark: { fontFamily: fonts.bodySemiBold, fontSize: 12, width: 14 },
   ruleText: { fontFamily: fonts.bodyMedium, fontSize: 12 },
 
   primaryBtn: {
     borderRadius: 14,
-    minHeight: 50,
+    minHeight: 56,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 16,
+    marginTop: 24,
+    backgroundColor: colors.neutral900,
   },
   primaryBtnText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 16,
+    color: "#FFFFFF",
   },
   cancelBtn: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 20,
+    paddingTop: 12,
+    backgroundColor: colors.background,
   },
   cancelText: {
     fontFamily: fonts.bodySemiBold,
