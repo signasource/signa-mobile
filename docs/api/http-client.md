@@ -15,7 +15,7 @@ Axios instance:
   - Attaches `Authorization: Bearer <accessToken>` when a token exists in `tokenStorage`.
   - Converts the body to **snake_case** (`keysToSnakeCase`).
 - **Response interceptor:** converts data to **camelCase** (`keysToCamelCase`).
-- **Automatic 401 refresh:** on 401, calls `POST /auth/refresh` with the refresh token, stores the new tokens, and **retries** the original request (`_retry` prevents loops). A queue (`pendingQueue`) makes concurrent 401s wait for a single refresh — they retry with the new token without triggering another refresh. If refresh fails: clears tokens, rejects all pending requests, and calls the `onRefreshFailure` callback (registered by `AuthContext` via `setOnRefreshFailure`) to force the user back to the auth stack.
+- **Automatic 401/403 refresh:** on 401 **or 403** (the backend returns 403 instead of 401 for some expired/invalid-token cases), calls `POST /auth/refresh` with the refresh token, stores the new tokens, and **retries** the original request (`_retry` prevents loops). A queue (`pendingQueue`) makes concurrent 401/403s wait for a single refresh — they retry with the new token without triggering another refresh. If refresh fails: clears tokens, rejects all pending requests, and calls the `onRefreshFailure` callback (registered by `AuthContext` via `setOnRefreshFailure`) to force the user back to the auth stack.
 - **`setOnRefreshFailure(cb)`** — exported function; `AuthContext` calls this on mount to wire the "forced logout" path.
 
 **Invariant:** screen code always works in **camelCase**; snake_case conversion is transparent (`src/utils/caseConverter.ts`).
