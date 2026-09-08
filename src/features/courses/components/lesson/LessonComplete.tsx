@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "@/theme";
 import { NavIconButton } from "@/components/BackButton";
 import { LessonButton } from "./LessonButton";
+import ManoLeccionFinalizada from "@assets/ilus/mano-leccion-finalizada.svg";
 
 interface LessonCompleteProps {
   lessonName: string;
@@ -62,8 +63,8 @@ export function LessonComplete({
       </View>
 
       <View style={styles.body}>
-        <View style={styles.trophy}>
-          <Ionicons name="trophy" size={52} color={colors.primary} />
+        <View style={styles.illustration}>
+          <ManoLeccionFinalizada width={190} height={190} />
         </View>
         <Text style={styles.title}>¡Lección completada!</Text>
         <Text style={styles.subtitle}>
@@ -98,14 +99,10 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   topRow: { paddingHorizontal: 20, alignItems: "flex-end" },
   body: { flex: 1, paddingHorizontal: 24, alignItems: "center", gap: 14 },
-  trophy: {
-    width: 108,
-    height: 108,
-    borderRadius: 32,
-    backgroundColor: colors.primaryLight,
+  illustration: {
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 20,
+    marginTop: 4,
   },
   title: {
     fontFamily: fonts.displayBold,
