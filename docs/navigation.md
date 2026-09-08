@@ -11,9 +11,11 @@ All navigation uses `@react-navigation/native-stack`. Three navigators.
 App decision point. Consumes `useAuth()`:
 - `isLoading` (hydrating session from secure-store) → loader.
 - `isAuthenticated` → `AppNavigator`.
-- otherwise → `AuthNavigator`.
+- otherwise → `AuthNavigator` (`initialRoute={authInitialRoute}`).
 
 Switching between auth and app is **not** done by navigating; mutate the session in `AuthContext` (see [authentication/auth-context.md](./authentication/auth-context.md)).
+
+`RootNavigator` also always renders `SessionExpiredModal` (`@/components/SessionExpiredModal`) alongside the active navigator, `visible={sessionExpired}`. Because `expireSession()` keeps `user` set, `isAuthenticated` stays true while the modal is up, so the app screen the user was on stays mounted underneath it instead of instantly swapping to the auth stack. See [authentication/auth-context.md](./authentication/auth-context.md).
 
 ## AuthNavigator (`src/navigation/AuthNavigator.tsx`)
 

@@ -12,10 +12,18 @@ interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  /** true cuando la sesión se cerró sola (inactividad / refresh fallido), a diferencia de un logout manual */
+  sessionExpired: boolean;
   login: (payload: LoginRequest) => Promise<void>;
   register: (payload: RegisterRequest) => Promise<void>;
   changePassword: (payload: ChangePasswordRequest) => Promise<void>;
   logout: () => Promise<void>;
+  /** El usuario eligió "Iniciar sesión" en el aviso de sesión expirada */
+  resumeExpiredSession: () => void;
+  /** El usuario eligió "Salir" en el aviso de sesión expirada */
+  dismissExpiredSession: () => void;
+  /** Ruta inicial del stack de auth: "Login" si se venía de una sesión expirada, "Welcome" si no */
+  authInitialRoute: "Login" | "Welcome";
   error: string | null;
 }
 
@@ -25,11 +33,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [authInitialRoute, setAuthInitialRoute] = useState<"Login" | "Welcome">("Welcome");
   const appState = useRef<AppStateStatus>(AppState.currentState);
 
   useEffect(() => {
     // Registrar callback para cuando el interceptor de 401 no puede refrescar
-    setOnRefreshFailure(() => setUser(null));
+    setOnRefreshFailure(() => expireSession());
 
     restoreSession();
 
@@ -54,6 +64,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { email, name: cachedName ?? undefined };
   }
 
+  /**
+   * La sesión se cerró sola (token vencido sin refresh posible). A diferencia de logout(),
+   * mantiene `user` para que la pantalla actual siga montada detrás del aviso de sesión
+   * expirada, en vez de saltar directo a la pantalla de auth y mostrar estados vacíos
+   * (p. ej. "No tenés amigos" en Social) mientras se desmonta.
+   */
+  async function expireSession() {
+    await tokenStorage.clear();
+    setSessionExpired(true);
+  }
+
   async function checkSession() {
     const token = await tokenStorage.getAccessToken();
     const refreshToken = await tokenStorage.getRefreshToken();
@@ -70,8 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await tokenStorage.setTokens(data.accessToken, data.refreshToken);
       setUser(await buildUserFromToken(data.accessToken));
     } catch {
-      await tokenStorage.clear();
-      setUser(null);
+      await expireSession();
     }
   }
 
@@ -141,18 +161,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }
 
+  function resumeExpiredSession() {
+    setAuthInitialRoute("Login");
+    setSessionExpired(false);
+    setUser(null);
+  }
+
+  function dismissExpiredSession() {
+    setAuthInitialRoute("Welcome");
+    setSessionExpired(false);
+    setUser(null);
+  }
+
   const value = useMemo(
     () => ({
       user,
       isLoading,
       isAuthenticated: !!user,
+      sessionExpired,
       login,
       register,
       changePassword,
       logout,
+      resumeExpiredSession,
+      dismissExpiredSession,
+      authInitialRoute,
       error,
     }),
-    [user, isLoading, error]
+    [user, isLoading, sessionExpired, authInitialRoute, error]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
