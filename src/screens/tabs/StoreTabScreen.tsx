@@ -16,6 +16,7 @@ import { ScreenHeader } from "@/components/ScreenHeader";
 import { SegmentedControl, Segment } from "@/components/SegmentedControl";
 import { EmptyState } from "@/components/EmptyState";
 import { shopApi, ShopItem, ShopItemType, ShopInventory, AppliedEffect } from "@/api/shop";
+import ManoVacia from "@assets/ilus/mano-vacia.svg";
 
 type TabKey = "vidas" | "potenciadores" | "especiales";
 type FlowStep = "confirm" | "insufficient" | "opening" | "success";
@@ -356,31 +357,26 @@ export function StoreTabScreen() {
         {flow?.step === "insufficient" && (
           <Pressable style={styles.backdrop} onPress={closeFlow}>
             <Pressable style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 34) }]} onPress={() => {}}>
-              <View style={styles.sheetHandle} />
-              <View style={styles.insufficientIcon}>
-                <Ionicons name="diamond" size={34} color={colors.danger} />
-              </View>
-              <Text style={styles.sheetTitle}>
-                Te faltan {flow.item.priceGems - gems} gemas
-              </Text>
-              <Text style={styles.insufficientSub}>
-                Completá lecciones, mantené tu racha y superá desafíos para conseguir más gemas.
-              </Text>
-              <View style={styles.mathRow}>
-                <View>
-                  <Text style={styles.label}>Tu saldo</Text>
-                  <Text style={styles.mathValue}>{gems} gemas</Text>
-                </View>
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text style={styles.label}>{flow.item.title}</Text>
-                  <Text style={[styles.mathValue, { color: colors.danger }]}>
-                    {flow.item.priceGems} gemas
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity style={styles.darkButton} onPress={closeFlow} activeOpacity={0.86}>
-                <Text style={styles.darkButtonText}>Entendido</Text>
+              <TouchableOpacity style={styles.insufficientClose} onPress={closeFlow} activeOpacity={0.7}>
+                <Ionicons name="close" size={22} color={colors.text} />
               </TouchableOpacity>
+              <View style={styles.insufficientContent}>
+                <ManoVacia width={180} height={182} />
+                <Text style={styles.insufficientTitle}>
+                  Te faltan {flow.item.priceGems - gems} gemas
+                </Text>
+                <Text style={styles.insufficientSub}>
+                  Este ítem cuesta {flow.item.priceGems} y tenés {gems}.
+                </Text>
+              </View>
+              <View style={styles.insufficientActions}>
+                <TouchableOpacity style={styles.darkButton} onPress={closeFlow} activeOpacity={0.86}>
+                  <Text style={styles.darkButtonText}>Conseguir gemas</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.secondaryButton} onPress={closeFlow} activeOpacity={0.86}>
+                  <Text style={styles.secondaryButtonText}>Volver a la tienda</Text>
+                </TouchableOpacity>
+              </View>
             </Pressable>
           </Pressable>
         )}
@@ -697,16 +693,24 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.neutral900,
   },
-  insufficientIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 22,
-    backgroundColor: colors.dangerLight,
+  insufficientClose: {
+    alignSelf: "flex-end",
+    width: 40,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 4,
-    marginBottom: 16,
-    alignSelf: "center",
+  },
+  insufficientContent: {
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 8,
+  },
+  insufficientTitle: {
+    fontFamily: fonts.displayBold,
+    fontSize: 26,
+    letterSpacing: -0.8,
+    color: colors.text,
+    textAlign: "center",
   },
   insufficientSub: {
     fontFamily: fonts.bodyMedium,
@@ -714,7 +718,10 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     color: colors.textMuted,
     textAlign: "center",
-    marginTop: 8,
+  },
+  insufficientActions: {
+    gap: 10,
+    marginTop: 10,
   },
   fullOverlay: {
     flex: 1,
