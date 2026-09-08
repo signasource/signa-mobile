@@ -259,7 +259,7 @@ export function SocialScreen({ navigation }: Props) {
   );
 
   const acceptRequest = useCallback(
-    (userId: string) =>
+    (userId: string, name: string, username: string) =>
       run(
         `${userId}:accept`,
         async () => {
@@ -268,10 +268,17 @@ export function SocialScreen({ navigation }: Props) {
           patchRelation(userId, "FRIEND");
           const { data } = await socialApi.getFriends();
           setFriends(data);
+          const accepted = data.find((f) => f.id === userId);
+          navigation.navigate("FriendAccepted", {
+            friendId: userId,
+            friendName: name,
+            friendUsername: username,
+            friendStreak: accepted?.currentStreak ?? 0,
+          });
         },
         "No pudimos aceptar la solicitud."
       ),
-    [run, patchRelation, notify]
+    [run, patchRelation, navigation]
   );
 
   const rejectRequest = useCallback(
@@ -374,7 +381,7 @@ export function SocialScreen({ navigation }: Props) {
         icon: "checkmark",
         label: "Aceptar",
         ...ROW_ACTION_STYLE.accept,
-        onPress: () => acceptRequest(userId),
+        onPress: () => acceptRequest(userId, name, username),
       };
       const reject: RowActionSpec = {
         key: `${userId}:reject`,

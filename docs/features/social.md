@@ -15,6 +15,7 @@ Endpoints → [../api/endpoints.md](../api/endpoints.md). Routes → [../navigat
 | Social | `Tabs → Social` | `features/social/screens/SocialScreen.tsx` |
 | Notificaciones | `Notifications` (app stack) | `features/social/screens/NotificationsScreen.tsx` |
 | Perfil de otra persona | `PublicProfile` (app stack) | `features/social/screens/PublicProfileScreen.tsx` |
+| Solicitud aceptada (yo acepto) | `FriendAccepted` (app stack) | `features/social/screens/FriendAcceptedScreen.tsx` |
 
 There is no `screens/tabs/SocialTabScreen.tsx` any more — `TabNavigator` mounts `SocialScreen`
 directly, like `LessonScreen` in `features/courses`.
@@ -78,8 +79,11 @@ Destructive actions (*dejar de ser amigos*, *bloquear*) go through `ConfirmSheet
 Every action shows a spinner on its own button (`busyAction` is keyed `"<userId>:<action>"`).
 
 Toasts are for what the UI cannot show on its own: sending, cancelling or rejecting a request,
-unblocking, and any failure. **Liking and accepting a request stay silent** — the filled heart and
-the row moving into the friends list already say it happened.
+unblocking, and any failure. **Liking a request stays silent** — the filled heart is the feedback.
+
+**Accepting a request** navigates to `FriendAccepted` (sky-blue celebration screen with the sheep
+illustration). From there the user can tap "Ver su perfil" → `PublicProfile` or "Volver a
+notificaciones" → `navigation.goBack()`.
 
 State after an action is patched locally rather than refetching everything; accepting a request is
 the exception — it refetches `GET /friendships` because the new friend's stats are only known
@@ -129,9 +133,22 @@ colours are derived from list position since the backend sends none.
 `initialsOf()`, `relativeTime()`, `formatXp()`, `eventVisual()`, `eventSentence()`,
 `notificationVisual()`, `mutualLabel()`.
 
+## FriendAcceptedScreen
+
+Full-screen celebration shown after accepting an incoming request. Sky-blue background (`#C2E8F5`)
+with the sheep illustration (`assets/ilus/ovejas.svg`), the new friend's avatar card (name +
+handle + streak), a primary "Ver su perfil" button, and a "Volver a notificaciones" back link.
+
+## FriendAcceptedModal (when someone accepts MY request)
+
+Overlay modal rendered by `FriendAcceptedProvider` (in `RootNavigator`) when a new
+`FRIEND_REQUEST_ACCEPTED` notification is detected. Suppressed while the user is in the `Lesson`
+screen. Offers "Mandarle un regalo" (→ Store tab) and "Ver su perfil" (→ PublicProfile). Polling
+interval: 30 s + AppState foreground resume.
+
 ## Components — `features/social/components/`
 
-`Avatar`, `PersonRow` (+ `RowAction`), `FeedCard`, `ConfirmSheet`, `Toast`.
+`Avatar`, `PersonRow` (+ `RowAction`), `FeedCard`, `ConfirmSheet`, `Toast`, `FriendAcceptedModal`.
 `EmptyState` / `EmptyNote` now live in `@/components/EmptyState` (the local file only re-exports them);
 the header comes from `@/components/ScreenHeader`.
 
