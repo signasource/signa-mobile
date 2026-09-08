@@ -192,7 +192,7 @@ export function LessonScreen({ route, navigation }: Props) {
 
       {noLives && (
         <NoLivesOverlay
-          onGoToStore={() => navigation.navigate("Tabs", { screen: "Store" })}
+          onGoToStore={() => navigation.navigate("Tabs", { screen: "Store", params: { fromLesson: true } })}
           onExit={() => navigation.goBack()}
         />
       )}
