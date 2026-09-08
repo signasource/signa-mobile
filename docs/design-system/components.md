@@ -21,6 +21,7 @@ Reuse a primitive before creating a new one. Tokens → [colors.md](./colors.md)
 | `NavIconButton` | `icon, onPress, label, color?, size?, children?` | header icon button, no background (also in `BackButton.tsx`) |
 | `FieldIcon` | `name(FieldIconName), size?, color?` | Ionicons outline for fields/badges |
 | `OnboardingProgress` | `progress(0-1), onBack?` | onboarding progress bar |
+| `SessionExpiredModal` | `visible, onLogin, onExit` | bottom-sheet aviso ("Se cerró tu sesión") mostrado por `RootNavigator` sobre la pantalla actual cuando la sesión se cierra sola — ver [../authentication/auth-context.md](../authentication/auth-context.md) |
 
 ## Auth / onboarding (`src/components/auth/`, barrel `index.ts`)
 
