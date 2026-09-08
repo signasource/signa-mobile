@@ -17,6 +17,8 @@ Switching between auth and app is **not** done by navigating; mutate the session
 
 `RootNavigator` also always renders `SessionExpiredModal` (`@/components/SessionExpiredModal`) alongside the active navigator, `visible={sessionExpired}`. Because `expireSession()` keeps `user` set, `isAuthenticated` stays true while the modal is up, so the app screen the user was on stays mounted underneath it instead of instantly swapping to the auth stack. See [authentication/auth-context.md](./authentication/auth-context.md).
 
+`FriendAcceptedProvider` (`@/context/FriendAcceptedContext`) wraps the whole navigator tree and polls `GET /notifications` every 30 s (and on foreground resume) for new `FRIEND_REQUEST_ACCEPTED` notifications. When one is detected it exposes a `pending` object; `FriendAcceptedModalConnected` renders the friend-accepted modal overlay, suppressed while the current route is `Lesson`. A `NavigationContainerRef` created in `RootNavigator` is used to deep-navigate from the modal (gift → Store tab; profile → `PublicProfile`).
+
 ## AuthNavigator (`src/navigation/AuthNavigator.tsx`)
 
 Onboarding + authentication screens. Default `initialRoute`: `Welcome`. `screenOptions`: `headerShown: false`, `animation: "slide_from_right"`.
@@ -54,6 +56,7 @@ Post-login screens with tab navigation. `screenOptions` use a dark header: `head
 | `Lesson` | `{ lessonId: string; unitLabel?: string }` | (no header, screen renders its own) | `features/courses/screens/LessonScreen` |
 | `Notifications` | — | (no header, screen renders its own) | `features/social/screens/NotificationsScreen` |
 | `PublicProfile` | `{ username: string }` | (no header, screen renders its own) | `features/social/screens/PublicProfileScreen` |
+| `FriendAccepted` | `{ friendId, friendName, friendUsername, friendStreak: number }` | (no header, sky-blue celebration screen) | `features/social/screens/FriendAcceptedScreen` |
 | `SignRecognition` | — | "Practicar" | `features/ml/screens/SignRecognitionScreen` |
 | `ConnectionTest` | — | "Test de conexion" | `screens/ConnectionTestScreen` |
 

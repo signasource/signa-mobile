@@ -9,6 +9,7 @@ import { LessonScreen } from "@/features/courses/screens/LessonScreen";
 import { SignRecognitionScreen } from "@/features/ml/screens/SignRecognitionScreen";
 import { NotificationsScreen } from "@/features/social/screens/NotificationsScreen";
 import { PublicProfileScreen } from "@/features/social/screens/PublicProfileScreen";
+import { FriendAcceptedScreen } from "@/features/social/screens/FriendAcceptedScreen";
 import { TabNavigator, TabParamList } from "./TabNavigator";
 import { colors, fonts } from "@/theme";
 import { useSettings } from "@/context/SettingsContext";
@@ -26,6 +27,12 @@ export type AppStackParamList = {
   Lesson: { lessonId: string; unitLabel?: string; signsCount?: number };
   Notifications: undefined;
   PublicProfile: { username: string };
+  FriendAccepted: {
+    friendId: string;
+    friendName: string;
+    friendUsername: string;
+    friendStreak: number;
+  };
   SignRecognition: undefined;
   ConnectionTest: undefined;
 };
@@ -54,6 +61,7 @@ export function AppNavigator() {
       <Stack.Screen name="Lesson" component={LessonScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="PublicProfile" component={PublicProfileScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="FriendAccepted" component={FriendAcceptedScreen} options={{ headerShown: false }} />
       <Stack.Screen name="SignRecognition" component={SignRecognitionScreen} options={{ title: "Practicar" }} />
       <Stack.Screen name="ConnectionTest" component={ConnectionTestScreen} options={{ title: "Test de conexion" }} />
     </Stack.Navigator>
