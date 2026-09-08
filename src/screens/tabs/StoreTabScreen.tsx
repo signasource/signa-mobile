@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  SafeAreaView,
 } from "react-native";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -20,7 +21,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { shopApi, ShopItem, ShopItemType, ShopInventory, AppliedEffect } from "@/api/shop";
 import ManoVacia from "@assets/ilus/mano-vacia.svg";
 import HeartConFondo from "@assets/ilus/heart-con-fondo.svg";
-import ManoDandoItem from "@assets/ilus/mano-dando-item.svg";
+import ManoConCaja from "@assets/ilus/mano-con-caja.svg";
 
 type TabKey = "vidas" | "potenciadores" | "especiales";
 type FlowStep = "confirm" | "insufficient" | "opening" | "success";
@@ -109,6 +110,101 @@ function effectLabel(effect: AppliedEffect): string {
 }
 
 const LIVES_TYPES: ShopItemType[] = ["LIFE", "UNLIMITED_LIVES"];
+const BOOSTER_TYPES: ShopItemType[] = ["XP_MULTIPLIER", "STREAK_SHIELD"];
+
+interface SuccessOverlayProps {
+  flow: Flow;
+  gems: number;
+  inventory: ShopInventory | null;
+  fromLesson: boolean;
+  insets: { top: number; bottom: number };
+  onClose: () => void;
+}
+
+function SuccessOverlay({ flow, gems, inventory, fromLesson, insets, onClose }: SuccessOverlayProps) {
+  const isLives = LIVES_TYPES.includes(flow.item.itemType);
+  const isMysteryChest = flow.item.itemType === "MYSTERY_CHEST";
+  const isGenericItem = !isLives && !isMysteryChest;
+
+  const effectType = flow.effect?.type ?? flow.item.itemType;
+  const isUnlimited = effectType === "UNLIMITED_LIVES";
+  const livesGranted = flow.effect?.livesGranted ?? flow.item.quantity;
+
+  const cardIcon: keyof typeof Ionicons.glyphMap =
+    flow.effect ? ICON[flow.effect.type] : ICON[flow.item.itemType];
+
+  const cardTitle = isLives
+    ? isUnlimited
+      ? "Vidas infinitas"
+      : `Recarga de ${livesGranted} ${livesGranted === 1 ? "vida" : "vidas"}`
+    : isMysteryChest && flow.effect
+    ? effectLabel(flow.effect)
+    : flow.item.title;
+
+  const screenTitle = isLives
+    ? isUnlimited
+      ? "¡Vidas infinitas activadas!"
+      : `Sumaste ${livesGranted} ${livesGranted === 1 ? "vida" : "vidas"}`
+    : "¡Ya es tuyo!";
+
+  const screenSub = isGenericItem
+    ? "Lo guardamos en tu inventario y se activa cuando lo uses."
+    : isMysteryChest
+    ? "Ya está sumado a tu inventario."
+    : undefined;
+
+  return (
+    <SafeAreaView style={styles.fullOverlay}>
+      <View style={[styles.successBadgeRow, { paddingTop: insets.top + 16 }]}>
+        <View style={styles.successBadge}>
+          <Text style={styles.successBadgeText}>COMPRA LISTA</Text>
+        </View>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.successScroll}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <View style={styles.successIllustration}>
+          {isLives ? (
+            <HeartConFondo width={260} height={252} />
+          ) : (
+            <ManoConCaja width={260} height={260} />
+          )}
+        </View>
+
+        <Text style={styles.fullTitle}>{screenTitle}</Text>
+        {screenSub != null && <Text style={styles.fullSub}>{screenSub}</Text>}
+
+        <View style={styles.purchaseCard}>
+          <View style={styles.purchaseCardLeft}>
+            <View style={styles.purchaseCardIconWrap}>
+              <Ionicons name={cardIcon} size={21} color={colors.onDark} />
+            </View>
+            <View style={styles.purchaseCardTexts}>
+              <Text style={styles.purchaseCardTitle}>{cardTitle}</Text>
+              <Text style={styles.purchaseCardSub}>Te quedan {gems} gemas</Text>
+            </View>
+          </View>
+          <View style={styles.purchaseCardGems}>
+            <Ionicons name="diamond" size={14} color={colors.onDark} />
+            <Text style={styles.purchaseCardGemCount}>{flow.item.priceGems}</Text>
+          </View>
+        </View>
+
+      </ScrollView>
+
+      <View style={[styles.successButtonRow, { paddingBottom: Math.max(insets.bottom, 28) }]}>
+        <TouchableOpacity style={styles.successCloseButton} onPress={onClose} activeOpacity={0.86}>
+          <Text style={styles.darkButtonText}>
+            {fromLesson ? "Volver a la lección" : "Volver a la tienda"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+}
 
 export function StoreTabScreen() {
   const insets = useSafeAreaInsets();
@@ -399,77 +495,16 @@ export function StoreTabScreen() {
           </View>
         )}
 
-        {flow?.step === "success" && (() => {
-          const isLives = LIVES_TYPES.includes(flow.item.itemType);
-          const effectType = flow.effect?.type ?? flow.item.itemType;
-          const isLivesEffect = effectType === "LIFE" || effectType === "UNLIMITED_LIVES";
-          const livesGranted = flow.effect?.livesGranted ?? flow.item.quantity;
-          const isUnlimited = effectType === "UNLIMITED_LIVES";
-
-          const title = isLivesEffect
-            ? isUnlimited
-              ? "¡Vidas infinitas activadas!"
-              : `Sumaste ${livesGranted} ${livesGranted === 1 ? "vida" : "vidas"}`
-            : flow.item.itemType === "MYSTERY_CHEST" && flow.effect
-            ? `¡Te tocó ${effectLabel(flow.effect)}!`
-            : "¡Compra lista!";
-
-          const subtitle = isLivesEffect
-            ? `Te quedan ${gems} gemas. Ya podés volver a la lección.`
-            : flow.item.itemType === "MYSTERY_CHEST"
-            ? "Ya está sumado a tu inventario."
-            : `${flow.item.title} está listo para usar.`;
-
-          return (
-            <View style={[styles.fullOverlay, { paddingBottom: Math.max(insets.bottom, 28) }]}>
-              <View style={styles.successBadge}>
-                <Text style={styles.successBadgeText}>COMPRA LISTA</Text>
-              </View>
-
-              <View style={styles.successIllustration}>
-                {isLives ? (
-                  <HeartConFondo width={260} height={252} />
-                ) : (
-                  <ManoDandoItem width={260} height={260} />
-                )}
-              </View>
-
-              <Text style={styles.fullTitle}>{title}</Text>
-              <Text style={styles.fullSub}>{subtitle}</Text>
-
-              <View style={styles.successStats}>
-                {isLivesEffect && (
-                  <View style={styles.successStatBox}>
-                    <Text style={styles.successStatLabel}>VIDAS</Text>
-                    <View style={styles.successStatRow}>
-                      <Ionicons name="heart" size={17} color={colors.onDark} />
-                      <Text style={styles.successStatValue}>
-                        {isUnlimited ? "∞" : `${inventory?.currentLives ?? livesGranted}/5`}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-                <View style={styles.successStatBox}>
-                  <Text style={styles.successStatLabel}>GEMAS</Text>
-                  <View style={styles.successStatRow}>
-                    <Ionicons name="diamond" size={17} color={colors.onDark} />
-                    <Text style={styles.successStatValue}>{gems}</Text>
-                  </View>
-                </View>
-              </View>
-
-              <TouchableOpacity
-                style={styles.successCloseButton}
-                onPress={closeFlow}
-                activeOpacity={0.86}
-              >
-                <Text style={styles.darkButtonText}>
-                  {fromLesson ? "Volver a la lección" : "Volver a la tienda"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          );
-        })()}
+        {flow?.step === "success" && (
+          <SuccessOverlay
+            flow={flow}
+            gems={gems}
+            inventory={inventory}
+            fromLesson={fromLesson}
+            insets={insets}
+            onClose={closeFlow}
+          />
+        )}
       </Modal>
     </View>
   );
@@ -770,16 +805,23 @@ const styles = StyleSheet.create({
   fullOverlay: {
     flex: 1,
     backgroundColor: colors.shopAmber,
+  },
+  successScroll: {
+    flexGrow: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 26,
+    paddingTop: 0,
+  },
+  successBadgeRow: {
+    alignItems: "center",
+    paddingBottom: 4,
   },
   successBadge: {
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 999,
     backgroundColor: colors.onDark,
-    marginBottom: 20,
   },
   successBadgeText: {
     fontFamily: fonts.bodySemiBold,
@@ -809,38 +851,65 @@ const styles = StyleSheet.create({
     marginTop: 10,
     maxWidth: 280,
   },
-  successStats: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 22,
-    marginBottom: 24,
+  purchaseCard: {
     width: "100%",
-  },
-  successStatBox: {
-    flex: 1,
-    backgroundColor: "rgba(255,255,255,0.22)",
-    borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    gap: 4,
-  },
-  successStatLabel: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 10,
-    letterSpacing: 1,
-    color: colors.onDark,
-    opacity: 0.75,
-  },
-  successStatRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    justifyContent: "space-between",
+    backgroundColor: "rgba(255,255,255,0.22)",
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginTop: 22,
+    marginBottom: 20,
+    gap: 12,
   },
-  successStatValue: {
+  purchaseCardLeft: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    minWidth: 0,
+  },
+  purchaseCardIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  purchaseCardTexts: {
+    flex: 1,
+    minWidth: 0,
+  },
+  purchaseCardTitle: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    color: colors.onDark,
+    letterSpacing: -0.2,
+  },
+  purchaseCardSub: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12.5,
+    color: colors.onDark,
+    opacity: 0.75,
+    marginTop: 2,
+  },
+  purchaseCardGems: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  purchaseCardGemCount: {
     fontFamily: fonts.displayBold,
     fontSize: 20,
     color: colors.onDark,
-    letterSpacing: -0.4,
+    letterSpacing: -0.5,
+  },
+  successButtonRow: {
+    paddingHorizontal: 26,
+    paddingTop: 12,
   },
   successCloseButton: {
     width: "100%",
