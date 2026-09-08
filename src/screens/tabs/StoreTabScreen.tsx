@@ -11,11 +11,16 @@ import {
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
+import { TabParamList } from "@/navigation/TabNavigator";
 import { colors, fonts } from "@/theme";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SegmentedControl, Segment } from "@/components/SegmentedControl";
 import { EmptyState } from "@/components/EmptyState";
 import { shopApi, ShopItem, ShopItemType, ShopInventory, AppliedEffect } from "@/api/shop";
+import ManoVacia from "@assets/ilus/mano-vacia.svg";
+import HeartConFondo from "@assets/ilus/heart-con-fondo.svg";
+import ManoDandoItem from "@assets/ilus/mano-dando-item.svg";
 
 type TabKey = "vidas" | "potenciadores" | "especiales";
 type FlowStep = "confirm" | "insufficient" | "opening" | "success";
@@ -103,8 +108,13 @@ function effectLabel(effect: AppliedEffect): string {
   }
 }
 
+const LIVES_TYPES: ShopItemType[] = ["LIFE", "UNLIMITED_LIVES"];
+
 export function StoreTabScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
+  const route = useRoute<RouteProp<TabParamList, "Store">>();
+  const fromLesson = route.params?.fromLesson ?? false;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<ShopItem[]>([]);
@@ -141,6 +151,7 @@ export function StoreTabScreen() {
   function closeFlow() {
     if (openTimer.current) clearTimeout(openTimer.current);
     setFlow(null);
+    navigation.setParams({ fromLesson: undefined } as any);
   }
 
   function openBuy(item: ShopItem) {
@@ -356,31 +367,26 @@ export function StoreTabScreen() {
         {flow?.step === "insufficient" && (
           <Pressable style={styles.backdrop} onPress={closeFlow}>
             <Pressable style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 34) }]} onPress={() => {}}>
-              <View style={styles.sheetHandle} />
-              <View style={styles.insufficientIcon}>
-                <Ionicons name="diamond" size={34} color={colors.danger} />
-              </View>
-              <Text style={styles.sheetTitle}>
-                Te faltan {flow.item.priceGems - gems} gemas
-              </Text>
-              <Text style={styles.insufficientSub}>
-                Completá lecciones, mantené tu racha y superá desafíos para conseguir más gemas.
-              </Text>
-              <View style={styles.mathRow}>
-                <View>
-                  <Text style={styles.label}>Tu saldo</Text>
-                  <Text style={styles.mathValue}>{gems} gemas</Text>
-                </View>
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text style={styles.label}>{flow.item.title}</Text>
-                  <Text style={[styles.mathValue, { color: colors.danger }]}>
-                    {flow.item.priceGems} gemas
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity style={styles.darkButton} onPress={closeFlow} activeOpacity={0.86}>
-                <Text style={styles.darkButtonText}>Entendido</Text>
+              <TouchableOpacity style={styles.insufficientClose} onPress={closeFlow} activeOpacity={0.7}>
+                <Ionicons name="close" size={22} color={colors.text} />
               </TouchableOpacity>
+              <View style={styles.insufficientContent}>
+                <ManoVacia width={180} height={182} />
+                <Text style={styles.insufficientTitle}>
+                  Te faltan {flow.item.priceGems - gems} gemas
+                </Text>
+                <Text style={styles.insufficientSub}>
+                  Este ítem cuesta {flow.item.priceGems} y tenés {gems}.
+                </Text>
+              </View>
+              <View style={styles.insufficientActions}>
+                <TouchableOpacity style={styles.darkButton} onPress={closeFlow} activeOpacity={0.86}>
+                  <Text style={styles.darkButtonText}>Conseguir gemas</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.secondaryButton} onPress={closeFlow} activeOpacity={0.86}>
+                  <Text style={styles.secondaryButtonText}>Volver a la tienda</Text>
+                </TouchableOpacity>
+              </View>
             </Pressable>
           </Pressable>
         )}
@@ -393,43 +399,77 @@ export function StoreTabScreen() {
           </View>
         )}
 
-        {flow?.step === "success" && (
-          <View style={[styles.fullOverlay, { backgroundColor: colors.shopAmber }]}>
-            <View style={styles.successMedallion}>
-              <Ionicons
-                name={flow.effect ? ICON[flow.effect.type] : ICON[flow.item.itemType]}
-                size={82}
-                color={colors.onDark}
-              />
-            </View>
-            <Text style={styles.fullTitle}>
-              {flow.item.itemType === "MYSTERY_CHEST" && flow.effect
-                ? `¡Te tocó ${effectLabel(flow.effect)}!`
-                : "¡Compra exitosa!"}
-            </Text>
-            <Text style={styles.fullSub}>
-              {flow.item.itemType === "MYSTERY_CHEST"
-                ? "Ya está sumado a tu inventario."
-                : flow.item.itemType === "UNLIMITED_LIVES"
-                ? `Tenés vidas infinitas por ${flow.item.durationMinutes} minutos. Aprovechalas.`
-                : `${flow.item.title} está listo para usar.`}
-            </Text>
-            <View style={styles.summaryCard}>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Gastaste</Text>
-                <Text style={styles.summaryValue}>−{flow.item.priceGems}</Text>
+        {flow?.step === "success" && (() => {
+          const isLives = LIVES_TYPES.includes(flow.item.itemType);
+          const effectType = flow.effect?.type ?? flow.item.itemType;
+          const isLivesEffect = effectType === "LIFE" || effectType === "UNLIMITED_LIVES";
+          const livesGranted = flow.effect?.livesGranted ?? flow.item.quantity;
+          const isUnlimited = effectType === "UNLIMITED_LIVES";
+
+          const title = isLivesEffect
+            ? isUnlimited
+              ? "¡Vidas infinitas activadas!"
+              : `Sumaste ${livesGranted} ${livesGranted === 1 ? "vida" : "vidas"}`
+            : flow.item.itemType === "MYSTERY_CHEST" && flow.effect
+            ? `¡Te tocó ${effectLabel(flow.effect)}!`
+            : "¡Compra lista!";
+
+          const subtitle = isLivesEffect
+            ? `Te quedan ${gems} gemas. Ya podés volver a la lección.`
+            : flow.item.itemType === "MYSTERY_CHEST"
+            ? "Ya está sumado a tu inventario."
+            : `${flow.item.title} está listo para usar.`;
+
+          return (
+            <View style={[styles.fullOverlay, { paddingBottom: Math.max(insets.bottom, 28) }]}>
+              <View style={styles.successBadge}>
+                <Text style={styles.successBadgeText}>COMPRA LISTA</Text>
               </View>
-              <View style={styles.summaryDivider} />
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Saldo restante</Text>
-                <Text style={styles.summaryValueBig}>{gems}</Text>
+
+              <View style={styles.successIllustration}>
+                {isLives ? (
+                  <HeartConFondo width={260} height={252} />
+                ) : (
+                  <ManoDandoItem width={260} height={260} />
+                )}
               </View>
+
+              <Text style={styles.fullTitle}>{title}</Text>
+              <Text style={styles.fullSub}>{subtitle}</Text>
+
+              <View style={styles.successStats}>
+                {isLivesEffect && (
+                  <View style={styles.successStatBox}>
+                    <Text style={styles.successStatLabel}>VIDAS</Text>
+                    <View style={styles.successStatRow}>
+                      <Ionicons name="heart" size={17} color={colors.onDark} />
+                      <Text style={styles.successStatValue}>
+                        {isUnlimited ? "∞" : `${inventory?.currentLives ?? livesGranted}/5`}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+                <View style={styles.successStatBox}>
+                  <Text style={styles.successStatLabel}>GEMAS</Text>
+                  <View style={styles.successStatRow}>
+                    <Ionicons name="diamond" size={17} color={colors.onDark} />
+                    <Text style={styles.successStatValue}>{gems}</Text>
+                  </View>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={styles.successCloseButton}
+                onPress={closeFlow}
+                activeOpacity={0.86}
+              >
+                <Text style={styles.darkButtonText}>
+                  {fromLesson ? "Volver a la lección" : "Volver a la tienda"}
+                </Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.continueButton} onPress={closeFlow} activeOpacity={0.86}>
-              <Ionicons name="arrow-forward" size={27} color={colors.onDark} />
-            </TouchableOpacity>
-          </View>
-        )}
+          );
+        })()}
       </Modal>
     </View>
   );
@@ -697,16 +737,24 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.neutral900,
   },
-  insufficientIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 22,
-    backgroundColor: colors.dangerLight,
+  insufficientClose: {
+    alignSelf: "flex-end",
+    width: 40,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 4,
-    marginBottom: 16,
-    alignSelf: "center",
+  },
+  insufficientContent: {
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 8,
+  },
+  insufficientTitle: {
+    fontFamily: fonts.displayBold,
+    fontSize: 26,
+    letterSpacing: -0.8,
+    color: colors.text,
+    textAlign: "center",
   },
   insufficientSub: {
     fontFamily: fonts.bodyMedium,
@@ -714,22 +762,33 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     color: colors.textMuted,
     textAlign: "center",
-    marginTop: 8,
+  },
+  insufficientActions: {
+    gap: 10,
+    marginTop: 10,
   },
   fullOverlay: {
     flex: 1,
-    backgroundColor: colors.shopAmberDark,
+    backgroundColor: colors.shopAmber,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 30,
+    paddingHorizontal: 26,
   },
-  successMedallion: {
-    width: 168,
-    height: 168,
-    borderRadius: 84,
-    backgroundColor: "rgba(255,255,255,0.18)",
-    alignItems: "center",
-    justifyContent: "center",
+  successBadge: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: colors.onDark,
+    marginBottom: 20,
+  },
+  successBadgeText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 12,
+    letterSpacing: 1.2,
+    color: colors.shopAmberDark,
+  },
+  successIllustration: {
+    marginBottom: 10,
   },
   fullTitle: {
     fontFamily: fonts.displayBold,
@@ -738,60 +797,57 @@ const styles = StyleSheet.create({
     color: colors.onDark,
     letterSpacing: -1,
     textAlign: "center",
-    marginTop: 26,
+    marginTop: 8,
   },
   fullSub: {
     fontFamily: fonts.bodyMedium,
     fontSize: 15,
     lineHeight: 22,
-    color: colors.onPrimary,
+    color: colors.onDark,
     opacity: 0.9,
     textAlign: "center",
     marginTop: 10,
     maxWidth: 280,
   },
-  summaryCard: {
+  successStats: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 22,
+    marginBottom: 24,
     width: "100%",
-    maxWidth: 300,
-    backgroundColor: "rgba(255,255,255,0.16)",
-    borderRadius: 20,
-    padding: 16,
-    marginTop: 24,
-    gap: 10,
   },
-  summaryRow: {
+  successStatBox: {
+    flex: 1,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 4,
+  },
+  successStatLabel: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 10,
+    letterSpacing: 1,
+    color: colors.onDark,
+    opacity: 0.75,
+  },
+  successStatRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 6,
   },
-  summaryLabel: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 13.5,
-    color: colors.onDark,
-    opacity: 0.82,
-  },
-  summaryValue: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 15.5,
-    color: colors.onDark,
-  },
-  summaryValueBig: {
+  successStatValue: {
     fontFamily: fonts.displayBold,
-    fontSize: 22,
+    fontSize: 20,
     color: colors.onDark,
     letterSpacing: -0.4,
   },
-  summaryDivider: {
-    height: 1,
-    backgroundColor: "rgba(245,240,255,0.28)",
-  },
-  continueButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+  successCloseButton: {
+    width: "100%",
+    minHeight: 58,
+    borderRadius: 14,
     backgroundColor: colors.text,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 30,
   },
 });

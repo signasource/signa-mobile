@@ -7,7 +7,7 @@ import { colors, fonts } from "@/theme";
 export interface SubTab<K extends string> {
   key: K;
   label: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon?: keyof typeof Ionicons.glyphMap;
   count?: number;
 }
 
@@ -18,13 +18,9 @@ interface SubTabsProps<K extends string> {
   style?: StyleProp<ViewStyle>;
 }
 
-/**
- * Secondary selector (Mis amigos/Solicitudes, Logros conseguidos/bloqueados).
- * Outlined pills like Social, plus the icon used in the Logros screen.
- */
 export function SubTabs<K extends string>({ options, value, onChange, style }: SubTabsProps<K>) {
   return (
-    <View style={[styles.row, style]}>
+    <View style={[styles.container, style]}>
       {options.map((option) => {
         const active = option.key === value;
         return (
@@ -36,11 +32,6 @@ export function SubTabs<K extends string>({ options, value, onChange, style }: S
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
           >
-            <Ionicons
-              name={option.icon}
-              size={14}
-              color={active ? colors.text : colors.textMuted}
-            />
             <Text style={[styles.label, active && styles.labelActive]} numberOfLines={1}>
               {option.label}
             </Text>
@@ -55,34 +46,39 @@ export function SubTabs<K extends string>({ options, value, onChange, style }: S
 }
 
 const styles = StyleSheet.create({
-  row: {
+  container: {
     flexDirection: "row",
-    gap: 8,
-    paddingBottom: 14,
+    backgroundColor: colors.neutral100,
+    borderRadius: 14,
+    padding: 4,
+    marginBottom: 14,
   },
   tab: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    height: 34,
+    gap: 5,
+    height: 36,
     paddingHorizontal: 10,
     borderRadius: 11,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
   tabActive: {
-    borderColor: colors.text,
     backgroundColor: colors.surface,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   label: {
     fontFamily: fonts.bodySemiBold,
-    fontSize: 12.5,
+    fontSize: 13,
     color: colors.textMuted,
     flexShrink: 1,
   },
   labelActive: {
+    fontFamily: fonts.bodyBold,
     color: colors.text,
   },
   count: {
