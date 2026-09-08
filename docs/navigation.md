@@ -48,7 +48,9 @@ Post-login screens with tab navigation. `screenOptions` use a dark header: `head
 | Route | Params | Header title | Screen |
 |---|---|---|---|
 | `Tabs` | `NavigatorScreenParams<TabParamList>` (optional) — lets a caller deep-link into a tab, e.g. `navigation.navigate("Tabs", { screen: "Store" })` | (no header) | `navigation/TabNavigator` |
-| `ChangePassword` | — | "Cambiar contrasena" | `screens/ChangePasswordScreen` |
+| `ChangePassword` | — | (no header, screen renders its own back button) | `screens/ChangePasswordScreen` |
+| `Configuration` | `{ updatedProfile?: {...}, passwordChanged?: boolean }` (set by `EditProfile`/`ChangePassword` on save, via "pass params back") | (no header) | `screens/ConfigurationScreen` |
+| `EditProfile` | `{ displayName: string; lastName: string; username: string }` | (no header, screen renders its own back button) | `screens/EditProfileScreen` |
 | `Lesson` | `{ lessonId: string; unitLabel?: string }` | (no header, screen renders its own) | `features/courses/screens/LessonScreen` |
 | `Notifications` | — | (no header, screen renders its own) | `features/social/screens/NotificationsScreen` |
 | `PublicProfile` | `{ username: string }` | (no header, screen renders its own) | `features/social/screens/PublicProfileScreen` |
