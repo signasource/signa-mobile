@@ -47,4 +47,12 @@ export const practiceApi = {
   /** No XP, no vidas: sólo queda registrado para el repaso de errores. */
   recordAttempt: (lessonBlockId: string, isCorrect: boolean) =>
     apiClient.post<void>("/practice/attempts", { lessonBlockId, isCorrect }),
+
+  /**
+   * Único caso de práctica libre que sí otorga XP real: terminar un lote de
+   * repaso de errores. Se autolimita porque siempre opera sobre los errores
+   * pendientes reales del usuario (ver docs/features/practice.md).
+   */
+  completeMistakeReview: () =>
+    apiClient.post<{ xpEarned: number }>("/practice/mistakes/complete"),
 };

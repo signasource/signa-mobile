@@ -9,16 +9,24 @@ import { LessonButton } from "@/features/courses/components/lesson/LessonButton"
 interface PracticeCompleteProps {
   correctBlocks: number;
   totalBlocks: number;
+  /** >0 only for a completed "Repaso de errores" batch — see docs/features/practice.md. */
+  xpEarned?: number;
   onClose: () => void;
   onRepeat: () => void;
 }
 
 /**
- * Results screen for a practice session — same layout as LessonComplete, but
- * no XP card: practice sessions never grant real XP (see
- * docs/features/practice.md), only aciertos/total.
+ * Results screen for a practice session — same layout as LessonComplete.
+ * Practice sessions never grant real XP (see docs/features/practice.md),
+ * except finishing a "Repaso de errores" batch, which shows an XP card.
  */
-export function PracticeComplete({ correctBlocks, totalBlocks, onClose, onRepeat }: PracticeCompleteProps) {
+export function PracticeComplete({
+  correctBlocks,
+  totalBlocks,
+  xpEarned = 0,
+  onClose,
+  onRepeat,
+}: PracticeCompleteProps) {
   return (
     <View style={styles.container}>
       <View style={styles.topRow}>
@@ -33,6 +41,13 @@ export function PracticeComplete({ correctBlocks, totalBlocks, onClose, onRepeat
         <Text style={styles.subtitle}>Repasaste {totalBlocks} ejercicios a tu ritmo.</Text>
 
         <View style={styles.statsRow}>
+          {xpEarned > 0 && (
+            <View style={styles.statCard}>
+              <Ionicons name="flash" size={22} color={colors.primary} />
+              <Text style={styles.statValue}>+{xpEarned}</Text>
+              <Text style={styles.statLabel}>XP ganado</Text>
+            </View>
+          )}
           <View style={styles.statCard}>
             <Ionicons name="checkmark-done" size={22} color={colors.success} />
             <Text style={styles.statValue}>

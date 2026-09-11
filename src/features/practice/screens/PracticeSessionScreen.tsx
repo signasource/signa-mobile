@@ -38,6 +38,7 @@ export function PracticeSessionScreen({ route, navigation }: Props) {
   const [blockIndex, setBlockIndex] = useState(0);
   const [correctBlockIds, setCorrectBlockIds] = useState<Set<string>>(new Set());
   const [completed, setCompleted] = useState(false);
+  const [xpEarned, setXpEarned] = useState(0);
 
   const title = useMemo(() => {
     if (mode.mode === "type") return mode.title;
@@ -51,6 +52,7 @@ export function PracticeSessionScreen({ route, navigation }: Props) {
     setBlockIndex(0);
     setCorrectBlockIds(new Set());
     setCompleted(false);
+    setXpEarned(0);
 
     const request =
       mode.mode === "type"
@@ -74,6 +76,12 @@ export function PracticeSessionScreen({ route, navigation }: Props) {
       const next = i + 1;
       if (!blocks || next >= blocks.length) {
         setCompleted(true);
+        if (mode.mode === "mistakes") {
+          practiceApi
+            .completeMistakeReview()
+            .then((res) => setXpEarned(res.data.xpEarned))
+            .catch(() => {});
+        }
         return i;
       }
       return next;
@@ -126,6 +134,7 @@ export function PracticeSessionScreen({ route, navigation }: Props) {
         <PracticeComplete
           correctBlocks={correctBlockIds.size}
           totalBlocks={blocks.length}
+          xpEarned={xpEarned}
           onClose={() => navigation.goBack()}
           onRepeat={loadExercises}
         />

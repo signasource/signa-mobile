@@ -32,6 +32,9 @@ type Props = BottomTabScreenProps<TabParamList, "Practice"> & { navigation: Prac
 
 type PracticeTab = "ejercicios" | "señas" | "errores";
 
+/** Mirrors PracticeService.MISTAKE_REVIEW_XP_REWARD — the only practice mode that grants real XP. */
+const MISTAKE_REVIEW_XP_REWARD = 20;
+
 const TABS: ReadonlyArray<Segment<PracticeTab>> = [
   { key: "ejercicios", label: "Ejercicios" },
   { key: "señas", label: "Señas" },
@@ -276,9 +279,16 @@ function MistakesTab({ navigation }: { navigation: PracticeNavigation }) {
   return (
     <View>
       <View style={styles.mistakesCard}>
-        <Text style={styles.mistakesTitle}>Repaso de errores</Text>
+        <View style={styles.mistakesTitleRow}>
+          <Text style={styles.mistakesTitle}>Repaso de errores</Text>
+          <View style={styles.xpBadge}>
+            <Ionicons name="flash" size={12} color={colors.primary} />
+            <Text style={styles.xpBadgeText}>+{MISTAKE_REVIEW_XP_REWARD} XP</Text>
+          </View>
+        </View>
         <Text style={styles.mistakesDescription}>
-          Armamos una lección corta con las señas que falliste en tus últimas prácticas.
+          Armamos una lección corta con las señas que falliste en tus últimas prácticas. Completala
+          y ganá XP.
         </Text>
         <View style={styles.mistakesMetaRow}>
           <View style={styles.mistakesMeta}>
@@ -514,10 +524,29 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 16,
   },
+  mistakesTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   mistakesTitle: {
     fontFamily: fonts.displayBold,
     fontSize: 17,
     color: colors.text,
+  },
+  xpBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 9,
+    backgroundColor: colors.primaryLight,
+  },
+  xpBadgeText: {
+    fontFamily: fonts.displayBold,
+    fontSize: 12,
+    color: colors.primary,
   },
   mistakesDescription: {
     fontFamily: fonts.bodyRegular,

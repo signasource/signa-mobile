@@ -117,6 +117,7 @@ Read-only: notifications are produced server-side by whatever triggers them.
 | `getMistakes(limit?)` | `GET /practice/mistakes?limit=` | `PracticeMistake[]` | `{ lessonBlockId, type, misses }[]` — a block appears only if its most recent attempt (lesson **or** practice) was wrong |
 | `getMistakeExercises(limit?)` | `GET /practice/mistakes/exercises?limit=` | `LessonContentBlock[]` | same block set as `getMistakes`, full content, for playing the review session |
 | `recordAttempt(lessonBlockId, isCorrect)` | `POST /practice/attempts` `{ lessonBlockId, isCorrect }` | `void` | **Not** `learningApi.recordBlockInteraction`: grants no XP, costs no lives, doesn't touch lesson/topic/course progress — only feeds `getMistakes`. Called from `PracticeSessionScreen` per answered block |
+| `completeMistakeReview()` | `POST /practice/mistakes/complete` | `{ xpEarned }` | The one practice call that grants real XP: a flat bonus published as an `XpEarnedEvent` server-side. Called once, from `PracticeSessionScreen`, only when a `mode: "mistakes"` batch reaches its last block |
 
 `PracticeSessionScreen` (`features/practice/screens/`) plays the returned blocks with the same
 block-renderer components `LessonScreen` uses — see [features/practice.md](../features/practice.md).
