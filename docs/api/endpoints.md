@@ -24,18 +24,19 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 | `checkUsernameAvailability(username, signal?)` | `GET /users/username-availability?username=` | `{ available: boolean }` | **public**; accepts `AbortSignal` |
 | `getMe()` | `GET /users/me` | `UserProfile` | `{ name, username }` |
 | `getWeeklyXp()` | `GET /users/me/weekly-xp` | `WeeklyXpEntry[]` | `[{ date, xpEarned }]` Mon–today; zeros for inactive days |
-| `getDailyGoal()` | `GET /users/daily-goal` | `{ dailyGoalMinutes }` | |
+| `getDailyGoal()` | `GET /users/daily-goal` | `{ dailyGoalMinutes, minutesToday }` | `minutesToday` comes from `UserDailyActivity` (today's row, UTC date) |
 | `updateDailyGoal(minutes)` | `PATCH /users/daily-goal` | `void` | body: `{ daily_goal_minutes }` (snake_case via interceptor) |
+| `recordActivity(minutes)` | `POST /users/me/activity` | `void` (204) | body: `{ minutes }`, server clamps `1..5` per call; upserts today's `UserDailyActivity` row. Called by `useActivityTracker()` (`src/hooks/useActivityTracker.ts`), used from `LessonScreen` — tracks foreground time only, flushed every ~60s and on unmount |
 | `getSettings()` | `GET /users/settings` | `UserSettings` | returns full settings; front-end uses `profileHeaderColor` |
 | `updateSettings(payload)` | `PATCH /users/settings` | `UserSettings` | partial patch; all fields optional |
 
-> `usersApi.getStats()` (`GET /users/me/stats`) and `recordActivity()` (`POST /users/me/activity`) have **no counterpart in `UserController.java`** — they 404. Pre-existing, used by Inicio and Perfil; see [status.md](../status.md).
+> `usersApi.getStats()` (`GET /users/me/stats`) exists in `UserController.java`.
 
 ## `inventoryApi` (`src/api/inventory.ts`)
 
 | Method | Path | Returns | Notes |
 |---|---|---|---|
-| `getMyInventory()` | `GET /inventories/me` | `UserInventory` | gems, streakShields, lives, xpMultiplier, totalSignsLearned |
+| `getMyInventory()` | `GET /inventories/me` | `UserInventory` | gems, streakShields, livesMode, currentLives, nextLifeAt, effectiveXpMultiplier, xpMultiplierExpiresAt, xpMultiplierActive, unlimitedLivesExpiresAt, unlimitedLivesActive, learnedSignsCount — same endpoint and shape as `shopApi.getMyInventory()` (`ShopInventory`), plus `learnedSignsCount` |
 
 ## `shopApi` (`src/api/shop.ts`) — mirrors `ShopItemController`/`PurchaseController`
 
@@ -125,7 +126,8 @@ block-renderer components `LessonScreen` uses — see [features/practice.md](../
 | Method | Path | Returns | Notes |
 |---|---|---|---|
 | `getSigns(signLanguageId, query?)` | `GET /signs?signLanguageId=&query=` | `Page<SignSummary>` | `SignSummary`: `{ id, meaning, description, handedness, animationUrl }`. `query` is a **contains**, case-insensitive match against `meaning` (`findBySignLanguageIdAndMeaningContainingIgnoreCase`), not exact. `animationUrl` here is the raw R2 **object key**, not a fetchable URL — don't render it directly. |
-| `getSignAnimations(meanings)` | `POST /signs/animations` `{ meanings }` | `Record<meaning, url>` | Batched, exact-meaning lookup of **presigned** animation URLs (mirrors `SignController.getSignAnimations`/`SignService.getSignAnimations`). Meanings with no matching sign, or no animation uploaded, are simply absent from the response. Used by `preloadLessonAnimations` (see [features/courses.md](../features/courses.md)) to fetch every animation a lesson needs in one request. |
+
+> **GLB animation URLs** are no longer fetched from the backend. `getGlbUrl(meaning)` (`src/features/animations/glbUrl.ts`) builds the public R2 URL deterministically: `https://pub-f40a1de4d1fc46b0b6f07299847c66e0.r2.dev/lsa/{meaning}.glb`. `POST /signs/animations` is removed from the mobile client.
 
 ## `health` (`src/api/health.ts`)
 

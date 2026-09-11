@@ -1,13 +1,14 @@
 ﻿import React, { useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Text } from "@/components/Text";
-import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "@/theme";
 import { SelectMeaningConfig } from "@/features/courses/lessonContent.types";
 import { SignAnimation } from "../SignAnimation";
 import { XpChip } from "../XpChip";
 import { FeedbackBar } from "../FeedbackBar";
 import { LessonButton } from "../LessonButton";
+import Check from "@assets/ilus/check.svg";
+import Denied from "@assets/ilus/denied.svg";
 
 interface SelectMeaningBlockProps {
   config: SelectMeaningConfig;
@@ -36,7 +37,13 @@ export function SelectMeaningBlock({ config, xp, onAnswer, onContinue }: SelectM
           <XpChip xp={xp} state={answered ? (correct ? "correct" : "incorrect") : "idle"} />
         </View>
 
-        <SignAnimation meaning={config.sign} label="avatar 3D" paused={answered} />
+        <SignAnimation
+          meaning={config.sign}
+          label={config.sign}
+          badge="avatar 3D"
+          paused={answered}
+          tone={answered && !correct ? "wrong" : "neutral"}
+        />
 
         <View style={styles.grid}>
           {config.options.map((option) => {
@@ -59,8 +66,8 @@ export function SelectMeaningBlock({ config, xp, onAnswer, onContinue }: SelectM
                   dim && styles.optionDim,
                 ]}
               >
-                {showCorrect && <Ionicons name="checkmark-circle" size={19} color={colors.successDark} />}
-                {showWrong && <Ionicons name="close-circle" size={19} color={colors.danger} />}
+                {showCorrect && <Check width={20} height={20} />}
+                {showWrong && <Denied width={20} height={20} />}
                 <Text
                   style={[
                     styles.optionText,
@@ -115,9 +122,8 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     minHeight: 84,
     borderRadius: 18,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.fill,
+    borderWidth: 0,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

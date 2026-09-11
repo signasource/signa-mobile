@@ -18,7 +18,7 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
 `config` is the yaml's `config:` section, serialized to JSON with the same key casing (see
 [../api/types.md](../api/types.md) for the exact per-type shape).
 
-- `lessonContent.types.ts`: `LessonContent`, `LessonContentBlock`, the six `BlockType`s and their
+- `lessonContent.types.ts`: `LessonContent`, `LessonContentBlock`, the seven `BlockType`s and their
   config interfaces, plus `parseBlockConfig<T>(block)` to `JSON.parse` a block's `config` string.
 - `screens/LessonScreen.tsx`: orchestrates the player — loads the lesson (checking
   `lessonCache.ts` first, falling back to `lessonsApi.getLesson`) and the caller's lives
@@ -40,19 +40,38 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   is sourced from the roadmap (`RoadmapLesson.signsCount`) — computed server-side by
   `BlockSignExtractor`. `route.params`: `{ lessonId: string; unitLabel?: string; signsCount?: number }` —
   `unitLabel` is supplied by the caller; `signsCount` is passed from `HomeTabScreen` via the
-  roadmap response (falls back to `0` if absent for backward compatibility).
-- `components/lesson/`: `LessonHeader` (back + progress + lives), `XpChip`, `FeedbackBar`,
-  `LessonButton`, `SignPlaceholder` (fallback card shown while a meaning's animation URL isn't
-  cached yet — still loading, no animation for that meaning, or the model failed), `SignAnimation`
-  (looks up the meaning in `animationPreload`'s cache and renders `GlbAnimationView`, falling back
-  to `SignPlaceholder`), `NoLivesOverlay`, `LessonComplete` (its three tiles — XP, aciertos, señas
-  nuevas — are filtered to the ones actually **earned**, `> 0`; the row disappears when none is),
-  and `blocks/` with one component per
-  `BlockType` (`InfoBlock`, `SelectMeaningBlock`, `SelectSignBlock`, `ContextResponseBlock` and
-  `SelectSignBlock` share `SignCarouselBlock`, `MatchBlock`, `VisualRecognitionBlock`).
-  `SelectMeaningBlock` and `SignCarouselBlock` (so `SelectSignBlock`/`ContextResponseBlock`) render
-  the sign via `SignAnimation`; `MatchBlock`/`VisualRecognitionBlock` still use static
-  cards/swatches (they show many signs at once, not one at a time).
+  roadmap response (falls back to `0` if absent for backward compatibility). Only the current block
+  and the next one are mounted at a time (a windowed `blockIndex`/`blockIndex + 1` render, not the
+  whole lesson) — each block's WebView can hold several concurrent 3D models, and mounting every
+  block up front used to pile up WebGL contexts until Android silently OOM-killed the app (no JS
+  error, just closes). Blocks only ever advance forward, so a 2-wide window is enough to keep the
+  next block's WebView warm without unmount/remount. `LessonScreen` also calls
+  `useActivityTracker()` (`src/hooks/useActivityTracker.ts`) on mount: it accumulates
+  foreground-only seconds (via `AppState`) for as long as the screen is mounted and flushes whole
+  minutes to `usersApi.recordActivity()` (`POST /users/me/activity`) roughly every 60s and again on
+  unmount, capped at 5 minutes per request to match the backend's `RecordActivityRequest` validation.
+  This is what backs `minutesToday`/"Meta diaria" in `ProfileScreen` — see
+  [../api/endpoints.md](../api/endpoints.md).
+- `components/lesson/`: `LessonHeader` (back + progress + lives), `XpChip`, `FeedbackBar`
+  (correct/incorrect banner — icon is the `check.svg`/`denied.svg` spot illustration, not an
+  Ionicon), `LessonButton`, `SignPlaceholder` (fallback when a model fails to load or a meaning has
+  no animation; also used in a `preparing` mode — `pajaros-grupo-pequeno.svg` illustration +
+  "La animación se está preparando" — while the GLB is still loading), `SignAnimation` (derives the
+  GLB URL deterministically via `getGlbUrl(meaning)`, renders `GlbAnimationView`, and overlays
+  `SignPlaceholder preparing` until the model's `onLoaded` fires or `SignPlaceholder` on `onError`),
+  `NoLivesOverlay`, `LessonComplete` (its three tiles — XP, aciertos, señas nuevas — are filtered to
+  the ones actually **earned**, `> 0`; the row disappears when none is), and `blocks/` with one
+  component per `BlockType` (`InfoBlock`, `IntroduceSignBlock`, `SelectMeaningBlock`,
+  `SelectSignBlock`, `ContextResponseBlock` and `SelectSignBlock` share `SignCarouselBlock`,
+  `MatchBlock`, `VisualRecognitionBlock`). `IntroduceSignBlock` presents a new sign with its
+  full-height `SignAnimation` and a "La practico" button — no answer required, `xpReward` is
+  ignored. `SelectMeaningBlock` and `SignCarouselBlock` (so `SelectSignBlock`/`ContextResponseBlock`)
+  render the sign via `SignAnimation`; `MatchBlock`/`VisualRecognitionBlock` still use static
+  cards/swatches (they show many signs at once, not one at a time). Answer-option buttons across
+  `SelectMeaningBlock`/`VisualRecognitionBlock`/`MatchBlock` share the same idle look — flat
+  `colors.fill` background, no border — and the same `check.svg`/`denied.svg` icons for the
+  correct/wrong states (no shared `OptionButton` component yet, each block still owns its own
+  option styles).
 - `InfoBlock`: paragraphs are linkified by `blocks/richText.tsx` (`renderTextWithLinks`), which
   understands both markdown `[label](url)` and bare `http(s)://…` and opens them with `Linking`.
   When the config carries `myths`, they render as `blocks/MythDeck.tsx` instead of a static list:
@@ -62,23 +81,13 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   content behind the top one (not empty placeholders), so nothing pops in mid-swipe; on each face
   the title and body are centred vertically under the MITO/VERDAD badge. The "Continuar" button stays available for
   anyone who wants to skip ahead.
-- `animationPreload.ts`: `preloadLessonAnimations(blocks)` — fire-and-forget, errors swallowed,
-  doesn't block the UI. Called in two places: from `HomeTabScreen` as soon as the roadmap loads
-  (pre-fetches the current lesson's animations before the user taps "Comenzar"), and from
-  `LessonScreen` on mount as a fallback (idempotent — cached meanings are skipped).
-  `collectSignMeanings(blocks)` picks the sign *meanings* to look up per block type: `SELECT_MEANING.sign`,
-  `SELECT_SIGN.options`, `CONTEXT_RESPONSE.options`, `MATCH.concepts`,
-  `VISUAL_RECOGNITION.sign_sequence` (its `options` are plain text, not animated). All pending
-  meanings are resolved in **one** batched request, `signsApi.getSignAnimations` (`POST
-  /signs/animations`, exact-meaning match, presigned URLs). Each URL is cached in
-  `animationUrlCache` immediately (presigned URL); then the GLB binary is downloaded via `fetch()`
-  in the RN layer and converted to a `data:model/gltf-binary;base64,…` URL stored in
-  `glbDataUrlCache`. `getCachedAnimationUrl(meaning)` prefers the data URL so the WebView renders
-  from memory with no network request; it falls back to the presigned URL while the download is
-  still in progress. A meaning absent from the response is cached as `null` — `SignAnimation` falls
-  back to `SignPlaceholder` without retrying. `extractLessonSignNames(lesson)` (in
-  `lessonContent.types.ts`) returns the *taught* meanings (correct answers only, no distractors)
-  for display in the lesson-detail modal chips.
+- **GLB URL construction** (`src/features/animations/glbUrl.ts`): `getGlbUrl(meaning)` builds the
+  public R2 URL deterministically — `https://pub-f40a1de4d1fc46b0b6f07299847c66e0.r2.dev/lsa/{meaning}.glb`.
+  No backend round-trip; no presigned URLs; no cache layer in JS. The WebView engine handles HTTP
+  caching natively (browser cache, shared across all WebView instances in the process). File names
+  are the lowercase meaning, URL-encoded by `encodeURIComponent`. `extractLessonSignNames(lesson)`
+  (in `lessonContent.types.ts`) returns the *taught* meanings (correct answers only, no
+  distractors) for display in the lesson-detail modal chips.
 - `lessonCache.ts`: module-level `Map<lessonId, LessonContent>`. `HomeTabScreen` populates it
   after fetching the current lesson in the background; `LessonScreen` checks it on mount before
   calling the API (cache hit → no loading spinner on lesson entry). The cache is invalidated
@@ -92,7 +101,11 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   fires, JS reframes the camera target ~30% up from the bounding-box center (upper body/chest) and
   sets `fieldOfView="15deg"`. Reports loaded animation clip names and load errors back to RN via
   `postMessage`; `paused` toggles `play()`/`pause()` on the `<model-viewer>` through
-  `injectJavaScript` without reloading the model. Depends on `react-native-webview`.
+  `injectJavaScript` without reloading the model. Depends on `react-native-webview`. Both
+  `GlbAnimationView` and `MultiGlbView` (the carousel's one-WebView-many-models variant) handle
+  `onRenderProcessGone` by calling the same `onError` callback the caller already uses to fall back
+  to `SignPlaceholder` — without it, an Android WebView renderer crash (e.g. from a low-memory
+  device) took the whole host app process down with it instead of just that one card.
 
 To advance: wire the Inicio roadmap's lesson CTA to navigate into this real `LessonScreen` with a
 real `unitLabel` (currently it just closes the sheet — see below). Once `signa-api` #60 merges,

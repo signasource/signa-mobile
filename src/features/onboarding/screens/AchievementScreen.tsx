@@ -6,6 +6,7 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "@/navigation/AuthNavigator";
 import { onboardingStorage } from "../storage";
 import { colors, fonts } from "@/theme";
+import ManoConGlobo from "@assets/ilus/mano-con-globo.svg";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Achievement">;
 
@@ -51,12 +52,9 @@ export function AchievementScreen({ navigation }: Props) {
           <Text style={styles.badgeText}>Logro desbloqueado</Text>
         </View>
 
-        {/* Streak fire */}
+        {/* Illustration */}
         <View style={styles.avatarSection}>
-          <View style={styles.pulseRing} />
-          <View style={styles.avatarCircle}>
-            <Text style={styles.fireEmoji}>🔥</Text>
-          </View>
+          <ManoConGlobo width={260} height={263} />
         </View>
 
         {/* Headline */}
@@ -179,28 +177,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginVertical: 6,
-  },
-  pulseRing: {
-    position: "absolute",
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.3)",
-  },
-  avatarCircle: {
-    width: 206,
-    height: 206,
-    borderRadius: 103,
-    backgroundColor: "rgba(255,255,255,0.18)",
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  fireEmoji: {
-    fontSize: 120,
-    lineHeight: 140,
-    textAlign: "center",
   },
   headline: {
     fontFamily: fonts.displayBold,

@@ -7,6 +7,7 @@ export interface SignSummary {
   description: string | null;
   handedness: string;
   animationUrl: string | null;
+  youtubeUrl: string | null;
 }
 
 interface SignsPage {
@@ -21,12 +22,24 @@ interface SignsPage {
 export const signsApi = {
   getSigns: (signLanguageId: string, query?: string) =>
     apiClient.get<SignsPage>("/signs", { params: { signLanguageId, query } }),
+};
 
-  /**
-   * Batched, exact-meaning lookup of presigned animation URLs. Mirrors
-   * SignController.getSignAnimations: meanings with no matching sign, or no
-   * animation uploaded, are simply absent from the response.
-   */
-  getSignAnimations: (meanings: string[]) =>
-    apiClient.post<Record<string, string>>("/signs/animations", { meanings }),
+export type ReportReason =
+  | "INCORRECT_SIGN"
+  | "UNCLEAR_ANIMATION"
+  | "WRONG_MEANING"
+  | "MISSING_CONTEXT"
+  | "REGIONAL_VARIANT"
+  | "TECHNICAL_PROBLEM"
+  | "OTHER";
+
+export interface CreateSignReportRequest {
+  signMeaning: string;
+  reason: ReportReason;
+  description?: string;
+}
+
+export const signReportsApi = {
+  createReport: (req: CreateSignReportRequest) =>
+    apiClient.post("/sign-reports", req),
 };

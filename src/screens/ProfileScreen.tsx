@@ -10,6 +10,7 @@ import {
   StyleProp,
   ViewStyle,
 } from "react-native";
+import PictureIllustration from "@assets/ilus/picture.svg";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -97,9 +98,15 @@ const HEADER_COLORS = [
 const DEFAULT_INVENTORY: UserInventory = {
   gems: 0,
   streakShields: 0,
-  lives: MAX_LIVES,
-  xpMultiplier: 1,
-  totalSignsLearned: 0,
+  livesMode: "LIMITED",
+  currentLives: MAX_LIVES,
+  nextLifeAt: null,
+  effectiveXpMultiplier: 1,
+  xpMultiplierExpiresAt: null,
+  xpMultiplierActive: false,
+  unlimitedLivesExpiresAt: null,
+  unlimitedLivesActive: false,
+  learnedSignsCount: 0,
 };
 
 
@@ -198,7 +205,7 @@ export function ProfileScreen({ navigation }: Props) {
   const [minutesToday, setMinutesToday] = useState(0);
 
   // Local inventory actions (optimistic)
-  const [livesCount, setLivesCount] = useState(DEFAULT_INVENTORY.lives);
+  const [livesCount, setLivesCount] = useState<number>(DEFAULT_INVENTORY.currentLives ?? MAX_LIVES);
   const [gemsCount, setGemsCount] = useState(DEFAULT_INVENTORY.gems);
   const [xpBoostActive, setXpBoostActive] = useState(false);
   const [infiniteActive, setInfiniteActive] = useState(false);
@@ -219,6 +226,9 @@ export function ProfileScreen({ navigation }: Props) {
       usersApi.getSettings().then((res) => {
         const color = res.data.profileHeaderColor;
         setHeaderColor(color);
+      }).catch(() => {});
+      usersApi.getDailyGoal().then((res) => {
+        setMinutesToday(res.data.minutesToday);
       }).catch(() => {});
     }, [])
   );
@@ -282,7 +292,7 @@ export function ProfileScreen({ navigation }: Props) {
     if (invRes.status === "fulfilled") {
       const inv = invRes.value.data;
       setInventory(inv);
-      setLivesCount(inv.lives);
+      setLivesCount(inv.currentLives ?? MAX_LIVES);
       setGemsCount(inv.gems);
       // xpBoostQty e infiniteQty no tienen campo en la API todavía; quedan en 0
     }
@@ -359,13 +369,11 @@ export function ProfileScreen({ navigation }: Props) {
     {
       key: "unlocked",
       label: "Conseguidos",
-      icon: "checkmark-circle",
       count: achievements.filter((a) => a.unlocked).length,
     },
     {
       key: "locked",
       label: "Bloqueados",
-      icon: "lock-closed",
       count: achievements.filter((a) => !a.unlocked).length,
     },
   ];
@@ -435,7 +443,7 @@ export function ProfileScreen({ navigation }: Props) {
         <View style={styles.statsGrid}>
           {[
             { icon: "flash", color: colors.warning, value: (userStats?.totalXp ?? 0).toLocaleString("es-AR"), label: "XP total" },
-            { icon: "hand-left", color: colors.courseTeal, value: String(inventory.totalSignsLearned ?? 0), label: "Señas aprendidas" },
+            { icon: "hand-left", color: colors.courseTeal, value: String(inventory.learnedSignsCount ?? 0), label: "Señas aprendidas" },
           ].map((s) => (
             <View key={s.label} style={styles.statCard}>
               <View style={[styles.statChip, { backgroundColor: s.color + "1F" }]}>
@@ -556,7 +564,6 @@ export function ProfileScreen({ navigation }: Props) {
         <View style={styles.section}>
           <SectionTitle icon="school" label="Cursos" />
           <EmptyState
-            icon="school-outline"
             title="Sin cursos todavía"
             description="Cuando empieces un curso va a aparecer acá tu progreso."
           />
@@ -820,15 +827,12 @@ export function ProfileScreen({ navigation }: Props) {
 
         {/* Grid */}
         {achievementsShown.length === 0 ? (
-          <EmptyState
-            icon="trophy-outline"
-            title={achFilter === "unlocked" ? "Sin logros conseguidos" : "Sin logros bloqueados"}
-            description={
-              achFilter === "unlocked"
-                ? "Completá lecciones y mantené tu racha para desbloquear logros."
-                : "¡Ya desbloqueaste todos los logros disponibles!"
-            }
-          />
+          <View style={styles.achEmpty}>
+            <PictureIllustration width={178} height={119} />
+            <Text style={styles.achEmptyText}>
+              {achFilter === "unlocked" ? "Mostrá tus logros acá" : "¡Ya desbloqueaste todos los logros!"}
+            </Text>
+          </View>
         ) : (
         <View style={styles.achGrid}>
           {achievementsShown.map((a) => (
@@ -1584,6 +1588,19 @@ const styles = StyleSheet.create({
   },
   boosterActionTextDisabled: {
     color: "#B8B8BD",
+  },
+
+  // Achievements empty state
+  achEmpty: {
+    alignItems: "center",
+    paddingVertical: 50,
+    gap: 38,
+  },
+  achEmptyText: {
+    fontFamily: fonts.displayBold,
+    fontSize: 16,
+    color: colors.neutral900,
+    textAlign: "center",
   },
 
   // Achievements — three responsive columns that span the full width.

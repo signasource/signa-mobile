@@ -6,11 +6,17 @@ import { colors } from "@/theme";
 const MODEL_VIEWER_CDN =
   "https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js";
 
-function buildHtml(urls: string[], initialActiveIndex: number): string {
+interface HtmlOptions {
+  layout: GlbLayout;
+  rowHeight: number;
+  rowGap: number;
+}
+
+function buildHtml(urls: string[], initialActiveIndex: number, opts: HtmlOptions): string {
   const viewers = urls
     .map(
       (_, i) =>
-        `<model-viewer class="mv${i === initialActiveIndex ? " active" : ""}" id="mv${i}" autoplay camera-controls camera-orbit="0deg 85deg 100%" min-camera-orbit="auto 60deg auto" max-camera-orbit="auto 110deg auto" interaction-prompt="none" shadow-intensity="1" exposure="1"></model-viewer>`
+        `<model-viewer class="mv${i === initialActiveIndex ? " active" : ""}" id="mv${i}" autoplay loading="eager" camera-controls camera-orbit="0deg 85deg 100%" min-camera-orbit="auto 60deg auto" max-camera-orbit="auto 110deg auto" interaction-prompt="none" shadow-intensity="0" exposure="1"></model-viewer>`
     )
     .join("");
 
@@ -18,14 +24,35 @@ function buildHtml(urls: string[], initialActiveIndex: number): string {
     .map((url, i) => (url ? `ns[${i}].src=${JSON.stringify(url)};` : ""))
     .join("");
 
+  const activeUrl = urls[initialActiveIndex];
+  const preloadActive = activeUrl
+    ? `<link rel="preload" as="fetch" crossorigin href=${JSON.stringify(activeUrl)}>`
+    : "";
+
   return `<!doctype html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<link rel="preconnect" href="https://pub-f40a1de4d1fc46b0b6f07299847c66e0.r2.dev">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+${preloadActive}
 <style>
 html,body{margin:0;height:100%;background:${colors.fill};}
-.mv{position:absolute;inset:0;display:none;}
-.mv.active{display:block;}
+/* width/height are required in both layouts: model-viewer's :host sets 300x150, and
+   neither inset:0 nor normal flow stretches an element whose width/height are not auto
+   — without them the canvas stays 300x150 CSS px in a corner instead of filling its box. */
+${
+  opts.layout === "rows"
+    ? // Every model visible at once, one per row. CSS px == RN dp, so rowHeight/rowGap
+      // line the rows up with the RN tiles rendered next to them.
+      `.mv{position:relative;display:block;width:100%;height:${opts.rowHeight}px;}
+.mv + .mv{margin-top:${opts.rowGap}px;}`
+    : // One model visible at a time. visibility (not display:none) keeps the element's
+      // layout box: a 0x0 viewer frames its camera wrong, and model-viewer never
+      // re-frames when shown.
+      `.mv{position:absolute;inset:0;width:100%;height:100%;visibility:hidden;}
+.mv.active{visibility:visible;}`
+}
 </style>
 <script type="module" src="${MODEL_VIEWER_CDN}"></script>
 </head>
@@ -34,10 +61,14 @@ ${viewers}
 <script>
 var post=function(m){if(window.ReactNativeWebView)window.ReactNativeWebView.postMessage(JSON.stringify(m));};
 var ns={};
+// Frame the upper body. Exposed on window so switching options can re-frame.
+window.frameMv=function(mv){
+  try{var d=mv.getDimensions(),c=mv.getBoundingBoxCenter(),ty=c.y+d.y*0.30;mv.cameraTarget='0m '+ty.toFixed(3)+'m 0m';mv.fieldOfView='15deg';}catch(_){}
+};
 document.querySelectorAll('.mv').forEach(function(mv,i){
   ns[i]=mv;
   mv.addEventListener('load',function(){
-    try{var d=mv.getDimensions(),c=mv.getBoundingBoxCenter(),ty=c.y+d.y*0.30;mv.cameraTarget='0m '+ty.toFixed(3)+'m 0m';mv.fieldOfView='15deg';}catch(_){}
+    window.frameMv(mv);
     post({type:'loaded',index:i});
   });
   mv.addEventListener('error',function(e){post({type:'error',index:i,message:(e&&e.detail&&e.detail.type)||'error'});});
@@ -48,6 +79,12 @@ ${srcs}
 </html>`;
 }
 
+/**
+ * `stack`: all models occupy the same box, only `activeIndex` is visible (carousel).
+ * `rows`: every model is visible at once, stacked vertically one per row (match grid).
+ */
+export type GlbLayout = "stack" | "rows";
+
 export interface MultiGlbViewProps {
   /**
    * Ordered list of GLB URLs (one per meaning/option).
@@ -55,9 +92,15 @@ export interface MultiGlbViewProps {
    * element gets no src, so the slot stays blank inside the WebView.
    */
   urls: string[];
-  /** 0-based index of the model to display. */
+  /** 0-based index of the model to display. Ignored when `layout` is `rows`. */
   activeIndex: number;
   paused?: boolean;
+  /** Defaults to `stack`. */
+  layout?: GlbLayout;
+  /** `rows` only: height of each row, in dp. */
+  rowHeight?: number;
+  /** `rows` only: vertical space between rows, in dp. */
+  rowGap?: number;
   style?: ViewStyle;
   onError?: (index: number) => void;
 }
@@ -67,13 +110,26 @@ export interface MultiGlbViewProps {
  * model-viewer and switches between them by injecting JS — zero WebView
  * reload when the active model changes.
  */
-export function MultiGlbView({ urls, activeIndex, paused = false, style, onError }: MultiGlbViewProps) {
+export function MultiGlbView({
+  urls,
+  activeIndex,
+  paused = false,
+  layout = "stack",
+  rowHeight = 96,
+  rowGap = 10,
+  style,
+  onError,
+}: MultiGlbViewProps) {
   const webviewRef = useRef<WebView>(null);
 
   // Snapshot initial values so the HTML is built exactly once and never changes.
   const initialUrls = useRef(urls);
   const initialIndex = useRef(activeIndex);
-  const html = useMemo(() => buildHtml(initialUrls.current, initialIndex.current), []);
+  const initialLayout = useRef({ layout, rowHeight, rowGap });
+  const html = useMemo(
+    () => buildHtml(initialUrls.current, initialIndex.current, initialLayout.current),
+    []
+  );
 
   // Always-current refs — updated synchronously during render so effects can
   // read them without stale-closure issues.
@@ -86,11 +142,12 @@ export function MultiGlbView({ urls, activeIndex, paused = false, style, onError
   // state is already encoded in the HTML).
   const prevIndexRef = useRef(activeIndex);
   useEffect(() => {
+    if (initialLayout.current.layout === "rows") return;
     if (prevIndexRef.current === activeIndex) return;
     prevIndexRef.current = activeIndex;
     const play = pausedRef.current ? "" : "mv.play();";
     webviewRef.current?.injectJavaScript(
-      `(function(){Object.keys(ns).forEach(function(k){ns[k].className=ns[k].className.replace(/\\bactive\\b/,"").trim();ns[k].pause();});var mv=ns[${activeIndex}];if(mv){mv.className+=" active";${play}}})();true;`
+      `(function(){Object.keys(ns).forEach(function(k){ns[k].className=ns[k].className.replace(/\\bactive\\b/,"").trim();ns[k].pause();});var mv=ns[${activeIndex}];if(mv){mv.className+=" active";window.frameMv(mv);${play}}})();true;`
     );
   }, [activeIndex]);
 
@@ -99,10 +156,12 @@ export function MultiGlbView({ urls, activeIndex, paused = false, style, onError
   useEffect(() => {
     if (prevPausedRef.current === paused) return;
     prevPausedRef.current = paused;
-    const idx = activeIndexRef.current;
-    webviewRef.current?.injectJavaScript(
-      `(function(){var mv=ns[${idx}];if(mv)mv.${paused ? "pause" : "play"}();})();true;`
-    );
+    const method = paused ? "pause" : "play";
+    const target =
+      initialLayout.current.layout === "rows"
+        ? `Object.keys(ns).forEach(function(k){ns[k].${method}();});`
+        : `var mv=ns[${activeIndexRef.current}];if(mv)mv.${method}();`;
+    webviewRef.current?.injectJavaScript(`(function(){${target}})();true;`);
   }, [paused]);
 
   function handleMessage(event: WebViewMessageEvent) {
@@ -120,6 +179,7 @@ export function MultiGlbView({ urls, activeIndex, paused = false, style, onError
       source={{ html, baseUrl: "https://localhost" }}
       onMessage={handleMessage}
       onError={() => onError?.(activeIndexRef.current)}
+      onRenderProcessGone={() => onError?.(activeIndexRef.current)}
       javaScriptEnabled
       domStorageEnabled
       allowsInlineMediaPlayback

@@ -1,15 +1,14 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { StyleSheet, View, ViewStyle } from "react-native";
 import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
 import { GlbAnimationView } from "@/features/animations/GlbAnimationView";
-import { getCachedAnimationUrl } from "@/features/courses/animationPreload";
+import { getGlbUrl } from "@/features/animations/glbUrl";
 import { SignPlaceholder } from "./SignPlaceholder";
 
 type Tone = "neutral" | "wrong";
 
 interface SignAnimationProps {
-  /** Sign meaning to render; looked up in the preload cache filled by animationPreload.ts. */
   meaning: string;
   label: string;
   height?: number;
@@ -19,17 +18,12 @@ interface SignAnimationProps {
   style?: ViewStyle;
 }
 
-/**
- * Renders the 3D avatar animation for a sign meaning, falling back to
- * `SignPlaceholder` while the URL isn't cached yet (still loading, no
- * animation for that meaning, or the model failed to load).
- */
 export function SignAnimation({ meaning, label, height = 320, tone = "neutral", paused, badge, style }: SignAnimationProps) {
   const [failed, setFailed] = useState(false);
-  const url = getCachedAnimationUrl(meaning);
+  const [ready, setReady] = useState(false);
   const wrong = tone === "wrong";
 
-  if (!url || failed) {
+  if (failed) {
     return <SignPlaceholder label={label} height={height} tone={tone} badge={badge} style={style} />;
   }
 
@@ -40,7 +34,15 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
           <Text style={styles.badgeText}>{badge}</Text>
         </View>
       )}
-      <GlbAnimationView url={url} paused={paused} onError={() => setFailed(true)} />
+      <GlbAnimationView
+        url={getGlbUrl(meaning)}
+        paused={paused}
+        onLoaded={() => setReady(true)}
+        onError={() => setFailed(true)}
+      />
+      {!ready && (
+        <SignPlaceholder label={label} height={height} tone={tone} preparing style={StyleSheet.absoluteFillObject} />
+      )}
     </View>
   );
 }

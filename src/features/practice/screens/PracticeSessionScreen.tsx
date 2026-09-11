@@ -110,7 +110,6 @@ export function PracticeSessionScreen({ route, navigation }: Props) {
     return (
       <View style={[styles.container, { paddingTop: insets.top + 14 }]}>
         <EmptyState
-          icon="sparkles-outline"
           title="Nada para practicar todavía"
           description={emptyDescription(mode)}
         />

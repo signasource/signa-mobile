@@ -3,12 +3,14 @@ import { NavigatorScreenParams } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ChangePasswordScreen } from "@/screens/ChangePasswordScreen";
 import { ConfigurationScreen } from "@/screens/ConfigurationScreen";
+import { EditProfileScreen } from "@/screens/EditProfileScreen";
 import { ConnectionTestScreen } from "@/screens/ConnectionTestScreen";
 import { LessonScreen } from "@/features/courses/screens/LessonScreen";
 import { PracticeSessionScreen } from "@/features/practice/screens/PracticeSessionScreen";
 import { SignRecognitionScreen } from "@/features/ml/screens/SignRecognitionScreen";
 import { NotificationsScreen } from "@/features/social/screens/NotificationsScreen";
 import { PublicProfileScreen } from "@/features/social/screens/PublicProfileScreen";
+import { FriendAcceptedScreen } from "@/features/social/screens/FriendAcceptedScreen";
 import { TabNavigator, TabParamList } from "./TabNavigator";
 import { colors, fonts } from "@/theme";
 import { useSettings } from "@/context/SettingsContext";
@@ -22,11 +24,23 @@ export type PracticeSessionParams =
 export type AppStackParamList = {
   Tabs: NavigatorScreenParams<TabParamList> | undefined;
   ChangePassword: undefined;
-  Configuration: undefined;
+  Configuration:
+    | {
+        updatedProfile?: { displayName: string; lastName: string; username: string };
+        passwordChanged?: boolean;
+      }
+    | undefined;
+  EditProfile: { displayName: string; lastName: string; username: string };
   Lesson: { lessonId: string; unitLabel?: string; signsCount?: number };
   Notifications: undefined;
   PracticeSession: { mode: PracticeSessionParams };
   PublicProfile: { username: string };
+  FriendAccepted: {
+    friendId: string;
+    friendName: string;
+    friendUsername: string;
+    friendStreak: number;
+  };
   SignRecognition: undefined;
   ConnectionTest: undefined;
 };
@@ -49,12 +63,14 @@ export function AppNavigator() {
       }}
     >
       <Stack.Screen name="Tabs" component={TabNavigator} options={{ headerShown: false }} />
-      <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} options={{ title: "Cambiar contrasena" }} />
+      <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Configuration" component={ConfigurationScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Lesson" component={LessonScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="PracticeSession" component={PracticeSessionScreen} options={{ headerShown: false }} />
       <Stack.Screen name="PublicProfile" component={PublicProfileScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="FriendAccepted" component={FriendAcceptedScreen} options={{ headerShown: false }} />
       <Stack.Screen name="SignRecognition" component={SignRecognitionScreen} options={{ title: "Practicar" }} />
       <Stack.Screen name="ConnectionTest" component={ConnectionTestScreen} options={{ title: "Test de conexion" }} />
     </Stack.Navigator>

@@ -8,7 +8,7 @@ import { AppStackParamList } from "@/navigation/AppNavigator";
 import { lessonsApi } from "@/api/lessons";
 import { learningApi } from "@/api/learning";
 import { shopApi } from "@/api/shop";
-import { preloadLessonAnimations } from "@/features/courses/animationPreload";
+import { useActivityTracker } from "@/hooks/useActivityTracker";
 import { BlockType, LessonContent, LessonContentBlock, parseBlockConfig } from "@/features/courses/lessonContent.types";
 import { LessonButton } from "@/features/courses/components/lesson/LessonButton";
 import { LessonHeader } from "@/features/courses/components/lesson/LessonHeader";
@@ -20,6 +20,7 @@ import { SelectSignBlock } from "@/features/courses/components/lesson/blocks/Sel
 import { ContextResponseBlock } from "@/features/courses/components/lesson/blocks/ContextResponseBlock";
 import { MatchBlock } from "@/features/courses/components/lesson/blocks/MatchBlock";
 import { VisualRecognitionBlock } from "@/features/courses/components/lesson/blocks/VisualRecognitionBlock";
+import { IntroduceSignBlock } from "@/features/courses/components/lesson/blocks/IntroduceSignBlock";
 
 type Props = NativeStackScreenProps<AppStackParamList, "Lesson">;
 
@@ -28,6 +29,8 @@ const STARTING_LIVES = 5;
 export function LessonScreen({ route, navigation }: Props) {
   const { lessonId, unitLabel, signsCount } = route.params;
   const insets = useSafeAreaInsets();
+
+  useActivityTracker();
 
   const [lesson, setLesson] = useState<LessonContent | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,7 +58,6 @@ export function LessonScreen({ route, navigation }: Props) {
           setUnlimitedLives(inventoryRes.data.livesMode === "INFINITE");
           setLives(inventoryRes.data.currentLives ?? STARTING_LIVES);
         }
-        preloadLessonAnimations(lessonRes.data.blocks).catch(() => {});
       })
       .catch((err: any) => setError(err?.response?.data?.message ?? "No pudimos cargar la lección."))
       .finally(() => setLoading(false));
@@ -164,29 +166,33 @@ export function LessonScreen({ route, navigation }: Props) {
       />
 
       {/*
-       * All blocks are mounted simultaneously so their WebViews (and 3D models)
-       * start loading immediately. Switching blocks is a visibility toggle —
-       * no unmount/remount, no model reload.
+       * Only the current block and the next one are mounted (each block's WebView
+       * can hold several concurrent 3D models). Mounting every block in the lesson
+       * at once used to pile up WebGL contexts until Android OOM-killed the app
+       * with no JS error — see docs/features/courses.md.
        */}
       <View style={styles.blockArea}>
-        {blocks.map((block, i) => (
-          <View
-            key={block.id}
-            style={[StyleSheet.absoluteFillObject, { opacity: i === blockIndex ? 1 : 0 }]}
-            pointerEvents={i === blockIndex ? "auto" : "none"}
-          >
-            <BlockRenderer
-              block={block}
-              onAnswer={(correct) => handleAnswer(block, correct)}
-              onContinue={block.type === "INFO" ? () => handleInfoContinue(block) : goToNextBlock}
-            />
-          </View>
-        ))}
+        {blocks.map((block, i) => {
+          if (i < blockIndex || i > blockIndex + 1) return null;
+          return (
+            <View
+              key={block.id}
+              style={[StyleSheet.absoluteFillObject, { opacity: i === blockIndex ? 1 : 0 }]}
+              pointerEvents={i === blockIndex ? "auto" : "none"}
+            >
+              <BlockRenderer
+                block={block}
+                onAnswer={(correct) => handleAnswer(block, correct)}
+                onContinue={block.type === "INFO" ? () => handleInfoContinue(block) : goToNextBlock}
+              />
+            </View>
+          );
+        })}
       </View>
 
       {noLives && (
         <NoLivesOverlay
-          onGoToStore={() => navigation.navigate("Tabs", { screen: "Store" })}
+          onGoToStore={() => navigation.navigate("Tabs", { screen: "Store", params: { fromLesson: true } })}
           onExit={() => navigation.goBack()}
         />
       )}
@@ -206,6 +212,8 @@ function BlockRenderer({ block, onAnswer, onContinue }: BlockRendererProps) {
   switch (block.type as BlockType) {
     case "INFO":
       return <InfoBlock config={parseBlockConfig<"INFO">(block)} onContinue={onContinue} />;
+    case "INTRODUCE_SIGN":
+      return <IntroduceSignBlock config={parseBlockConfig<"INTRODUCE_SIGN">(block)} onContinue={onContinue} />;
     case "SELECT_MEANING":
       return (
         <SelectMeaningBlock config={parseBlockConfig<"SELECT_MEANING">(block)} xp={xp} onAnswer={onAnswer} onContinue={onContinue} />

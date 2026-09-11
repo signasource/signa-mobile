@@ -14,7 +14,7 @@ import { BackButton } from "@/components/BackButton";
 import { TabParamList } from "@/navigation/TabNavigator";
 import { AppStackParamList } from "@/navigation/AppNavigator";
 import { practiceApi, LearnedSign, PracticeMistake } from "@/api/practice";
-import { signsApi } from "@/api/signs";
+import { SignAnimation } from "@/features/courses/components/lesson/SignAnimation";
 import { EXERCISE_TYPES, EXERCISE_TYPE_BY_KEY } from "@/features/practice/types";
 
 /**
@@ -179,7 +179,6 @@ function SignsTab({
   if (meanings.length === 0) {
     return (
       <EmptyState
-        icon="hand-left-outline"
         title="Todavía no aprendiste señas"
         description="Completá alguna lección para verlas acá y practicarlas."
       />
@@ -222,7 +221,6 @@ function SignsTab({
 
       {noResults ? (
         <EmptyState
-          icon="search"
           title="Sin resultados"
           description="Probá con otra palabra: sólo aparecen las señas que ya aprendiste."
         />
@@ -269,7 +267,6 @@ function MistakesTab({ navigation }: { navigation: PracticeNavigation }) {
   if (mistakes.length === 0) {
     return (
       <EmptyState
-        icon="checkmark-done-circle-outline"
         title="Sin errores pendientes"
         description="Repasaste todo lo que fallaste hasta ahora. ¡Seguí así!"
       />
@@ -341,17 +338,12 @@ function SignDetail({
 }) {
   const insets = useSafeAreaInsets();
   const [related, setRelated] = useState<string[]>([]);
-  const [animationUrl, setAnimationUrl] = useState<string | null>(null);
 
   useEffect(() => {
     practiceApi
       .getLearnedSigns()
       .then((res) => setRelated(res.data.map((s) => s.sign).filter((s) => s !== meaning).slice(0, 4)))
       .catch(() => setRelated([]));
-    signsApi
-      .getSignAnimations([meaning])
-      .then((res) => setAnimationUrl(res.data[meaning] ?? null))
-      .catch(() => setAnimationUrl(null));
   }, [meaning]);
 
   return (
@@ -365,19 +357,7 @@ function SignDetail({
         contentContainerStyle={styles.detailScrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.animationBox}>
-          <View style={styles.animationTag}>
-            <Text style={styles.animationTagText}>Animación LSA</Text>
-          </View>
-          <View style={styles.animationPlay}>
-            <Ionicons name="play" size={24} color={colors.text} style={styles.animationPlayIcon} />
-          </View>
-          <View style={styles.animationCaption}>
-            <Text style={styles.animationCaptionText}>
-              {animationUrl ? meaning : `${meaning} · sin animación disponible`}
-            </Text>
-          </View>
-        </View>
+        <SignAnimation meaning={meaning} label={meaning} height={320} />
 
         <Text style={styles.detailTitle}>{meaning}</Text>
 
@@ -616,50 +596,6 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
   },
   detailScrollContent: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24 },
-  animationBox: {
-    height: 320,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.fill,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-  },
-  animationTag: {
-    position: "absolute",
-    top: 14,
-    left: 14,
-    backgroundColor: "rgba(255,255,255,0.94)",
-    borderRadius: 8,
-    paddingVertical: 4,
-    paddingHorizontal: 9,
-  },
-  animationTagText: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 11.5,
-    color: colors.textMuted,
-  },
-  animationPlay: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: "rgba(255,255,255,0.92)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  animationPlayIcon: { marginLeft: 3 },
-  animationCaption: {
-    backgroundColor: "rgba(255,255,255,0.92)",
-    borderRadius: 7,
-    paddingVertical: 4,
-    paddingHorizontal: 9,
-  },
-  animationCaptionText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 11.5,
-    color: colors.textMuted,
-  },
   detailTitle: {
     fontFamily: fonts.displayBold,
     fontSize: 30,

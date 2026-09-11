@@ -3,6 +3,7 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "@/theme";
+import ManoCelularSinVidas from "@assets/ilus/mano-celular-sin-vidas.svg";
 
 interface NoLivesOverlayProps {
   onGoToStore: () => void;
@@ -13,9 +14,7 @@ export function NoLivesOverlay({ onGoToStore, onExit }: NoLivesOverlayProps) {
   return (
     <View style={styles.overlay}>
       <View style={styles.sheet}>
-        <View style={styles.icon}>
-          <Ionicons name="heart-dislike" size={34} color={colors.livesRed} />
-        </View>
+        <ManoCelularSinVidas width={140} height={140} />
         <Text style={styles.title}>Te quedaste sin vidas</Text>
         <Text style={styles.subtitle}>
           Podés esperar a que se recarguen o pasar por la tienda a buscar vidas y potenciadores para seguir con la
@@ -50,14 +49,6 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     alignItems: "center",
     gap: 12,
-  },
-  icon: {
-    width: 74,
-    height: 74,
-    borderRadius: 24,
-    backgroundColor: colors.dangerLight,
-    alignItems: "center",
-    justifyContent: "center",
   },
   title: {
     fontFamily: fonts.displayBold,

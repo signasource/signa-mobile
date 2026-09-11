@@ -2,7 +2,7 @@
 
 > Responsibility: UI primitive catalog and shared visual conventions.
 > Update when: a primitive is added/changed, or a shared visual convention changes.
-> Sources: src/components/, src/components/auth/index.ts, src/utils/color.ts
+> Sources: src/components/, src/components/auth/index.ts, src/utils/color.ts, metro.config.js, svg.d.ts
 
 Reuse a primitive before creating a new one. Tokens → [colors.md](./colors.md), [typography.md](./typography.md). Styling rule: `StyleSheet.create()` at file end, tokens only (see [`CLAUDE.md`](../../CLAUDE.md)).
 
@@ -14,13 +14,14 @@ Reuse a primitive before creating a new one. Tokens → [colors.md](./colors.md)
 | `ScreenHeader` | `title, description?, paddingTop, tone, stats?, left?, right?, children?, compact?` | **the** colored hero header of every top-level screen |
 | `SegmentedControl` | `options(Segment[]), value, onChange, style?` | primary selector (full width, black active) |
 | `SubTabs` | `options(SubTab[]), value, onChange, style?` | secondary selector (outlined pills + icon) |
-| `EmptyState` / `EmptyNote` | `icon, title, description` / `children` | the single empty-state style |
+| `EmptyState` / `EmptyNote` | `title, description` / `children` | the single empty-state style; illustration is a random pick from `EmptyStateArt`'s spiderweb pool (`@assets/ilus/spiderweb.svg`, `mano-con-spiderweb-1/2.svg`, `mano-con-spiderweb-negra.svg`) |
 | `Input` | `label, error?` + `TextInputProps` | generic form field |
 | `Card` | `style?` + `ViewProps` | soft-shadow container, radius 16 |
 | `BackButton` | `onPress, visible?, color?, style?` | back chevron, no background |
 | `NavIconButton` | `icon, onPress, label, color?, size?, children?` | header icon button, no background (also in `BackButton.tsx`) |
 | `FieldIcon` | `name(FieldIconName), size?, color?` | Ionicons outline for fields/badges |
 | `OnboardingProgress` | `progress(0-1), onBack?` | onboarding progress bar |
+| `SessionExpiredModal` | `visible, onLogin, onExit` | bottom-sheet aviso ("Se cerró tu sesión") mostrado por `RootNavigator` sobre la pantalla actual cuando la sesión se cierra sola — ver [../authentication/auth-context.md](../authentication/auth-context.md) |
 
 ## Auth / onboarding (`src/components/auth/`, barrel `index.ts`)
 
@@ -36,6 +37,18 @@ Reuse a primitive before creating a new one. Tokens → [colors.md](./colors.md)
 
 Barrel exports (`src/components/auth/index.ts`): `AuthScreen`, `AuthField`, `PrimaryButton`, `SecondaryButton`, `AuthHeading`, `AuthIconBadge`, `AuthDivider`, `AuthFooter`, `StatusText`, `PasswordChecklist`.
 
+## SVG icons & illustrations
+
+- `@expo/vector-icons` (Ionicons, via `FieldIcon`) stays the default for **UI icons** (buttons, fields, badges) — do not switch those to SVG.
+- For one-off vector **icons/illustrations** that aren't in Ionicons (empty states, onboarding art, brand marks), import the `.svg` file directly as a component: `react-native-svg` + `react-native-svg-transformer` are wired in `metro.config.js` (`.svg` moved from `assetExts` to `sourceExts`), with the module type declared in `svg.d.ts`. Exception: the lesson blocks' correct/incorrect indicators (`assets/ilus/check.svg`, `assets/ilus/denied.svg` — two-tone spot illustrations, not line icons) replace the Ionicons `checkmark-circle`/`close-circle` glyphs in `FeedbackBar` and the option-button states in `SelectMeaningBlock`/`VisualRecognitionBlock`/`MatchBlock`.
+  ```tsx
+  import Illustration from "@assets/illustrations/empty-friends.svg";
+  // ...
+  <Illustration width={120} height={120} />
+  ```
+- Never hardcode a fill/stroke color inside the `.svg` file for anything that must follow theme tokens — leave the color attribute off the root shapes (or set `fill="currentColor"`) and pass `color={colors.*}` as a prop instead, so light/dark and per-screen tinting works like the rest of the design system.
+- Keep source `.svg` files under `assets/` (bundled) alongside existing images; components importing them use `@assets/...`, per the alias rule in [architecture.md](../architecture.md).
+
 `FieldIconName`: `name, user, email, password, token, key, eye, eyeOff` (mapped to Ionicons outline in `FieldIcon`).
 
 ## Visual conventions
@@ -47,5 +60,5 @@ Barrel exports (`src/components/auth/index.ts`): `AuthScreen`, `AuthField`, `Pri
 - Headers: one `ScreenHeader` for every screen — same title size (`fontSizes.xxl`), a bubble in the top-right corner, and stats as uppercase label on top + icon + value (the Tienda pattern). Top-level screens add a `description` and share `minHeight`; secondary screens (Configuración, Notificaciones) pass `compact` and no `description`/`stats`, which drops the `minHeight` and leaves them all at the same reduced height. Perfil is the one header that identifies the user instead of the screen: `title` is the user's name (`UserProfile.name`, no surname — the backend does not return one), `description` is `@username`, and `left` is the (enlarged) initials avatar.
 - Grids (achievements, colour swatches) size their cells as a **percentage** of the row (`width: "33.3333%"` / `"16.6667%"` plus a gutter via `paddingHorizontal` + negative `marginHorizontal`), never from `Dimensions.get("window")`, so they span the full width on any screen.
 - Selectors: `SegmentedControl` (primary) and `SubTabs` (secondary) always span the full width. `Segment.icon` is optional: Perfil's section selector is **text-only** and its icons live in the section headings instead.
-- Body copy is justified by default through `@/components/Text` — see [typography.md](./typography.md).
+- Long-form body/paragraph copy opts into `textAlign: "justify"` on its own style (e.g. `InfoBlock`'s `paragraph`) — it is not a default on `@/components/Text`, see [typography.md](./typography.md).
 - **Spacing**: no centralized scale; paddings/margins are per-component in each `StyleSheet` (typical 4–32). Screen horizontal padding **20px** (header, selectors and content share the same gutter); card padding ~18px.

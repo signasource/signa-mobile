@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
-  ScrollView,
   TextInput,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomTabNavigationProp, BottomTabScreenProps } from "@react-navigation/bottom-tabs";
@@ -259,7 +259,7 @@ export function SocialScreen({ navigation }: Props) {
   );
 
   const acceptRequest = useCallback(
-    (userId: string) =>
+    (userId: string, name: string, username: string) =>
       run(
         `${userId}:accept`,
         async () => {
@@ -268,10 +268,17 @@ export function SocialScreen({ navigation }: Props) {
           patchRelation(userId, "FRIEND");
           const { data } = await socialApi.getFriends();
           setFriends(data);
+          const accepted = data.find((f) => f.id === userId);
+          navigation.navigate("FriendAccepted", {
+            friendId: userId,
+            friendName: name,
+            friendUsername: username,
+            friendStreak: accepted?.currentStreak ?? 0,
+          });
         },
         "No pudimos aceptar la solicitud."
       ),
-    [run, patchRelation, notify]
+    [run, patchRelation, navigation]
   );
 
   const rejectRequest = useCallback(
@@ -374,7 +381,7 @@ export function SocialScreen({ navigation }: Props) {
         icon: "checkmark",
         label: "Aceptar",
         ...ROW_ACTION_STYLE.accept,
-        onPress: () => acceptRequest(userId),
+        onPress: () => acceptRequest(userId, name, username),
       };
       const reject: RowActionSpec = {
         key: `${userId}:reject`,
@@ -488,23 +495,24 @@ export function SocialScreen({ navigation }: Props) {
         </View>
       ) : error ? (
         <View style={styles.centered}>
-          <EmptyState icon="cloud-offline-outline" title="No pudimos cargar" description={error} />
+          <EmptyState title="No pudimos cargar" description={error} />
           <TouchableOpacity style={styles.retry} onPress={load}>
             <Text style={styles.retryLabel}>Reintentar</Text>
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView
+        <KeyboardAwareScrollView
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          enableOnAndroid
+          extraScrollHeight={20}
         >
           {isFeed ? (
             <View style={styles.feed}>
               <Text style={styles.sectionLabel}>ACTIVIDAD RECIENTE</Text>
               {events.length === 0 ? (
                 <EmptyState
-                  icon="pulse-outline"
                   title="Todavía no hay actividad"
                   description="Cuando tus amigos completen lecciones o desbloqueen logros, lo vas a ver acá."
                 />
@@ -578,7 +586,6 @@ export function SocialScreen({ navigation }: Props) {
                     results.length === 0 &&
                     trimmedQuery.length >= MIN_QUERY_LENGTH && (
                       <EmptyState
-                        icon="search"
                         title="Sin resultados"
                         description="Probá con el nombre completo o el usuario exacto."
                       />
@@ -599,7 +606,6 @@ export function SocialScreen({ navigation }: Props) {
                   {section === "amigos" ? (
                     friends.length === 0 ? (
                       <EmptyState
-                        icon="people-outline"
                         title="Todavía no tenés amigos"
                         description="Buscá a alguien por su usuario y mandale una solicitud."
                       />
@@ -678,7 +684,7 @@ export function SocialScreen({ navigation }: Props) {
               )}
             </View>
           )}
-        </ScrollView>
+        </KeyboardAwareScrollView>
       )}
 
       <Toast message={toast} bottom={16} />

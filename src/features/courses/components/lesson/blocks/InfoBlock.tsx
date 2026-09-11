@@ -94,6 +94,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 23,
     color: "#3D332E",
+    textAlign: "justify",
   },
   citation: {
     marginTop: 4,
@@ -105,6 +106,7 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     lineHeight: 18,
     color: colors.textMuted,
+    textAlign: "justify",
   },
   link: {
     fontFamily: fonts.bodySemiBold,

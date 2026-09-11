@@ -1,8 +1,9 @@
 ﻿import React from "react";
 import { StyleSheet, View } from "react-native";
 import { Text } from "@/components/Text";
-import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "@/theme";
+import Check from "@assets/ilus/check.svg";
+import Denied from "@assets/ilus/denied.svg";
 
 interface FeedbackBarProps {
   correct: boolean;
@@ -13,10 +14,11 @@ interface FeedbackBarProps {
 export function FeedbackBar({ correct, title, detail }: FeedbackBarProps) {
   const tint = correct ? colors.successLight : colors.dangerLight;
   const tone = correct ? colors.successDark : colors.danger;
+  const Icon = correct ? Check : Denied;
 
   return (
     <View style={[styles.container, { backgroundColor: tint }]}>
-      <Ionicons name={correct ? "checkmark-circle" : "close-circle"} size={22} color={tone} />
+      <Icon width={28} height={28} />
       <View style={styles.texts}>
         <Text style={[styles.title, { color: tone }]}>{title}</Text>
         <Text style={styles.detail}>{detail}</Text>

@@ -196,7 +196,6 @@ export function PublicProfileScreen({ route, navigation }: Props) {
     return (
       <View style={[styles.container, styles.centered]}>
         <EmptyState
-          icon="person-circle-outline"
           title="Perfil no disponible"
           description={error ?? "No encontramos a esta persona."}
         />
@@ -229,7 +228,7 @@ export function PublicProfileScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <ScrollView stickyHeaderIndices={[0]} contentContainerStyle={styles.scrollContent}>
+      <ScrollView stickyHeaderIndices={[0]} contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 32 }]}>
         {/* ─── header ─────────────────────────────────────── */}
         <View style={styles.stickyHeader}>
           <ScreenHeader
@@ -296,7 +295,6 @@ export function PublicProfileScreen({ route, navigation }: Props) {
         {!profile.visible ? (
           <View style={styles.section}>
             <EmptyState
-              icon="lock-closed-outline"
               title="Esta cuenta es privada"
               description="Solo sus amigos pueden ver su progreso, sus cursos y sus logros."
             />
@@ -403,7 +401,6 @@ export function PublicProfileScreen({ route, navigation }: Props) {
             <Text style={styles.sectionTitle}>Cursos</Text>
             {profile.courses.length === 0 ? (
               <EmptyState
-                icon="school-outline"
                 title="Sin cursos todavía"
                 description="Cuando empiece un curso vas a ver su progreso acá."
               />
@@ -508,7 +505,6 @@ function AchievementList({ achievements }: { achievements: PublicAchievement[] }
   if (achievements.length === 0) {
     return (
       <EmptyState
-        icon="trophy-outline"
         title="Sin logros todavía"
         description="Cuando desbloquee su primer logro vas a verlo acá."
       />
@@ -578,9 +574,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.onDark,
   },
-  scrollContent: {
-    paddingBottom: 32,
-  },
+  scrollContent: {},
   stickyHeader: {
     backgroundColor: colors.background,
   },
