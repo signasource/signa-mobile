@@ -1,28 +1,34 @@
-import React, { useState } from "react";
-import { View, ScrollView, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, ScrollView, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { BottomTabNavigationProp, BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+import { CompositeNavigationProp } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SegmentedControl, Segment } from "@/components/SegmentedControl";
 import { EmptyState } from "@/components/EmptyState";
 import { BackButton } from "@/components/BackButton";
-import {
-  EXERCISE_TYPES,
-  EXERCISE_TYPE_BY_KEY,
-  PRACTICE_MISTAKES,
-  PRACTICE_SIGNS,
-} from "@/features/practice/types";
+import { TabParamList } from "@/navigation/TabNavigator";
+import { AppStackParamList } from "@/navigation/AppNavigator";
+import { practiceApi, LearnedSign, PracticeMistake } from "@/api/practice";
+import { signsApi } from "@/api/signs";
+import { EXERCISE_TYPES, EXERCISE_TYPE_BY_KEY } from "@/features/practice/types";
 
 /**
  * "Práctica libre" tab: repaso by exercise type, by learned sign, or by past
- * mistakes. `signa-api` has no endpoint yet for a standalone practice
- * session, a per-user learned-signs list, or a mistakes queue (see
- * docs/features/practice.md), so this screen — like `CoursesListScreen` —
- * runs entirely on local placeholder content; every CTA is a no-op until
- * that content is real.
+ * mistakes — wired to the real /practice/* endpoints (see
+ * docs/features/practice.md). Playing a session happens in
+ * PracticeSessionScreen (stack route), reached from here.
  */
+
+type PracticeNavigation = CompositeNavigationProp<
+  BottomTabNavigationProp<TabParamList, "Practice">,
+  NativeStackNavigationProp<AppStackParamList>
+>;
+type Props = BottomTabScreenProps<TabParamList, "Practice"> & { navigation: PracticeNavigation };
 
 type PracticeTab = "ejercicios" | "señas" | "errores";
 
@@ -32,17 +38,34 @@ const TABS: ReadonlyArray<Segment<PracticeTab>> = [
   { key: "errores", label: "Errores" },
 ];
 
-/** No session-tracking endpoint yet — see docs/features/practice.md. */
-const PLACEHOLDER_EXERCISES_DONE = 0;
-
-export function PracticeTabScreen() {
+export function PracticeTabScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<PracticeTab>("ejercicios");
   const [query, setQuery] = useState("");
   const [detail, setDetail] = useState<string | null>(null);
 
+  const [signsLearnedCount, setSignsLearnedCount] = useState(0);
+  const [exercisesDoneCount, setExercisesDoneCount] = useState(0);
+
+  useEffect(() => {
+    practiceApi
+      .getSummary()
+      .then((res) => {
+        setSignsLearnedCount(res.data.signsLearnedCount);
+        setExercisesDoneCount(res.data.exercisesDoneCount);
+      })
+      .catch(() => {});
+  }, []);
+
   if (detail) {
-    return <SignDetail meaning={detail} onBack={() => setDetail(null)} onOpen={setDetail} />;
+    return (
+      <SignDetail
+        meaning={detail}
+        onBack={() => setDetail(null)}
+        onOpen={setDetail}
+        navigation={navigation}
+      />
+    );
   }
 
   return (
@@ -56,13 +79,13 @@ export function PracticeTabScreen() {
           {
             key: "signs",
             label: "Señas aprendidas",
-            value: String(PRACTICE_SIGNS.length),
+            value: String(signsLearnedCount),
             icon: "hand-left",
           },
           {
             key: "exercises",
             label: "Ejercicios hechos",
-            value: String(PLACEHOLDER_EXERCISES_DONE),
+            value: String(exercisesDoneCount),
             icon: "barbell",
           },
         ]}
@@ -75,11 +98,11 @@ export function PracticeTabScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {tab === "ejercicios" && <ExercisesTab />}
+        {tab === "ejercicios" && <ExercisesTab navigation={navigation} />}
         {tab === "señas" && (
           <SignsTab query={query} onQueryChange={setQuery} onOpenSign={setDetail} />
         )}
-        {tab === "errores" && <MistakesTab />}
+        {tab === "errores" && <MistakesTab navigation={navigation} />}
       </ScrollView>
     </View>
   );
@@ -87,15 +110,22 @@ export function PracticeTabScreen() {
 
 // ── Ejercicios ────────────────────────────────────────────────────────────
 
-function ExercisesTab() {
+function ExercisesTab({ navigation }: { navigation: PracticeNavigation }) {
   return (
     <View>
       <Text style={styles.sectionLabel}>ELEGÍ UN TIPO DE EJERCICIO</Text>
       <View style={styles.grid2}>
         {EXERCISE_TYPES.map((type) => (
-          // No standalone-practice endpoint yet (see docs/features/practice.md) —
-          // the card is not tappable until there's a real session to start.
-          <View key={type.key} style={styles.typeCard}>
+          <TouchableOpacity
+            key={type.key}
+            style={styles.typeCard}
+            activeOpacity={0.85}
+            onPress={() =>
+              navigation.navigate("PracticeSession", {
+                mode: { mode: "type", blockType: type.key, title: type.title },
+              })
+            }
+          >
             <View style={styles.typeIcon}>
               <Ionicons name={type.icon} size={19} color={colors.courseTeal} />
             </View>
@@ -106,7 +136,7 @@ function ExercisesTab() {
             <View style={styles.typeChevronRow}>
               <Ionicons name="chevron-forward" size={14} color={colors.text} />
             </View>
-          </View>
+          </TouchableOpacity>
         ))}
       </View>
     </View>
@@ -124,11 +154,37 @@ function SignsTab({
   onQueryChange: (value: string) => void;
   onOpenSign: (meaning: string) => void;
 }) {
+  const [signs, setSigns] = useState<LearnedSign[] | null>(null);
+
+  useEffect(() => {
+    practiceApi
+      .getLearnedSigns()
+      .then((res) => setSigns(res.data))
+      .catch(() => setSigns([]));
+  }, []);
+
+  if (signs === null) {
+    return (
+      <View style={styles.loadingBox}>
+        <ActivityIndicator color={colors.courseTeal} />
+      </View>
+    );
+  }
+
+  const meanings = signs.map((s) => s.sign);
   const trimmed = query.trim().toLowerCase();
-  const filtered = trimmed
-    ? PRACTICE_SIGNS.filter((s) => s.toLowerCase().includes(trimmed))
-    : PRACTICE_SIGNS;
+  const filtered = trimmed ? meanings.filter((s) => s.toLowerCase().includes(trimmed)) : meanings;
   const noResults = trimmed.length > 0 && filtered.length === 0;
+
+  if (meanings.length === 0) {
+    return (
+      <EmptyState
+        icon="hand-left-outline"
+        title="Todavía no aprendiste señas"
+        description="Completá alguna lección para verlas acá y practicarlas."
+      />
+    );
+  }
 
   return (
     <View>
@@ -161,7 +217,7 @@ function SignsTab({
           ? filtered.length === 1
             ? "1 RESULTADO"
             : `${filtered.length} RESULTADOS`
-          : `TODAS TUS SEÑAS · ${PRACTICE_SIGNS.length}`}
+          : `TODAS TUS SEÑAS · ${meanings.length}`}
       </Text>
 
       {noResults ? (
@@ -192,8 +248,33 @@ function SignsTab({
 
 // ── Errores ───────────────────────────────────────────────────────────────
 
-function MistakesTab() {
-  const mistakes = PRACTICE_MISTAKES;
+function MistakesTab({ navigation }: { navigation: PracticeNavigation }) {
+  const [mistakes, setMistakes] = useState<PracticeMistake[] | null>(null);
+
+  useEffect(() => {
+    practiceApi
+      .getMistakes()
+      .then((res) => setMistakes(res.data))
+      .catch(() => setMistakes([]));
+  }, []);
+
+  if (mistakes === null) {
+    return (
+      <View style={styles.loadingBox}>
+        <ActivityIndicator color={colors.courseTeal} />
+      </View>
+    );
+  }
+
+  if (mistakes.length === 0) {
+    return (
+      <EmptyState
+        icon="checkmark-done-circle-outline"
+        title="Sin errores pendientes"
+        description="Repasaste todo lo que fallaste hasta ahora. ¡Seguí así!"
+      />
+    );
+  }
 
   return (
     <View>
@@ -207,14 +288,12 @@ function MistakesTab() {
             <Ionicons name="layers-outline" size={14} color={colors.textMuted} />
             <Text style={styles.mistakesMetaText}>{mistakes.length} ejercicios</Text>
           </View>
-          <View style={styles.mistakesMetaDot} />
-          <View style={styles.mistakesMeta}>
-            <Ionicons name="flash" size={14} color={colors.warning} />
-            <Text style={styles.mistakesMetaText}>+50 XP</Text>
-          </View>
         </View>
-        {/* No mistakes-review session to start yet — see docs/features/practice.md. */}
-        <TouchableOpacity style={styles.ctaButton} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={styles.ctaButton}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate("PracticeSession", { mode: { mode: "mistakes" } })}
+        >
           <Ionicons name="play" size={18} color={colors.onDark} />
           <Text style={styles.ctaText}>Empezar</Text>
         </TouchableOpacity>
@@ -228,7 +307,7 @@ function MistakesTab() {
         {mistakes.map((item) => {
           const type = EXERCISE_TYPE_BY_KEY[item.type];
           return (
-            <View key={item.meaning} style={styles.mistakeRow}>
+            <View key={item.lessonBlockId} style={styles.mistakeRow}>
               <View style={styles.typeIcon}>
                 <Ionicons name={type.icon} size={17} color={colors.courseTeal} />
               </View>
@@ -253,13 +332,27 @@ function SignDetail({
   meaning,
   onBack,
   onOpen,
+  navigation,
 }: {
   meaning: string;
   onBack: () => void;
   onOpen: (meaning: string) => void;
+  navigation: PracticeNavigation;
 }) {
   const insets = useSafeAreaInsets();
-  const related = PRACTICE_SIGNS.filter((s) => s !== meaning).slice(0, 4);
+  const [related, setRelated] = useState<string[]>([]);
+  const [animationUrl, setAnimationUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    practiceApi
+      .getLearnedSigns()
+      .then((res) => setRelated(res.data.map((s) => s.sign).filter((s) => s !== meaning).slice(0, 4)))
+      .catch(() => setRelated([]));
+    signsApi
+      .getSignAnimations([meaning])
+      .then((res) => setAnimationUrl(res.data[meaning] ?? null))
+      .catch(() => setAnimationUrl(null));
+  }, [meaning]);
 
   return (
     <View style={styles.container}>
@@ -280,36 +373,45 @@ function SignDetail({
             <Ionicons name="play" size={24} color={colors.text} style={styles.animationPlayIcon} />
           </View>
           <View style={styles.animationCaption}>
-            <Text style={styles.animationCaptionText}>{meaning}</Text>
+            <Text style={styles.animationCaptionText}>
+              {animationUrl ? meaning : `${meaning} · sin animación disponible`}
+            </Text>
           </View>
         </View>
 
         <Text style={styles.detailTitle}>{meaning}</Text>
 
-        {/* No standalone-practice session to start yet — see docs/features/practice.md. */}
-        <TouchableOpacity style={styles.ctaButton} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={styles.ctaButton}
+          activeOpacity={0.85}
+          onPress={() =>
+            navigation.navigate("PracticeSession", { mode: { mode: "sign", meaning } })
+          }
+        >
           <Ionicons name="barbell" size={18} color={colors.onDark} />
           <Text style={styles.ctaText}>Practicar</Text>
         </TouchableOpacity>
 
-        <View style={styles.divider} />
-
-        <Text style={[styles.sectionLabel, styles.sectionLabelSpaced]}>SEÑAS RELACIONADAS</Text>
-        <Text style={styles.relatedLesson}>De la misma lección: Saludos y presentaciones</Text>
-        <View style={styles.grid3}>
-          {related.map((sign) => (
-            <TouchableOpacity
-              key={sign}
-              style={styles.relatedCard}
-              activeOpacity={0.85}
-              onPress={() => onOpen(sign)}
-            >
-              <Text style={styles.relatedCardText} numberOfLines={1}>
-                {sign}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {related.length > 0 && (
+          <>
+            <View style={styles.divider} />
+            <Text style={[styles.sectionLabel, styles.sectionLabelSpaced]}>SEÑAS RELACIONADAS</Text>
+            <View style={styles.grid3}>
+              {related.map((sign) => (
+                <TouchableOpacity
+                  key={sign}
+                  style={styles.relatedCard}
+                  activeOpacity={0.85}
+                  onPress={() => onOpen(sign)}
+                >
+                  <Text style={styles.relatedCardText} numberOfLines={1}>
+                    {sign}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        )}
       </ScrollView>
     </View>
   );
@@ -320,6 +422,7 @@ const styles = StyleSheet.create({
 
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: 24 },
+  loadingBox: { paddingVertical: 40, alignItems: "center" },
 
   sectionLabel: {
     fontFamily: fonts.bodySemiBold,
@@ -456,12 +559,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textMuted,
   },
-  mistakesMetaDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: colors.border,
-  },
   mistakesList: { gap: 8 },
   mistakeRow: {
     flexDirection: "row",
@@ -576,13 +673,6 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.border,
     marginTop: 24,
-  },
-  relatedLesson: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 11.5,
-    color: colors.textMuted,
-    paddingHorizontal: 2,
-    paddingBottom: 10,
   },
   relatedCard: {
     width: "31%",

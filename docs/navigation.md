@@ -47,8 +47,9 @@ Post-login screens with tab navigation. `screenOptions` use a dark header: `head
 |---|---|---|---|
 | `Tabs` | `NavigatorScreenParams<TabParamList>` (optional) — lets a caller deep-link into a tab, e.g. `navigation.navigate("Tabs", { screen: "Store" })` | (no header) | `navigation/TabNavigator` |
 | `ChangePassword` | — | "Cambiar contrasena" | `screens/ChangePasswordScreen` |
-| `Lesson` | `{ lessonId: string; unitLabel?: string }` | (no header, screen renders its own) | `features/courses/screens/LessonScreen` |
+| `Lesson` | `{ lessonId: string; unitLabel?: string; signsCount?: number }` | (no header, screen renders its own) | `features/courses/screens/LessonScreen` |
 | `Notifications` | — | (no header, screen renders its own) | `features/social/screens/NotificationsScreen` |
+| `PracticeSession` | `{ mode: PracticeSessionParams }` — `PracticeSessionParams` is `{ mode: "type"; blockType: BlockType; title: string } \| { mode: "sign"; meaning: string } \| { mode: "mistakes" }` | (no header, screen renders its own) | `features/practice/screens/PracticeSessionScreen` |
 | `PublicProfile` | `{ username: string }` | (no header, screen renders its own) | `features/social/screens/PublicProfileScreen` |
 | `SignRecognition` | — | "Practicar" | `features/ml/screens/SignRecognitionScreen` |
 | `ConnectionTest` | — | "Test de conexion" | `screens/ConnectionTestScreen` |
@@ -69,7 +70,7 @@ Bottom tab navigation with five tabs. Uses `@react-navigation/bottom-tabs`. Tab 
 | `Social` | people/people-outline | `features/social/screens/SocialScreen` |
 | `Profile` | person/person-outline | `screens/ProfileScreen` |
 
-Practice is a stub (real UI, hardcoded content — see [features/practice.md](./features/practice.md)). Home (Inicio lesson roadmap — see [features/courses.md](./features/courses.md#inicio-home-roadmap-screen)), Store, Social (see [features/social.md](./features/social.md)) and Profile have full implementations.
+Practice, Home (Inicio lesson roadmap — see [features/courses.md](./features/courses.md#inicio-home-roadmap-screen)), Store, Social (see [features/social.md](./features/social.md)) and Profile have full implementations. Practice's session player is a separate `AppStackParamList` route, `PracticeSession` — see [features/practice.md](./features/practice.md).
 
 Social is the one tab whose screen does **not** live under `screens/tabs/`: it is mounted straight from `features/social/`, like `LessonScreen`.
 

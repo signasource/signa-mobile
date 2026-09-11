@@ -1,45 +1,63 @@
 # Practice feature
 
-> Responsibility: "Práctica libre" tab scope and state.
-> Update when: the practice screen changes, or a real practice/mistakes-review endpoint appears in `signa-api`.
-> Sources: src/screens/tabs/PracticeTabScreen.tsx, src/features/practice/types.ts
+> Responsibility: "Práctica libre" tab scope, and the standalone practice-session player.
+> Update when: the practice screen or session player changes, or the `/practice/*` endpoints change.
+> Sources: src/screens/tabs/PracticeTabScreen.tsx, src/features/practice/, src/api/practice.ts
 
-Status: **stub**, same as `CoursesListScreen` (see [courses.md](./courses.md#course-catalog--stub)).
-Built from `Practica Libre.dc.html` (Claude Design).
+Status: **real**. Built from `Practica Libre.dc.html` (Claude Design), wired to `signa-api`'s
+`/practice/*` endpoints (`PracticeController`).
 
-`PracticeTabScreen` replaces the old one-line placeholder with the full UI: a `courseTeal`-toned
-`ScreenHeader` (2 stats: señas aprendidas / ejercicios hechos), a 3-way `SegmentedControl`
-(Ejercicios / Señas / Errores), and a sign-detail view that replaces the tab body when a sign is
-tapped (local `detail` state, not a stack route — same pattern `SocialScreen` uses for its modals).
+`PracticeTabScreen` is a `courseTeal`-toned `ScreenHeader` (2 stats: señas aprendidas / ejercicios
+hechos, from `practiceApi.getSummary()`), a 3-way `SegmentedControl` (Ejercicios / Señas /
+Errores), and a sign-detail view that replaces the tab body when a sign is tapped (local `detail`
+state, not a stack route — same pattern `SocialScreen` uses for its modals).
 
 - **Ejercicios**: a 2-column grid of exercise types, one card per real `BlockType` (see
   `lessonContent.types.ts`) except `INFO` — `SELECT_MEANING`, `SELECT_SIGN`, `MATCH`,
-  `CONTEXT_RESPONSE`, `VISUAL_RECOGNITION`. Cards are **not tappable**: there is no
-  `signa-api` endpoint for a standalone, single-type practice session (lessons are the only thing
-  that can be played today, via `LessonScreen`), so nothing they'd navigate to exists yet.
-- **Señas**: a search box over a hardcoded list of sign meanings (`PRACTICE_SIGNS`), meant to stand
-  in for "signs this user has learned". No such per-user endpoint exists — `signsApi.getSigns`
-  returns the full language catalog, not what one user has learned, so it isn't used here to avoid
-  showing signs the user never studied. Tapping a result opens the sign-detail view (also local
-  content, no animation fetch).
-- **Errores**: a "Repaso de errores" card (count + XP pill, "Empezar" CTA) and a list of missed
-  items (`PRACTICE_MISTAKES`), each showing the exercise type and a miss count. There is no
-  mistakes/miss-tracking endpoint in `signa-api`, so both the summary and the list are hardcoded,
-  and "Empezar" is a no-op.
-- **Sign detail**: a static "Animación LSA" placeholder box (no real GLB — unlike the lesson
-  player's `SignAnimation`, this doesn't call `signsApi.getSignAnimations`), the meaning as a large
-  title, a no-op "Practicar" CTA, and up to 4 "related" signs (just the rest of `PRACTICE_SIGNS`,
-  no real lesson/topic grouping).
-- `src/features/practice/types.ts`: all the placeholder content — `EXERCISE_TYPES`
-  (title/hint/icon per `BlockType`), `PRACTICE_SIGNS`, `PRACTICE_MISTAKES`. Every CTA that would
-  need a real backend call is commented at the call site with what's missing.
-- Header tone: `colors.courseTeal` + the new `colors.courseTealLight` tint (see
-  [../design-system/colors.md](../design-system/colors.md)) — closest existing token to the
-  mockup's green accent; primary CTAs stay `colors.text`/`colors.onDark` per the "module colors
-  don't tint CTAs" rule.
+  `CONTEXT_RESPONSE`, `VISUAL_RECOGNITION`. Tapping a card navigates to `PracticeSession` with
+  `{ mode: "type", blockType, title }`.
+- **Señas**: a search box over `practiceApi.getLearnedSigns()` — the user's actual learned signs
+  (from `UserLearnedSign` on the backend), not the full catalog. Tapping a result opens the
+  sign-detail view, which fetches the real animation via `signsApi.getSignAnimations([meaning])`
+  and up to 4 "related" signs (the rest of the learned-signs list, minus the current one — no real
+  lesson/topic grouping, so no "de la misma lección" claim is made). "Practicar" navigates to
+  `PracticeSession` with `{ mode: "sign", meaning }`.
+- **Errores**: a "Repaso de errores" card (count + "Empezar" CTA, navigates to `PracticeSession`
+  with `{ mode: "mistakes" }`) and a list of missed items from `practiceApi.getMistakes()`, each
+  showing the exercise type and a miss count, keyed by `lessonBlockId` (not a sign meaning —
+  `MATCH`/`VISUAL_RECOGNITION` blocks don't have a single one). Empty state when there are none.
+- `src/features/practice/types.ts`: `EXERCISE_TYPES`/`EXERCISE_TYPE_BY_KEY` — title/hint/icon per
+  practicable `BlockType`, used both for the Ejercicios grid and to label each `PracticeMistake`.
 
-To advance: add a real practice-session endpoint (by exercise type and/or by mistake) and a
-per-user learned-signs list to `signa-api`, then replace the local arrays in
-`features/practice/types.ts` with real API calls and wire the CTAs. `PLACEHOLDER_EXERCISES_DONE`
-(hardcoded `0` in `PracticeTabScreen`) should become a real counter once there's somewhere to read
-it from.
+## `PracticeSessionScreen` (`features/practice/screens/`, stack route `PracticeSession`)
+
+Plays a batch of real `LessonContentBlock`s outside any real lesson, in one of three modes (see
+`PracticeSessionParams` in `navigation/AppNavigator.tsx`): by exercise type, by a learned sign, or
+a mistake-review queue. Reuses the exact same block components `LessonScreen` uses
+(`InfoBlock`/`SelectMeaningBlock`/`SelectSignBlock`/`ContextResponseBlock`/`MatchBlock`/
+`VisualRecognitionBlock`, dispatched by a small local `PracticeBlockRenderer`) and the
+mount-all-blocks-simultaneously pattern for WebView/3D preload.
+
+**Deliberately does not behave like `LessonScreen`:**
+- No lives, no `NoLivesOverlay` — matches the tab's own copy ("sin perder vidas").
+- No real XP: `onAnswer` calls `practiceApi.recordAttempt(block.id, correct)`, **not**
+  `learningApi.recordBlockInteraction` — practice never grants XP, costs lives, or advances
+  lesson/topic/course progress (`PracticeAttempt` is a separate table server-side).
+- Results screen is `PracticeComplete` (own component, not `LessonComplete`): aciertos/total only,
+  no XP card. "Repetir" re-fetches a fresh batch — important for `mode: "mistakes"`, so items
+  answered correctly this time drop out of the next one.
+- Header is `PracticeSessionHeader` (own component): back + progress bar + title, no lives —
+  `LessonHeader` requires `lives` and a lesson/unit breadcrumb that don't apply here.
+- Empty batch (typically: no enrollments yet, or no mistakes pending) shows `EmptyState` with a
+  contextual message instead of erroring.
+
+## Backend
+
+`signa-api`'s `learning` module, `PracticeController`/`PracticeService` (see its `CLAUDE.md` §2 and
+`docs/diagrams/sequence.md#practica-libre`). Exercise/sign lookups pull from `LessonBlock`s in the
+courses the user is enrolled in; attempts persist to `PracticeAttempt`, kept separate from
+`LessonBlockAttempt` on purpose. Mistake detection reads **both** tables: a block is a pending
+mistake if its most recent attempt, in either one, was wrong.
+
+Not covered: a per-exercise-type "session length" setting, and spaced-repetition ordering for
+mistakes (currently most-recently-wrong first).
