@@ -115,12 +115,19 @@ async function iniciar(baseUrl, forzar) {
 let ultimaPose = null;
 
 function detectar(bitmap, ts, conPose) {
+  // Los cronómetros son dos performance.now() por etapa y valen lo que cuestan:
+  // sin ellos, "va lento" no se puede diagnosticar sin adivinar.
+  let poseMs = 0;
   if (conPose || !ultimaPose) {
+    const t0 = performance.now();
     ultimaPose = pose.detectForVideo(bitmap, ts).landmarks?.[0] ?? null;
+    poseMs = performance.now() - t0;
   }
+  const t1 = performance.now();
   const r = manos.detectForVideo(bitmap, ts);
+  const handsMs = performance.now() - t1;
   const { izq, der, lado, world } = asignarManos(r);
-  return { pose: ultimaPose, izq, der, lado, world };
+  return { pose: ultimaPose, izq, der, lado, world, poseMs, handsMs };
 }
 
 // Muñeca de cada mano en el frame anterior, para no perder de vista cuál es cuál.

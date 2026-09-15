@@ -21,6 +21,9 @@ export interface LiveFrame {
   inferMs: number;
   /** Confianza de la seña pedida: es la que se compara contra el umbral. */
   targetConfidence: number;
+  /** Reparto del frame, en ms. Se ve tocando el badge de estado. */
+  poseMs: number;
+  handsMs: number;
 }
 
 interface LiveSignRecognizerProps {

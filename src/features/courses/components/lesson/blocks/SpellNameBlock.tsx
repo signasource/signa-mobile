@@ -6,6 +6,8 @@ import { Animated, StyleSheet, TextInput, View } from "react-native";
 import { Text } from "@/components/Text";
 import { LiveSignRecognizer } from "@/features/ml";
 import { colors, fonts } from "@/theme";
+// TEMPORAL: rama de diagnóstico, ver src/features/ml/telemetria.ts
+import { cerrarMedicion, marcar, medir } from "@/features/ml/telemetria";
 import { LessonButton } from "../LessonButton";
 import { SignPip } from "../SignPip";
 import {
@@ -60,6 +62,7 @@ export function SpellNameBlock({ config, active, ultimo, xp, onAnswer, onContinu
   const [estado, setEstado] = useState<Estado>("esperando");
   const [visto, setVisto] = useState<{ nombre: string; p: number } | null>(null);
   const [conf, setConf] = useState(0);
+  const [ms, setMs] = useState(0);
   const [fps, setFps] = useState(0);
   const [delegado, setDelegado] = useState("");
   const [verTrackeo, setVerTrackeo] = useState(true);
@@ -113,10 +116,22 @@ export function SpellNameBlock({ config, active, ultimo, xp, onAnswer, onContinu
     [letras],
   );
 
+  // TEMPORAL: marca entrada y salida del ejercicio para poder separar sesiones.
+  useEffect(() => {
+    marcar("entra", { modo: "estatico" });
+    return cerrarMedicion;
+  }, []);
+
   const handleFrame = useCallback((f: LiveFrame) => {
     setEstado(estadoDeFrame(f));
+    medir({
+      modo: "estatico", fps: f.fps, poseMs: f.poseMs, handsMs: f.handsMs, inferMs: f.inferMs,
+      body: f.body, hands: f.hands, resting: f.resting, progress: f.progress,
+      sign: f.sign, confidence: f.confidence, targetConfidence: f.targetConfidence,
+    });
     setFps(f.fps);
     setConf(f.targetConfidence);
+    setMs(f.inferMs);
     setVisto(f.sign && !f.resting ? { nombre: f.sign, p: f.confidence } : null);
   }, []);
 
@@ -213,6 +228,7 @@ export function SpellNameBlock({ config, active, ultimo, xp, onAnswer, onContinu
           fps={fps}
           confianza={conf}
           visto={visto}
+          ms={ms}
           delegado={delegado}
         />
         <ToggleTrackeo activo={verTrackeo} onPress={() => setVerTrackeo((v) => !v)} />
