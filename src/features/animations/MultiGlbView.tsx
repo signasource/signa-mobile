@@ -37,7 +37,7 @@ function buildHtml(urls: string[], initialActiveIndex: number, opts: HtmlOptions
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 ${preloadActive}
 <style>
-html,body{margin:0;height:100%;background:${colors.fill};}
+html,body{margin:0;height:100%;background:${opts.layout === "rows" ? colors.background : colors.fill};}
 /* width/height are required in both layouts: model-viewer's :host sets 300x150, and
    neither inset:0 nor normal flow stretches an element whose width/height are not auto
    — without them the canvas stays 300x150 CSS px in a corner instead of filling its box. */
@@ -45,7 +45,15 @@ ${
   opts.layout === "rows"
     ? // Every model visible at once, one per row. CSS px == RN dp, so rowHeight/rowGap
       // line the rows up with the RN tiles rendered next to them.
-      `.mv{position:relative;display:block;width:100%;height:${opts.rowHeight}px;}
+      // Cada fila trae su propio fondo y el body pinta el color de la pantalla.
+      // Si el fondo lo pone el body, los huecos entre filas quedan del mismo gris
+      // y las señas se ven unidas por un bloque en vez de separadas.
+      //
+      // El body va opaco y del color de atrás, y no transparente: un WebView
+      // transparente en Android obliga a capa software, que le saca la
+      // aceleración por hardware justo a lo que renderiza WebGL.
+      `.mv{position:relative;display:block;width:100%;height:${opts.rowHeight}px;
+background:${colors.fill};border-radius:16px;overflow:hidden;}
 .mv + .mv{margin-top:${opts.rowGap}px;}`
     : // One model visible at a time. visibility (not display:none) keeps the element's
       // layout box: a 0x0 viewer frames its camera wrong, and model-viewer never
@@ -164,6 +172,8 @@ export function MultiGlbView({
     webviewRef.current?.injectJavaScript(`(function(){${target}})();true;`);
   }, [paused]);
 
+  const filas = initialLayout.current.layout === "rows";
+
   function handleMessage(event: WebViewMessageEvent) {
     try {
       const msg = JSON.parse(event.nativeEvent.data);
@@ -174,7 +184,7 @@ export function MultiGlbView({
   return (
     <WebView
       ref={webviewRef}
-      style={[styles.web, style]}
+      style={[styles.web, filas && styles.webFilas, style]}
       originWhitelist={["*"]}
       source={{ html, baseUrl: "https://localhost" }}
       onMessage={handleMessage}
@@ -190,4 +200,5 @@ export function MultiGlbView({
 
 const styles = StyleSheet.create({
   web: { flex: 1, backgroundColor: colors.fill },
+  webFilas: { backgroundColor: colors.background },
 });
