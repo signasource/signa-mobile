@@ -19,6 +19,8 @@ Switching between auth and app is **not** done by navigating; mutate the session
 
 `FriendAcceptedProvider` (`@/context/FriendAcceptedContext`) wraps the whole navigator tree and polls `GET /notifications` every 30 s (and on foreground resume) for new `FRIEND_REQUEST_ACCEPTED` notifications. When one is detected it exposes a `pending` object; `FriendAcceptedModalConnected` renders the friend-accepted modal overlay, suppressed while the current route is `Lesson`. A `NavigationContainerRef` created in `RootNavigator` is used to deep-navigate from the modal (gift → Store tab; profile → `PublicProfile`).
 
+`TourProvider` (`@/features/tour/TourContext`) wraps the authenticated session and manages the post-login welcome tour, first-steps checklist, and per-tab section modals. `TourOverlay` (rendered outside `NavigationContainer` as a React Native `Modal`) renders the tour itself. See [features/onboarding.md](./features/onboarding.md#post-login-tour-srcfeaturestour).
+
 ## AuthNavigator (`src/navigation/AuthNavigator.tsx`)
 
 Onboarding + authentication screens. Default `initialRoute`: `Welcome`. `screenOptions`: `headerShown: false`, `animation: "slide_from_right"`.

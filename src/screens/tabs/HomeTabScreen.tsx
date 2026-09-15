@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   ScrollView,
@@ -29,6 +29,8 @@ import {
   RoadmapTopic,
 } from "@/features/courses/api";
 import { accentFor, progressFor } from "@/features/courses/roadmap";
+import { useTour, ChecklistItems } from "@/features/tour/TourContext";
+import { ChecklistCard } from "@/features/tour/components/ChecklistCard";
 
 type HomeNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, "Home">,
@@ -91,24 +93,47 @@ export function HomeTabScreen({ navigation }: Props) {
     unitLabel: string;
   } | null>(null);
 
+  const {
+    checklistVisible,
+    checklistItems,
+    markLesson,
+    markStreak,
+  } = useTour();
+
+  // Track if checklist auto-checks have been applied this load
+  const autoChecked = useRef(false);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    autoChecked.current = false;
     Promise.all([usersApi.getStats(), inventoryApi.getMyInventory()])
       .then(([stats, inventory]) => {
         setStreak(stats.data.currentStreak);
         setXp(stats.data.totalXp);
         setGems(inventory.data.gems);
+        // Auto-mark streak checklist item when streak >= 2
+        if (stats.data.currentStreak >= 2 && !checklistItems.streak) {
+          markStreak();
+        }
       })
       .catch(() => {});
     try {
-      setRoadmap(await fetchRoadmap());
+      const rm = await fetchRoadmap();
+      setRoadmap(rm);
+      // Auto-mark lesson checklist item when any lesson is completed
+      if (!checklistItems.lesson) {
+        const hasCompleted = rm.topics.some((t) =>
+          t.lessons.some((l) => l.state === "COMPLETED"),
+        );
+        if (hasCompleted) markLesson();
+      }
     } catch (err: any) {
       setError(err?.response?.data?.message ?? err?.message ?? "No pudimos cargar tu curso.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [checklistItems.lesson, checklistItems.streak, markLesson, markStreak]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
@@ -118,6 +143,28 @@ export function HomeTabScreen({ navigation }: Props) {
   function navigateToLesson(lesson: RoadmapLesson, unitLabel: string) {
     setOpenLesson(null);
     navigation.navigate("Lesson", { lessonId: lesson.id, unitLabel, signsCount: lesson.signsCount });
+  }
+
+  function handleChecklistItemPress(key: keyof ChecklistItems) {
+    switch (key) {
+      case "lesson":
+        if (currentLessonId) {
+          const allLessons = roadmap?.topics.flatMap((t) => t.lessons) ?? [];
+          const lesson = allLessons.find((l) => l.id === currentLessonId);
+          const topic = roadmap?.topics.find((t) => t.lessons.some((l) => l.id === currentLessonId));
+          if (lesson && topic) navigateToLesson(lesson, topic.title);
+        }
+        break;
+      case "practice":
+        navigation.navigate("Tabs", { screen: "Practice" });
+        break;
+      case "friend":
+        navigation.navigate("Tabs", { screen: "Social" });
+        break;
+      case "streak":
+        // No-op: streak is earned naturally
+        break;
+    }
   }
 
   return (
@@ -153,6 +200,12 @@ export function HomeTabScreen({ navigation }: Props) {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          {checklistVisible && (
+            <ChecklistCard
+              items={checklistItems}
+              onItemPress={handleChecklistItemPress}
+            />
+          )}
           {roadmap?.topics.map((topic) => (
             <TopicSection
               key={topic.id}

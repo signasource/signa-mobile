@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   ScrollView,
@@ -12,7 +12,7 @@ import {
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from "@react-navigation/native";
 import { TabParamList } from "@/navigation/TabNavigator";
 import { colors, fonts } from "@/theme";
 import { ScreenHeader } from "@/components/ScreenHeader";
@@ -22,6 +22,8 @@ import { shopApi, ShopItem, ShopItemType, ShopInventory, AppliedEffect } from "@
 import ManoVacia from "@assets/ilus/mano-vacia.svg";
 import HeartConFondo from "@assets/ilus/heart-con-fondo.svg";
 import ManoConCaja from "@assets/ilus/mano-con-caja.svg";
+import { useTour } from "@/features/tour/TourContext";
+import { SectionWelcomeModal } from "@/features/tour/components/SectionWelcomeModal";
 
 type TabKey = "vidas" | "potenciadores" | "especiales";
 type FlowStep = "confirm" | "insufficient" | "opening" | "success";
@@ -219,6 +221,14 @@ export function StoreTabScreen() {
   const [flow, setFlow] = useState<Flow | null>(null);
   const [purchasing, setPurchasing] = useState(false);
   const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const { storeModalVisible, dismissStoreModal, showSectionModal } = useTour();
+
+  useFocusEffect(
+    useCallback(() => {
+      showSectionModal("store");
+    }, [showSectionModal]),
+  );
 
   useEffect(() => {
     loadShop();
@@ -505,6 +515,33 @@ export function StoreTabScreen() {
           />
         )}
       </Modal>
+
+      <SectionWelcomeModal
+        visible={storeModalVisible}
+        title="Tienda"
+        subtitle="Cambiá tus gemas por vidas, escudos y potenciadores."
+        headerColor={colors.shopAmber}
+        headerKicker="Tienda"
+        features={[
+          {
+            icon: "diamond",
+            label: "Gemas",
+            description: "Con lo que comprás. Se ganan aprendiendo",
+          },
+          {
+            icon: "heart",
+            label: "Vidas",
+            description: "Se gastan al errar. Sin vidas, esperás",
+          },
+          {
+            icon: "shield-half",
+            label: "Escudos",
+            description: "Te salvan la racha el día que no entrás",
+          },
+        ]}
+        primaryLabel="Ver la tienda"
+        onPrimary={dismissStoreModal}
+      />
     </View>
   );
 }

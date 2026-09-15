@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { View, ScrollView, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomTabNavigationProp, BottomTabScreenProps } from "@react-navigation/bottom-tabs";
-import { CompositeNavigationProp } from "@react-navigation/native";
+import { CompositeNavigationProp, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
@@ -16,6 +16,8 @@ import { AppStackParamList } from "@/navigation/AppNavigator";
 import { practiceApi, LearnedSign, PracticeMistake } from "@/api/practice";
 import { SignAnimation } from "@/features/courses/components/lesson/SignAnimation";
 import { EXERCISE_TYPES, EXERCISE_TYPE_BY_KEY } from "@/features/practice/types";
+import { useTour } from "@/features/tour/TourContext";
+import { SectionWelcomeModal } from "@/features/tour/components/SectionWelcomeModal";
 
 /**
  * "Práctica libre" tab: repaso by exercise type, by learned sign, or by past
@@ -49,6 +51,19 @@ export function PracticeTabScreen({ navigation }: Props) {
 
   const [signsLearnedCount, setSignsLearnedCount] = useState(0);
   const [exercisesDoneCount, setExercisesDoneCount] = useState(0);
+
+  const {
+    practiceModalVisible,
+    dismissPracticeModal,
+    showSectionModal,
+    markPractice,
+  } = useTour();
+
+  useFocusEffect(
+    useCallback(() => {
+      showSectionModal("practice");
+    }, [showSectionModal]),
+  );
 
   useEffect(() => {
     practiceApi
@@ -101,19 +116,59 @@ export function PracticeTabScreen({ navigation }: Props) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {tab === "ejercicios" && <ExercisesTab navigation={navigation} />}
+        {tab === "ejercicios" && (
+          <ExercisesTab
+            navigation={navigation}
+            onSessionStart={markPractice}
+          />
+        )}
         {tab === "señas" && (
           <SignsTab query={query} onQueryChange={setQuery} onOpenSign={setDetail} />
         )}
-        {tab === "errores" && <MistakesTab navigation={navigation} />}
+        {tab === "errores" && (
+          <MistakesTab navigation={navigation} onSessionStart={markPractice} />
+        )}
       </ScrollView>
+
+      <SectionWelcomeModal
+        visible={practiceModalVisible}
+        title="Práctica libre"
+        subtitle="Repasá lo que ya aprendiste, a tu ritmo y sin perder vidas."
+        headerColor={colors.courseTeal}
+        headerKicker="Práctica libre"
+        features={[
+          {
+            icon: "apps",
+            label: "Ejercicios",
+            description: "Por tipo, si preferís alguno en particular",
+          },
+          {
+            icon: "hand-left",
+            label: "Señas",
+            description: "Todas las que ya aprendiste, buscables",
+          },
+          {
+            icon: "alert-circle",
+            label: "Errores",
+            description: "Tus puntos débiles. La única que da XP",
+          },
+        ]}
+        primaryLabel="Entendido"
+        onPrimary={dismissPracticeModal}
+      />
     </View>
   );
 }
 
 // ── Ejercicios ────────────────────────────────────────────────────────────
 
-function ExercisesTab({ navigation }: { navigation: PracticeNavigation }) {
+function ExercisesTab({
+  navigation,
+  onSessionStart,
+}: {
+  navigation: PracticeNavigation;
+  onSessionStart: () => void;
+}) {
   return (
     <View>
       <Text style={styles.sectionLabel}>ELEGÍ UN TIPO DE EJERCICIO</Text>
@@ -123,11 +178,12 @@ function ExercisesTab({ navigation }: { navigation: PracticeNavigation }) {
             key={type.key}
             style={styles.typeCard}
             activeOpacity={0.85}
-            onPress={() =>
+            onPress={() => {
+              onSessionStart();
               navigation.navigate("PracticeSession", {
                 mode: { mode: "type", blockType: type.key, title: type.title },
-              })
-            }
+              });
+            }}
           >
             <View style={styles.typeIcon}>
               <Ionicons name={type.icon} size={19} color={colors.courseTeal} />
@@ -249,7 +305,13 @@ function SignsTab({
 
 // ── Errores ───────────────────────────────────────────────────────────────
 
-function MistakesTab({ navigation }: { navigation: PracticeNavigation }) {
+function MistakesTab({
+  navigation,
+  onSessionStart,
+}: {
+  navigation: PracticeNavigation;
+  onSessionStart: () => void;
+}) {
   const [mistakes, setMistakes] = useState<PracticeMistake[] | null>(null);
 
   useEffect(() => {
@@ -299,7 +361,10 @@ function MistakesTab({ navigation }: { navigation: PracticeNavigation }) {
         <TouchableOpacity
           style={styles.ctaButton}
           activeOpacity={0.85}
-          onPress={() => navigation.navigate("PracticeSession", { mode: { mode: "mistakes" } })}
+          onPress={() => {
+            onSessionStart();
+            navigation.navigate("PracticeSession", { mode: { mode: "mistakes" } });
+          }}
         >
           <Ionicons name="play" size={18} color={colors.onDark} />
           <Text style={styles.ctaText}>Empezar</Text>

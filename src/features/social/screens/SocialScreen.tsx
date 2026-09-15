@@ -5,12 +5,15 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Keyboard,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomTabNavigationProp, BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import { CompositeNavigationProp, useFocusEffect } from "@react-navigation/native";
+import { useTour } from "@/features/tour/TourContext";
+import { SectionWelcomeModal } from "@/features/tour/components/SectionWelcomeModal";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
@@ -102,6 +105,13 @@ function searchSub(result: UserSearchResult): string {
 
 export function SocialScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const { socialModalVisible, dismissSocialModal, showSectionModal, markFriend } = useTour();
+
+  useFocusEffect(
+    useCallback(() => {
+      showSectionModal("social");
+    }, [showSectionModal]),
+  );
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -125,6 +135,7 @@ export function SocialScreen({ navigation }: Props) {
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchAbort = useRef<AbortController | null>(null);
+  const searchInputRef = useRef<TextInput>(null);
 
   const notify = useCallback((message: string) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -226,6 +237,7 @@ export function SocialScreen({ navigation }: Props) {
         `${userId}:add`,
         async () => {
           await socialApi.sendRequest(userId);
+          markFriend();
           patchRelation(userId, "OUTGOING");
           setOutgoing((prev) => [
             ...prev,
@@ -532,6 +544,7 @@ export function SocialScreen({ navigation }: Props) {
               <View style={styles.search}>
                 <Ionicons name="search" size={17} color={colors.textMuted} />
                 <TextInput
+                  ref={searchInputRef}
                   style={styles.searchInput}
                   value={query}
                   onChangeText={setQuery}
@@ -694,6 +707,38 @@ export function SocialScreen({ navigation }: Props) {
         busy={confirm !== null && busy === `${confirm.id}:${confirm.kind}`}
         onConfirm={runConfirm}
         onClose={() => setConfirm(null)}
+      />
+
+      <SectionWelcomeModal
+        visible={socialModalVisible}
+        title="Social"
+        subtitle="Seguí a tus amigos y mirá en qué andan."
+        headerColor={colors.socialWine}
+        headerKicker="Social"
+        features={[
+          {
+            icon: "search",
+            label: "Buscar por usuario",
+            description: "Encontrá a quien conocés y mandale una solicitud",
+          },
+          {
+            icon: "people",
+            label: "Feed de amigos",
+            description: "Mirá su actividad y recordá que no estás sola",
+          },
+        ]}
+        primaryLabel="Buscar amigos"
+        secondaryLabel="Más tarde"
+        onPrimary={() => {
+          dismissSocialModal();
+          setTab("amigos");
+          setSection("amigos");
+          // Let the tab switch render before focusing so the input is visible.
+          setTimeout(() => {
+            searchInputRef.current?.focus();
+          }, 350);
+        }}
+        onSecondary={dismissSocialModal}
       />
     </View>
   );
