@@ -24,7 +24,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 | Public profile (read-only, of another user) | real | [features/social.md](./features/social.md#publicprofilescreen) |
 | Courses flat browse (`CoursesListScreen`) | stub | [features/courses.md](./features/courses.md#course-catalog--stub) |
 | Práctica libre (`PracticeTabScreen` + `PracticeSessionScreen`) | real, wired to `signa-api` | [features/practice.md](./features/practice.md) |
-| ML (sign recognition) | placeholder | [features/ml.md](./features/ml.md) |
+| ML (sign recognition) | real, **on-device and real time** (nothing leaves the phone) | [features/ml.md](./features/ml.md) |
 
 ## Cross-cutting tech debt
 

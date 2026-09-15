@@ -7,7 +7,6 @@ import { EditProfileScreen } from "@/screens/EditProfileScreen";
 import { ConnectionTestScreen } from "@/screens/ConnectionTestScreen";
 import { LessonScreen } from "@/features/courses/screens/LessonScreen";
 import { PracticeSessionScreen } from "@/features/practice/screens/PracticeSessionScreen";
-import { SignRecognitionScreen } from "@/features/ml/screens/SignRecognitionScreen";
 import { NotificationsScreen } from "@/features/social/screens/NotificationsScreen";
 import { PublicProfileScreen } from "@/features/social/screens/PublicProfileScreen";
 import { FriendAcceptedScreen } from "@/features/social/screens/FriendAcceptedScreen";
@@ -41,7 +40,6 @@ export type AppStackParamList = {
     friendUsername: string;
     friendStreak: number;
   };
-  SignRecognition: undefined;
   ConnectionTest: undefined;
 };
 
@@ -71,7 +69,6 @@ export function AppNavigator() {
       <Stack.Screen name="PracticeSession" component={PracticeSessionScreen} options={{ headerShown: false }} />
       <Stack.Screen name="PublicProfile" component={PublicProfileScreen} options={{ headerShown: false }} />
       <Stack.Screen name="FriendAccepted" component={FriendAcceptedScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="SignRecognition" component={SignRecognitionScreen} options={{ title: "Practicar" }} />
       <Stack.Screen name="ConnectionTest" component={ConnectionTestScreen} options={{ title: "Test de conexion" }} />
     </Stack.Navigator>
   );

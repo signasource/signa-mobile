@@ -20,8 +20,10 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
 
 - `lessonContent.types.ts`: `LessonContent`, `LessonContentBlock`, the seven `BlockType`s and their
   config interfaces, plus `parseBlockConfig<T>(block)` to `JSON.parse` a block's `config` string.
-- `screens/LessonScreen.tsx`: orchestrates the player — loads the lesson (checking
-  `lessonCache.ts` first, falling back to `lessonsApi.getLesson`) and the caller's lives
+- `screens/LessonScreen.tsx`: orchestrates the player — loads the lesson
+  (`lessonsApi.getLesson`; it resolves `devLessons.ts` first, but **it does not read
+  `lessonCache.ts`** — the cache is written by `HomeTabScreen` and currently read by nobody, so
+  entering a lesson always shows the spinner) and the caller's lives
   (`shopApi.getMyInventory()`, always fresh), walks `blocks` in `order`, renders the matching block
   component, and reports every answer to `learningApi.recordBlockInteraction(blockId, isCorrect)`
   (`isCorrect: null` for an `INFO` view). That same call is now also where the backend spends a
@@ -88,6 +90,19 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   are the lowercase meaning, URL-encoded by `encodeURIComponent`. `extractLessonSignNames(lesson)`
   (in `lessonContent.types.ts`) returns the *taught* meanings (correct answers only, no
   distractors) for display in the lesson-detail modal chips.
+- `blocks/PerformSignBlock.tsx` (`PERFORM_SIGN`): the only block whose answer comes from the real
+  world instead of a tap — the learner performs each sign in `config.signs` and the model
+  recognises them live, on the device. Laid out like the `nombre.html` demo in `signa-ml`: camera
+  filling the stage, a status badge, one slot per sign filling in as each is confirmed, and
+  `SignPip` — the 3D model of the requested sign floating on top, draggable, snapping to the
+  nearest corner, expanding on tap (which also pauses recognition). Recognition never blocks
+  progress: there is always an escape, because a model that won't fire must not trap someone
+  inside a lesson. Mechanics live in `@/features/ml` — see [ml.md](./ml.md).
+- **Dev-only lessons** (`devLessons.ts`): `LessonScreen` resolves a handful of local lesson ids
+  *before* calling the API, so a new block type can be played end to end while its YAML is still
+  waiting for a `signa-api` deploy. Gated on `__DEV__`; `recordBlockInteraction` is skipped for
+  them (their block ids don't exist server-side). `DEV_CAMERA_LESSON_ID` mirrors
+  `signa-api/.../content/LSA/basic-course/topic-02.yml` and is opened from `SignRecognitionScreen`.
 - `lessonCache.ts`: module-level `Map<lessonId, LessonContent>`. `HomeTabScreen` populates it
   after fetching the current lesson in the background; `LessonScreen` checks it on mount before
   calling the API (cache hit → no loading spinner on lesson entry). The cache is invalidated

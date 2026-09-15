@@ -1,0 +1,112 @@
+// GENERADO por scripts/build-recognizer.mjs — no editar a mano.
+// Fuente: src/features/ml/engine/keypoints.ts
+/**
+ * Armado y normalización del vector de features, espejo exacto de
+ * `signa-ml/src/data/extractor.py` y `src/data/normalization.py`.
+ *
+ * El modelo NO ve imágenes: come 258 números por frame. Cualquier diferencia
+ * con lo que se usó al entrenar mueve la distribución de entrada y el modelo
+ * empieza a fallar sin dar ninguna señal de que algo anda mal, así que esto
+ * tiene que seguir al código de Python al pie de la letra.
+ *
+ *   pose       33 puntos × (x, y, z, visibility) = 132
+ *   mano izq   21 puntos × (x, y, z)             =  63
+ *   mano der   21 puntos × (x, y, z)             =  63
+ *                                          total = 258
+ */
+const POSE_LANDMARKS = 33;
+const HAND_LANDMARKS = 21;
+const POSE_DIM = POSE_LANDMARKS * 4; // 132
+const HAND_DIM = HAND_LANDMARKS * 3; // 63
+const FEATURE_DIM = POSE_DIM + HAND_DIM * 2; // 258
+/** Índices de hombros en la pose de MediaPipe (stride 4). */
+const LEFT_SHOULDER = 11 * 4;
+const RIGHT_SHOULDER = 12 * 4;
+/**
+ * Arma el vector de 258 a partir de lo que devuelve MediaPipe.
+ *
+ * Un grupo ausente va en ceros, igual que en `extract_keypoints`: el modelo se
+ * entrenó viendo esos ceros cuando una mano sale de cuadro, así que es
+ * información válida y no un hueco que haya que rellenar.
+ */
+function buildKeypoints(pose, leftHand, rightHand) {
+    const out = new Float32Array(FEATURE_DIM);
+    if (pose) {
+        for (let i = 0; i < Math.min(pose.length, POSE_LANDMARKS); i++) {
+            const p = pose[i];
+            const o = i * 4;
+            out[o] = p.x;
+            out[o + 1] = p.y;
+            out[o + 2] = p.z;
+            out[o + 3] = p.visibility ?? 0;
+        }
+    }
+    const hands = [
+        [leftHand, POSE_DIM],
+        [rightHand, POSE_DIM + HAND_DIM],
+    ];
+    for (const [hand, start] of hands) {
+        if (!hand)
+            continue;
+        for (let i = 0; i < Math.min(hand.length, HAND_LANDMARKS); i++) {
+            const p = hand[i];
+            const o = start + i * 3;
+            out[o] = p.x;
+            out[o + 1] = p.y;
+            out[o + 2] = p.z;
+        }
+    }
+    return out;
+}
+/**
+ * Centra en el punto medio de los hombros y escala por el ancho de hombros.
+ *
+ * Con eso la seña deja de depender de dónde esté parada la persona ni de a qué
+ * distancia de la cámara. Modifica el array recibido, igual que en Python.
+ *
+ * Si no hay hombros detectados o quedan pegados, devuelve el vector sin tocar:
+ * es preferible a propagar una división por ~0 y meterle NaN al modelo.
+ */
+function normalizeKeypoints(kp) {
+    const lsx = kp[LEFT_SHOULDER];
+    const lsy = kp[LEFT_SHOULDER + 1];
+    const rsx = kp[RIGHT_SHOULDER];
+    const rsy = kp[RIGHT_SHOULDER + 1];
+    if (lsx === 0 && rsx === 0)
+        return kp;
+    const cx = (lsx + rsx) / 2;
+    const cy = (lsy + rsy) / 2;
+    const width = Math.sqrt((rsx - lsx) ** 2 + (rsy - lsy) ** 2);
+    if (width < 1e-6)
+        return kp;
+    // Pose: x e y se centran, z sólo se escala, visibility no se toca.
+    for (let i = 0; i < POSE_LANDMARKS; i++) {
+        const o = i * 4;
+        kp[o] = (kp[o] - cx) / width;
+        kp[o + 1] = (kp[o + 1] - cy) / width;
+        kp[o + 2] = kp[o + 2] / width;
+    }
+    // Manos: sólo si la mano fue detectada; si está en ceros se deja en ceros,
+    // porque restarle el centro la convertiría en una mano fantasma ubicada
+    // en un lugar concreto.
+    for (const start of [POSE_DIM, POSE_DIM + HAND_DIM]) {
+        let detected = false;
+        for (let i = 0; i < HAND_DIM; i++) {
+            if (kp[start + i] !== 0) {
+                detected = true;
+                break;
+            }
+        }
+        if (!detected)
+            continue;
+        for (let i = 0; i < HAND_LANDMARKS; i++) {
+            const o = start + i * 3;
+            kp[o] = (kp[o] - cx) / width;
+            kp[o + 1] = (kp[o + 1] - cy) / width;
+            kp[o + 2] = kp[o + 2] / width;
+        }
+    }
+    return kp;
+}
+
+export { SignModel, buildKeypoints, normalizeKeypoints, FEATURE_DIM, POSE_DIM, HAND_DIM };
