@@ -67,7 +67,10 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   full-height `SignAnimation` and a "La practico" button — no answer required, `xpReward` is
   ignored. `SelectMeaningBlock` and `SignCarouselBlock` (so `SelectSignBlock`/`ContextResponseBlock`)
   render the sign via `SignAnimation`; `MatchBlock`/`VisualRecognitionBlock` still use static
-  cards/swatches (they show many signs at once, not one at a time). Answer-option buttons across
+  cards/swatches (they show many signs at once, not one at a time). `MatchBlock` only plays 3 pairs
+  per attempt — sampled randomly from the block's `concepts` — and sizes the sign row height (and the
+  word tiles, smaller) off `useWindowDimensions` so the animations stay large and legible on any
+  phone. Answer-option buttons across
   `SelectMeaningBlock`/`VisualRecognitionBlock`/`MatchBlock` share the same idle look — flat
   `colors.fill` background, no border — and the same `check.svg`/`denied.svg` icons for the
   correct/wrong states (no shared `OptionButton` component yet, each block still owns its own

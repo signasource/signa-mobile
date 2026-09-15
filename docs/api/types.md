@@ -37,7 +37,7 @@
   - `SELECT_MEANING`: `{ sign, options: string[] }` — user is shown `sign`'s animation and picks its meaning from `options`.
   - `SELECT_SIGN`: `{ word, options: string[] }` — user is shown `word` and picks the matching sign animation from `options`.
   - `CONTEXT_RESPONSE`: `{ question, answer, options: string[] }` — same sign-carousel UI as `SELECT_SIGN`, but prompted by `question` with a single correct `answer`.
-  - `MATCH`: `{ concepts: string[] }` — pairs a shuffled sign column with a shuffled word column, both listing the same `concepts`.
+  - `MATCH`: `{ concepts: string[] }` — the client samples a random 3-concept round from `concepts` (`MatchBlock`'s `ROUND_SIZE`), then pairs a shuffled sign column with a shuffled word column listing that round.
   - `VISUAL_RECOGNITION`: `{ sign_sequence: string[], options: string[], keep_order: boolean }` — user marks which of `options` appeared in `sign_sequence`. **Note:** the mobile app renders these keys as `sign_sequence`/`keep_order` because that's what's actually on the wire; `signa-api`'s own `BlockSignExtractor` reads them as `signSequence` (camelCase) and so never finds them — a pre-existing backend bug, out of scope here.
 - `PracticeSummary { signsLearnedCount, exercisesDoneCount }` — mirrors `PracticeSummaryResponse`, from `src/api/practice.ts`.
 - `LearnedSign { sign }` — mirrors `LearnedSignResponse`. No animation URL: `Sign.animationUrl` on the backend is a raw R2 object key, not a fetchable URL (same caveat as `SignSummary.animationUrl`, see above) — resolve real animation URLs via `signsApi.getSignAnimations`.

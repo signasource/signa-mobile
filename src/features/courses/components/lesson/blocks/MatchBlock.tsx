@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
 import { MatchConfig } from "@/features/courses/lessonContent.types";
@@ -28,13 +28,21 @@ function shuffled<T>(items: T[]): T[] {
 
 type Kind = "sign" | "word";
 
-/** Shared by both columns so the WebView rows line up with the RN word tiles. */
-const ROW_HEIGHT = 96;
+/** How many pairs are shown per attempt — more than this and the sign animations render too small. */
+const ROUND_SIZE = 3;
 const ROW_GAP = 10;
 
 export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps) {
-  const signOrder = useMemo(() => shuffled(config.concepts), [config.concepts]);
-  const wordOrder = useMemo(() => shuffled(config.concepts), [config.concepts]);
+  const { width } = useWindowDimensions();
+
+  // Column width drives the sign row height so the avatar reads clearly at any phone size.
+  const columnWidth = (width - 40 - ROW_GAP) / 2;
+  const rowHeight = Math.min(180, Math.max(120, columnWidth * 0.95));
+  const wordRowHeight = Math.min(84, Math.max(60, columnWidth * 0.5));
+
+  const roundConcepts = useMemo(() => shuffled(config.concepts).slice(0, ROUND_SIZE), [config.concepts]);
+  const signOrder = useMemo(() => shuffled(roundConcepts), [roundConcepts]);
+  const wordOrder = useMemo(() => shuffled(roundConcepts), [roundConcepts]);
 
   const signUrls = useMemo(() => signOrder.map(getGlbUrl), [signOrder]);
   const [modelsFailed, setModelsFailed] = useState(false);
@@ -48,9 +56,9 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
     if (timer.current) clearTimeout(timer.current);
   }, []);
 
-  const total = config.concepts.length;
+  const total = roundConcepts.length;
   const done = matched.size === total;
-  const columnHeight = total * ROW_HEIGHT + (total - 1) * ROW_GAP;
+  const columnHeight = total * rowHeight + (total - 1) * ROW_GAP;
 
   function handleTap(kind: Kind, concept: string) {
     if (matched.has(concept) || wrongPair) return;
@@ -110,7 +118,7 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
         activeOpacity={0.85}
         style={[
           styles.signRow,
-          { top: index * (ROW_HEIGHT + ROW_GAP) },
+          { height: rowHeight, top: index * (rowHeight + ROW_GAP) },
           state === "matched" && styles.signRowMatched,
           state === "wrong" && styles.signRowWrong,
           state === "selected" && styles.signRowSelected,
@@ -130,6 +138,7 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
         activeOpacity={0.85}
         style={[
           styles.tile,
+          { height: wordRowHeight },
           state === "matched" && styles.tileMatched,
           state === "wrong" && styles.tileWrong,
           state === "selected" && styles.tileSelected,
@@ -175,7 +184,7 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
                 urls={signUrls}
                 activeIndex={0}
                 layout="rows"
-                rowHeight={ROW_HEIGHT}
+                rowHeight={rowHeight}
                 rowGap={ROW_GAP}
                 paused={done}
                 style={styles.models}
@@ -222,7 +231,6 @@ const styles = StyleSheet.create({
   column: { flex: 1, gap: ROW_GAP },
   models: { ...StyleSheet.absoluteFillObject, borderRadius: 16, overflow: "hidden" },
   tile: {
-    height: ROW_HEIGHT,
     borderRadius: 16,
     borderWidth: 0,
     backgroundColor: colors.fill,
@@ -237,7 +245,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    height: ROW_HEIGHT,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
