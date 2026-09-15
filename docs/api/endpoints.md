@@ -106,6 +106,22 @@ Read-only: notifications are produced server-side by whatever triggers them.
 |---|---|---|---|
 | `getLesson(lessonId)` | `GET /lessons/{id}` | `LessonContent` | full block content for the lesson player. Each block's `config` is a **raw JSON string** (not camelCased by the client interceptor) — parse with `parseBlockConfig` from `features/courses/lessonContent.types.ts`; see [types.md](./types.md) |
 
+## `practiceApi` (`src/api/practice.ts`) — mirrors `PracticeController.java`
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getSummary()` | `GET /practice/summary` | `PracticeSummary` | `{ signsLearnedCount, exercisesDoneCount }` for the tab header — `signsLearnedCount` is the same `UserStats.learnedSignsCount` used elsewhere, `exercisesDoneCount` counts `PracticeAttempt` rows |
+| `getExercisesByType(type, limit?)` | `GET /practice/exercises?type=&limit=` | `LessonContentBlock[]` | random blocks of that type from lessons in the user's enrolled courses. `type` rejects `INFO`/`INTRODUCE_SIGN`/`INVISIBLE_SIGNS` (400) — those aren't practicable exercise types |
+| `getLearnedSigns(limit?)` | `GET /practice/signs?limit=` | `LearnedSign[]` | `{ sign }[]`, deduped, from `UserLearnedSign` — signs the user actually learned, not the full catalog. No animation URL (see below) |
+| `getExercisesForSign(meaning, limit?)` | `GET /practice/signs/{meaning}/exercises?limit=` | `LessonContentBlock[]` | blocks (from enrolled courses) whose extracted sign(s) include `meaning`, via the same `BlockSignExtractor` the backend uses for roadmap `signsLearned` |
+| `getMistakes(limit?)` | `GET /practice/mistakes?limit=` | `PracticeMistake[]` | `{ lessonBlockId, type, misses }[]` — a block appears only if its most recent attempt (lesson **or** practice) was wrong |
+| `getMistakeExercises(limit?)` | `GET /practice/mistakes/exercises?limit=` | `LessonContentBlock[]` | same block set as `getMistakes`, full content, for playing the review session |
+| `recordAttempt(lessonBlockId, isCorrect)` | `POST /practice/attempts` `{ lessonBlockId, isCorrect }` | `void` | **Not** `learningApi.recordBlockInteraction`: grants no XP, costs no lives, doesn't touch lesson/topic/course progress — only feeds `getMistakes`. Called from `PracticeSessionScreen` per answered block |
+| `completeMistakeReview()` | `POST /practice/mistakes/complete` | `{ xpEarned }` | The one practice call that grants real XP: a flat bonus published as an `XpEarnedEvent` server-side. Called once, from `PracticeSessionScreen`, only when a `mode: "mistakes"` batch reaches its last block |
+
+`PracticeSessionScreen` (`features/practice/screens/`) plays the returned blocks with the same
+block-renderer components `LessonScreen` uses — see [features/practice.md](../features/practice.md).
+
 ## `signsApi` (`src/api/signs.ts`) — mirrors `SignController.java`
 
 | Method | Path | Returns | Notes |

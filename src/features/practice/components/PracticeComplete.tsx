@@ -1,0 +1,121 @@
+import React from "react";
+import { StyleSheet, View } from "react-native";
+import { Text } from "@/components/Text";
+import { Ionicons } from "@expo/vector-icons";
+import { colors, fonts } from "@/theme";
+import { NavIconButton } from "@/components/BackButton";
+import { LessonButton } from "@/features/courses/components/lesson/LessonButton";
+
+interface PracticeCompleteProps {
+  correctBlocks: number;
+  totalBlocks: number;
+  /** >0 only for a completed "Repaso de errores" batch — see docs/features/practice.md. */
+  xpEarned?: number;
+  onClose: () => void;
+  onRepeat: () => void;
+}
+
+/**
+ * Results screen for a practice session — same layout as LessonComplete.
+ * Practice sessions never grant real XP (see docs/features/practice.md),
+ * except finishing a "Repaso de errores" batch, which shows an XP card.
+ */
+export function PracticeComplete({
+  correctBlocks,
+  totalBlocks,
+  xpEarned = 0,
+  onClose,
+  onRepeat,
+}: PracticeCompleteProps) {
+  return (
+    <View style={styles.container}>
+      <View style={styles.topRow}>
+        <NavIconButton icon="close" label="Cerrar" size={22} onPress={onClose} />
+      </View>
+
+      <View style={styles.body}>
+        <View style={styles.trophy}>
+          <Ionicons name="trophy" size={52} color={colors.courseTeal} />
+        </View>
+        <Text style={styles.title}>¡Práctica completada!</Text>
+        <Text style={styles.subtitle}>Repasaste {totalBlocks} ejercicios a tu ritmo.</Text>
+
+        <View style={styles.statsRow}>
+          {xpEarned > 0 && (
+            <View style={styles.statCard}>
+              <Ionicons name="flash" size={22} color={colors.primary} />
+              <Text style={styles.statValue}>+{xpEarned}</Text>
+              <Text style={styles.statLabel}>XP ganado</Text>
+            </View>
+          )}
+          <View style={styles.statCard}>
+            <Ionicons name="checkmark-done" size={22} color={colors.success} />
+            <Text style={styles.statValue}>
+              {correctBlocks}/{totalBlocks}
+            </Text>
+            <Text style={styles.statLabel}>Aciertos</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.footer}>
+        <LessonButton label="Volver" onPress={onClose} />
+        <LessonButton label="Repetir" variant="muted" onPress={onRepeat} />
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  topRow: { paddingHorizontal: 20, alignItems: "flex-end" },
+  body: { flex: 1, paddingHorizontal: 24, alignItems: "center", gap: 14 },
+  trophy: {
+    width: 108,
+    height: 108,
+    borderRadius: 32,
+    backgroundColor: colors.courseTealLight,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 20,
+  },
+  title: {
+    fontFamily: fonts.displayBold,
+    fontSize: 32,
+    letterSpacing: -1.1,
+    color: colors.text,
+    textAlign: "center",
+    marginTop: 4,
+  },
+  subtitle: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 15,
+    lineHeight: 22,
+    color: colors.textMuted,
+    textAlign: "center",
+  },
+  statsRow: { flexDirection: "row", gap: 10, width: "100%", marginTop: 8 },
+  statCard: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    gap: 6,
+  },
+  statValue: {
+    fontFamily: fonts.displayBold,
+    fontSize: 20,
+    color: colors.text,
+  },
+  statLabel: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 11.5,
+    color: colors.textMuted,
+    textAlign: "center",
+  },
+  footer: { padding: 20, gap: 10 },
+});
