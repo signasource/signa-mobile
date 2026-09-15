@@ -8,6 +8,8 @@ import { AppStackParamList } from "./AppNavigator";
 import { SessionExpiredModal } from "@/components/SessionExpiredModal";
 import { FriendAcceptedProvider, useFriendAccepted } from "@/context/FriendAcceptedContext";
 import { FriendAcceptedModal } from "@/features/social/components/FriendAcceptedModal";
+import { TourProvider } from "@/features/tour/TourContext";
+import { TourOverlay } from "@/features/tour/components/TourOverlay";
 import { colors } from "@/theme";
 
 function getActiveRouteName(state: NavigationState | undefined): string {
@@ -55,6 +57,7 @@ export function RootNavigator() {
     resumeExpiredSession,
     dismissExpiredSession,
     authInitialRoute,
+    user,
   } = useAuth();
 
   const navigationRef = useRef<NavigationContainerRef<AppStackParamList>>(null);
@@ -70,28 +73,31 @@ export function RootNavigator() {
 
   return (
     <FriendAcceptedProvider isAuthenticated={isAuthenticated}>
-      <NavigationContainer
-        ref={navigationRef}
-        onStateChange={(state) => setCurrentRouteName(getActiveRouteName(state))}
-      >
-        {isAuthenticated ? (
-          <AppNavigator />
-        ) : (
-          // La bienvenida es siempre la primera pantalla para usuarios no autenticados,
-          // salvo que vengan de cerrar el aviso de sesión expirada, que va directo a Login.
-          <AuthNavigator initialRoute={authInitialRoute} />
-        )}
-        {/* Se muestra encima de la pantalla actual (sin desmontarla) cuando la sesión se cierra sola. */}
-        <SessionExpiredModal
-          visible={sessionExpired}
-          onLogin={resumeExpiredSession}
-          onExit={dismissExpiredSession}
+      <TourProvider isAuthenticated={isAuthenticated} userId={user?.email ?? null}>
+        <NavigationContainer
+          ref={navigationRef}
+          onStateChange={(state) => setCurrentRouteName(getActiveRouteName(state))}
+        >
+          {isAuthenticated ? (
+            <AppNavigator />
+          ) : (
+            // La bienvenida es siempre la primera pantalla para usuarios no autenticados,
+            // salvo que vengan de cerrar el aviso de sesión expirada, que va directo a Login.
+            <AuthNavigator initialRoute={authInitialRoute} />
+          )}
+          {/* Se muestra encima de la pantalla actual (sin desmontarla) cuando la sesión se cierra sola. */}
+          <SessionExpiredModal
+            visible={sessionExpired}
+            onLogin={resumeExpiredSession}
+            onExit={dismissExpiredSession}
+          />
+        </NavigationContainer>
+        <FriendAcceptedModalConnected
+          isInLesson={currentRouteName === "Lesson"}
+          navigationRef={navigationRef}
         />
-      </NavigationContainer>
-      <FriendAcceptedModalConnected
-        isInLesson={currentRouteName === "Lesson"}
-        navigationRef={navigationRef}
-      />
+        <TourOverlay />
+      </TourProvider>
     </FriendAcceptedProvider>
   );
 }
