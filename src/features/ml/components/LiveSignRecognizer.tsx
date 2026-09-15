@@ -24,6 +24,9 @@ export interface LiveFrame {
   /** Reparto del frame, en ms. Se ve tocando el badge de estado. */
   poseMs: number;
   handsMs: number;
+  drawFps: number;
+  drawMs: number;
+  delegado: string;
 }
 
 interface LiveSignRecognizerProps {

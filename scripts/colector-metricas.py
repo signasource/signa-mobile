@@ -67,15 +67,16 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         sesion = cuerpo.get("sesion", "?")
+        build = cuerpo.get("build", "?")
         evento = cuerpo.get("evento")
         muestras = cuerpo.get("muestras") or []
 
         with SALIDA.open("a", encoding="utf-8") as f:
             for m in muestras:
-                f.write(json.dumps({"sesion": sesion, "evento": evento, **m}) + "\n")
+                f.write(json.dumps({"sesion": sesion, "build": build, "evento": evento, **m}) + "\n")
 
         if evento:
-            print(f"[{datetime.now():%H:%M:%S}] -- {evento} -- {muestras[:1]}", flush=True)
+            print(f"[{datetime.now():%H:%M:%S}] -- {evento} (build {build}) -- {muestras[:1]}", flush=True)
             return
 
         for m in muestras:

@@ -126,6 +126,7 @@ export function SpellNameBlock({ config, active, ultimo, xp, onAnswer, onContinu
     setEstado(estadoDeFrame(f));
     medir({
       modo: "estatico", fps: f.fps, poseMs: f.poseMs, handsMs: f.handsMs, inferMs: f.inferMs,
+      drawFps: f.drawFps, drawMs: f.drawMs, delegado: f.delegado,
       body: f.body, hands: f.hands, resting: f.resting, progress: f.progress,
       sign: f.sign, confidence: f.confidence, targetConfidence: f.targetConfidence,
     });

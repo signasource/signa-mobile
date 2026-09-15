@@ -63,6 +63,12 @@ export type RecognizerMessage =
       /** Reparto del frame, en ms: dice qué etapa se está comiendo el tiempo. */
       poseMs: number;
       handsMs: number;
+      /** Fps del bucle de dibujo: cuánto le queda libre al hilo principal. */
+      drawFps: number;
+      /** Cuántos ms tarda una vuelta del bucle de dibujo. */
+      drawMs: number;
+      /** GPU o CPU, y si hubo que caer a CPU a mitad de camino. */
+      delegado: string;
       /** Tamaño real del canvas del esqueleto; "0x0" delata un problema de layout. */
       canvas: string;
       /** Milisegundos por inferencia, promediados. Para comparar motores. */
@@ -329,9 +335,22 @@ try {
     render.visible = !!pose;
   }
 
+  // El pulso del bucle de dibujo mide la salud del hilo principal: si cae muy
+  // por debajo de 60 es que algo lo está ocupando, y eso también le saca CPU al
+  // worker que detecta.
+  let dibujos = 0, dibujoDesde = performance.now(), fpsDibujo = 0, msDibujo = 0;
+
   function dibujarLoop() {
     requestAnimationFrame(dibujarLoop);
+    const t0 = performance.now();
+    dibujos++;
+    if (t0 - dibujoDesde >= 500) {
+      fpsDibujo = dibujos * 1000 / (t0 - dibujoDesde);
+      dibujos = 0; dibujoDesde = t0;
+    }
     dibujar();
+    const d = performance.now() - t0;
+    msDibujo = msDibujo ? msDibujo * 0.8 + d * 0.2 : d;
   }
 
   function dibujar() {
@@ -881,6 +900,9 @@ try {
           inferMs: Math.round(msInferencia * 10) / 10,
           poseMs: Math.round(msPose),
           handsMs: Math.round(msManos),
+          drawFps: Math.round(fpsDibujo),
+          drawMs: Math.round(msDibujo * 10) / 10,
+          delegado,
           canvas: ovl.width + 'x' + ovl.height,
         });
       }

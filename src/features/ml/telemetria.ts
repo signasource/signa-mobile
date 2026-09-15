@@ -11,6 +11,11 @@
  */
 const COLECTOR = process.env.EXPO_PUBLIC_METRICS_URL ?? "";
 
+// Marca de compilación: viaja en cada lote para saber, del lado del colector,
+// qué APK produjo los datos. Sin esto es imposible distinguir "la métrica nueva
+// no funciona" de "el teléfono todavía tiene la APK vieja".
+const BUILD = process.env.EXPO_PUBLIC_BUILD ?? "sin-marca";
+
 const LOTE = 25;
 
 export interface MuestraFrame {
@@ -19,6 +24,9 @@ export interface MuestraFrame {
   poseMs: number;
   handsMs: number;
   inferMs: number;
+  drawFps: number;
+  drawMs: number;
+  delegado: string;
   body: boolean;
   hands: number;
   resting: boolean;
@@ -41,7 +49,7 @@ async function enviar(muestras: unknown[], evento?: string): Promise<void> {
     await fetch(COLECTOR, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sesion, evento, muestras }),
+      body: JSON.stringify({ sesion, build: BUILD, evento, muestras }),
     });
   } catch {
     // Si el colector no está, la app sigue como si nada.

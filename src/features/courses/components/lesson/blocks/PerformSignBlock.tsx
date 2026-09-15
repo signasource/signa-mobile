@@ -126,6 +126,7 @@ export function PerformSignBlock({ config, active, ultimo, xp, onAnswer, onConti
     setEstado(estadoDeFrame(f));
     medir({
       modo: "dinamico", fps: f.fps, poseMs: f.poseMs, handsMs: f.handsMs, inferMs: f.inferMs,
+      drawFps: f.drawFps, drawMs: f.drawMs, delegado: f.delegado,
       body: f.body, hands: f.hands, resting: f.resting, progress: f.progress,
       sign: f.sign, confidence: f.confidence, targetConfidence: f.targetConfidence,
     });
@@ -271,7 +272,7 @@ export function PerformSignBlock({ config, active, ultimo, xp, onAnswer, onConti
           <SignPip
             meaning={signMeaning(enPantalla)}
             label={signMeaning(enPantalla)}
-            paused={terminado}
+            paused={!pipBig}
             onExpandedChange={setPipBig}
           />
         )}

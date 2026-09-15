@@ -109,7 +109,36 @@ async function iniciar(baseUrl, forzar) {
       [pose, manos] = await crear('CPU');
     }
   }
+  await calentar();
   postMessage({ tipo: 'listo', delegado });
+}
+
+/**
+ * Primera detección en vacío, antes de avisar que está listo.
+ *
+ * Medido en un teléfono real: la primera llamada a la pose tarda 3 segundos y
+ * la de manos 1,2, contra los 70 ms del estado estable. Es cargar los modelos
+ * y compilar los shaders. Como se manda un frame por vez, durante esos
+ * segundos la pantalla queda congelada — y eso caía justo sobre el primer
+ * intento de seña, que es el peor momento posible.
+ *
+ * Haciéndolo acá, el costo se paga mientras la interfaz todavía dice
+ * "Preparando el reconocimiento", que es cuando la persona ya está esperando.
+ */
+async function calentar() {
+  try {
+    const lienzo = new OffscreenCanvas(256, 256);
+    const ctx = lienzo.getContext('2d');
+    ctx.fillStyle = '#808080';
+    ctx.fillRect(0, 0, 256, 256);
+    const bitmap = lienzo.transferToImageBitmap();
+    pose.detectForVideo(bitmap, 1);
+    manos.detectForVideo(bitmap, 1);
+    bitmap.close();
+    ultimaPose = null;
+  } catch (e) {
+    // Sin OffscreenCanvas se arranca en frío, como antes.
+  }
 }
 
 let ultimaPose = null;
