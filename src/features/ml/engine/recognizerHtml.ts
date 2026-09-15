@@ -1,8 +1,10 @@
 /**
  * HTML del reconocedor en vivo que corre dentro del WebView.
  *
- * Todo pasa en el teléfono: cámara → MediaPipe Holistic (WASM) → vector de 258
- * → ventana de 30 frames → LSTM en JS → seña. No sale nada a la red.
+ * Todo pasa en el teléfono: cámara → MediaPipe (WASM, en un worker) → vector de
+ * 258 → ventana de 2,5 s → LSTM en TFLite → seña. No sale nada a la red. El
+ * deletreo usa el mismo trackeo y decide con el modelo del abecedario, que mira
+ * el frame actual en vez de una ventana.
  *
  * Corre en WebView y no en React Native porque MediaPipe sólo existe como WASM
  * para web: es la única forma hoy de sacar landmarks de pose y manos en un
@@ -156,7 +158,7 @@ try {
 
   const manifest = JSON.parse(await leer(CFG.baseUrl + 'manifest.json', 'text'));
 
-  // --- modelo de señas: TFLite real, o el motor propio en JS ---
+  // --- umbral por seña ---
   // Cada seña tiene su propio umbral, calibrado en signa-ml: no todas salen
   // con la misma confianza y uno global o deja pasar cualquier cosa en las
   // fáciles o nunca acepta las que se reparten con una vecina parecida. El

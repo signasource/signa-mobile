@@ -109,4 +109,4 @@ function normalizeKeypoints(kp) {
     return kp;
 }
 
-export { SignModel, buildKeypoints, normalizeKeypoints, FEATURE_DIM, POSE_DIM, HAND_DIM };
+export { POSE_LANDMARKS, HAND_LANDMARKS, POSE_DIM, HAND_DIM, FEATURE_DIM, buildKeypoints, normalizeKeypoints };

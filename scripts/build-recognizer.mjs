@@ -102,21 +102,57 @@ execSync(
 
 // Se concatenan en un solo ES module: el WebView carga un archivo, no dos, y
 // así no hay que resolver imports relativos desde file://.
-const partes = ["keypoints.js"].map((f) =>
-  fs
-    .readFileSync(path.join(tmp, f), "utf8")
+//
+// La lista de exports se deriva del propio código y no se escribe a mano. Estaba
+// a mano y quedó nombrando a `SignModel` después de que el modelo en JS se
+// borrara: el módulo dejó de evaluar con "export 'SignModel' is not defined in
+// module" y se llevó puestos los dos ejercicios de cámara, porque la página
+// importa esto antes de elegir qué modelo usa.
+const FUENTES = ["keypoints.js"];
+const exportados = [];
+
+const partes = FUENTES.map((f) => {
+  const src = fs.readFileSync(path.join(tmp, f), "utf8");
+  for (const m of src.matchAll(
+    /^export\s+(?:const|let|var|function|class)\s+([A-Za-z0-9_$]+)/gm,
+  )) {
+    exportados.push(m[1]);
+  }
+  return src
     // Fuera los import/export entre los propios módulos; quedan en el mismo scope.
     .replace(/^import .*$/gm, "")
-    .replace(/^export /gm, ""),
-);
+    .replace(/^export /gm, "");
+});
+
+if (!exportados.length) {
+  console.error("ERROR: no se encontró ningún export en " + FUENTES.join(", "));
+  process.exit(1);
+}
 
 const cabecera = `// GENERADO por scripts/build-recognizer.mjs — no editar a mano.
-// Fuente: src/features/ml/engine/keypoints.ts
+// Fuente: src/features/ml/engine/${FUENTES.map((f) => f.replace(/\.js$/, ".ts")).join(", ")}
 `;
 const pie = `
-export { SignModel, buildKeypoints, normalizeKeypoints, FEATURE_DIM, POSE_DIM, HAND_DIM };
+export { ${exportados.join(", ")} };
 `;
 
 fs.writeFileSync(OUT, cabecera + partes.join("\n") + pie);
+
+// Evaluar el módulo, no sólo parsearlo.
+//
+// `node --check` no alcanza: exportar un nombre que no existe es un error de
+// enlazado, no de sintaxis, así que pasa el parser y revienta recién cuando el
+// WebView instancia el módulo — o sea, en el teléfono, con la cámara abierta.
+// keypoints.ts no toca el DOM, así que node puede evaluarlo tal cual.
+try {
+  execSync(`node --input-type=module --eval "$(cat ${OUT})"`, {
+    stdio: "pipe",
+    shell: "/bin/bash",
+  });
+} catch (e) {
+  console.error("ERROR: el módulo generado no evalúa.");
+  console.error(String(e.stderr || e).split("\n").slice(0, 6).join("\n"));
+  process.exit(1);
+}
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(`${OUT} · ${(fs.statSync(OUT).size / 1024).toFixed(1)} KB`);
