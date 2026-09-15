@@ -7,18 +7,15 @@
  * y su .task por ruta, así que en el primer arranque se copian a una carpeta
  * del sandbox de la app y de ahí los toma el WebView por file://.
  *
- * Se copia una sola vez: si la carpeta ya tiene la marca de versión correcta,
- * no se vuelve a tocar.
+ * Se copia una sola vez: la carpeta lleva en el nombre una huella del contenido
+ * de todo lo que va adentro, así que mientras nada cambie no se vuelve a tocar,
+ * y en cuanto algo cambia la carpeta es otra.
  */
 import { Asset } from "expo-asset";
 import * as FileSystem from "expo-file-system/legacy";
 import { DETECTOR_WORKER } from "./detectorWorker";
 import { buildRecognizerHtml, RecognizerConfig } from "./recognizerHtml";
 
-/** Subir esto fuerza a recopiar todo (cambió un asset). */
-const STAGE_VERSION = 15;
-
-const DIR = `${FileSystem.documentDirectory}signa-recognizer-v${STAGE_VERSION}/`;
 
 /**
  * Nombre final → módulo empaquetado. El HTML los referencia por ese nombre.
@@ -99,13 +96,48 @@ export function stageRecognizerAssets(): Promise<string> {
   return staging;
 }
 
-async function alias(origen: string, nombres: string[]): Promise<void> {
+async function alias(dir: string, origen: string, nombres: string[]): Promise<void> {
   for (const nombre of nombres) {
-    await FileSystem.copyAsync({ from: DIR + origen, to: DIR + nombre });
+    await FileSystem.copyAsync({ from: dir + origen, to: dir + nombre });
   }
 }
 
+/**
+ * Huella del contenido de todo lo que se copia.
+ *
+ * Antes esto era un número que había que acordarse de subir a mano cada vez que
+ * cambiaba un asset. Lo olvidé una vez y el teléfono siguió ejecutando el
+ * `engine.js` viejo —roto— aunque el APK traía el nuevo: la carpeta ya existía
+ * con su marca y nadie la volvía a mirar. Un número que hay que acordarse de
+ * subir no es una versión, es una trampa.
+ *
+ * Metro deja el md5 de cada asset en su registro, así que la huella sale de ahí
+ * sin leer los archivos. Los .json vienen ya parseados y se hashean serializados.
+ */
+function huellaDeAssets(): string {
+  const partes: string[] = [];
+  for (const [nombre, mod] of Object.entries(FILES)) {
+    if (isPlainData(mod)) {
+      partes.push(`${nombre}:${hash(JSON.stringify(mod))}`);
+      continue;
+    }
+    let firma = "";
+    if (typeof mod === "number") {
+      const asset = Asset.fromModule(mod);
+      firma = asset.hash ?? asset.uri ?? "";
+    } else if (typeof mod === "string") {
+      firma = mod;
+    } else if (mod && typeof mod === "object") {
+      const m = mod as { hash?: string; localUri?: string; uri?: string };
+      firma = m.hash ?? m.localUri ?? m.uri ?? "";
+    }
+    partes.push(`${nombre}:${firma}`);
+  }
+  return hash(partes.join("|"));
+}
+
 async function copyAll(): Promise<string> {
+  const DIR = `${FileSystem.documentDirectory}signa-recognizer-${huellaDeAssets()}/`;
   const marca = `${DIR}.ready`;
   if ((await FileSystem.getInfoAsync(marca)).exists) return DIR;
 
@@ -128,10 +160,27 @@ async function copyAll(): Promise<string> {
     }
   }
 
-  await alias("tflite_web_api_cc_simd.js", ALIAS_TFLITE);
+  await alias(DIR, "tflite_web_api_cc_simd.js", ALIAS_TFLITE);
 
-  await FileSystem.writeAsStringAsync(marca, String(STAGE_VERSION));
+  await FileSystem.writeAsStringAsync(marca, "ok");
+  await borrarCarpetasViejas(DIR);
   return DIR;
+}
+
+/** Las copias de versiones anteriores son 41 MB cada una: no se quedan. */
+async function borrarCarpetasViejas(actual: string): Promise<void> {
+  try {
+    const raiz = FileSystem.documentDirectory;
+    if (!raiz) return;
+    for (const nombre of await FileSystem.readDirectoryAsync(raiz)) {
+      if (!nombre.startsWith("signa-recognizer-")) continue;
+      const ruta = `${raiz}${nombre}/`;
+      if (ruta === actual) continue;
+      await FileSystem.deleteAsync(ruta, { idempotent: true });
+    }
+  } catch {
+    // Que no se pueda limpiar no es motivo para no reconocer señas.
+  }
 }
 
 /** Un objeto de datos (JSON ya parseado por Metro), no un descriptor de asset. */

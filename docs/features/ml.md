@@ -94,8 +94,10 @@ Mechanics worth knowing, each of which cost a debugging round:
 - **Staging to the sandbox** — bundled assets are not loose files (on Android they live compressed
   inside the APK) and MediaPipe needs real paths. `engine/assets.ts` copies everything once into
   `documentDirectory`, writes the HTML next to it so page and assets share one `file://` origin, and
-  marks the folder done with `STAGE_VERSION`. **Bump that constant whenever a staged file changes**,
-  or phones keep the old copy.
+  names the folder after a fingerprint of everything that goes in it, so a changed asset means a
+  different folder and stale copies are impossible. It used to be a constant somebody had to
+  remember to bump; forgetting it left phones running an old engine that the new APK had already
+  replaced, which is invisible on a fresh install and only shows up on an upgrade.
 - **XHR, not `fetch`** — `fetch()` rejects `file://` by spec. The page reads its files with
   `XMLHttpRequest`, and hands MediaPipe the wasm as a blob URL and the `.task` as
   `modelAssetBuffer`, because MediaPipe's own loader would use `fetch` and fail.
