@@ -147,7 +147,7 @@ export function LessonScreen({ route, navigation }: Props) {
 
   if (loading) {
     return (
-      <View style={[styles.centerFill, { paddingTop: insets.top }]}>
+      <View style={[styles.centerFill, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <ActivityIndicator color={colors.primary} size="large" />
       </View>
     );
@@ -155,7 +155,7 @@ export function LessonScreen({ route, navigation }: Props) {
 
   if (error || !lesson) {
     return (
-      <View style={[styles.centerFill, { paddingTop: insets.top }]}>
+      <View style={[styles.centerFill, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <Text style={styles.errorTitle}>No pudimos cargar la lección</Text>
         <Text style={styles.errorDetail}>{error}</Text>
         <LessonButton label="Reintentar" onPress={loadLesson} />
@@ -168,7 +168,7 @@ export function LessonScreen({ route, navigation }: Props) {
   if (completed) {
     const xpEarned = Object.values(awardedXp).reduce((sum, v) => sum + v, 0);
     return (
-      <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
+      <View style={[styles.container, { paddingTop: insets.top + 12, paddingBottom: insets.bottom }]}>
         <LessonComplete
           lessonName={lesson.name}
           unitLabel={unitLabel ?? lesson.name}
@@ -186,7 +186,7 @@ export function LessonScreen({ route, navigation }: Props) {
   const progress = blocks.length > 0 ? blockIndex / blocks.length : 0;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
+    <View style={[styles.container, { paddingTop: insets.top + 10, paddingBottom: insets.bottom }]}>
       <LessonHeader
         unitLabel={unitLabel ?? lesson.name}
         lessonName={lesson.name}
