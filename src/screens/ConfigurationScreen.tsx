@@ -488,7 +488,7 @@ export function ConfigurationScreen({ navigation, route }: Props) {
           <SectionHeader label="Cuenta" />
 
           <TouchableOpacity
-            style={[styles.settingRow, styles.borderBottom]}
+            style={styles.settingRow}
             onPress={() => setSheet("color")}
             activeOpacity={0.7}
           >
@@ -500,7 +500,7 @@ export function ConfigurationScreen({ navigation, route }: Props) {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.settingRow, styles.borderBottom]}
+            style={styles.settingRow}
             onPress={openEdit}
             activeOpacity={0.7}
           >

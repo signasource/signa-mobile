@@ -15,10 +15,12 @@ interface SignAnimationProps {
   tone?: Tone;
   paused?: boolean;
   badge?: string;
+  /** Permitir rotar el modelo arrastrando. Ver GlbAnimationView. */
+  cameraControls?: boolean;
   style?: ViewStyle;
 }
 
-export function SignAnimation({ meaning, label, height = 320, tone = "neutral", paused, badge, style }: SignAnimationProps) {
+export function SignAnimation({ meaning, label, height = 320, tone = "neutral", paused, badge, cameraControls, style }: SignAnimationProps) {
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
   const wrong = tone === "wrong";

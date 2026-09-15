@@ -98,7 +98,7 @@ export function PracticeSessionScreen({ route, navigation }: Props) {
 
   if (loading) {
     return (
-      <View style={[styles.centerFill, { paddingTop: insets.top }]}>
+      <View style={[styles.centerFill, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <ActivityIndicator color={colors.courseTeal} size="large" />
       </View>
     );
@@ -106,7 +106,7 @@ export function PracticeSessionScreen({ route, navigation }: Props) {
 
   if (error) {
     return (
-      <View style={[styles.centerFill, { paddingTop: insets.top }]}>
+      <View style={[styles.centerFill, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <Text style={styles.errorTitle}>No pudimos cargar la práctica</Text>
         <Text style={styles.errorDetail}>{error}</Text>
         <LessonButton label="Reintentar" onPress={loadExercises} />
@@ -116,7 +116,7 @@ export function PracticeSessionScreen({ route, navigation }: Props) {
 
   if (!blocks || blocks.length === 0) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top + 14 }]}>
+      <View style={[styles.container, { paddingTop: insets.top + 14, paddingBottom: insets.bottom }]}>
         <EmptyState
           title="Nada para practicar todavía"
           description={emptyDescription(mode)}
@@ -130,7 +130,7 @@ export function PracticeSessionScreen({ route, navigation }: Props) {
 
   if (completed) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
+      <View style={[styles.container, { paddingTop: insets.top + 12, paddingBottom: insets.bottom }]}>
         <PracticeComplete
           correctBlocks={correctBlockIds.size}
           totalBlocks={blocks.length}
@@ -145,7 +145,7 @@ export function PracticeSessionScreen({ route, navigation }: Props) {
   const progress = blocks.length > 0 ? blockIndex / blocks.length : 0;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
+    <View style={[styles.container, { paddingTop: insets.top + 10, paddingBottom: insets.bottom }]}>
       <PracticeSessionHeader title={title} progress={progress} onBack={() => navigation.goBack()} />
 
       <View style={styles.blockArea}>

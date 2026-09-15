@@ -8,6 +8,14 @@ interface GlbAnimationViewProps {
   paused?: boolean;
   /** Spin the model on its Y axis automatically (in addition to drag-to-rotate). */
   autoRotate?: boolean;
+  /**
+   * Let the user rotate the model by dragging. Default `true`.
+   *
+   * Turn it off when the view is small and lives inside something else that
+   * owns the gesture — a draggable picture-in-picture, say: otherwise the drag
+   * rotates the avatar instead of moving the container.
+   */
+  cameraControls?: boolean;
   style?: ViewStyle;
   /** Reports the GLB's animation clip names once loaded (empty if it has none). */
   onLoaded?: (clipNames: string[]) => void;
@@ -22,7 +30,7 @@ const MODEL_VIEWER_CDN =
  * (`camera-controls`), optional auto-rotation and animation autoplay. The GLB is fetched by the web
  * engine, so the R2 bucket must allow CORS (GET). The presigned URL is injected safely via JS.
  */
-function buildHtml(url: string, autoRotate: boolean): string {
+function buildHtml(url: string, autoRotate: boolean, cameraControls: boolean): string {
   return `<!doctype html>
 <html>
 <head>
@@ -37,12 +45,16 @@ function buildHtml(url: string, autoRotate: boolean): string {
   <script type="module" src="${MODEL_VIEWER_CDN}"></script>
 </head>
 <body>
-  <model-viewer id="mv" autoplay loading="eager" camera-controls ${autoRotate ? "auto-rotate" : ""}
+  <model-viewer id="mv" autoplay loading="eager" ${cameraControls ? "camera-controls" : ""} ${autoRotate ? "auto-rotate" : ""}
     camera-orbit="0deg 85deg 100%"
-    min-camera-orbit="auto 60deg auto"
-    max-camera-orbit="auto 110deg auto"
+    min-camera-orbit="auto 60deg 60%"
+    max-camera-orbit="auto 110deg 160%"
+    min-field-of-view="10deg" max-field-of-view="35deg"
+    disable-pan
     interaction-prompt="none" shadow-intensity="0" exposure="1"></model-viewer>
   <script>
+    var FOV = 15;          // grados
+    var ENCUADRE = 0.52;   // qué fracción del alto del avatar entra en el cuadro
     var mv = document.getElementById('mv');
     var post = function (m) {
       if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify(m));
@@ -51,10 +63,20 @@ function buildHtml(url: string, autoRotate: boolean): string {
       try {
         var dims = mv.getDimensions();
         var center = mv.getBoundingBoxCenter();
-        // Frame upper body: target ~65% up from bottom (chest/shoulder area).
+        // Encuadre del torso para arriba: el objetivo sube un 30% del alto.
         var targetY = center.y + dims.y * 0.30;
         mv.cameraTarget = '0m ' + targetY.toFixed(3) + 'm 0m';
-        mv.fieldOfView = '15deg';
+        mv.fieldOfView = FOV + 'deg';
+        // La distancia se calcula a mano en vez de dejar el "100%" del
+        // camera-orbit. Ese auto-encuadre depende del campo de visión que haya
+        // cuando se calcula: el primer modelo se enmarca con los 45° por
+        // defecto y queda cerca, y los siguientes ya encuentran los 15°
+        // puestos y se van lejísimos. Por eso una seña se veía de torso y otra
+        // de cuerpo entero. Derivándola del alto del modelo, todas encuadran
+        // igual. Es lo mismo que hace signa-ml/demo/static/nombre.html.
+        var radio = (dims.y * ENCUADRE / 2) / Math.tan(FOV / 2 * Math.PI / 180);
+        mv.cameraOrbit = '0deg 85deg ' + radio.toFixed(3) + 'm';
+        mv.jumpCameraToGoal();
       } catch (_e) {}
       post({ type: 'loaded', clips: mv.availableAnimations || [] });
     });
@@ -71,12 +93,22 @@ export function GlbAnimationView({
   url,
   paused = false,
   autoRotate = false,
+  cameraControls = true,
   style,
   onLoaded,
   onError,
 }: GlbAnimationViewProps) {
   const webviewRef = useRef<WebView>(null);
-  const html = useMemo(() => buildHtml(url, autoRotate), [url, autoRotate]);
+  // `cameraControls` NO entra en las dependencias: se cambia por
+  // injectJavaScript para no rehacer el HTML y volver a bajar el modelo.
+  const html = useMemo(() => buildHtml(url, autoRotate, cameraControls), [url, autoRotate]);
+
+  useEffect(() => {
+    webviewRef.current?.injectJavaScript(
+      `(function(){var m=document.getElementById('mv');` +
+        `if(m)m.toggleAttribute('camera-controls', ${cameraControls});})();true;`,
+    );
+  }, [cameraControls]);
 
   function handleMessage(event: WebViewMessageEvent) {
     try {
@@ -91,10 +123,20 @@ export function GlbAnimationView({
     }
   }
 
-  // Play/pause the animation without reloading the model.
+  /*
+   * Play/pause sin recargar el modelo.
+   *
+   * Al pausar se vuelve al primer frame, que es la posición neutra de las manos:
+   * congelar el avatar a mitad de la seña, con las manos a media altura, queda
+   * raro. Volver al inicio es una línea y deja una pose estable y prolija.
+   */
   useEffect(() => {
     webviewRef.current?.injectJavaScript(
-      `(function(){var m=document.getElementById('mv');if(m){m.${paused ? "pause" : "play"}();}})();true;`
+      `(function(){var m=document.getElementById('mv');if(!m)return;` +
+        (paused
+          ? `try{m.currentTime=0;}catch(e){}m.pause();`
+          : `m.play();`) +
+        `})();true;`,
     );
   }, [paused]);
 

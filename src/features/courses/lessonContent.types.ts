@@ -17,7 +17,9 @@ export type BlockType =
   | "SELECT_SIGN"
   | "CONTEXT_RESPONSE"
   | "MATCH"
-  | "VISUAL_RECOGNITION";
+  | "VISUAL_RECOGNITION"
+  | "PERFORM_SIGN"
+  | "SPELL_NAME";
 
 export interface MythEntry {
   title: string;
@@ -57,6 +59,28 @@ export interface MatchConfig {
   concepts: string[];
 }
 
+/**
+ * El alumno hace las señas frente a la cámara y el modelo las reconoce en vivo.
+ *
+ * `signs` se declara igual que en los demás ejercicios que listan señas
+ * (`concepts` en MATCH, `sign_sequence` en VISUAL_RECOGNITION): son las señas
+ * que hay que hacer, en orden. Cada una tiene que ser una etiqueta que el
+ * modelo conozca (ver `RECOGNIZABLE_SIGNS` en @/features/ml) — si no, el
+ * ejercicio sería imposible de aprobar, y `signa-api` rechaza el contenido al
+ * cargarlo.
+ */
+export interface SpellNameConfig {
+  /** Tope de letras del nombre. Cada letra es un reconocimiento. */
+  max_letters?: number;
+}
+
+export interface PerformSignConfig {
+  /** Señas a realizar, en orden. Etiquetas del modelo: "mama", "papa", "casa". */
+  signs: string[];
+  /** Confianza mínima para dar una seña por hecha. Por defecto 0.85. */
+  threshold?: number;
+}
+
 export interface VisualRecognitionConfig {
   sign_sequence: string[];
   options: string[];
@@ -75,7 +99,11 @@ export type BlockConfigFor<T extends BlockType> = T extends "INFO"
           ? ContextResponseConfig
           : T extends "MATCH"
             ? MatchConfig
-            : VisualRecognitionConfig;
+            : T extends "VISUAL_RECOGNITION"
+              ? VisualRecognitionConfig
+              : T extends "SPELL_NAME"
+                ? SpellNameConfig
+                : PerformSignConfig;
 
 /** Espeja LessonBlockResponse.java: config llega como string, no parseado. */
 export interface LessonContentBlock {
@@ -109,6 +137,7 @@ export function parseBlockConfig<T extends BlockType>(block: LessonContentBlock)
  * - CONTEXT_RESPONSE → `answer`
  * - MATCH          → all `concepts`
  * - VISUAL_RECOGNITION → all `sign_sequence` entries
+ * - PERFORM_SIGN   → all `signs` entries (the signs the user must perform)
  * - INFO           → (none, no sign being tested)
  */
 export function extractLessonSignNames(lesson: { blocks: LessonContentBlock[] }): string[] {
@@ -132,6 +161,13 @@ export function extractLessonSignNames(lesson: { blocks: LessonContentBlock[] })
         break;
       case "VISUAL_RECOGNITION":
         parseBlockConfig<"VISUAL_RECOGNITION">(block).sign_sequence.forEach((s) => names.add(s));
+        break;
+      case "PERFORM_SIGN":
+        parseBlockConfig<"PERFORM_SIGN">(block).signs.forEach((s) => names.add(s));
+        break;
+      // El nombre lo escribe la persona en el momento: no hay señas que
+      // precargar desde el contenido.
+      case "SPELL_NAME":
         break;
     }
   }

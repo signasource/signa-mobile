@@ -53,7 +53,10 @@ Versions live in `package.json` — not duplicated here.
 
 ## Relevant config
 
-- `app.json` — app name "Signa", bundle `com.signasource.signamobile`, plugins `expo-font` + `expo-secure-store`, `userInterfaceStyle: light`.
+- `metro.config.js` — Expo's default Metro plus `tflite` in `resolver.assetExts`, so the models
+  under `assets/models/` can be `require()`d (see [features/ml.md](./features/ml.md)).
+- `app.json` — app name "Signa", bundle `com.signasource.signamobile`, plugins `expo-font` + `expo-camera` + `expo-secure-store`, camera permission strings for both
+  platforms, `userInterfaceStyle: light`.
 - `tsconfig.json` — extends `expo/tsconfig.base`, `strict: true`, alias `@/*`.
 - `metro.config.js` — Expo default config plus `react-native-svg-transformer`: `.svg` files are removed from `assetExts` and added to `sourceExts` so they import as React components (`import Icon from "@assets/icon.svg"`) instead of static image assets. Type declaration in `svg.d.ts` (project root, picked up by `tsconfig.json`'s `include`).
 - `.env` — `EXPO_PUBLIC_API_URL` (see [api/http-client.md](./api/http-client.md)).

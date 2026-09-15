@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from "react";
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -20,9 +20,14 @@ import { SelectSignBlock } from "@/features/courses/components/lesson/blocks/Sel
 import { ContextResponseBlock } from "@/features/courses/components/lesson/blocks/ContextResponseBlock";
 import { MatchBlock } from "@/features/courses/components/lesson/blocks/MatchBlock";
 import { VisualRecognitionBlock } from "@/features/courses/components/lesson/blocks/VisualRecognitionBlock";
+import { SpellNameBlock } from "../components/lesson/blocks/SpellNameBlock";
+import { PerformSignBlock } from "../components/lesson/blocks/PerformSignBlock";
 import { IntroduceSignBlock } from "@/features/courses/components/lesson/blocks/IntroduceSignBlock";
 
 type Props = NativeStackScreenProps<AppStackParamList, "Lesson">;
+
+/** Tope de espera al salir: pasado esto se vuelve igual. */
+const ESPERA_MAX_SALIDA = 2500;
 
 const STARTING_LIVES = 5;
 
@@ -42,6 +47,8 @@ export function LessonScreen({ route, navigation }: Props) {
   const [awardedXp, setAwardedXp] = useState<Record<string, number>>({});
   const [correctBlockIds, setCorrectBlockIds] = useState<Set<string>>(new Set());
   const [completed, setCompleted] = useState(false);
+  // Respuestas ya mandadas al backend cuyo POST sigue viajando.
+  const enVuelo = useRef<Promise<unknown>[]>([]);
 
   const loadLesson = useCallback(() => {
     if (!lessonId) {
@@ -50,6 +57,7 @@ export function LessonScreen({ route, navigation }: Props) {
       return;
     }
     setError(null);
+
     setLoading(true);
     Promise.all([lessonsApi.getLesson(lessonId), shopApi.getMyInventory().catch(() => null)])
       .then(([lessonRes, inventoryRes]) => {
@@ -75,7 +83,30 @@ export function LessonScreen({ route, navigation }: Props) {
   }
 
   function recordInteraction(block: LessonContentBlock, isCorrect: boolean | null) {
-    learningApi.recordBlockInteraction(block.id, isCorrect).catch(() => {});
+    enVuelo.current.push(learningApi.recordBlockInteraction(block.id, isCorrect).catch(() => {}));
+  }
+
+  /**
+   * Volver al camino recién cuando el backend tenga la última respuesta.
+   *
+   * Las interacciones se mandan sin esperarlas, que es lo correcto mientras se
+   * juega: nadie quiere que el ejercicio se trabe por la red. Pero al salir esa
+   * carrera se pierde — el camino se recarga al enfocarse y pide el progreso
+   * antes de que llegue la respuesta del último bloque, así que muestra la
+   * lección como estaba. Entrar de nuevo la mostraba ya avanzada, que es
+   * exactamente el síntoma.
+   *
+   * Se espera con tope: si la red no contesta, salir igual es mejor que quedar
+   * encerrado en la lección.
+   */
+  async function volver() {
+    const pendientes = enVuelo.current;
+    enVuelo.current = [];
+    await Promise.race([
+      Promise.all(pendientes),
+      new Promise((listo) => setTimeout(listo, ESPERA_MAX_SALIDA)),
+    ]);
+    navigation.goBack();
   }
 
   function handleAnswer(block: LessonContentBlock, correct: boolean) {
@@ -116,7 +147,7 @@ export function LessonScreen({ route, navigation }: Props) {
 
   if (loading) {
     return (
-      <View style={[styles.centerFill, { paddingTop: insets.top }]}>
+      <View style={[styles.centerFill, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <ActivityIndicator color={colors.primary} size="large" />
       </View>
     );
@@ -124,7 +155,7 @@ export function LessonScreen({ route, navigation }: Props) {
 
   if (error || !lesson) {
     return (
-      <View style={[styles.centerFill, { paddingTop: insets.top }]}>
+      <View style={[styles.centerFill, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <Text style={styles.errorTitle}>No pudimos cargar la lección</Text>
         <Text style={styles.errorDetail}>{error}</Text>
         <LessonButton label="Reintentar" onPress={loadLesson} />
@@ -137,7 +168,7 @@ export function LessonScreen({ route, navigation }: Props) {
   if (completed) {
     const xpEarned = Object.values(awardedXp).reduce((sum, v) => sum + v, 0);
     return (
-      <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
+      <View style={[styles.container, { paddingTop: insets.top + 12, paddingBottom: insets.bottom }]}>
         <LessonComplete
           lessonName={lesson.name}
           unitLabel={unitLabel ?? lesson.name}
@@ -145,7 +176,7 @@ export function LessonScreen({ route, navigation }: Props) {
           correctBlocks={correctBlockIds.size}
           totalBlocks={blocks.length}
           signsLearned={signsCount ?? 0}
-          onClose={() => navigation.goBack()}
+          onClose={volver}
           onRestart={resetProgress}
         />
       </View>
@@ -155,14 +186,14 @@ export function LessonScreen({ route, navigation }: Props) {
   const progress = blocks.length > 0 ? blockIndex / blocks.length : 0;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
+    <View style={[styles.container, { paddingTop: insets.top + 10, paddingBottom: insets.bottom }]}>
       <LessonHeader
         unitLabel={unitLabel ?? lesson.name}
         lessonName={lesson.name}
         progress={progress}
         lives={lives}
         unlimitedLives={unlimitedLives}
-        onBack={() => navigation.goBack()}
+        onBack={volver}
       />
 
       {/*
@@ -182,6 +213,11 @@ export function LessonScreen({ route, navigation }: Props) {
             >
               <BlockRenderer
                 block={block}
+                // El bloque siguiente se monta invisible para que su WebView
+                // esté tibio, pero no debe ACTUAR hasta estar en pantalla: sin
+                // esto, el ejercicio de cámara encendía la cámara un bloque antes.
+                active={i === blockIndex}
+                ultimo={i === blocks.length - 1}
                 onAnswer={(correct) => handleAnswer(block, correct)}
                 onContinue={block.type === "INFO" ? () => handleInfoContinue(block) : goToNextBlock}
               />
@@ -202,11 +238,15 @@ export function LessonScreen({ route, navigation }: Props) {
 
 interface BlockRendererProps {
   block: LessonContentBlock;
+  /** ¿Es el bloque que se está viendo? El siguiente está montado pero oculto. */
+  active: boolean;
+  /** Último de la lección: al terminarlo no hay bloque siguiente que mostrar. */
+  ultimo: boolean;
   onAnswer: (correct: boolean) => void;
   onContinue: () => void;
 }
 
-function BlockRenderer({ block, onAnswer, onContinue }: BlockRendererProps) {
+function BlockRenderer({ block, active, ultimo, onAnswer, onContinue }: BlockRendererProps) {
   const xp = block.xpReward ?? 0;
 
   switch (block.type as BlockType) {
@@ -233,6 +273,28 @@ function BlockRenderer({ block, onAnswer, onContinue }: BlockRendererProps) {
       );
     case "MATCH":
       return <MatchBlock config={parseBlockConfig<"MATCH">(block)} xp={xp} onAnswer={onAnswer} onContinue={onContinue} />;
+    case "PERFORM_SIGN":
+      return (
+        <PerformSignBlock
+          config={parseBlockConfig<"PERFORM_SIGN">(block)}
+          active={active}
+          ultimo={ultimo}
+          xp={xp}
+          onAnswer={onAnswer}
+          onContinue={onContinue}
+        />
+      );
+    case "SPELL_NAME":
+      return (
+        <SpellNameBlock
+          config={parseBlockConfig<"SPELL_NAME">(block)}
+          active={active}
+          ultimo={ultimo}
+          xp={xp}
+          onAnswer={onAnswer}
+          onContinue={onContinue}
+        />
+      );
     case "VISUAL_RECOGNITION":
       return (
         <VisualRecognitionBlock
