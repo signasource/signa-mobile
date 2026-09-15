@@ -8,6 +8,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import Svg, { Path } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
@@ -128,22 +129,31 @@ const STEP_DATA: Record<number, StepData> = {
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
+function roundedRectPath(x: number, y: number, w: number, h: number, r: number): string {
+  return (
+    `M ${x + r} ${y} L ${x + w - r} ${y} Q ${x + w} ${y} ${x + w} ${y + r} ` +
+    `L ${x + w} ${y + h - r} Q ${x + w} ${y + h} ${x + w - r} ${y + h} ` +
+    `L ${x + r} ${y + h} Q ${x} ${y + h} ${x} ${y + h - r} ` +
+    `L ${x} ${y + r} Q ${x} ${y} ${x + r} ${y} Z`
+  );
+}
+
+function circlePath(cx: number, cy: number, r: number): string {
+  return (
+    `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy} ` +
+    `A ${r} ${r} 0 0 1 ${cx - r} ${cy} Z`
+  );
+}
+
 function SpotlightHole({ spot }: { spot: Spot }) {
+  const { width: sw, height: sh } = useWindowDimensions();
   const pulseAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 2400,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 0,
-          duration: 0,
-          useNativeDriver: true,
-        }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 2400, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 0, duration: 0, useNativeDriver: true }),
       ]),
     );
     loop.start();
@@ -151,52 +161,30 @@ function SpotlightHole({ spot }: { spot: Spot }) {
   }, [pulseAnim]);
 
   const pulseScale = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.3] });
-  const pulseOpacity = pulseAnim.interpolate({
-    inputRange: [0, 0.12, 1],
-    outputRange: [0.5, 1, 0],
-  });
+  const pulseOpacity = pulseAnim.interpolate({ inputRange: [0, 0.12, 1], outputRange: [0.5, 1, 0] });
 
   const r = spot.circular ? spot.width / 2 : 16;
+  const cx = spot.x + spot.width / 2;
+  const cy = spot.y + spot.height / 2;
+
+  // Full-screen rect + hole path — fillRule "evenodd" makes the overlap transparent.
+  const screenRect = `M 0 0 L ${sw} 0 L ${sw} ${sh} L 0 ${sh} Z`;
+  const hole = spot.circular
+    ? circlePath(cx, cy, r)
+    : roundedRectPath(spot.x, spot.y, spot.width, spot.height, r);
 
   return (
     <>
-      {/* 4 dark panels around the spotlight */}
-      <View style={[styles.panel, { top: 0, left: 0, right: 0, height: spot.y }]} />
-      <View
-        style={[
-          styles.panel,
-          { top: spot.y + spot.height, left: 0, right: 0, bottom: 0 },
-        ]}
-      />
-      <View
-        style={[
-          styles.panel,
-          { top: spot.y, left: 0, width: spot.x, height: spot.height },
-        ]}
-      />
-      <View
-        style={[
-          styles.panel,
-          {
-            top: spot.y,
-            left: spot.x + spot.width,
-            right: 0,
-            height: spot.height,
-          },
-        ]}
-      />
+      {/* SVG overlay with a clean cutout (no artifacts from overlapping rgba views) */}
+      <Svg style={StyleSheet.absoluteFill} width={sw} height={sh}>
+        <Path d={`${screenRect} ${hole}`} fill={OVERLAY} fillRule="evenodd" />
+      </Svg>
 
-      {/* White border around the spotlight */}
+      {/* White border */}
       <View
         style={[
           styles.spotBorder,
-          {
-            top: spot.y,
-            left: spot.x,
-            width: spot.width,
-            height: spot.height,
-            borderRadius: r,
-          },
+          { top: spot.y, left: spot.x, width: spot.width, height: spot.height, borderRadius: r },
         ]}
       />
 
@@ -204,13 +192,7 @@ function SpotlightHole({ spot }: { spot: Spot }) {
       <Animated.View
         style={[
           styles.spotPulse,
-          {
-            top: spot.y,
-            left: spot.x,
-            width: spot.width,
-            height: spot.height,
-            borderRadius: r,
-          },
+          { top: spot.y, left: spot.x, width: spot.width, height: spot.height, borderRadius: r },
           { transform: [{ scale: pulseScale }], opacity: pulseOpacity },
         ]}
       />
@@ -529,10 +511,6 @@ const styles = StyleSheet.create({
   },
   fullOverlay: {
     ...StyleSheet.absoluteFillObject,
-  },
-  panel: {
-    position: "absolute",
-    backgroundColor: OVERLAY,
   },
   spotBorder: {
     position: "absolute",
