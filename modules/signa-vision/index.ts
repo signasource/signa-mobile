@@ -40,6 +40,8 @@ interface ReconocedorProps {
   style?: ViewStyle;
   activo?: boolean;
   mostrarEsqueleto?: boolean;
+  /** Sólo para probar en emulador, donde la frontal puede no dar cuadros. */
+  usarTrasera?: boolean;
   alFrame?: (e: { nativeEvent: FrameNativo }) => void;
   alListo?: (e: { nativeEvent: { listo: boolean; error?: string } }) => void;
 }

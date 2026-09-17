@@ -4,13 +4,12 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Matrix
-import android.util.Size
+import android.util.Log
 import android.widget.FrameLayout
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.DynamicRange
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
-import androidx.camera.core.resolutionselector.ResolutionSelector
-import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.lifecycle.LifecycleOwner
@@ -54,32 +53,63 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
   var mostrarEsqueleto = true
   var activo = true
 
+  // Frontal siempre, salvo para probar: en el emulador la frontal está mapeada
+  // a la webcam del host y puede no entregar cuadros, mientras que la trasera
+  // es una escena sintética que anda siempre.
+  var usarTrasera = false
+    set(valor) {
+      field = valor
+      if (armada) { armada = false; arrancar() }
+    }
+
   init {
     addView(vista, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
     addView(esqueleto, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+  }
+
+  // En el constructor la vista todavía no está en una ventana y la actividad
+  // puede no estar disponible: si se intenta armar la cámara ahí, se sale por
+  // el `return` y nadie vuelve a intentarlo nunca. Al adjuntarse ya existe todo.
+  override fun onAttachedToWindow() {
+    super.onAttachedToWindow()
     arrancar()
   }
 
+  private var armada = false
+
   private fun arrancar() {
-    val duenio = appContext.currentActivity as? LifecycleOwner ?: return
+    if (armada) return
+    val duenio = appContext.currentActivity as? LifecycleOwner
+    if (duenio == null) {
+      Log.w(ETIQUETA, "sin actividad todavía; se reintenta al próximo layout")
+      post { arrancar() }
+      return
+    }
+    armada = true
+    Log.i(ETIQUETA, "armando cámara")
     val futuro = ProcessCameraProvider.getInstance(context)
     futuro.addListener({
+      try {
       val proveedor = futuro.get()
 
-      val previa = Preview.Builder().build().also { it.setSurfaceProvider(vista.surfaceProvider) }
+      // Rango dinámico estándar y explícito: dejándolo en automático, CameraX
+      // pregunta al aparato qué perfiles soporta, y hay HAL que informan uno
+      // que ninguna versión sabe convertir (visto: "profile ... 8192"), lo que
+      // tira abajo el enlazado entero. Para reconocer señas no hace falta HDR.
+      val previa = Preview.Builder()
+        .setDynamicRange(DynamicRange.SDR)
+        .build()
+        .also { it.setSurfaceProvider(vista.surfaceProvider) }
 
-      // La resolución que pedía la versión web. Lo que MediaPipe usa adentro es
-      // bastante menor, así que subirla sólo agrega costo de copia.
+      // Configuración mínima a propósito: pedir una resolución puntual y un
+      // formato de salida distinto del natural hacía que la sesión de captura
+      // no llegara a abrirse nunca —cinco timeouts seguidos y la pantalla en
+      // negro—. Con los valores por omisión, CameraX elige una combinación que
+      // el aparato soporta seguro. Lo único que se conserva es descartar el
+      // cuadro que llega mientras se procesa el anterior: el esqueleto tiene
+      // que mostrar el presente, no una cola de pasado.
       val analisis = ImageAnalysis.Builder()
-        .setResolutionSelector(
-          ResolutionSelector.Builder()
-            .setResolutionStrategy(ResolutionStrategy(Size(480, 360), ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER))
-            .build(),
-        )
-        // Si un cuadro llega mientras se procesa el anterior, se descarta: el
-        // esqueleto tiene que mostrar el presente, no una cola de pasado.
         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-        .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
         .build()
 
       analisis.setAnalyzer(hilo) { imagen ->
@@ -90,8 +120,28 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
         }
       }
 
+      val selector =
+        if (usarTrasera) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA
       proveedor.unbindAll()
-      proveedor.bindToLifecycle(duenio, CameraSelector.DEFAULT_FRONT_CAMERA, previa, analisis)
+      try {
+        proveedor.bindToLifecycle(duenio, selector, previa, analisis)
+        Log.i(ETIQUETA, "cámara enlazada con previa")
+      } catch (e: Throwable) {
+        // Segundo intento sin la previa. El reconocimiento sólo necesita los
+        // cuadros del analizador; la imagen en pantalla es deseable pero no
+        // indispensable, y vale más un reconocedor sin previa que ninguno.
+        Log.w(ETIQUETA, "falló con previa, se reintenta sólo con análisis: " + e.message)
+        proveedor.unbindAll()
+        proveedor.bindToLifecycle(duenio, selector, analisis)
+        Log.i(ETIQUETA, "cámara enlazada sin previa")
+      }
+      } catch (e: Throwable) {
+        // Sin esto el fallo se pierde adentro del listener y la pantalla queda
+        // en "esperando el primer cuadro" para siempre, sin decir por qué.
+        armada = false
+        Log.e(ETIQUETA, "no se pudo enlazar la cámara", e)
+        alListo(mapOf("listo" to false, "error" to ("cámara: " + (e.message ?: e.toString()))))
+      }
     }, androidx.core.content.ContextCompat.getMainExecutor(context))
   }
 
@@ -155,10 +205,18 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
       detectores = d
       post { alListo(mapOf("listo" to true)) }
       d
-    } catch (e: Exception) {
-      post { alListo(mapOf("listo" to false, "error" to (e.message ?: "sin detalle"))) }
+    } catch (e: Throwable) {
+      // Throwable y no Exception: que falte una librería nativa es un Error, y
+      // atrapando sólo Exception se llevaba puesto el hilo de análisis en
+      // silencio.
+      Log.e(ETIQUETA, "no se pudieron crear los detectores", e)
+      post { alListo(mapOf("listo" to false, "error" to (e.message ?: e.toString()))) }
       null
     }
+  }
+
+  private companion object {
+    const val ETIQUETA = "SignaVision"
   }
 
   fun soltar() {

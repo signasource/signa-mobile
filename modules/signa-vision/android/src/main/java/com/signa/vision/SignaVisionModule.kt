@@ -44,6 +44,9 @@ class SignaVisionModule : Module() {
       Prop("activo") { vista: ReconocedorView, valor: Boolean ->
         vista.activo = valor
       }
+      Prop("usarTrasera") { vista: ReconocedorView, valor: Boolean ->
+        vista.usarTrasera = valor
+      }
     }
   }
 

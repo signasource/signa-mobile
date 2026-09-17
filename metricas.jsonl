@@ -182,3 +182,7 @@
 {"sesion": "banco-3d", "build": "?", "evento": "banco3d", "t": 1789684410383, "webCargaMs": 1315, "nativoCargaMs": -1, "nativoFps": -1}
 {"sesion": "banco-3d", "build": "?", "evento": "banco3d", "t": 1789684552722, "webCargaMs": 1240, "nativoCargaMs": -1, "nativoFps": -1}
 {"sesion": "banco-3d", "build": "?", "evento": "banco3d", "t": 1789685190608, "webCargaMs": 1189, "nativoCargaMs": null, "nativoFps": null}
+{"sesion": "chequeo", "build": "?", "evento": "ping", "t": 1}
+{"sesion": "banco-nativo", "build": "?", "evento": "banco", "t": 1789685849362, "gpu": {"delegado": "GPU", "vueltas": 30, "calentamientoPoseMs": 49.886458, "calentamientoManosMs": 30.267917, "poseMs": 25.680261, "manosMs": 22.1171615, "poseMsMin": 24.754375, "manosMsMin": 20.852395}, "cpu": {"delegado": "CPU", "vueltas": 30, "calentamientoPoseMs": 30.889739, "calentamientoManosMs": 41.121146, "poseMs": 25.577474000000002, "manosMs": 31.172031500000003, "poseMsMin": 24.469948, "manosMsMin": 29.710416}}
+{"sesion": "mu64sl5u-yzuy5", "build": "1950", "evento": "entra", "t": 1789685929506, "modo": "estatico"}
+{"sesion": "c", "build": "?", "evento": "ping", "t": 1}
