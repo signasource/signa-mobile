@@ -68,6 +68,27 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
     addView(esqueleto, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
   }
 
+  /**
+   * ExpoView es un ViewGroup que NO acomoda a sus hijos: React Native le da
+   * tamaño a esta vista, pero la previa y el lienzo quedaban en 0x0. Una previa
+   * de tamaño cero nunca entrega superficie, y sin superficie la sesión de
+   * captura no se completa: pantalla negra y cero cuadros, sin ningún error.
+   */
+  override val shouldUseAndroidLayout = true
+
+  override fun onLayout(cambio: Boolean, izq: Int, arr: Int, der: Int, aba: Int) {
+    val ancho = der - izq
+    val alto = aba - arr
+    for (i in 0 until childCount) {
+      val hijo = getChildAt(i)
+      hijo.measure(
+        MeasureSpec.makeMeasureSpec(ancho, MeasureSpec.EXACTLY),
+        MeasureSpec.makeMeasureSpec(alto, MeasureSpec.EXACTLY),
+      )
+      hijo.layout(0, 0, ancho, alto)
+    }
+  }
+
   // En el constructor la vista todavía no está en una ventana y la actividad
   // puede no estar disponible: si se intenta armar la cámara ahí, se sale por
   // el `return` y nadie vuelve a intentarlo nunca. Al adjuntarse ya existe todo.
