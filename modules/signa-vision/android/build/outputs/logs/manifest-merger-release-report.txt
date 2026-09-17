@@ -1,0 +1,16 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /home/mateo/Repos/signa/signa-mobile/modules/signa-vision/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest5272588891002589147.xml:2:13-83
+INJECTED from /home/mateo/Repos/signa/signa-mobile/modules/signa-vision/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest5272588891002589147.xml:2:13-83
+	package
+		INJECTED from /home/mateo/Repos/signa/signa-mobile/modules/signa-vision/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest5272588891002589147.xml
+	xmlns:android
+		ADDED from /home/mateo/Repos/signa/signa-mobile/modules/signa-vision/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest5272588891002589147.xml:2:23-81
+uses-sdk
+INJECTED from /home/mateo/Repos/signa/signa-mobile/modules/signa-vision/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest5272588891002589147.xml reason: use-sdk injection requested
+INJECTED from /home/mateo/Repos/signa/signa-mobile/modules/signa-vision/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest5272588891002589147.xml
+INJECTED from /home/mateo/Repos/signa/signa-mobile/modules/signa-vision/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest5272588891002589147.xml
+	android:targetSdkVersion
+		INJECTED from /home/mateo/Repos/signa/signa-mobile/modules/signa-vision/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest5272588891002589147.xml
+	android:minSdkVersion
+		INJECTED from /home/mateo/Repos/signa/signa-mobile/modules/signa-vision/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest5272588891002589147.xml
