@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.signa.vision.signa-vision-mergeReleaseResources-26:/values-v21/values-v21.xml",
+            "outputFile": "com.signa.vision.signa-vision-release-33:/values-v21/values-v21.xml",
             "map": [
                 {
                     "source": "/home/mateo/.gradle/caches/8.14.3/transforms/936579c3029b54563f9582c4efedaea8/transformed/core-1.13.1/res/values-v21/values-v21.xml",
@@ -44,7 +44,7 @@
             ]
         },
         {
-            "outputFile": "com.signa.vision.signa-vision-release-28:/values-v21/values-v21.xml",
+            "outputFile": "com.signa.vision.signa-vision-mergeReleaseResources-31:/values-v21/values-v21.xml",
             "map": [
                 {
                     "source": "/home/mateo/.gradle/caches/8.14.3/transforms/936579c3029b54563f9582c4efedaea8/transformed/core-1.13.1/res/values-v21/values-v21.xml",

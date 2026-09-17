@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.signa.vision.signa-vision-mergeReleaseResources-26:/values-nl/values-nl.xml",
+            "outputFile": "com.signa.vision.signa-vision-mergeReleaseResources-31:/values-nl/values-nl.xml",
             "map": [
                 {
                     "source": "/home/mateo/.gradle/caches/8.14.3/transforms/19c4a7e5db7750419bcfd64d0a0fbd96/transformed/appcompat-1.7.0/res/values-nl/values-nl.xml",
@@ -57,7 +57,7 @@
             ]
         },
         {
-            "outputFile": "com.signa.vision.signa-vision-release-28:/values-nl/values-nl.xml",
+            "outputFile": "com.signa.vision.signa-vision-release-33:/values-nl/values-nl.xml",
             "map": [
                 {
                     "source": "/home/mateo/.gradle/caches/8.14.3/transforms/19c4a7e5db7750419bcfd64d0a0fbd96/transformed/appcompat-1.7.0/res/values-nl/values-nl.xml",

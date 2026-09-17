@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.signa.vision.signa-vision-release-28:/values-af/values-af.xml",
+            "outputFile": "com.signa.vision.signa-vision-release-33:/values-af/values-af.xml",
             "map": [
                 {
                     "source": "/home/mateo/.gradle/caches/8.14.3/transforms/145780e1d71abfdd0f73b65783049973/transformed/react-android-0.81.5-release/res/values-af/values-af.xml",
@@ -57,7 +57,7 @@
             ]
         },
         {
-            "outputFile": "com.signa.vision.signa-vision-mergeReleaseResources-26:/values-af/values-af.xml",
+            "outputFile": "com.signa.vision.signa-vision-mergeReleaseResources-31:/values-af/values-af.xml",
             "map": [
                 {
                     "source": "/home/mateo/.gradle/caches/8.14.3/transforms/145780e1d71abfdd0f73b65783049973/transformed/react-android-0.81.5-release/res/values-af/values-af.xml",

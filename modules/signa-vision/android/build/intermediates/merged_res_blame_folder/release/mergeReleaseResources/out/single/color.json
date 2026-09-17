@@ -1,54 +1,54 @@
 [
     {
-        "merged": "com.signa.vision.signa-vision-release-28:/color/abc_search_url_text.xml",
-        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-1:/color/abc_search_url_text.xml"
+        "merged": "com.signa.vision.signa-vision-release-33:/color/abc_primary_text_disable_only_material_dark.xml",
+        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-2:/color/abc_primary_text_disable_only_material_dark.xml"
     },
     {
-        "merged": "com.signa.vision.signa-vision-release-28:/color/switch_thumb_material_light.xml",
-        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-1:/color/switch_thumb_material_light.xml"
+        "merged": "com.signa.vision.signa-vision-release-33:/color/switch_thumb_material_dark.xml",
+        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-2:/color/switch_thumb_material_dark.xml"
     },
     {
-        "merged": "com.signa.vision.signa-vision-release-28:/color/abc_primary_text_disable_only_material_light.xml",
-        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-1:/color/abc_primary_text_disable_only_material_light.xml"
+        "merged": "com.signa.vision.signa-vision-release-33:/color/abc_secondary_text_material_light.xml",
+        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-2:/color/abc_secondary_text_material_light.xml"
     },
     {
-        "merged": "com.signa.vision.signa-vision-release-28:/color/abc_primary_text_material_light.xml",
-        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-1:/color/abc_primary_text_material_light.xml"
+        "merged": "com.signa.vision.signa-vision-release-33:/color/abc_secondary_text_material_dark.xml",
+        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-2:/color/abc_secondary_text_material_dark.xml"
     },
     {
-        "merged": "com.signa.vision.signa-vision-release-28:/color/abc_secondary_text_material_light.xml",
-        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-1:/color/abc_secondary_text_material_light.xml"
+        "merged": "com.signa.vision.signa-vision-release-33:/color/abc_primary_text_disable_only_material_light.xml",
+        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-2:/color/abc_primary_text_disable_only_material_light.xml"
     },
     {
-        "merged": "com.signa.vision.signa-vision-release-28:/color/abc_primary_text_disable_only_material_dark.xml",
-        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-1:/color/abc_primary_text_disable_only_material_dark.xml"
+        "merged": "com.signa.vision.signa-vision-release-33:/color/abc_hint_foreground_material_light.xml",
+        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-2:/color/abc_hint_foreground_material_light.xml"
     },
     {
-        "merged": "com.signa.vision.signa-vision-release-28:/color/abc_background_cache_hint_selector_material_light.xml",
-        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-1:/color/abc_background_cache_hint_selector_material_light.xml"
+        "merged": "com.signa.vision.signa-vision-release-33:/color/switch_thumb_material_light.xml",
+        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-2:/color/switch_thumb_material_light.xml"
     },
     {
-        "merged": "com.signa.vision.signa-vision-release-28:/color/abc_background_cache_hint_selector_material_dark.xml",
-        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-1:/color/abc_background_cache_hint_selector_material_dark.xml"
+        "merged": "com.signa.vision.signa-vision-release-33:/color/abc_primary_text_material_light.xml",
+        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-2:/color/abc_primary_text_material_light.xml"
     },
     {
-        "merged": "com.signa.vision.signa-vision-release-28:/color/abc_primary_text_material_dark.xml",
-        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-1:/color/abc_primary_text_material_dark.xml"
+        "merged": "com.signa.vision.signa-vision-release-33:/color/abc_search_url_text.xml",
+        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-2:/color/abc_search_url_text.xml"
     },
     {
-        "merged": "com.signa.vision.signa-vision-release-28:/color/switch_thumb_material_dark.xml",
-        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-1:/color/switch_thumb_material_dark.xml"
+        "merged": "com.signa.vision.signa-vision-release-33:/color/abc_background_cache_hint_selector_material_light.xml",
+        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-2:/color/abc_background_cache_hint_selector_material_light.xml"
     },
     {
-        "merged": "com.signa.vision.signa-vision-release-28:/color/abc_hint_foreground_material_dark.xml",
-        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-1:/color/abc_hint_foreground_material_dark.xml"
+        "merged": "com.signa.vision.signa-vision-release-33:/color/abc_hint_foreground_material_dark.xml",
+        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-2:/color/abc_hint_foreground_material_dark.xml"
     },
     {
-        "merged": "com.signa.vision.signa-vision-release-28:/color/abc_secondary_text_material_dark.xml",
-        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-1:/color/abc_secondary_text_material_dark.xml"
+        "merged": "com.signa.vision.signa-vision-release-33:/color/abc_primary_text_material_dark.xml",
+        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-2:/color/abc_primary_text_material_dark.xml"
     },
     {
-        "merged": "com.signa.vision.signa-vision-release-28:/color/abc_hint_foreground_material_light.xml",
-        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-1:/color/abc_hint_foreground_material_light.xml"
+        "merged": "com.signa.vision.signa-vision-release-33:/color/abc_background_cache_hint_selector_material_dark.xml",
+        "source": "com.signa.vision.signa-vision-appcompat-1.7.0-2:/color/abc_background_cache_hint_selector_material_dark.xml"
     }
 ]
