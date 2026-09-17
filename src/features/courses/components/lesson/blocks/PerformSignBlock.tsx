@@ -7,6 +7,8 @@ import { colors, fonts } from "@/theme";
 import { PerformSignConfig } from "@/features/courses/lessonContent.types";
 import { LiveSignRecognizer, LiveFrame } from "@/features/ml/components/LiveSignRecognizer";
 import { signMeaning } from "@/features/ml";
+// TEMPORAL: rama de diagnóstico, ver src/features/ml/telemetria.ts
+import { cerrarMedicion, marcar, medir } from "@/features/ml/telemetria";
 import { SignPip } from "../SignPip";
 import {
   BadgeEstado,
@@ -110,12 +112,24 @@ export function PerformSignBlock({ config, active, ultimo, xp, onAnswer, onConti
     Animated.spring(pop, { toValue: 1, useNativeDriver: true, friction: 6, tension: 90 }).start();
   }, [terminado, pop]);
 
+  // TEMPORAL: marca entrada y salida del ejercicio para poder separar sesiones.
+  useEffect(() => {
+    marcar("entra", { modo: "dinamico" });
+    return cerrarMedicion;
+  }, []);
+
   const handleFrame = useCallback((f: LiveFrame) => {
     setFps(f.fps);
     setMs(f.inferMs);
     setConf(f.targetConfidence);
     setVisto(f.sign && !f.resting ? { sign: f.sign, p: f.confidence } : null);
     setEstado(estadoDeFrame(f));
+    medir({
+      modo: "dinamico", fps: f.fps, poseMs: f.poseMs, handsMs: f.handsMs, inferMs: f.inferMs,
+      drawFps: f.drawFps, drawMs: f.drawMs, delegado: f.delegado,
+      body: f.body, hands: f.hands, resting: f.resting, progress: f.progress,
+      sign: f.sign, confidence: f.confidence, targetConfidence: f.targetConfidence,
+    });
   }, []);
 
   const handleConfirmed = useCallback(
@@ -258,7 +272,7 @@ export function PerformSignBlock({ config, active, ultimo, xp, onAnswer, onConti
           <SignPip
             meaning={signMeaning(enPantalla)}
             label={signMeaning(enPantalla)}
-            paused={terminado}
+            paused={!pipBig}
             onExpandedChange={setPipBig}
           />
         )}

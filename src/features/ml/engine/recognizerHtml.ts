@@ -60,6 +60,15 @@ export type RecognizerMessage =
       /** Manos detectadas (0, 1 o 2). Sin manos no hay seña posible. */
       hands: number;
       fps: number;
+      /** Reparto del frame, en ms: dice qué etapa se está comiendo el tiempo. */
+      poseMs: number;
+      handsMs: number;
+      /** Fps del bucle de dibujo: cuánto le queda libre al hilo principal. */
+      drawFps: number;
+      /** Cuántos ms tarda una vuelta del bucle de dibujo. */
+      drawMs: number;
+      /** GPU o CPU, y si hubo que caer a CPU a mitad de camino. */
+      delegado: string;
       /** Tamaño real del canvas del esqueleto; "0x0" delata un problema de layout. */
       canvas: string;
       /** Milisegundos por inferencia, promediados. Para comparar motores. */
@@ -326,9 +335,22 @@ try {
     render.visible = !!pose;
   }
 
+  // El pulso del bucle de dibujo mide la salud del hilo principal: si cae muy
+  // por debajo de 60 es que algo lo está ocupando, y eso también le saca CPU al
+  // worker que detecta.
+  let dibujos = 0, dibujoDesde = performance.now(), fpsDibujo = 0, msDibujo = 0;
+
   function dibujarLoop() {
     requestAnimationFrame(dibujarLoop);
+    const t0 = performance.now();
+    dibujos++;
+    if (t0 - dibujoDesde >= 500) {
+      fpsDibujo = dibujos * 1000 / (t0 - dibujoDesde);
+      dibujos = 0; dibujoDesde = t0;
+    }
     dibujar();
+    const d = performance.now() - t0;
+    msDibujo = msDibujo ? msDibujo * 0.8 + d * 0.2 : d;
   }
 
   function dibujar() {
@@ -523,6 +545,7 @@ try {
   let evidencia = [], ultima = null, confirmada = null;
   let lastTs = -1, fpsEma = 0, prevT = performance.now();
   let ultimoProceso = 0, cuenta = 0, msInferencia = 0, enVuelo = false;
+  let msPose = 0, msManos = 0;
   let pObjetivo = 0;   // confianza de la seña pedida: es lo que se decide
   // Vigilante del detector. Crear el detector con GPU puede salir bien y aun
   // así no devolver nunca un frame, según el WebGL del aparato. Si eso pasa, se
@@ -741,6 +764,8 @@ try {
 
   function procesar(r) {
     const now = r.ts;
+    if (r.poseMs) msPose = msPose ? msPose * 0.8 + r.poseMs * 0.2 : r.poseMs;
+    if (r.handsMs) msManos = msManos ? msManos * 0.8 + r.handsMs * 0.2 : r.handsMs;
     // El resultado puede llegar después de pausar: no se mete en la ventana.
     if (window.__signaPaused) return;
 
@@ -873,6 +898,11 @@ try {
           body, resting, hands: nManos, fps: Math.round(fpsEma),
           targetConfidence: Math.round(pObjetivo * 100) / 100,
           inferMs: Math.round(msInferencia * 10) / 10,
+          poseMs: Math.round(msPose),
+          handsMs: Math.round(msManos),
+          drawFps: Math.round(fpsDibujo),
+          drawMs: Math.round(msDibujo * 10) / 10,
+          delegado,
           canvas: ovl.width + 'x' + ovl.height,
         });
       }
