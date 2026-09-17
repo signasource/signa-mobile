@@ -45,6 +45,7 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
   private val hilo = Executors.newSingleThreadExecutor()
 
   private var detectores: Detectores? = null
+  private var proveedorCamara: ProcessCameraProvider? = null
   private var ultimoAviso = 0L
   private var cuadros = 0
   private var desdeFps = System.currentTimeMillis()
@@ -76,6 +77,7 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
   }
 
   private var armada = false
+  private var avisadoDeFallo = false
 
   private fun arrancar() {
     if (armada) return
@@ -91,6 +93,7 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
     futuro.addListener({
       try {
       val proveedor = futuro.get()
+      proveedorCamara = proveedor
 
       // Rango dinámico estándar y explícito: dejándolo en automático, CameraX
       // pregunta al aparato qué perfiles soporta, y hay HAL que informan uno
@@ -110,11 +113,23 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
       // que mostrar el presente, no una cola de pasado.
       val analisis = ImageAnalysis.Builder()
         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+        // RGBA y no el YUV natural: la conversión a bitmap queda directa y no
+        // depende de cómo entregue el plano cada aparato.
+        .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
         .build()
 
       analisis.setAnalyzer(hilo) { imagen ->
         try {
           if (activo) procesar(imagen)
+        } catch (e: Throwable) {
+          // Sin este catch, una excepción en el primer cuadro mata el hilo de
+          // análisis sin decir nada: la pantalla queda en negro para siempre y
+          // no hay forma de saber por qué.
+          if (!avisadoDeFallo) {
+            avisadoDeFallo = true
+            Log.e(ETIQUETA, "falló al procesar el cuadro", e)
+            post { alListo(mapOf("fase" to "error", "error" to ("cuadro: " + (e.message ?: e.toString())))) }
+          }
         } finally {
           imagen.close()
         }
@@ -140,12 +155,22 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
         // en "esperando el primer cuadro" para siempre, sin decir por qué.
         armada = false
         Log.e(ETIQUETA, "no se pudo enlazar la cámara", e)
-        alListo(mapOf("listo" to false, "error" to ("cámara: " + (e.message ?: e.toString()))))
+        alListo(mapOf("fase" to "error", "error" to ("cámara: " + (e.message ?: e.toString()))))
       }
     }, androidx.core.content.ContextCompat.getMainExecutor(context))
   }
 
+  private var avisadoPrimerCuadro = false
+
   private fun procesar(imagen: androidx.camera.core.ImageProxy) {
+    // Avisar que la cámara entrega cuadros ANTES de tocar los detectores: sin
+    // esta señal, "pantalla negra" no distingue entre que no llegue un cuadro y
+    // que llegue pero falle la detección, que son problemas muy distintos.
+    if (!avisadoPrimerCuadro) {
+      avisadoPrimerCuadro = true
+      Log.i(ETIQUETA, "primer cuadro: ${imagen.width}x${imagen.height} fmt=${imagen.format}")
+      post { alListo(mapOf("fase" to "cuadros", "detalle" to "${imagen.width}x${imagen.height}")) }
+    }
     val det = detectores ?: crearDetectores() ?: return
 
     // Espejado: el dataset se grabó con la imagen espejada, así que el modelo
@@ -203,14 +228,14 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
       val vacio = Bitmap.createBitmap(480, 360, Bitmap.Config.ARGB_8888)
       d.calentar(BitmapImageBuilder(vacio).build())
       detectores = d
-      post { alListo(mapOf("listo" to true)) }
+      post { alListo(mapOf("fase" to "detectando")) }
       d
     } catch (e: Throwable) {
       // Throwable y no Exception: que falte una librería nativa es un Error, y
       // atrapando sólo Exception se llevaba puesto el hilo de análisis en
       // silencio.
       Log.e(ETIQUETA, "no se pudieron crear los detectores", e)
-      post { alListo(mapOf("listo" to false, "error" to (e.message ?: e.toString()))) }
+      post { alListo(mapOf("fase" to "error", "error" to ("detector: " + (e.message ?: e.toString())))) }
       null
     }
   }
@@ -221,6 +246,11 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
 
   fun soltar() {
     activo = false
+    // Soltar la cámara es obligatorio: bindToLifecycle la ata a la ACTIVIDAD,
+    // no a esta vista, así que al desmontarse seguía tomada. El WebView del
+    // ejercicio conseguía después un solo cuadro y se quedaba congelado.
+    proveedorCamara?.unbindAll()
+    proveedorCamara = null
     hilo.shutdown()
     detectores?.cerrar()
     detectores = null

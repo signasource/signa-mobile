@@ -85,9 +85,16 @@ export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
         mostrarEsqueleto
         usarTrasera={process.env.EXPO_PUBLIC_CAMARA_TRASERA === "1"}
         alFrame={alFrame}
-        alListo={(e) =>
-          setEstado(e.nativeEvent.listo ? "detectando" : `falló: ${e.nativeEvent.error ?? ""}`)
-        }
+        alListo={(e) => {
+          const n = e.nativeEvent;
+          setEstado(
+            n.fase === "error"
+              ? `falló · ${n.error ?? ""}`
+              : n.fase === "cuadros"
+                ? `cámara entregando ${n.detalle ?? ""}`
+                : "detectando",
+          );
+        }}
       />
 
       <View style={styles.tarjeta}>
