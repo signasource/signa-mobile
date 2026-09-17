@@ -19,7 +19,7 @@ import { SettingsProvider } from "@/context/SettingsContext";
 import { RootNavigator } from "@/navigation/RootNavigator";
 // ESPIGA: mide MediaPipe nativo contra los números que ya tenemos del WebView.
 import { banco } from "./modules/signa-vision";
-import { Banco3D, Medicion3D } from "@/features/animations/Banco3D";
+import { BancoNativoPantalla } from "@/features/ml/BancoNativoPantalla";
 import { colors } from "@/theme";
 
 export default function App() {
@@ -65,29 +65,9 @@ export default function App() {
     };
   }, []);
 
-  // ESPIGA: el banco del 3D corre antes que la app y avisa cuando termina.
-  const [banco3dListo, setBanco3dListo] = useState(false);
-
-  function reportar3D(m: Medicion3D) {
-    const destino = process.env.EXPO_PUBLIC_METRICS_URL;
-    if (destino) {
-      void fetch(destino, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sesion: "banco-3d",
-          evento: "banco3d",
-          muestras: [{ t: Date.now(), ...m }],
-        }),
-      }).catch(() => {});
-    }
-    Alert.alert(
-      "Avatar 3D",
-      `WebView   carga ${m.webCargaMs ?? "?"} ms\n` +
-        `Filament  carga ${m.nativoCargaMs ?? "?"} ms · ${(m.nativoFps ?? 0).toFixed(0)} fps`,
-      [{ text: "Seguir", onPress: () => setBanco3dListo(true) }],
-    );
-  }
+  // ETAPA 1: el reconocedor nativo se muestra antes que la app, para poder
+  // verlo y medirlo sin tener que atravesar una lección.
+  const [bancoListo, setBancoListo] = useState(false);
 
   const [fontsLoaded] = useFonts({
     Figtree_400Regular,
@@ -99,12 +79,10 @@ export default function App() {
     BricolageGrotesque_800ExtraBold,
   });
 
-  if (fontsLoaded && !banco3dListo) {
+  if (fontsLoaded && !bancoListo) {
     return (
       <SafeAreaProvider>
-        <View style={{ flex: 1, justifyContent: "center", backgroundColor: colors.background }}>
-          <Banco3D onListo={reportar3D} />
-        </View>
+        <BancoNativoPantalla onSeguir={() => setBancoListo(true)} />
       </SafeAreaProvider>
     );
   }

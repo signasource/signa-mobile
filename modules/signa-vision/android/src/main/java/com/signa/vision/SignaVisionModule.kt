@@ -11,6 +11,7 @@ import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarker
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarker
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+import expo.modules.kotlin.views.ViewDefinitionBuilder
 
 /**
  * Espiga: ¿cuánto tarda MediaPipe nativo con los mismos modelos?
@@ -32,6 +33,17 @@ class SignaVisionModule : Module() {
 
     AsyncFunction("banco") { vueltas: Int, enGpu: Boolean ->
       medir(vueltas, enGpu)
+    }
+
+    View(ReconocedorView::class) {
+      Events("alFrame", "alListo")
+
+      Prop("mostrarEsqueleto") { vista: ReconocedorView, valor: Boolean ->
+        vista.mostrarEsqueleto = valor
+      }
+      Prop("activo") { vista: ReconocedorView, valor: Boolean ->
+        vista.activo = valor
+      }
     }
   }
 
