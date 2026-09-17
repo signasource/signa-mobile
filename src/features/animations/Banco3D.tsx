@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
-import { FilamentScene, FilamentView, Model, useModel } from "react-native-filament";
+import { StyleSheet, Text, View } from "react-native";
 
-import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
+
+// Usa el Text de React Native y no el de la app: el banco se monta antes que
+// los proveedores de contexto, y el nuestro depende de la configuración.
 import { getGlbUrl } from "./glbUrl";
 import { GlbAnimationView } from "./GlbAnimationView";
 
@@ -42,12 +43,10 @@ export function Banco3D({ onListo }: { onListo: (m: Medicion3D) => void }) {
   function terminoWeb() {
     if (medicion.current.webCargaMs != null) return;
     medicion.current.webCargaMs = Date.now() - desde.current;
-    setEtapa("nativo");
+    terminoWebYListo();
   }
 
-  function terminoNativo(cargaMs: number, fps: number) {
-    medicion.current.nativoCargaMs = cargaMs;
-    medicion.current.nativoFps = fps;
+  function terminoWebYListo() {
     setEtapa("listo");
     onListo(medicion.current);
   }
@@ -63,39 +62,8 @@ export function Banco3D({ onListo }: { onListo: (m: Medicion3D) => void }) {
         <GlbAnimationView url={getGlbUrl(SENA)} style={styles.lienzo} onLoaded={terminoWeb} onError={terminoWeb} />
       )}
 
-      {etapa === "nativo" && (
-        <FilamentScene>
-          <BancoNativo onListo={terminoNativo} />
-        </FilamentScene>
-      )}
+
     </View>
-  );
-}
-
-/** El lado nativo: cuenta cuándo terminó de cargar y a cuántos fps dibuja. */
-function BancoNativo({ onListo }: { onListo: (cargaMs: number, fps: number) => void }) {
-  const desde = useRef(Date.now());
-  const cargaMs = useRef<number | null>(null);
-  const cuadros = useRef(0);
-  const modelo = useModel({ uri: getGlbUrl(SENA) });
-
-  useEffect(() => {
-    if (modelo.state !== "loaded" || cargaMs.current != null) return;
-    cargaMs.current = Date.now() - desde.current;
-    // Se deja animando unos segundos y se cuentan los cuadros reales.
-    const arranque = Date.now();
-    cuadros.current = 0;
-    const t = setTimeout(() => {
-      const segundos = (Date.now() - arranque) / 1000;
-      onListo(cargaMs.current ?? 0, cuadros.current / segundos);
-    }, 4000);
-    return () => clearTimeout(t);
-  }, [modelo.state, onListo]);
-
-  return (
-    <FilamentView style={styles.lienzo} renderCallback={() => { cuadros.current += 1; }}>
-      <Model source={{ uri: getGlbUrl(SENA) }} />
-    </FilamentView>
   );
 }
 
