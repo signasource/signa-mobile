@@ -3,6 +3,7 @@ import { StyleSheet, View, ViewStyle } from "react-native";
 import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
 import { AvatarGlbNativo } from "@/features/animations/AvatarGlbNativo";
+import { GlbAnimationView } from "@/features/animations/GlbAnimationView";
 import { getGlbUrl } from "@/features/animations/glbUrl";
 import { SignPlaceholder } from "./SignPlaceholder";
 
@@ -20,6 +21,17 @@ interface SignAnimationProps {
   style?: ViewStyle;
 }
 
+/**
+ * Qué motor dibuja el avatar.
+ *
+ * El nativo (Filament) carga en 195 ms contra un WebView que arranca de cero
+ * cada vez, pero hoy el modelo se queda en la pose del primer cuadro: gltfio
+ * informa CERO animaciones para estos .glb, tanto con el archivo original como
+ * con el convertido, y con asset instanciado o sin instanciar. Mientras eso no
+ * se resuelva manda el WebView, que anima bien.
+ */
+const NATIVO = process.env.EXPO_PUBLIC_AVATAR_NATIVO === "1";
+
 export function SignAnimation({ meaning, label, height = 320, tone = "neutral", paused, badge, cameraControls, style }: SignAnimationProps) {
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
@@ -36,13 +48,23 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
           <Text style={styles.badgeText}>{badge}</Text>
         </View>
       )}
-      <AvatarGlbNativo
-        url={getGlbUrl(meaning)}
-        paused={paused}
-        cameraControls={cameraControls}
-        onLoaded={() => setReady(true)}
-        onError={() => setFailed(true)}
-      />
+      {NATIVO ? (
+        <AvatarGlbNativo
+          url={getGlbUrl(meaning)}
+          paused={paused}
+          cameraControls={cameraControls}
+          onLoaded={() => setReady(true)}
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <GlbAnimationView
+          url={getGlbUrl(meaning)}
+          paused={paused}
+          cameraControls={cameraControls}
+          onLoaded={() => setReady(true)}
+          onError={() => setFailed(true)}
+        />
+      )}
       {!ready && (
         <SignPlaceholder label={label} height={height} tone={tone} preparing style={StyleSheet.absoluteFillObject} />
       )}

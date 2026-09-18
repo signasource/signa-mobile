@@ -73,6 +73,7 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
 
   private var cadenaIntercambio: SwapChain? = null
   private var modelo: FilamentAsset? = null
+  private var animador: com.google.android.filament.gltfio.Animator? = null
   private var luz = 0
   private var iluminacion: IndirectLight? = null
 
@@ -211,8 +212,8 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
     val asset = modelo
 
     if (asset != null) {
-      val animador = asset.instance.animator
-      if (animador.animationCount > 0) {
+      val animador = animador
+      if (animador != null && animador.animationCount > 0) {
         val duracion = animador.getAnimationDuration(0)
         // Pausado NO es congelar donde iba: la seña vuelve a su primer cuadro,
         // que es la pose neutra. Es lo que hacía la versión web y lo que
@@ -324,11 +325,20 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
         cargador.destroyAsset(anterior)
       }
       val buffer = ByteBuffer.allocateDirect(bytes.size).apply { put(bytes); flip() }
-      val asset = cargador.createAsset(buffer) ?: throw IllegalStateException("glb ilegible")
+      // Instanciado: en gltfio las animaciones cuelgan de la INSTANCIA, y con
+      // createAsset la instancia implícita venía sin ninguna.
+      val instancias = arrayOfNulls<com.google.android.filament.gltfio.FilamentInstance>(1)
+      val asset = cargador.createInstancedAsset(buffer, instancias)
+        ?: throw IllegalStateException("glb ilegible")
       recursos.loadResources(asset)
-      // Los datos del archivo ya están en la GPU: quedarse con ellos es tener
-      // el .glb entero duplicado en memoria por cada avatar montado.
-      asset.releaseSourceData()
+      // El animador se toma UNA vez, acá, y se guarda: es lo que hace el visor
+      // de referencia de Filament.
+      animador = (instancias[0] ?: asset.instance).animator
+      // OJO: nada de releaseSourceData(). Suena a lo correcto —las mallas y las
+      // texturas ya están en la GPU— pero entre lo que libera están los datos
+      // crudos de la animación, y el avatar se queda para siempre en la pose
+      // del primer cuadro. Se ve como si la animación no existiera, sin ningún
+      // error.
       escena.addEntities(asset.entities)
       modelo = asset
       inicioAnimacion = 0L

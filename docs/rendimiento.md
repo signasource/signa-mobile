@@ -121,6 +121,21 @@ Además hay un solo motor de Filament para todos los avatares (`MotorFilament`):
 cada motor levanta su hilo y su contexto de GPU, y hay pantallas con seis
 avatares a la vez.
 
+### Lo que quedó sin resolver del avatar
+
+**Filament no ve las animaciones.** `gltfio` carga el modelo entero —222
+entidades, el esqueleto, las texturas— pero su animador informa CERO clips, así
+que el avatar se queda en la pose del primer cuadro. Descartado: no es la
+conversión de texturas (pasa igual con el .glb original), no es haber liberado
+los datos de origen (`releaseSourceData` ya no se llama), y no es la instancia
+implícita (pasa igual con `createInstancedAsset`). El archivo está sano: una
+animación de 2,84 s, 595 canales, todos apuntando a nodos que existen.
+
+Por eso el avatar nativo queda detrás de `EXPO_PUBLIC_AVATAR_NATIVO=1` y por
+omisión sigue el WebView, que anima bien. Lo que falta probar: el cargador de
+`filament-utils` (hoy no compila junto al proyecto por la versión de Kotlin),
+otra versión de Filament, y reexportar un .glb sin Draco para descartarlo.
+
 ## Lo que falta cerrar
 
 Medir la etapa 2 en el teléfono: cuánto bajó el cuadro con los 480 px, cuánto
