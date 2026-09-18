@@ -22,7 +22,9 @@ import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerResult
  *
  * La pose se detecta 1 de cada N frames y se reutiliza la última: el torso se
  * mueve mucho más lento que las manos, y de la pose sólo dependen la referencia
- * de hombros que normaliza y el bloque de cara del abecedario.
+ * de hombros que normaliza y el bloque de cara del abecedario. Medida en un
+ * teléfono, cada pose cuesta 55 ms: espaciarla es de lo poco que baja el costo
+ * por cuadro sin cambiar de modelo.
  */
 class Detectores private constructor(
   private val manos: HandLandmarker,
@@ -52,18 +54,18 @@ class Detectores private constructor(
      */
     @Volatile private var delegadoConocido: Delegate? = null
 
-    fun crear(contexto: Context, cadaCuantosPose: Int = 5): Detectores {
-      delegadoConocido?.let { return armar(contexto, it, cadaCuantosPose) }
+    fun crear(contexto: Context, cadaCuantosPose: Int = 8, manos: Int = 2): Detectores {
+      delegadoConocido?.let { return armar(contexto, it, cadaCuantosPose, manos) }
       return try {
-        armar(contexto, Delegate.GPU, cadaCuantosPose).also { delegadoConocido = Delegate.GPU }
+        armar(contexto, Delegate.GPU, cadaCuantosPose, manos).also { delegadoConocido = Delegate.GPU }
       } catch (e: Throwable) {
-        armar(contexto, Delegate.CPU, cadaCuantosPose).also { delegadoConocido = Delegate.CPU }
+        armar(contexto, Delegate.CPU, cadaCuantosPose, manos).also { delegadoConocido = Delegate.CPU }
       }
     }
 
     /** Sólo para medir: fuerza CPU y saltea el intento con GPU. */
-    fun crearEnCpu(contexto: Context, cadaCuantosPose: Int = 5): Detectores =
-      armar(contexto, Delegate.CPU, cadaCuantosPose)
+    fun crearEnCpu(contexto: Context, cadaCuantosPose: Int = 8): Detectores =
+      armar(contexto, Delegate.CPU, cadaCuantosPose, 2)
 
     /**
      * Los dos detectores, o ninguno.
@@ -74,7 +76,12 @@ class Detectores private constructor(
      * ejercicio; al rato el sistema cierra la app sin decir nada. Medido con
      * `estres(8, "detectores")`.
      */
-    private fun armar(contexto: Context, delegado: Delegate, cadaCuantosPose: Int): Detectores {
+    private fun armar(
+      contexto: Context,
+      delegado: Delegate,
+      cadaCuantosPose: Int,
+      manosMax: Int,
+    ): Detectores {
       val base = { modelo: String ->
         BaseOptions.builder().setModelAssetPath(modelo).setDelegate(delegado).build()
       }
@@ -83,7 +90,7 @@ class Detectores private constructor(
         HandLandmarker.HandLandmarkerOptions.builder()
           .setBaseOptions(base("hand_landmarker.task"))
           .setRunningMode(RunningMode.IMAGE)
-          .setNumHands(2)
+          .setNumHands(manosMax)
           // Bajar el piso de seguimiento evita que MediaPipe vuelva a correr el
           // detector de palmas —lo más caro— cada vez que una mano se gira o se
           // tapa a medias. Mientras la siga viendo, la sigue.

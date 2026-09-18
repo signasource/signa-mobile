@@ -3,6 +3,7 @@ package com.signa.vision
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Matrix
 import android.util.Log
 import android.widget.FrameLayout
@@ -53,6 +54,10 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
   }
   private val esqueleto = Esqueleto(contexto)
   private val hilo = Executors.newSingleThreadExecutor()
+
+  /** Se reusa entre cuadros; sólo se rehace si cambia el tamaño. */
+  private var lienzoDetección: Bitmap? = null
+  private val filtro = android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG)
 
   @Volatile private var detectores: Detectores? = null
   @Volatile private var soltando = false
@@ -233,23 +238,40 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
 
     val origen = imagen.toBitmap()
 
-    // Espejado, rotación y reducción en una sola pasada.
+    // Espejado, rotación y reducción en una sola pasada, SOBRE EL MISMO bitmap.
     //
     // El espejado es obligatorio: el dataset se grabó con la imagen espejada,
     // así que el modelo espera ver la mano del mismo lado que la persona ve en
     // el espejo.
     //
-    // La reducción es la parte que importa para el costo. La cámara entrega
-    // 640x480 y MediaPipe trabaja internamente con bastante menos, pero el
-    // preproceso lo paga igual: medido en un teléfono, la misma detección
-    // costaba 24 ms sobre 480x360 y 55 ms dentro de esta vista. Como el copiado
-    // para espejar ya existe, escalar acá no agrega ni una pasada más.
+    // La reducción es lo que importa para el costo. La cámara entrega 640x480 y
+    // MediaPipe trabaja internamente con bastante menos, pero el preproceso lo
+    // paga igual: medido en un teléfono, la misma detección costaba 24 ms sobre
+    // 480x360 y 55 ms dentro de esta vista.
+    //
+    // Y el bitmap se reusa en vez de crear uno nuevo por cuadro: a 12 cuadros
+    // por segundo eran doce imágenes de medio megapíxel por segundo pedidas y
+    // tiradas, con su recolección de basura encima justo mientras se detecta.
     val escala = minOf(1f, ANCHO_OBJETIVO.toFloat() / maxOf(origen.width, origen.height))
+    val rotada = imagen.imageInfo.rotationDegrees % 180 != 0
+    val anchoFinal = ((if (rotada) origen.height else origen.width) * escala).toInt()
+    val altoFinal = ((if (rotada) origen.width else origen.height) * escala).toInt()
+
+    var destino = lienzoDetección
+    if (destino == null || destino.width != anchoFinal || destino.height != altoFinal) {
+      destino?.recycle()
+      destino = Bitmap.createBitmap(anchoFinal, altoFinal, Bitmap.Config.ARGB_8888)
+      lienzoDetección = destino
+    }
+
     val matriz = Matrix().apply {
+      postTranslate(-origen.width / 2f, -origen.height / 2f)
       postRotate(imagen.imageInfo.rotationDegrees.toFloat())
       postScale(-escala, escala)
+      postTranslate(anchoFinal / 2f, altoFinal / 2f)
     }
-    val bitmap = Bitmap.createBitmap(origen, 0, 0, origen.width, origen.height, matriz, true)
+    Canvas(destino).drawBitmap(origen, matriz, filtro)
+    val bitmap = destino
 
     val (manos, pose) = det.procesar(BitmapImageBuilder(bitmap).build())
 
@@ -391,7 +413,12 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
 
   private fun crearDetectores(): Detectores? {
     return try {
-      val d = Detectores.crear(context.applicationContext)
+      // El abecedario mira una sola mano: pedirle dos a MediaPipe es pagar el
+      // seguimiento de una mano que después se descarta.
+      val d = Detectores.crear(
+        context.applicationContext,
+        manos = if (modo == "estatico") 1 else 2,
+      )
       // Calentar antes de dar por listo: la primera detección cuesta bastante
       // más que las siguientes, y ese costo no debe caer sobre la primera seña.
       val vacio = Bitmap.createBitmap(480, 360, Bitmap.Config.ARGB_8888)
@@ -412,7 +439,14 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
   private companion object {
     const val ETIQUETA = "SignaVision"
 
-    /** Lado mayor con el que se alimenta al detector. Ver procesar(). */
+    /**
+     * Lado mayor con el que se alimenta al detector.
+     *
+     * Bajarlo no sirve: medido a 320 px la detección cuesta lo mismo que a 480
+     * (14 ms contra 13), porque MediaPipe reescala a su propia entrada de todas
+     * formas. Lo que sí se pierde al achicar es alcance: una mano lejos de la
+     * cámara llega con menos píxeles reales.
+     */
     const val ANCHO_OBJETIVO = 480
   }
 
@@ -441,6 +475,8 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
     hilo.execute {
       detectores?.cerrar()
       detectores = null
+      lienzoDetección?.recycle()
+      lienzoDetección = null
       reconocedor?.cerrar()
       reconocedor = null
     }

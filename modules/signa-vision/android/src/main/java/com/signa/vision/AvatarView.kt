@@ -74,7 +74,7 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
   private var cadenaIntercambio: SwapChain? = null
   private var modelo: FilamentAsset? = null
   private var animador: com.google.android.filament.gltfio.Animator? = null
-  private var luz = 0
+  private val luces = IntArray(3)
   private var iluminacion: IndirectLight? = null
 
   private var soltado = false
@@ -109,26 +109,48 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
       clearColor = doubleArrayOf(FONDO[0], FONDO[1], FONDO[2], 1.0)
     }
 
-    // Sin imagen de entorno, un modelo PBR se ve plano y oscuro. En vez de
-    // cargar un .ktx —un archivo más para versionar y mantener— se arma una
-    // iluminación ambiente a partir de armónicos esféricos constantes: da luz
-    // pareja de todos lados, que es justo lo que quiere un avatar sobre fondo
-    // liso, y el sol de abajo hace el resto.
+    // El post-proceso queda ENCENDIDO aunque cueste: apagarlo se lleva puesto
+    // el mapeo de tonos, y sin eso el color sale en lineal y el avatar se ve
+    // oscuro y apagado. Lo que se apaga son los extras que sí se pueden pagar
+    // con nada a cambio en un recuadro chico: antialias, bloom y tramado.
+    vista.isPostProcessingEnabled = true
+    vista.antiAliasing = VistaFilament.AntiAliasing.NONE
+    vista.dithering = VistaFilament.Dithering.NONE
+    vista.bloomOptions = VistaFilament.BloomOptions().apply { enabled = false }
+    vista.blendMode = VistaFilament.BlendMode.OPAQUE
+
+    // Iluminación de tres puntos, como una foto de estudio.
+    //
+    // Antes era un ambiente parejo de una sola banda y el avatar se veía plano
+    // y apagado al lado del de model-viewer, que trae un entorno de verdad. Sin
+    // ese entorno, lo que da volumen es que la luz venga de algún lado: una luz
+    // principal adelante y arriba, un relleno más frío del otro lado para que
+    // las sombras no queden negras, y un contraluz que despega la silueta del
+    // fondo.
     iluminacion = IndirectLight.Builder()
-      .irradiance(1, floatArrayOf(0.85f, 0.85f, 0.9f))
-      .intensity(30_000f)
+      .irradiance(1, floatArrayOf(0.80f, 0.80f, 0.86f))
+      .intensity(34_000f)
       .build(motor)
       .also { escena.indirectLight = it }
 
-    luz = EntityManager.get().create()
-    val (r, g, b) = Colors.cct(6_500f)
-    LightManager.Builder(LightManager.Type.DIRECTIONAL)
-      .color(r, g, b)
-      .intensity(70_000f)
-      .direction(-0.2f, -0.8f, -0.6f)
-      .castShadows(false)
-      .build(motor, luz)
-    escena.addEntity(luz)
+    val (rk, gk, bk) = Colors.cct(5_800f)
+    val (rf, gf, bf) = Colors.cct(8_000f)
+    val focos = listOf(
+      Triple(floatArrayOf(-0.45f, -0.55f, -0.70f), 62_000f, floatArrayOf(rk, gk, bk)),
+      Triple(floatArrayOf(0.75f, -0.25f, -0.55f), 26_000f, floatArrayOf(rf, gf, bf)),
+      Triple(floatArrayOf(0.15f, -0.35f, 0.90f), 34_000f, floatArrayOf(rf, gf, bf)),
+    )
+    focos.forEachIndexed { i, (dir, intensidad, color) ->
+      val entidad = EntityManager.get().create()
+      LightManager.Builder(LightManager.Type.DIRECTIONAL)
+        .color(color[0], color[1], color[2])
+        .intensity(intensidad)
+        .direction(dir[0], dir[1], dir[2])
+        .castShadows(false)
+        .build(motor, entidad)
+      escena.addEntity(entidad)
+      luces[i] = entidad
+    }
 
     uiHelper.renderCallback = Renderizado()
     uiHelper.attachTo(superficie)
@@ -183,9 +205,16 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
     }
   }
 
+  private var ultimoDibujo = 0L
+
   private val cuadros = object : Choreographer.FrameCallback {
     override fun doFrame(tiempo: Long) {
       Choreographer.getInstance().postFrameCallback(this)
+      // A 30 y no a los 60 u 120 de la pantalla: la animación de una seña no
+      // gana nada con el doble de cuadros, y la GPU la está compartiendo con
+      // MediaPipe, que es lo que de verdad no puede esperar.
+      if (tiempo - ultimoDibujo < MS_ENTRE_CUADROS) return
+      ultimoDibujo = tiempo
       dibujar(tiempo)
     }
   }
@@ -371,9 +400,12 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
     }
     modelo = null
     iluminacion?.let { motor.destroyIndirectLight(it) }
-    escena.removeEntity(luz)
-    motor.destroyEntity(luz)
-    EntityManager.get().destroy(luz)
+    for (entidad in luces) {
+      if (entidad == 0) continue
+      escena.removeEntity(entidad)
+      motor.destroyEntity(entidad)
+      EntityManager.get().destroy(entidad)
+    }
     motor.destroyCameraComponent(camaraEntidad)
     EntityManager.get().destroy(camaraEntidad)
     recursos.destroy()
@@ -388,6 +420,9 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
   private companion object {
     const val ETIQUETA = "SignaAvatar"
 
+
+    /** Nanosegundos entre cuadros del avatar: 30 por segundo. */
+    const val MS_ENTRE_CUADROS = 33_000_000L
 
     /** Sube cuando cambia Glb.sinWebp(). Ver descargar(). */
     const val VERSION_CONVERSION = 3

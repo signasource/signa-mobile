@@ -229,6 +229,42 @@ enciende Filament para seguir trabajándolo: lo que falta es una imagen de
 entorno de verdad y limitarle los cuadros por segundo mientras la cámara esté
 encendida.
 
+## Etapa 3, segunda vuelta: lo que se midió y lo que se cambió
+
+Con las métricas del teléfono en la mano:
+
+**La fuga se cerró.** La memoria nativa del proceso ya no crece: 166 MB al
+entrar y 139-184 MB después de usar los ejercicios, sin la recta hacia arriba
+que precedía a que la app se cerrara sola.
+
+**El avatar del WebView era lo lento.** 2752 ms hasta verse contra 466 ms del
+nativo, medidos en el mismo teléfono en la misma corrida. Por eso vuelve a
+mandar el nativo, con las dos cosas que lo hacían ver mal ya arregladas:
+
+- La iluminación era un ambiente parejo de una banda. Ahora son tres luces
+  —principal, relleno más frío y contraluz— que es lo que da volumen cuando no
+  hay un entorno real de por medio.
+- El post-proceso estaba apagado "por rendimiento", y eso se llevaba puesto el
+  mapeo de tonos: el color salía en lineal y todo se veía oscuro. Vuelve
+  encendido; lo que se apaga son los extras que no aportan en un recuadro
+  chico: antialias, bloom y tramado.
+- Y se le puso un tope de 30 cuadros por segundo: la animación de una seña no
+  gana nada con 60, y la GPU la está compartiendo con MediaPipe.
+
+**Bajar la resolución de entrada no sirve.** Medido: a 320 px la detección
+cuesta 14 ms contra 13 ms a 480, porque MediaPipe reescala a su propia entrada
+igual. Lo único que se pierde al achicar es alcance. Queda en 480.
+
+Lo que sí baja el costo sin cambiar de modelo:
+
+- **Una sola mano en el abecedario.** Ese ejercicio mira una; pedirle dos a
+  MediaPipe era pagar el seguimiento de una que después se descartaba.
+- **Pose 1 de cada 8 cuadros** en vez de 1 de cada 5. Cada pose cuesta 55 ms en
+  el teléfono y de ella sólo dependen la referencia de hombros y el bloque de
+  cara, que se mueven lento.
+- **El bitmap de detección se reusa.** Antes se creaba uno de medio megapíxel
+  por cuadro, con su recolección de basura justo mientras se detecta.
+
 ## Lo que falta cerrar
 
 Medir la etapa 2 en el teléfono: cuánto bajó el cuadro con los 480 px, cuánto

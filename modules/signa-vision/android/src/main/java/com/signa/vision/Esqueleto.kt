@@ -17,14 +17,34 @@ import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
  */
 class Esqueleto(contexto: Context) : View(contexto) {
 
-  private val lineaPose = Paint().apply {
-    color = Color.argb(150, 255, 255, 255); strokeWidth = 5f; isAntiAlias = true
+  // Dos trazos por línea, como en la demo web: un halo blanco abajo y el
+  // violeta encima. El halo es lo que hace que el esqueleto se lea sobre
+  // cualquier fondo —una remera clara, una pared blanca— sin subirle el brillo
+  // al violeta hasta que moleste.
+  // El cuerpo va más tenue que las manos —la seña se lee en las manos, el
+  // cuerpo sólo dice dónde están—, y esa transparencia va en el color y no en
+  // una capa aparte: una capa con alfa obliga a dibujar fuera de pantalla y
+  // componer, en cada cuadro, para algo que se resuelve con dos colores.
+  private val haloPose = trazo(Color.argb(83, 255, 255, 255), 6f)
+  private val lineaPose = trazo(conAlfa(ACENTO, 166), 2.6f)
+  private val haloMano = trazo(Color.argb(230, 255, 255, 255), 5f)
+  private val lineaMano = trazo(ACENTO, 2.4f)
+  private val puntoHalo = Paint().apply { color = Color.argb(230, 255, 255, 255); isAntiAlias = true }
+  private val puntoAcento = Paint().apply { color = ACENTO; isAntiAlias = true }
+  private val puntoHaloPose = Paint().apply { color = Color.argb(150, 255, 255, 255); isAntiAlias = true }
+  private val puntoAcentoPose = Paint().apply { color = conAlfa(ACENTO, 166); isAntiAlias = true }
+
+  private fun conAlfa(tinta: Int, alfa: Int) = Color.argb(alfa, Color.red(tinta), Color.green(tinta), Color.blue(tinta))
+
+  private fun trazo(tinta: Int, ancho: Float) = Paint().apply {
+    color = tinta
+    strokeWidth = ancho
+    strokeCap = Paint.Cap.ROUND
+    isAntiAlias = true
   }
-  private val puntoPose = Paint().apply { color = Color.WHITE; isAntiAlias = true }
-  private val lineaMano = Paint().apply {
-    color = ACENTO; strokeWidth = 5f; isAntiAlias = true
-  }
-  private val puntoMano = Paint().apply { color = ACENTO; isAntiAlias = true }
+
+  /** Las puntas de los dedos se dibujan un poco más grandes: son la seña. */
+  private val puntas = intArrayOf(4, 8, 12, 16, 20)
 
   private var pose: FloatArray? = null
   private var poseDestino: FloatArray? = null
@@ -94,16 +114,35 @@ class Esqueleto(contexto: Context) : View(contexto) {
 
     val w = width.toFloat()
     val h = height.toFloat()
-    for ((a, b) in enlacesPose) {
-      lienzo.drawLine(actual[a * 2] * w, actual[a * 2 + 1] * h, actual[b * 2] * w, actual[b * 2 + 1] * h, lineaPose)
+
+    for (paint in arrayOf(haloPose, lineaPose)) {
+      for ((a, b) in enlacesPose) {
+        lienzo.drawLine(
+          actual[a * 2] * w, actual[a * 2 + 1] * h,
+          actual[b * 2] * w, actual[b * 2 + 1] * h, paint,
+        )
+      }
     }
-    for (i in puntosPose) lienzo.drawCircle(actual[i * 2] * w, actual[i * 2 + 1] * h, 6f, puntoPose)
+    for (i in puntosPose) {
+      val x = actual[i * 2] * w
+      val y = actual[i * 2 + 1] * h
+      lienzo.drawCircle(x, y, 5f, puntoHaloPose)
+      lienzo.drawCircle(x, y, 3.4f, puntoAcentoPose)
+    }
 
     for (v in manos.values) {
-      for ((a, b) in enlacesMano) {
-        lienzo.drawLine(v[a * 2] * w, v[a * 2 + 1] * h, v[b * 2] * w, v[b * 2 + 1] * h, lineaMano)
+      for (paint in arrayOf(haloMano, lineaMano)) {
+        for ((a, b) in enlacesMano) {
+          lienzo.drawLine(v[a * 2] * w, v[a * 2 + 1] * h, v[b * 2] * w, v[b * 2 + 1] * h, paint)
+        }
       }
-      for (i in 0 until v.size / 2) lienzo.drawCircle(v[i * 2] * w, v[i * 2 + 1] * h, 5f, puntoMano)
+      for (i in 0 until v.size / 2) {
+        val x = v[i * 2] * w
+        val y = v[i * 2 + 1] * h
+        val r = if (i == 0) 5f else if (i in puntas) 4.2f else 3f
+        lienzo.drawCircle(x, y, r + 1.5f, puntoHalo)
+        lienzo.drawCircle(x, y, r, puntoAcento)
+      }
     }
 
     if (manosDestino.isNotEmpty() || poseDestino != null) postInvalidateOnAnimation()

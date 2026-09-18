@@ -36,12 +36,14 @@ def main(ruta: Path) -> None:
         lote = json.loads(linea)
         build = lote.get("build", "sin-marca")
         sesion = lote.get("sesion", "")
+        # El colector guarda una muestra por línea, ya desarmada; los lotes con
+        # "muestras" vienen de versiones anteriores del archivo.
         for m in lote.get("muestras") or [lote]:
             t = m.get("t", 0)
             inicio.setdefault(sesion, t)
             if lote.get("evento") == "avatar":
                 avatares[(build, m.get("motor", "?"))].append(m.get("ms", 0))
-            elif "fps" in m and t - inicio[sesion] >= DESCARTE_MS:
+            elif "fps" in m and "handsMs" in m and t - inicio[sesion] >= DESCARTE_MS:
                 cuadros[f'{build}/{m.get("modo", "?")}'].append(m)
 
     if cuadros:
