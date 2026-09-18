@@ -75,7 +75,7 @@ interface ReconocedorProps {
   onConfirmada?: (e: { nativeEvent: { sena: string; p: number } }) => void;
 }
 
-const VistaNativa = requireNativeViewManager<ReconocedorProps>("SignaVision");
+const VistaNativa = requireNativeViewManager<ReconocedorProps>("SignaVision", "ReconocedorView");
 
 /**
  * Cámara, detección y esqueleto, todo nativo.
@@ -86,4 +86,34 @@ const VistaNativa = requireNativeViewManager<ReconocedorProps>("SignaVision");
  */
 export function ReconocedorNativo(props: ReconocedorProps) {
   return React.createElement(VistaNativa, props);
+}
+
+interface AvatarProps {
+  style?: ViewStyle;
+  /** .glb a mostrar. Se guarda en disco la primera vez. */
+  url: string;
+  /** Vuelve a la pose neutra y deja de animar. */
+  pausado?: boolean;
+  /** Arrastrar para girar el avatar. */
+  rotable?: boolean;
+  onCargado?: (e: {
+    nativeEvent: {
+      clips: number;
+      /** Bajar el .glb y, la primera vez, convertirle las texturas. */
+      msArchivo: number;
+      /** Armar la escena una vez que el archivo está en memoria. */
+      msMontaje: number;
+    };
+  }) => void;
+  onFalla?: (e: { nativeEvent: { error: string } }) => void;
+}
+
+const VistaAvatar = requireNativeViewManager<AvatarProps>("SignaVision", "AvatarView");
+
+/**
+ * El avatar de la seña con Filament, sin WebView ni runtime bajado de un CDN.
+ * Ver AvatarView.kt para el encuadre, que es el mismo que el de la versión web.
+ */
+export function AvatarNativo(props: AvatarProps) {
+  return React.createElement(VistaAvatar, props);
 }

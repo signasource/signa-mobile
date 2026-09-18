@@ -81,10 +81,51 @@ Encaja con lo que se venía viendo en el teléfono: **hermano dispara demasiado
 fácil**. La solución es del lado de ML —entrenar con ventanas armadas como las
 arma la app, sosteniendo en los huecos— y no del lado de la app.
 
+## Etapa 2: el avatar 3D, también nativo
+
+El avatar era `<model-viewer>` adentro de un WebView: por cada seña se levantaba
+un WebView, se bajaba el runtime del visor de un CDN y recién entonces empezaba
+a cargar el `.glb` —2,5 MB— otra vez. Ahora el motor (Filament) ya está en la
+app, el archivo queda en disco y no hay una segunda máquina de JavaScript
+compitiendo con el reconocimiento por el mismo teléfono.
+
+| momento | tiempo |
+|---|---|
+| primera vez (bajar + convertir texturas + armar) | 2375 ms + 203 ms |
+| las siguientes (leer de disco + armar) | 11 ms + 186 ms |
+
+Medido en el emulador, que para esto sirve: lo que se compara es contra sí
+mismo. Lo que importa es la segunda fila: **195 ms** contra un WebView que
+arrancaba de cero cada vez.
+
+Tres cosas que costaron encontrar, todas invisibles salvo por una línea de log:
+
+**Las texturas venían en webp** (`EXT_texture_webp`) y Filament no las
+decodifica. El modelo cargaba entero, sin un error a la vista, y se veía todo
+negro. Se decodifican con el decodificador de Android y se reescribe el `.glb`,
+una sola vez por avatar (`Glb.kt`).
+
+**JSONObject escapa las barras**: al reescribir el archivo, `image/jpeg` salía
+como `image\/jpeg`, que es JSON válido pero ya no coincide con el tipo que
+busca el cargador. Las texturas volvían a quedar sin cargar, con el mismo
+síntoma de antes.
+
+**Desprenderse de la ventana no es irse.** Al agrandar el picture-in-picture,
+React saca la vista y la vuelve a poner en otro lugar del árbol; desarmando el
+motor en `onDetachedFromWindow`, el avatar agrandado quedaba en blanco para
+siempre. El desarmado va en `OnViewDestroys`. Al reconocedor le pasaba lo mismo
+—habría perdido la cámara—, así que ahí también se separó: al desprenderse
+suelta la cámara, que no puede quedar tomada, y el resto se desarma al destruir.
+
+Además hay un solo motor de Filament para todos los avatares (`MotorFilament`):
+cada motor levanta su hilo y su contexto de GPU, y hay pantallas con seis
+avatares a la vez.
+
 ## Lo que falta cerrar
 
-Medir la etapa 2 en el teléfono: cuánto bajó el cuadro con los 480 px y cuánto
-pesa la LSTM nativa (en WebView eran 4 ms).
+Medir la etapa 2 en el teléfono: cuánto bajó el cuadro con los 480 px, cuánto
+pesa la LSTM nativa (en WebView eran 4 ms) y cuánto tarda el avatar la segunda
+vez contra lo que tardaba el WebView.
 
 ## Cómo medir
 

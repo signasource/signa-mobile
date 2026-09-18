@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { StyleSheet, View, ViewStyle } from "react-native";
 import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
-import { GlbAnimationView } from "@/features/animations/GlbAnimationView";
+import { AvatarGlbNativo } from "@/features/animations/AvatarGlbNativo";
 import { getGlbUrl } from "@/features/animations/glbUrl";
 import { SignPlaceholder } from "./SignPlaceholder";
 
@@ -36,9 +36,10 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
           <Text style={styles.badgeText}>{badge}</Text>
         </View>
       )}
-      <GlbAnimationView
+      <AvatarGlbNativo
         url={getGlbUrl(meaning)}
         paused={paused}
+        cameraControls={cameraControls}
         onLoaded={() => setReady(true)}
         onError={() => setFailed(true)}
       />

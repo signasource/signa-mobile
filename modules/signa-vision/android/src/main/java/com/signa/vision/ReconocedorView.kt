@@ -374,14 +374,23 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
     const val ANCHO_OBJETIVO = 480
   }
 
+  /**
+   * Suelta la cámara, sin desarmar nada más.
+   *
+   * Es obligatorio hacerlo apenas la vista sale de pantalla: bindToLifecycle la
+   * ata a la ACTIVIDAD, no a esta vista, así que seguía tomada y el ejercicio
+   * siguiente conseguía un solo cuadro y se quedaba congelado.
+   */
+  private fun soltarCamara() {
+    proveedorCamara?.unbindAll()
+    proveedorCamara = null
+    armada = false
+  }
+
   fun soltar() {
     activo = false
     soltando = true
-    // Soltar la cámara es obligatorio: bindToLifecycle la ata a la ACTIVIDAD,
-    // no a esta vista, así que al desmontarse seguía tomada. El WebView del
-    // ejercicio conseguía después un solo cuadro y se quedaba congelado.
-    proveedorCamara?.unbindAll()
-    proveedorCamara = null
+    soltarCamara()
 
     // Cerrar en el MISMO hilo que detecta, y como última tarea de su cola.
     // Cerrándolos desde acá se liberaba memoria nativa que el hilo de análisis
@@ -400,8 +409,12 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
     previaDer = null
   }
 
+  // Desprenderse de la ventana no quiere decir que la vista se vaya: React la
+  // re-parenta en algunos casos. Se suelta la cámara —que no puede quedar
+  // tomada— pero el resto se desarma recién en OnViewDestroys, o volver a
+  // aparecer dejaría la vista muerta.
   override fun onDetachedFromWindow() {
-    soltar()
+    soltarCamara()
     super.onDetachedFromWindow()
   }
 }

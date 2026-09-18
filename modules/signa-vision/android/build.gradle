@@ -38,4 +38,19 @@ dependencies {
   // pero con el runtime nativo. La inferencia era el 2% del cuadro, así que acá
   // lo que se gana no es velocidad: es que el cuadro deje de cruzar el puente.
   implementation 'org.tensorflow:tensorflow-lite:2.16.1'
+
+  // El avatar 3D, con el motor adentro de la app en vez de <model-viewer>
+  // dentro de un WebView bajando su runtime de un CDN.
+  //
+  // Se le saca la kotlin-stdlib que arrastra: pide la 2.4.0 y eso sube la
+  // versión para TODO el proyecto, incluidos los módulos de Expo, que después
+  // no compilan porque el compilador de acá no sabe leer esos metadatos. Las
+  // clases que usamos de Filament son Java.
+  def filament = "1.73.0"
+  def sinStdlib = { exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib" }
+  implementation("com.google.android.filament:filament-android:$filament", sinStdlib)
+  implementation("com.google.android.filament:gltfio-android:$filament", sinStdlib)
+  // Sin filament-utils: su ayudante de alto nivel viene compilado con otra
+  // versión de Kotlin que no convive con la del proyecto, y de todas formas
+  // acá la cámara se maneja a mano para copiar el encuadre de la versión web.
 }

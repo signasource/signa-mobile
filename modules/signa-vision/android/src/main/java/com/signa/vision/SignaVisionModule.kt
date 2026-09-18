@@ -39,6 +39,8 @@ class SignaVisionModule : Module() {
       medir(vueltas, enGpu)
     }
 
+    // El reconocedor va primero a propósito: la primera vista registrada es la
+    // que devuelve requireNativeViewManager sin nombre.
     View(ReconocedorView::class) {
       Events("onFrame", "onListo", "onSena", "onConfirmada")
 
@@ -53,6 +55,28 @@ class SignaVisionModule : Module() {
       }
       Prop("usarTrasera") { vista: ReconocedorView, valor: Boolean ->
         vista.usarTrasera = valor
+      }
+
+      OnViewDestroys { vista: ReconocedorView ->
+        vista.soltar()
+      }
+    }
+
+    View(AvatarView::class) {
+      Events("onCargado", "onFalla")
+
+      Prop("url") { vista: AvatarView, valor: String ->
+        vista.url = valor
+      }
+      Prop("pausado") { vista: AvatarView, valor: Boolean ->
+        vista.pausado = valor
+      }
+      Prop("rotable") { vista: AvatarView, valor: Boolean ->
+        vista.rotable = valor
+      }
+
+      OnViewDestroys { vista: AvatarView ->
+        vista.soltar()
       }
     }
   }
