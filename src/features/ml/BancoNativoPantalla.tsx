@@ -4,6 +4,7 @@ import { useCameraPermissions } from "expo-camera";
 
 import { colors, fonts } from "@/theme";
 import { PerformSignBlock } from "@/features/courses/components/lesson/blocks/PerformSignBlock";
+import { SignAnimation } from "@/features/courses/components/lesson/SignAnimation";
 import { FrameNativo, golden, ReconocedorNativo } from "../../../modules/signa-vision";
 
 /**
@@ -28,6 +29,10 @@ export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
   // El ejercicio real, montado suelto: es la única forma de probarlo sin
   // completar cinco lecciones para desbloquear la que lo contiene.
   const [ejercicio, setEjercicio] = useState(false);
+  // Varias señas juntas: es lo que pasa en el carrusel y en el ejercicio de
+  // unir con flechas, y es donde se nota si cada avatar levanta su propio
+  // motor de 3D.
+  const [varios, setVarios] = useState(false);
   const muestras = useRef<FrameNativo[]>([]);
 
   // Que la ventana y el modelo nativos den lo mismo que el pipeline con el que
@@ -97,6 +102,19 @@ export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
     );
   }
 
+  if (varios) {
+    return (
+      <View style={styles.varios}>
+        {["madre", "padre", "hermano"].map((sena) => (
+          <SignAnimation key={sena} meaning={sena} label={sena} height={200} />
+        ))}
+        <Pressable style={styles.boton} onPress={() => setVarios(false)}>
+          <Text style={styles.botonTexto}>Volver</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
   if (!permiso?.granted) {
     return (
       <View style={styles.centro}>
@@ -147,6 +165,9 @@ export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
         <Pressable style={styles.boton} onPress={() => setEjercicio(true)}>
           <Text style={styles.botonTexto}>Probar el ejercicio</Text>
         </Pressable>
+        <Pressable style={styles.boton} onPress={() => setVarios(true)}>
+          <Text style={styles.botonTexto}>Probar tres avatares</Text>
+        </Pressable>
         <Pressable style={styles.boton} onPress={seguir}>
           <Text style={styles.botonTexto}>Seguir a la app</Text>
         </Pressable>
@@ -159,6 +180,7 @@ const styles = StyleSheet.create({
   pantalla: { flex: 1, backgroundColor: "#000" },
   camara: { ...StyleSheet.absoluteFillObject },
   centro: { flex: 1, alignItems: "center", justifyContent: "center", gap: 14, padding: 24 },
+  varios: { flex: 1, gap: 10, padding: 12, justifyContent: "center", backgroundColor: colors.background },
   tarjeta: {
     position: "absolute", left: 14, right: 14, bottom: 28,
     backgroundColor: "rgba(255,255,255,0.95)", borderRadius: 18, padding: 16, gap: 8,
