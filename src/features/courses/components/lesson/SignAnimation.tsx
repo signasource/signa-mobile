@@ -19,6 +19,8 @@ interface SignAnimationProps {
   badge?: string;
   /** Permitir rotar el modelo arrastrando. Ver GlbAnimationView. */
   cameraControls?: boolean;
+  /** Forzar un motor. Sólo lo usa el banco, para compararlos lado a lado. */
+  motor?: "nativo" | "webview";
   style?: ViewStyle;
 }
 
@@ -30,7 +32,8 @@ interface SignAnimationProps {
  */
 const NATIVO = process.env.EXPO_PUBLIC_AVATAR_WEBVIEW !== "1";
 
-export function SignAnimation({ meaning, label, height = 320, tone = "neutral", paused, badge, cameraControls, style }: SignAnimationProps) {
+export function SignAnimation({ meaning, label, height = 320, tone = "neutral", paused, badge, cameraControls, motor, style }: SignAnimationProps) {
+  const nativo = motor ? motor === "nativo" : NATIVO;
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
   const wrong = tone === "wrong";
@@ -42,7 +45,7 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
   function listo(detalle?: { msArchivo: number; msMontaje: number }) {
     setReady(true);
     marcar("avatar", {
-      motor: NATIVO ? "filament" : "webview",
+      motor: nativo ? "filament" : "webview",
       sena: meaning,
       ms: Date.now() - desde.current,
       ...detalle,
@@ -60,7 +63,7 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
           <Text style={styles.badgeText}>{badge}</Text>
         </View>
       )}
-      {NATIVO ? (
+      {nativo ? (
         <AvatarGlbNativo
           url={getGlbUrl(meaning)}
           paused={paused}

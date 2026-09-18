@@ -179,5 +179,19 @@ vez contra lo que tardaba el WebView.
 ## Cómo medir
 
 Compilar con `EXPO_PUBLIC_METRICS_URL` apuntando a `scripts/colector-metricas.py`
-y usar la app; el colector escribe `metricas.jsonl` e imprime una mediana por
-segundo. Sin esa variable la app no manda nada y se comporta igual que siempre.
+y `EXPO_PUBLIC_BUILD` con el nombre de la etapa; después usar la app. El colector
+escribe `metricas.jsonl` e imprime una mediana por segundo. Sin esas variables la
+app no manda nada y se comporta igual que siempre.
+
+Para comparar etapas entre sí:
+
+    python scripts/comparar-metricas.py
+
+Agrupa por compilación y modo y saca medianas, descartando los primeros 6
+segundos de cada sesión, que son calentamiento. Como la marca de compilación
+viaja en cada lote, las corridas de distintas etapas se pueden acumular en el
+mismo archivo y comparar después.
+
+El banco tiene una pantalla con el MISMO avatar dibujado por los dos motores,
+uno al lado del otro: es la única forma de comparar tiempos de carga sin cambiar
+de teléfono, y sale en la misma corrida que todo lo demás.

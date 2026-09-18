@@ -121,9 +121,11 @@ export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
   if (varios) {
     return (
       <View style={styles.varios}>
-        {["madre", "padre", "hermano"].map((sena) => (
-          <SignAnimation key={sena} meaning={sena} label={sena} height={180} />
-        ))}
+        {/* El mismo avatar con los dos motores, uno al lado del otro: es la
+            única forma de comparar tiempos de carga sin cambiar de teléfono. */}
+        <SignAnimation meaning="madre" label="madre · nativo" height={180} motor="nativo" />
+        <SignAnimation meaning="padre" label="padre · webview" height={180} motor="webview" />
+        <SignAnimation meaning="hermano" label="hermano · nativo" height={180} motor="nativo" />
         <Pressable style={styles.boton} onPress={() => setVarios(false)}>
           <Text style={styles.botonTexto}>Volver</Text>
         </Pressable>

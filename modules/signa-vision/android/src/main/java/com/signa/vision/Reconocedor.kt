@@ -139,13 +139,19 @@ class Reconocedor(contexto: Context, val modo: Modo = Modo.DINAMICO) {
     izquierda: Boolean,
   ): Paso? {
     val m = abecedario ?: return null
+
+    // El freno va ANTES de mirar si hay mano: si no, los cuadros sin mano
+    // —que son la mayoría mientras la persona se acomoda— mandaban un evento
+    // cada uno, treinta por segundo, y cada uno mueve estado en React. Es
+    // exactamente lo que la versión nativa venía a sacarse de encima.
+    if (t - ultima < MS_ENTRE_INFERENCIAS) return null
+    ultima = t
+
     if (mano == null) {
       confirmador.reiniciar()
       suavizado.clear()
       return Paso(0f, null, 0f, true, null)
     }
-    if (t - ultima < MS_ENTRE_INFERENCIAS) return null
-    ultima = t
 
     val t0 = System.nanoTime()
     val probs = m.predecir(mano, mundo, pose, izquierda)
