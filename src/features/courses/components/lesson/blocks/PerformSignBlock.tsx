@@ -5,7 +5,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
 import { PerformSignConfig } from "@/features/courses/lessonContent.types";
-import { LiveSignRecognizer, LiveFrame } from "@/features/ml/components/LiveSignRecognizer";
+import type { LiveFrame } from "@/features/ml/components/LiveSignRecognizer";
+import { ReconocedorSenasNativo } from "@/features/ml/components/ReconocedorSenasNativo";
 import { signMeaning } from "@/features/ml";
 // TEMPORAL: rama de diagnóstico, ver src/features/ml/telemetria.ts
 import { cerrarMedicion, marcar, medir } from "@/features/ml/telemetria";
@@ -204,9 +205,8 @@ export function PerformSignBlock({ config, active, ultimo, xp, onAnswer, onConti
       </View>
 
       <View style={styles.stage}>
-        <LiveSignRecognizer
+        <ReconocedorSenasNativo
           targets={target ? [target] : signs}
-          threshold={config.threshold}
           onFrame={handleFrame}
           onConfirmed={handleConfirmed}
           onReady={({ delegate }) => setDelegado(delegate)}

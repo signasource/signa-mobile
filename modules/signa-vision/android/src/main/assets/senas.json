@@ -1,0 +1,18 @@
+{
+ "labels": [
+  "hermano",
+  "reposo",
+  "amigo",
+  "papa",
+  "mama"
+ ],
+ "sequenceLength": 30,
+ "featureDim": 258,
+ "thresholds": {
+  "hermano": 0.78,
+  "amigo": 0.86,
+  "papa": 0.41,
+  "mama": 0.61
+ },
+ "poseIgnored": true
+}

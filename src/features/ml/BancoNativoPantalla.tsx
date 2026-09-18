@@ -3,7 +3,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useCameraPermissions } from "expo-camera";
 
 import { colors, fonts } from "@/theme";
-import { FrameNativo, ReconocedorNativo } from "../../../modules/signa-vision";
+import { PerformSignBlock } from "@/features/courses/components/lesson/blocks/PerformSignBlock";
+import { FrameNativo, golden, ReconocedorNativo } from "../../../modules/signa-vision";
 
 /**
  * TEMPORAL — etapa 1 de la migración a nativo.
@@ -23,7 +24,24 @@ export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
   const [permiso, pedirPermiso] = useCameraPermissions();
   const [ultimo, setUltimo] = useState<FrameNativo | null>(null);
   const [estado, setEstado] = useState("arrancando…");
+  const [contraste, setContraste] = useState("tocá para contrastar contra Python");
+  // El ejercicio real, montado suelto: es la única forma de probarlo sin
+  // completar cinco lecciones para desbloquear la que lo contiene.
+  const [ejercicio, setEjercicio] = useState(false);
   const muestras = useRef<FrameNativo[]>([]);
+
+  // Que la ventana y el modelo nativos den lo mismo que el pipeline con el que
+  // se entrenó no es algo que se pueda ver mirando la pantalla: un error de
+  // índice devuelve probabilidades igual de plausibles. Ver Golden.kt.
+  //
+  // A pedido y no al arrancar: son cientos de inferencias seguidas y, mientras
+  // corren, los ms por cuadro que muestra esta misma pantalla no valen nada.
+  function contrastar() {
+    setContraste("contrastando…");
+    golden()
+      .then((r) => setContraste(`golden ${r.peorDiferencia.toFixed(4)} · confirma ${r.reproduccion}`))
+      .catch((e) => setContraste(`golden falló · ${String(e)}`));
+  }
 
   useEffect(() => {
     if (permiso && !permiso.granted) void pedirPermiso();
@@ -46,7 +64,7 @@ export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sesion: "nativo-etapa1",
+          sesion: "nativo-etapa2",
           evento: "reconocedor-nativo",
           muestras: [
             {
@@ -55,12 +73,28 @@ export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
               fps: mediana("fps"),
               manosMs: mediana("manosMs"),
               poseMs: mediana("poseMs"),
+              delegado: m[m.length - 1]?.delegado,
+          contraste,
+              ancho: mediana("ancho"),
             },
           ],
         }),
       }).catch(() => {});
     }
     onSeguir();
+  }
+
+  if (ejercicio) {
+    return (
+      <PerformSignBlock
+        config={{ signs: ["mama", "papa", "hermano", "amigo"] }}
+        active
+        ultimo
+        xp={15}
+        onAnswer={() => {}}
+        onContinue={() => setEjercicio(false)}
+      />
+    );
   }
 
   if (!permiso?.granted) {
@@ -101,12 +135,18 @@ export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
         <Text style={styles.titulo}>Reconocimiento nativo · {estado}</Text>
         <Text style={styles.dato}>
           {ultimo
-            ? `${ultimo.fps.toFixed(1)} fps · manos ${ultimo.manosMs.toFixed(0)} ms · pose ${ultimo.poseMs.toFixed(0)} ms · ${ultimo.manos} manos`
+            ? `${ultimo.fps.toFixed(1)} fps · manos ${ultimo.manosMs.toFixed(0)} ms · pose ${ultimo.poseMs.toFixed(0)} ms · ${ultimo.delegado} · ${ultimo.ancho}px`
             : "esperando el primer cuadro…"}
         </Text>
         <Text style={styles.referencia}>
           En WebView, este teléfono: manos 57-147 ms · 6-10 fps
         </Text>
+        <Pressable onPress={contrastar}>
+          <Text style={styles.referencia}>{contraste}</Text>
+        </Pressable>
+        <Pressable style={styles.boton} onPress={() => setEjercicio(true)}>
+          <Text style={styles.botonTexto}>Probar el ejercicio</Text>
+        </Pressable>
         <Pressable style={styles.boton} onPress={seguir}>
           <Text style={styles.botonTexto}>Seguir a la app</Text>
         </Pressable>

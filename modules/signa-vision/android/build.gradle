@@ -33,4 +33,9 @@ dependencies {
   implementation "androidx.camera:camera-camera2:$camerax"
   implementation "androidx.camera:camera-lifecycle:$camerax"
   implementation "androidx.camera:camera-view:$camerax"
+
+  // La misma LSTM y el mismo modelo de abecedario que hoy corren en el WebView,
+  // pero con el runtime nativo. La inferencia era el 2% del cuadro, así que acá
+  // lo que se gana no es velocidad: es que el cuadro deje de cruzar el puente.
+  implementation 'org.tensorflow:tensorflow-lite:2.16.1'
 }

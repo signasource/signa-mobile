@@ -41,12 +41,50 @@ mismo resultado. El hilo principal del dinámico perdía un tercio de sus cuadro
 de dibujo (42 contra 58) con un dibujo propio de 0,2 ms, así que algo más le
 competía. Quedó sin confirmar; en nativo el problema no se reprodujo.
 
+## Etapa 2: la inferencia también nativa
+
+La ventana de 258 números, la LSTM y la confirmación pasaron a Kotlin, y la vista
+dejó de informar métricas para informar **señas confirmadas**. Por el puente ya no
+cruza nada por cuadro: sólo un resumen dos veces por segundo y la seña cuando se
+da por hecha.
+
+También se bajó el cuadro a 480 px de lado mayor antes de detectar, dentro de la
+misma copia que ya se hacía para espejarlo y rotarlo, así que no agrega una
+pasada. Era la mitad de la diferencia entre los 55 ms de la etapa 1 y los 24 del
+banco aislado.
+
+**Que dé lo mismo que Python no se asume, se comprueba.** El vector de 258
+números se arma y se normaliza dos veces, una en cada lenguaje, y un error de un
+índice o de escala no se ve: el modelo devuelve probabilidades igual de
+plausibles, sólo que equivocadas, y se confunde con un problema de calibración.
+`Golden.kt` corre secuencias reales del dataset por el camino nativo entero y las
+compara contra lo que da el pipeline de Python: **diferencia 0,0000** en las cinco
+clases. Además reproduce un clip cuadro por cuadro, con tiempos de cámara, para
+comprobar que la seña llega a confirmarse y no sólo a puntuar bien.
+
+**Un bug que sólo se veía al salir.** Al desmontar la vista se cerraban los
+detectores desde el hilo principal mientras el hilo de análisis estaba adentro de
+`detect()`: SIGSEGV, sin excepción de Java ni nada que mirar. Ahora se cierran
+como última tarea de la cola del propio hilo que detecta.
+
+## Un hallazgo del lado del modelo
+
+Reproduciendo un clip de **reposo** por el camino de la app, el modelo devuelve
+**hermano 0,996**. Por el camino de Python sobre el mismo clip devuelve reposo
+0,861. La diferencia no es un error de puerto —el golden da 0,0000— sino la
+ventana: al entrenar, los cuadros sin manos se sacan y los útiles se estiran para
+llenar la ventana; en la app, los cuadros sin manos también se sacan pero los
+demás conservan su tiempo, así que el hueco se rellena sosteniendo la última
+posición. Ese sostener es lo que el modelo lee como "hermano".
+
+Encaja con lo que se venía viendo en el teléfono: **hermano dispara demasiado
+fácil**. La solución es del lado de ML —entrenar con ventanas armadas como las
+arma la app, sosteniendo en los huecos— y no del lado de la app.
+
 ## Lo que falta cerrar
 
-La vista nativa mide **55 ms** donde el banco aislado mide **24**. La diferencia
-no está en el modelo sino alrededor: la vista procesa 640x480 en vez de 480x360,
-y copia el cuadro dos veces antes de detectar —una al convertirlo a bitmap y otra
-al espejarlo y rotarlo—. Es el objetivo de la etapa 2.
+Medir la etapa 2 en el teléfono: cuánto bajó el cuadro con los 480 px y cuánto
+pesa la LSTM nativa (en WebView eran 4 ms).
 
 ## Cómo medir
 

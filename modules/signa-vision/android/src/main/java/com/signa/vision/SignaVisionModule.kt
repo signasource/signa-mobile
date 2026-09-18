@@ -31,18 +31,25 @@ class SignaVisionModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("SignaVision")
 
+    AsyncFunction("golden") {
+      Golden.correr(appContext.reactContext ?: throw IllegalStateException("sin contexto"))
+    }
+
     AsyncFunction("banco") { vueltas: Int, enGpu: Boolean ->
       medir(vueltas, enGpu)
     }
 
     View(ReconocedorView::class) {
-      Events("onFrame", "onListo")
+      Events("onFrame", "onListo", "onSena", "onConfirmada")
 
       Prop("mostrarEsqueleto") { vista: ReconocedorView, valor: Boolean ->
         vista.mostrarEsqueleto = valor
       }
       Prop("activo") { vista: ReconocedorView, valor: Boolean ->
         vista.activo = valor
+      }
+      Prop("objetivos") { vista: ReconocedorView, valor: List<String> ->
+        vista.objetivos = valor
       }
       Prop("usarTrasera") { vista: ReconocedorView, valor: Boolean ->
         vista.usarTrasera = valor

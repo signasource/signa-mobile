@@ -36,10 +36,14 @@ export default function App() {
     BricolageGrotesque_800ExtraBold,
   });
 
+  // Dentro de SettingsProvider: el banco monta el ejercicio real, y los
+  // componentes de la app leen el tamaño de letra de ahí.
   if (fontsLoaded && !bancoListo) {
     return (
       <SafeAreaProvider>
-        <BancoNativoPantalla onSeguir={() => setBancoListo(true)} />
+        <SettingsProvider>
+          <BancoNativoPantalla onSeguir={() => setBancoListo(true)} />
+        </SettingsProvider>
       </SafeAreaProvider>
     );
   }

@@ -19,6 +19,14 @@ export interface ResultadoBanco {
 
 const nativo = requireNativeModule("SignaVision");
 
+/**
+ * Contrasta ventana + modelo nativos contra las probabilidades que da el
+ * pipeline de Python sobre las mismas secuencias. Diferencia esperada: ~0.
+ */
+export function golden(): Promise<{ peorDiferencia: number; detalle: string; reproduccion: string }> {
+  return nativo.golden();
+}
+
 export function banco(vueltas = 30, enGpu = true): Promise<ResultadoBanco> {
   return nativo.banco(vueltas, enGpu);
 }
@@ -34,6 +42,22 @@ export interface FrameNativo {
   poseMs: number;
   manos: number;
   cuerpo: boolean;
+  delegado: string;
+  ancho: number;
+  /** Milisegundos de la LSTM. Cero mientras no haya señas que reconocer. */
+  inferenciaMs: number;
+}
+
+/** Cómo va la seña que se está mirando ahora. */
+export interface SenaNativa {
+  /** 0 a 1: cuánto le falta a la ventana para poder inferir. */
+  progreso: number;
+  /** Seña candidata entre las pedidas, o "" si no hay. */
+  sena: string;
+  /** Probabilidad de esa candidata. */
+  p: number;
+  /** "reposo" ganando: no se está haciendo ninguna seña. */
+  reposo: boolean;
 }
 
 interface ReconocedorProps {
@@ -42,9 +66,13 @@ interface ReconocedorProps {
   mostrarEsqueleto?: boolean;
   /** Sólo para probar en emulador, donde la frontal puede no dar cuadros. */
   usarTrasera?: boolean;
+  /** Señas que este ejercicio acepta. Vacío = no se infiere nada. */
+  objetivos?: string[];
   onFrame?: (e: { nativeEvent: FrameNativo }) => void;
   /** fase: "cuadros" (la cámara entrega), "detectando" (listo), "error". */
   onListo?: (e: { nativeEvent: { fase: string; detalle?: string; error?: string } }) => void;
+  onSena?: (e: { nativeEvent: SenaNativa }) => void;
+  onConfirmada?: (e: { nativeEvent: { sena: string; p: number } }) => void;
 }
 
 const VistaNativa = requireNativeViewManager<ReconocedorProps>("SignaVision");
