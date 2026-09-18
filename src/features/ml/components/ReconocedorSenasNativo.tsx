@@ -8,6 +8,8 @@ import type { LiveFrame } from "./LiveSignRecognizer";
 
 interface Props {
   targets: string[];
+  /** Qué modelo decide: la LSTM sobre una ventana, o el abecedario por cuadro. */
+  modo?: "dinamico" | "estatico";
   onFrame?: (frame: LiveFrame) => void;
   onConfirmed?: (sign: string, confidence: number) => void;
   onReady?: (info: { delegate: string }) => void;
@@ -19,7 +21,7 @@ interface Props {
 }
 
 /**
- * El mismo reconocedor de señas dinámicas, sin WebView.
+ * El mismo reconocedor de los dos ejercicios de cámara, sin WebView.
  *
  * Expone la interfaz de LiveSignRecognizer —mismos props, mismo LiveFrame— para
  * que los ejercicios no tengan que enterarse de cuál está abajo. Lo que cambia
@@ -32,6 +34,7 @@ interface Props {
  */
 export function ReconocedorSenasNativo({
   targets,
+  modo = "dinamico",
   onFrame,
   onConfirmed,
   onReady,
@@ -82,6 +85,7 @@ export function ReconocedorSenasNativo({
         activo={!paused}
         mostrarEsqueleto={showLandmarks}
         objetivos={targets}
+        modo={modo}
         onFrame={(e) => {
           ultimo.current = e.nativeEvent;
           emitir();

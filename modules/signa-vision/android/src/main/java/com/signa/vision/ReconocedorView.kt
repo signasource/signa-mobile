@@ -67,6 +67,19 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
   var activo = true
 
   /**
+   * Qué modelo decide: las señas dinámicas sobre una ventana de 2,5 s, o el
+   * abecedario sobre el cuadro de ahora. Cambiarlo rearma el reconocedor.
+   */
+  var modo = "dinamico"
+    set(valor) {
+      if (field == valor) return
+      field = valor
+      val anterior = reconocedor
+      reconocedor = null
+      hilo.execute { anterior?.cerrar() }
+    }
+
+  /**
    * Señas que este ejercicio acepta. Con la lista vacía no se infiere nada: la
    * vista queda como cámara con esqueleto y no paga ni el modelo ni la ventana.
    */
@@ -246,7 +259,25 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
     }
 
     val ahora = System.currentTimeMillis()
-    if (objetivos.isNotEmpty()) reconocer(ahora, pose?.landmarks()?.firstOrNull(), izquierda, derecha)
+    if (objetivos.isNotEmpty()) {
+      val cuerpo = pose?.landmarks()?.firstOrNull()
+      if (modo == "estatico") {
+        // El abecedario mira UNA mano, y necesita saber cuál es: el dataset
+        // trata todas como derechas, así que una izquierda se espeja. Por eso
+        // acá se usa la etiqueta de MediaPipe y no el reparto por cercanía.
+        val cual = manos.landmarks().indices.firstOrNull()
+        reconocer(
+          ahora,
+          cuerpo,
+          cual?.let { manos.landmarks()[it] },
+          null,
+          cual?.let { manos.worldLandmarks().getOrNull(it) },
+          cual?.let { manos.handedness()[it].firstOrNull()?.categoryName() == "Left" } ?: false,
+        )
+      } else {
+        reconocer(ahora, cuerpo, izquierda, derecha)
+      }
+    }
 
     cuadros++
     if (ahora - desdeFps >= 500) {
@@ -274,9 +305,17 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
     }
   }
 
-  private fun reconocer(ahora: Long, pose: List<NormalizedLandmark>?, izquierda: Manos, derecha: Manos) {
+  private fun reconocer(
+    ahora: Long,
+    pose: List<NormalizedLandmark>?,
+    izquierda: Manos,
+    derecha: Manos,
+    mundo: List<com.google.mediapipe.tasks.components.containers.Landmark>? = null,
+    manoIzquierda: Boolean = false,
+  ) {
     val r = reconocedor ?: try {
-      Reconocedor(context.applicationContext).also { it.objetivos = objetivos; reconocedor = it }
+      val cual = if (modo == "estatico") Reconocedor.Modo.ESTATICO else Reconocedor.Modo.DINAMICO
+      Reconocedor(context.applicationContext, cual).also { it.objetivos = objetivos; reconocedor = it }
     } catch (e: Throwable) {
       Log.e(ETIQUETA, "no se pudo cargar el modelo de señas", e)
       objetivos = emptyList()
@@ -284,7 +323,7 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
       return
     }
 
-    val paso = r.cuadro(ahora, pose, izquierda, derecha) ?: return
+    val paso = r.cuadro(ahora, pose, izquierda, derecha, mundo, manoIzquierda) ?: return
     post {
       onSena(
         mapOf(

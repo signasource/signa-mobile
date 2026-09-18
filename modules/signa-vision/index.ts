@@ -68,6 +68,8 @@ interface ReconocedorProps {
   usarTrasera?: boolean;
   /** Señas que este ejercicio acepta. Vacío = no se infiere nada. */
   objetivos?: string[];
+  /** "dinamico" (LSTM sobre la ventana) o "estatico" (abecedario por cuadro). */
+  modo?: "dinamico" | "estatico";
   onFrame?: (e: { nativeEvent: FrameNativo }) => void;
   /** fase: "cuadros" (la cámara entrega), "detectando" (listo), "error". */
   onListo?: (e: { nativeEvent: { fase: string; detalle?: string; error?: string } }) => void;

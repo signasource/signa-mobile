@@ -4,6 +4,7 @@ import { useCameraPermissions } from "expo-camera";
 
 import { colors, fonts } from "@/theme";
 import { PerformSignBlock } from "@/features/courses/components/lesson/blocks/PerformSignBlock";
+import { SpellNameBlock } from "@/features/courses/components/lesson/blocks/SpellNameBlock";
 import { SignAnimation } from "@/features/courses/components/lesson/SignAnimation";
 import { FrameNativo, golden, ReconocedorNativo } from "../../../modules/signa-vision";
 
@@ -28,7 +29,9 @@ export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
   const [contraste, setContraste] = useState("tocá para contrastar contra Python");
   // El ejercicio real, montado suelto: es la única forma de probarlo sin
   // completar cinco lecciones para desbloquear la que lo contiene.
-  const [ejercicio, setEjercicio] = useState(false);
+  // "senas" es el ejercicio dinámico y "letras" el del abecedario: son los dos
+  // modelos, y hay que poder entrar a cada uno sin completar media app.
+  const [ejercicio, setEjercicio] = useState<"" | "senas" | "letras">("");
   // Varias señas juntas: es lo que pasa en el carrusel y en el ejercicio de
   // unir con flechas, y es donde se nota si cada avatar levanta su propio
   // motor de 3D.
@@ -89,7 +92,7 @@ export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
     onSeguir();
   }
 
-  if (ejercicio) {
+  if (ejercicio === "senas") {
     return (
       <PerformSignBlock
         config={{ signs: ["mama", "papa", "hermano", "amigo"] }}
@@ -97,7 +100,20 @@ export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
         ultimo
         xp={15}
         onAnswer={() => {}}
-        onContinue={() => setEjercicio(false)}
+        onContinue={() => setEjercicio("")}
+      />
+    );
+  }
+
+  if (ejercicio === "letras") {
+    return (
+      <SpellNameBlock
+        config={{ max_letters: 6 }}
+        active
+        ultimo
+        xp={20}
+        onAnswer={() => {}}
+        onContinue={() => setEjercicio("")}
       />
     );
   }
@@ -162,8 +178,11 @@ export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
         <Pressable onPress={contrastar}>
           <Text style={styles.referencia}>{contraste}</Text>
         </Pressable>
-        <Pressable style={styles.boton} onPress={() => setEjercicio(true)}>
-          <Text style={styles.botonTexto}>Probar el ejercicio</Text>
+        <Pressable style={styles.boton} onPress={() => setEjercicio("senas")}>
+          <Text style={styles.botonTexto}>Probar señas</Text>
+        </Pressable>
+        <Pressable style={styles.boton} onPress={() => setEjercicio("letras")}>
+          <Text style={styles.botonTexto}>Probar abecedario</Text>
         </Pressable>
         <Pressable style={styles.boton} onPress={() => setVarios(true)}>
           <Text style={styles.botonTexto}>Probar tres avatares</Text>

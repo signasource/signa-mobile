@@ -53,6 +53,9 @@ class SignaVisionModule : Module() {
       Prop("objetivos") { vista: ReconocedorView, valor: List<String> ->
         vista.objetivos = valor
       }
+      Prop("modo") { vista: ReconocedorView, valor: String ->
+        vista.modo = valor
+      }
       Prop("usarTrasera") { vista: ReconocedorView, valor: Boolean ->
         vista.usarTrasera = valor
       }

@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, StyleSheet, TextInput, View } from "react-native";
 
 import { Text } from "@/components/Text";
-import { LiveSignRecognizer } from "@/features/ml";
+import { ReconocedorSenasNativo } from "@/features/ml/components/ReconocedorSenasNativo";
 import { colors, fonts } from "@/theme";
 // TEMPORAL: rama de diagnóstico, ver src/features/ml/telemetria.ts
 import { cerrarMedicion, marcar, medir } from "@/features/ml/telemetria";
@@ -211,7 +211,7 @@ export function SpellNameBlock({ config, active, ultimo, xp, onAnswer, onContinu
       </View>
 
       <View style={styles.stage}>
-        <LiveSignRecognizer
+        <ReconocedorSenasNativo
           targets={objetivo ? [objetivo] : []}
           modo="estatico"
           onFrame={handleFrame}

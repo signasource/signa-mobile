@@ -1,6 +1,7 @@
 package com.signa.vision
 
 import android.content.Context
+import com.google.mediapipe.tasks.components.containers.Landmark
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 
 /**
@@ -10,14 +11,23 @@ import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
  * vistas: así el mismo camino que corre con la cámara se puede probar contra
  * secuencias del dataset (ver Golden.kt), que es la única forma de saber que
  * los 258 números se arman igual que en Python.
+ *
+ * Atiende los dos ejercicios de cámara, que se parecen menos de lo que
+ * parecen: las señas dinámicas son movimiento y necesitan 2,5 s de historia,
+ * mientras que una letra del abecedario ES una postura y se decide con el
+ * cuadro que tiene delante. Lo que comparten —el suavizado y los 700 ms
+ * sostenidos para confirmar— vive acá una sola vez.
  */
-class Reconocedor(contexto: Context) {
+class Reconocedor(contexto: Context, val modo: Modo = Modo.DINAMICO) {
 
-  private val modelo = ModeloSenas(contexto)
+  enum class Modo { DINAMICO, ESTATICO }
+
+  private val modelo = if (modo == Modo.DINAMICO) ModeloSenas(contexto) else null
+  private val abecedario = if (modo == Modo.ESTATICO) ModeloAbecedario(contexto) else null
   private val ventana = Ventana()
   private val confirmador = Confirmador()
   private val suavizado = ArrayDeque<FloatArray>()
-  private val plano = FloatArray(ModeloSenas.PASOS * Ventana.DIM)
+  private val plano = if (modo == Modo.DINAMICO) FloatArray(ModeloSenas.PASOS * Ventana.DIM) else FloatArray(0)
 
   private var ultima = 0L
 
@@ -61,7 +71,11 @@ class Reconocedor(contexto: Context) {
     pose: List<NormalizedLandmark>?,
     izquierda: List<NormalizedLandmark>?,
     derecha: List<NormalizedLandmark>?,
+    mundo: List<Landmark>? = null,
+    manoIzquierda: Boolean = false,
   ): Paso? {
+    if (modo == Modo.ESTATICO) return letra(t, pose, izquierda ?: derecha, mundo, manoIzquierda)
+
     ventana.agregar(t, pose, izquierda, derecha)
     if (t - ultima < MS_ENTRE_INFERENCIAS) return null
     ultima = t
@@ -70,25 +84,23 @@ class Reconocedor(contexto: Context) {
       return Paso(ventana.progreso(t), null, 0f, false, null)
     }
 
+    val m = modelo ?: return null
     ventana.remuestrear(t, plano)
     val t0 = System.nanoTime()
-    val probs = modelo.predecir(plano)
+    val probs = m.predecir(plano)
     msInferencia = (System.nanoTime() - t0) / 1_000_000.0
 
-    // Promedio de las últimas cinco: una sola ventana tiembla entre cuadros
+    // Promedio de las últimas cinco: una sola tanda tiembla entre cuadros
     // vecinos, y lo que se compara contra el umbral es el promedio, igual que
     // cuando se calibraron los umbrales.
-    suavizado.addLast(probs)
-    while (suavizado.size > SUAVIZADO) suavizado.removeFirst()
-    val media = FloatArray(probs.size)
-    for (p in suavizado) for (i in p.indices) media[i] += p[i] / suavizado.size
+    val media = promediar(probs)
 
     var mejor = 0
     for (i in media.indices) if (media[i] > media[mejor]) mejor = i
 
     // Reposo ganando = no está haciendo ninguna seña, y es la señal de que
     // terminó la anterior: libera la confirmación.
-    if (modelo.etiquetas[mejor] == modelo.reposo) {
+    if (m.etiquetas[mejor] == m.reposo) {
       confirmador.reiniciar()
       return Paso(1f, null, 0f, true, null)
     }
@@ -100,18 +112,70 @@ class Reconocedor(contexto: Context) {
     var candidata: String? = null
     var p = 0f
     for (o in objetivos) {
-      val i = modelo.indice(o)
+      val i = m.indice(o)
       if (i >= 0 && media[i] > p) { candidata = o; p = media[i] }
     }
 
     // Las señas dinámicas son movimiento: una mano quieta que por casualidad
     // cae cerca de una seña no cuenta.
     val moviendo = ventana.movimiento(plano) >= MOVIMIENTO_MIN
-    val ok = candidata != null && p >= modelo.umbral(candidata) && moviendo
+    val ok = candidata != null && p >= m.umbral(candidata) && moviendo
     return Paso(1f, candidata, p, false, confirmador.votar(t, candidata, ok))
   }
 
-  fun cerrar() = modelo.cerrar()
+  /**
+   * Una letra con el cuadro de ahora.
+   *
+   * Sin ventana y sin piso de movimiento: la mano está quieta a propósito. La
+   * compuerta es simplemente que haya una mano; si no hay, no hay letra
+   * posible, y eso libera la confirmación anterior como hace el reposo en las
+   * señas dinámicas.
+   */
+  private fun letra(
+    t: Long,
+    pose: List<NormalizedLandmark>?,
+    mano: List<NormalizedLandmark>?,
+    mundo: List<Landmark>?,
+    izquierda: Boolean,
+  ): Paso? {
+    val m = abecedario ?: return null
+    if (mano == null) {
+      confirmador.reiniciar()
+      suavizado.clear()
+      return Paso(0f, null, 0f, true, null)
+    }
+    if (t - ultima < MS_ENTRE_INFERENCIAS) return null
+    ultima = t
+
+    val t0 = System.nanoTime()
+    val probs = m.predecir(mano, mundo, pose, izquierda)
+    msInferencia = (System.nanoTime() - t0) / 1_000_000.0
+
+    val media = promediar(probs)
+    var candidata: String? = null
+    var p = 0f
+    for (o in objetivos) {
+      val i = m.indice(o)
+      if (i >= 0 && media[i] > p) { candidata = o; p = media[i] }
+    }
+
+    val ok = candidata != null && p >= m.umbral(candidata)
+    return Paso(1f, candidata, p, false, confirmador.votar(t, candidata, ok))
+  }
+
+  /** Promedio de las últimas cinco tandas de probabilidades. */
+  private fun promediar(probs: FloatArray): FloatArray {
+    suavizado.addLast(probs)
+    while (suavizado.size > SUAVIZADO) suavizado.removeFirst()
+    val media = FloatArray(probs.size)
+    for (p in suavizado) for (i in p.indices) media[i] += p[i] / suavizado.size
+    return media
+  }
+
+  fun cerrar() {
+    modelo?.cerrar()
+    abecedario?.cerrar()
+  }
 
   companion object {
     const val MS_ENTRE_INFERENCIAS = 80L

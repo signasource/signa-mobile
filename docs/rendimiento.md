@@ -143,6 +143,33 @@ pero ésos los rellena la extensión al descomprimir, así que se saltean.
 El avatar nativo queda como predeterminado; `EXPO_PUBLIC_AVATAR_WEBVIEW=1`
 vuelve al WebView sin tocar nada más.
 
+## Etapa 3: el abecedario
+
+El otro ejercicio de cámara —deletrear— pasa al mismo camino nativo. Comparte
+todo lo de antes (cámara, MediaPipe, reparto de manos, esqueleto, confirmación)
+y cambia sólo lo que decide: en vez de una ventana de 2,5 s, el cuadro que tiene
+delante, porque una letra ES una postura sostenida y no un movimiento.
+
+Las 514 features que el modelo mira —coordenadas canónicas, distancias, ángulos
+de articulación— ya venían calculadas adentro del grafo, así que del lado de la
+app sólo hay que pasarle los landmarks. Lo único que se calcula afuera es el
+bloque de cara: dónde está la mano respecto de los ojos, medido en unidades de
+"ojos a boca", que es lo que separa letras con la misma forma de dedos hechas a
+distinta altura.
+
+Tres formas de arruinarlo, ninguna de las cuales da error:
+
+- **El orden de las entradas.** El grafo recibe tres tensores y no los espera en
+  el orden en que se declararon al exportar: se los ubica por nombre.
+- **La mano izquierda.** El dataset trata todas las manos como derechas, así que
+  una izquierda va espejada en x — y el bloque de cara se calcula con la mano
+  SIN espejar, espejando después sólo su x.
+- **El bloque de cara**, que es la única parte que se calcula por fuera del
+  grafo y por lo tanto la única que puede desincronizarse del entrenamiento.
+
+Las tres las cubre el golden, que ahora contrasta también el abecedario contra
+Python: **diferencia 0,0000**, bloque de cara incluido.
+
 ## Lo que falta cerrar
 
 Medir la etapa 2 en el teléfono: cuánto bajó el cuadro con los 480 px, cuánto

@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { StyleSheet, View, ViewStyle } from "react-native";
 import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
 import { AvatarGlbNativo } from "@/features/animations/AvatarGlbNativo";
 import { GlbAnimationView } from "@/features/animations/GlbAnimationView";
 import { getGlbUrl } from "@/features/animations/glbUrl";
+import { marcar } from "@/features/ml/telemetria";
 import { SignPlaceholder } from "./SignPlaceholder";
 
 type Tone = "neutral" | "wrong";
@@ -34,6 +35,20 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
   const [ready, setReady] = useState(false);
   const wrong = tone === "wrong";
 
+  // Cuánto tarda el avatar en aparecer, medido desde el mismo lugar para los dos
+  // motores: es la única forma de que el número del nativo y el del WebView se
+  // puedan comparar. El nativo agrega además en qué se le fue el tiempo.
+  const desde = useRef(Date.now());
+  function listo(detalle?: { msArchivo: number; msMontaje: number }) {
+    setReady(true);
+    marcar("avatar", {
+      motor: NATIVO ? "filament" : "webview",
+      sena: meaning,
+      ms: Date.now() - desde.current,
+      ...detalle,
+    });
+  }
+
   if (failed) {
     return <SignPlaceholder label={label} height={height} tone={tone} badge={badge} style={style} />;
   }
@@ -50,7 +65,7 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
           url={getGlbUrl(meaning)}
           paused={paused}
           cameraControls={cameraControls}
-          onLoaded={() => setReady(true)}
+          onTiempos={listo}
           onError={() => setFailed(true)}
         />
       ) : (
@@ -58,7 +73,7 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
           url={getGlbUrl(meaning)}
           paused={paused}
           cameraControls={cameraControls}
-          onLoaded={() => setReady(true)}
+          onLoaded={() => listo()}
           onError={() => setFailed(true)}
         />
       )}
