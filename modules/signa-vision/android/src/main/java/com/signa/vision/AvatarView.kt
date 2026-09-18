@@ -390,7 +390,7 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
 
 
     /** Sube cuando cambia Glb.sinWebp(). Ver descargar(). */
-    const val VERSION_CONVERSION = 2
+    const val VERSION_CONVERSION = 3
 
     /** Grados. Los mismos que usa la versión web. */
     const val FOV = 15f

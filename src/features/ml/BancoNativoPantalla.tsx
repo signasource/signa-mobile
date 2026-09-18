@@ -106,7 +106,7 @@ export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
     return (
       <View style={styles.varios}>
         {["madre", "padre", "hermano"].map((sena) => (
-          <SignAnimation key={sena} meaning={sena} label={sena} height={200} />
+          <SignAnimation key={sena} meaning={sena} label={sena} height={180} />
         ))}
         <Pressable style={styles.boton} onPress={() => setVarios(false)}>
           <Text style={styles.botonTexto}>Volver</Text>

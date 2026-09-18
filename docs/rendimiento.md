@@ -121,20 +121,27 @@ Además hay un solo motor de Filament para todos los avatares (`MotorFilament`):
 cada motor levanta su hilo y su contexto de GPU, y hay pantallas con seis
 avatares a la vez.
 
-### Lo que quedó sin resolver del avatar
+### Un accessor vacío que costaba la animación entera
 
-**Filament no ve las animaciones.** `gltfio` carga el modelo entero —222
-entidades, el esqueleto, las texturas— pero su animador informa CERO clips, así
-que el avatar se queda en la pose del primer cuadro. Descartado: no es la
-conversión de texturas (pasa igual con el .glb original), no es haber liberado
-los datos de origen (`releaseSourceData` ya no se llama), y no es la instancia
-implícita (pasa igual con `createInstancedAsset`). El archivo está sano: una
-animación de 2,84 s, 595 canales, todos apuntando a nodos que existen.
+El avatar cargaba perfecto —222 entidades, esqueleto, texturas— y se quedaba
+clavado en la pose del primer cuadro: el animador informaba CERO clips. No era
+la conversión de texturas (pasaba igual con el .glb original), ni haber liberado
+los datos de origen, ni la instancia implícita.
 
-Por eso el avatar nativo queda detrás de `EXPO_PUBLIC_AVATAR_NATIVO=1` y por
-omisión sigue el WebView, que anima bien. Lo que falta probar: el cargador de
-`filament-utils` (hoy no compila junto al proyecto por la versión de Kotlin),
-otra versión de Filament, y reexportar un .glb sin Draco para descartarlo.
+Lo que lo destrabó fue cargar un modelo animado ajeno, de la colección de
+ejemplos de Khronos: **ese sí animaba**. O sea que el motor estaba bien y el
+problema era el archivo. Y efectivamente: de los 595 canales de la animación,
+uno —el de `weights`, que mueve los ojos— apunta a un accessor **sin
+bufferView**, es decir sin datos de dónde leer. three.js lo deja pasar tratándolo
+como ceros; el cargador de Filament es estricto y descarta la animación entera,
+sin un solo error.
+
+Se le dan sus bytes en cero en el conversor, que es exactamente lo que el otro
+cargador venía suponiendo. Los accessors de Draco también vienen sin bufferView
+pero ésos los rellena la extensión al descomprimir, así que se saltean.
+
+El avatar nativo queda como predeterminado; `EXPO_PUBLIC_AVATAR_WEBVIEW=1`
+vuelve al WebView sin tocar nada más.
 
 ## Lo que falta cerrar
 

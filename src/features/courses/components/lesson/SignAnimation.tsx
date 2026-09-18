@@ -22,15 +22,12 @@ interface SignAnimationProps {
 }
 
 /**
- * Qué motor dibuja el avatar.
+ * Qué motor dibuja el avatar: Filament, salvo que se pida el WebView.
  *
- * El nativo (Filament) carga en 195 ms contra un WebView que arranca de cero
- * cada vez, pero hoy el modelo se queda en la pose del primer cuadro: gltfio
- * informa CERO animaciones para estos .glb, tanto con el archivo original como
- * con el convertido, y con asset instanciado o sin instanciar. Mientras eso no
- * se resuelva manda el WebView, que anima bien.
+ * El nativo carga en ~195 ms contra un WebView que arrancaba de cero cada vez.
+ * La bandera queda para poder volver atrás sin recompilar nada más.
  */
-const NATIVO = process.env.EXPO_PUBLIC_AVATAR_NATIVO === "1";
+const NATIVO = process.env.EXPO_PUBLIC_AVATAR_WEBVIEW !== "1";
 
 export function SignAnimation({ meaning, label, height = 320, tone = "neutral", paused, badge, cameraControls, style }: SignAnimationProps) {
   const [failed, setFailed] = useState(false);

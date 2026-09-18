@@ -28,7 +28,7 @@ object Glb {
   private const val BIN = 0x004E4942
   private const val WEBP = "EXT_texture_webp"
 
-  /** Devuelve el archivo convertido, o el original si no hacía falta tocarlo. */
+  /** Devuelve el archivo arreglado, o el original si no hacía falta tocarlo. */
   fun sinWebp(bytes: ByteArray): ByteArray {
     val buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
     if (buffer.int != 0x46546C67) return bytes // "glTF"
@@ -52,7 +52,6 @@ object Glb {
     }
 
     val doc = json ?: return bytes
-    if (!usa(doc, WEBP)) return bytes
 
     val vistas = doc.getJSONArray("bufferViews")
     val imagenes = doc.optJSONArray("images") ?: return bytes
@@ -108,6 +107,8 @@ object Glb {
     quitar(doc, "extensionsUsed", WEBP)
     quitar(doc, "extensionsRequired", WEBP)
 
+    rellenarAccessoresVacios(doc, vistas, bin.size, extra)
+
     val nuevoBin = bin + extra.toByteArray()
     doc.getJSONArray("buffers").getJSONObject(0).put("byteLength", nuevoBin.size)
     // JSONObject escapa las barras: "image/jpeg" sale como "image\/jpeg", que
@@ -115,6 +116,79 @@ object Glb {
     // y las texturas vuelven a quedar sin decodificar.
     val texto = doc.toString().replace("\\/", "/")
     return armar(texto.toByteArray(Charsets.UTF_8), nuevoBin)
+  }
+
+  /**
+   * Le da datos a los accessors que no tienen de dónde leerlos.
+   *
+   * Nuestros avatares traen un accessor sin `bufferView` —el canal de "weights"
+   * que anima los ojos— que además no es de Draco, así que nadie lo rellena.
+   * three.js lo deja pasar tratándolo como ceros, pero el cargador de Filament
+   * es estricto y descarta la animación ENTERA: el avatar se quedaba clavado en
+   * la pose del primer cuadro, con el modelo por lo demás perfecto y sin un
+   * solo error. Se le da su tamaño en ceros, que es exactamente lo que el otro
+   * cargador venía suponiendo.
+   *
+   * Los accessors de Draco también vienen sin bufferView, pero ésos sí los
+   * rellena la extensión al descomprimir la malla, así que se los saltea.
+   */
+  private fun rellenarAccessoresVacios(
+    doc: JSONObject,
+    vistas: JSONArray,
+    tamBin: Int,
+    extra: ByteArrayOutputStream,
+  ) {
+    val accessores = doc.optJSONArray("accessors") ?: return
+    val deDraco = HashSet<Int>()
+    val mallas = doc.optJSONArray("meshes")
+    if (mallas != null) {
+      for (i in 0 until mallas.length()) {
+        val primitivas = mallas.getJSONObject(i).getJSONArray("primitives")
+        for (j in 0 until primitivas.length()) {
+          val primitiva = primitivas.getJSONObject(j)
+          val atributos = primitiva.getJSONObject("attributes")
+          for (clave in atributos.keys()) deDraco.add(atributos.getInt(clave))
+          if (primitiva.has("indices")) deDraco.add(primitiva.getInt("indices"))
+          val objetivos = primitiva.optJSONArray("targets")
+          if (objetivos != null) {
+            for (k in 0 until objetivos.length()) {
+              val objetivo = objetivos.getJSONObject(k)
+              for (clave in objetivo.keys()) deDraco.add(objetivo.getInt(clave))
+            }
+          }
+        }
+      }
+    }
+
+    for (i in 0 until accessores.length()) {
+      val accessor = accessores.getJSONObject(i)
+      if (accessor.has("bufferView") || accessor.has("sparse") || deDraco.contains(i)) continue
+      val largo = accessor.getInt("count") * componentes(accessor.getString("type")) *
+        tamComponente(accessor.getInt("componentType"))
+      vistas.put(
+        JSONObject()
+          .put("buffer", 0)
+          .put("byteOffset", tamBin + extra.size())
+          .put("byteLength", largo),
+      )
+      extra.write(ByteArray(largo))
+      accessor.put("bufferView", vistas.length() - 1)
+    }
+  }
+
+  private fun componentes(tipo: String) = when (tipo) {
+    "SCALAR" -> 1
+    "VEC2" -> 2
+    "VEC3" -> 3
+    "VEC4", "MAT2" -> 4
+    "MAT3" -> 9
+    else -> 16
+  }
+
+  private fun tamComponente(codigo: Int) = when (codigo) {
+    5120, 5121 -> 1
+    5122, 5123 -> 2
+    else -> 4
   }
 
   private fun usa(doc: JSONObject, extension: String): Boolean {
