@@ -140,6 +140,9 @@ class SignaVisionModule : Module() {
       Prop("url") { vista: AvatarView, valor: String ->
         vista.url = valor
       }
+      Prop("urlRespaldo") { vista: AvatarView, valor: String ->
+        vista.urlRespaldo = valor
+      }
       Prop("pausado") { vista: AvatarView, valor: Boolean ->
         vista.pausado = valor
       }

@@ -118,6 +118,8 @@ interface AvatarProps {
   style?: ViewStyle;
   /** .glb a mostrar. Se guarda en disco la primera vez. */
   url: string;
+  /** De dónde bajarlo si el principal no responde. */
+  urlRespaldo?: string;
   /** Vuelve a la pose neutra y deja de animar. */
   pausado?: boolean;
   /** Arrastrar para girar el avatar. */

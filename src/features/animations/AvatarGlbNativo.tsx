@@ -6,6 +6,7 @@ import { AvatarNativo } from "../../../modules/signa-vision";
 
 interface Props {
   url: string;
+  urlRespaldo?: string;
   paused?: boolean;
   /** Arrastrar para girar el avatar. Por omisión sí, como en la versión web. */
   cameraControls?: boolean;
@@ -24,11 +25,12 @@ interface Props {
  * de `<model-viewer>` de un CDN antes de empezar; ahora el motor ya está en la
  * app y el .glb queda guardado en disco después de la primera vez.
  */
-export function AvatarGlbNativo({ url, paused, cameraControls = true, style, onLoaded, onTiempos, onError }: Props) {
+export function AvatarGlbNativo({ url, urlRespaldo, paused, cameraControls = true, style, onLoaded, onTiempos, onError }: Props) {
   return (
     <AvatarNativo
       style={StyleSheet.flatten([styles.lienzo, style])}
       url={url}
+      urlRespaldo={urlRespaldo}
       pausado={!!paused}
       rotable={cameraControls}
       onCargado={(e) => {

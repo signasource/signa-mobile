@@ -95,6 +95,15 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
       valor?.let { descargar(it) }
     }
 
+  /**
+   * De dónde bajarlo si el principal no responde.
+   *
+   * Existe para poder probar archivos servidos desde otro lado —una máquina de
+   * desarrollo, por ejemplo— sin que la app se quede sin avatar cuando ese otro
+   * lado no está.
+   */
+  var urlRespaldo: String? = null
+
   init {
     addView(superficie, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
 
@@ -317,8 +326,11 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
         if (!archivo.exists()) {
           archivo.parentFile?.mkdirs()
           val conexion = URL(desde).openConnection() as HttpURLConnection
-          conexion.connectTimeout = 15_000
-          conexion.readTimeout = 30_000
+          // Corto a propósito: si el origen no responde, lo que importa es
+          // pasar al respaldo rápido y no dejar el avatar en blanco mientras
+          // se agota una espera larga.
+          conexion.connectTimeout = 4_000
+          conexion.readTimeout = 20_000
           conexion.inputStream.use { entrada ->
             val temporal = File(archivo.path + ".parcial")
             temporal.outputStream().use { entrada.copyTo(it) }
@@ -340,8 +352,14 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
         val msPreparar = System.currentTimeMillis() - t0
         post { montar(bytes, msPreparar) }
       } catch (e: Throwable) {
-        Log.e(ETIQUETA, "no se pudo bajar el avatar", e)
-        post { onFalla(mapOf("error" to (e.message ?: e.toString()))) }
+        val respaldo = urlRespaldo
+        if (respaldo != null && respaldo != desde) {
+          Log.w(ETIQUETA, "no se pudo bajar de $desde, se prueba el respaldo: ${e.message}")
+          post { descargar(respaldo) }
+        } else {
+          Log.e(ETIQUETA, "no se pudo bajar el avatar", e)
+          post { onFalla(mapOf("error" to (e.message ?: e.toString()))) }
+        }
       }
     }
   }

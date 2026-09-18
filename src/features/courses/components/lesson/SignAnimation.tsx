@@ -4,7 +4,7 @@ import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
 import { AvatarGlbNativo } from "@/features/animations/AvatarGlbNativo";
 import { GlbAnimationView } from "@/features/animations/GlbAnimationView";
-import { getGlbUrl } from "@/features/animations/glbUrl";
+import { getGlbUrl, getGlbUrlOficial } from "@/features/animations/glbUrl";
 import { marcar } from "@/features/ml/telemetria";
 import { SignPlaceholder } from "./SignPlaceholder";
 
@@ -75,6 +75,7 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
       {nativo ? (
         <AvatarGlbNativo
           url={getGlbUrl(meaning)}
+          urlRespaldo={getGlbUrlOficial(meaning)}
           paused={paused}
           cameraControls={cameraControls}
           onTiempos={listo}
