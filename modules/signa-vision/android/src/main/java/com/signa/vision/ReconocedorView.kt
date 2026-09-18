@@ -69,6 +69,13 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
   private var fps = 0.0
 
   var mostrarEsqueleto = true
+    set(valor) {
+      field = valor
+      // Apagarlo tiene que BORRAR lo dibujado: si sólo se deja de actualizar,
+      // queda el último esqueleto congelado encima de la persona, que es peor
+      // que tenerlo prendido.
+      if (!valor) post { esqueleto.limpiar() }
+    }
   var activo = true
 
   /**
@@ -277,7 +284,11 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
 
     val (izquierda, derecha) = repartir(manos)
     if (mostrarEsqueleto) {
-      post { esqueleto.actualizar(pose?.landmarks()?.firstOrNull(), izquierda, derecha) }
+      val cuerpo = pose?.landmarks()?.firstOrNull()
+      post {
+        esqueleto.encuadre(bitmap.width, bitmap.height)
+        esqueleto.actualizar(cuerpo, izquierda, derecha)
+      }
     }
 
     val ahora = System.currentTimeMillis()

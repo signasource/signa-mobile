@@ -373,7 +373,10 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
       inicioAnimacion = 0L
       encuadrar(width, height)
       val msMontar = System.currentTimeMillis() - t0
-      Log.i(ETIQUETA, "avatar listo: ${msPreparar} ms de archivo + ${msMontar} ms de montaje")
+      Log.i(
+        ETIQUETA,
+        "avatar listo: ${url?.substringAfterLast('/')} ${msPreparar} ms de archivo + ${msMontar} ms de montaje",
+      )
       onCargado(
         mapOf(
           "clips" to asset.instance.animator.animationCount,

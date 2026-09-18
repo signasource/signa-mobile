@@ -1,5 +1,6 @@
 package com.signa.vision
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -37,6 +38,40 @@ class SignaVisionModule : Module() {
      * lo que se mide termina siendo otra cosa. Acá no hay cámara ni vistas, así
      * que lo que crezca es de los modelos.
      */
+    /**
+     * Por qué se cerró la app la última vez.
+     *
+     * Android lo sabe y lo guarda; sin preguntárselo, una app que el sistema
+     * mata por memoria y una que se cae por un error nativo se ven exactamente
+     * igual desde afuera: la pantalla vuelve al escritorio. Esto lo saca de
+     * ActivityManager y se manda con las métricas al arrancar.
+     */
+    AsyncFunction("ultimaSalida") {
+      val contexto = appContext.reactContext ?: throw IllegalStateException("sin contexto")
+      val am = contexto.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+      if (android.os.Build.VERSION.SDK_INT < 30) return@AsyncFunction mapOf("motivo" to "sin datos")
+      val salidas = am.getHistoricalProcessExitReasons(contexto.packageName, 0, 3)
+      salidas.firstOrNull()?.let { s ->
+        mapOf(
+          "motivo" to when (s.reason) {
+            android.app.ApplicationExitInfo.REASON_LOW_MEMORY -> "memoria del sistema"
+            android.app.ApplicationExitInfo.REASON_CRASH -> "excepción de Java"
+            android.app.ApplicationExitInfo.REASON_CRASH_NATIVE -> "caída nativa"
+            android.app.ApplicationExitInfo.REASON_ANR -> "se colgó (ANR)"
+            android.app.ApplicationExitInfo.REASON_EXCESSIVE_RESOURCE_USAGE -> "consumo excesivo"
+            android.app.ApplicationExitInfo.REASON_USER_REQUESTED -> "la cerró el usuario"
+            android.app.ApplicationExitInfo.REASON_SIGNALED -> "señal ${s.status}"
+            android.app.ApplicationExitInfo.REASON_OTHER -> "otro"
+            else -> "código ${s.reason}"
+          },
+          "descripcion" to (s.description ?: ""),
+          "memoriaKB" to (s.pss),
+          "cuando" to s.timestamp,
+          "importancia" to s.importance,
+        )
+      } ?: mapOf("motivo" to "sin salidas registradas")
+    }
+
     AsyncFunction("estres") { vueltas: Int, que: String ->
       val contexto = appContext.reactContext ?: throw IllegalStateException("sin contexto")
       System.gc()

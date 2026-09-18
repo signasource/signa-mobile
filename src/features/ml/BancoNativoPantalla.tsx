@@ -3,10 +3,11 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useCameraPermissions } from "expo-camera";
 
 import { colors, fonts } from "@/theme";
+import { marcar } from "./telemetria";
 import { PerformSignBlock } from "@/features/courses/components/lesson/blocks/PerformSignBlock";
 import { SpellNameBlock } from "@/features/courses/components/lesson/blocks/SpellNameBlock";
 import { SignAnimation } from "@/features/courses/components/lesson/SignAnimation";
-import { estres, FrameNativo, golden, ReconocedorNativo } from "../../../modules/signa-vision";
+import { AvatarNativo, estres, FrameNativo, golden, ReconocedorNativo, ultimaSalida } from "../../../modules/signa-vision";
 
 /**
  * TEMPORAL — etapa 1 de la migración a nativo.
@@ -22,6 +23,9 @@ import { estres, FrameNativo, golden, ReconocedorNativo } from "../../../modules
  * Usa el Text de React Native y no el de la app: esto se monta antes que los
  * proveedores de contexto.
  */
+/** Base de los .glb de prueba, servidos desde la máquina de desarrollo. */
+const PRUEBA_GLB = process.env.EXPO_PUBLIC_GLB_PRUEBA ?? "";
+
 export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
   const [permiso, pedirPermiso] = useCameraPermissions();
   const [ultimo, setUltimo] = useState<FrameNativo | null>(null);
@@ -68,6 +72,15 @@ export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
   useEffect(() => {
     if (permiso && !permiso.granted) void pedirPermiso();
   }, [permiso, pedirPermiso]);
+
+  // Al arrancar, preguntarle a Android por qué se cerró la vez anterior. Es la
+  // diferencia entre saber si la mató el sistema por memoria o si se cayó, que
+  // desde afuera se ven igual.
+  useEffect(() => {
+    ultimaSalida()
+      .then((s) => marcar("salida-anterior", s as unknown as Record<string, unknown>))
+      .catch(() => {});
+  }, []);
 
   function onFrame(e: { nativeEvent: FrameNativo }) {
     muestras.current.push(e.nativeEvent);
@@ -137,9 +150,31 @@ export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
       <View style={styles.varios}>
         {/* El mismo avatar con los dos motores, uno al lado del otro: es la
             única forma de comparar tiempos de carga sin cambiar de teléfono. */}
-        <SignAnimation meaning="madre" label="madre · nativo" height={180} motor="nativo" />
-        <SignAnimation meaning="padre" label="padre · webview" height={180} motor="webview" />
-        <SignAnimation meaning="hermano" label="hermano · nativo" height={180} motor="nativo" />
+        <SignAnimation meaning="madre" label="madre · nativo" height={150} motor="nativo" />
+        <SignAnimation meaning="padre" label="padre · webview" height={150} motor="webview" />
+
+        {/* Tres versiones del MISMO archivo servidas desde la máquina de
+            desarrollo: como viene publicado (webp), con las texturas en JPEG y
+            con las texturas en KTX2. Sirve para elegir formato con números en
+            vez de con la intuición. Ver scripts/arreglar_glb.py en signa-ml. */}
+        {PRUEBA_GLB
+          ? ["orig", "jpeg", "ktx2"].map((cual) => (
+              <AvatarNativo
+                key={cual}
+                style={{ height: 130, borderRadius: 16, overflow: "hidden" }}
+                url={`${PRUEBA_GLB}/${cual}.glb`}
+                onCargado={(e) =>
+                  marcar("glb", {
+                    formato: cual,
+                    msArchivo: e.nativeEvent.msArchivo,
+                    msMontaje: e.nativeEvent.msMontaje,
+                    clips: e.nativeEvent.clips,
+                  })
+                }
+                onFalla={(e) => marcar("glb", { formato: cual, error: e.nativeEvent.error })}
+              />
+            ))
+          : null}
         <Pressable style={styles.boton} onPress={() => setVarios(false)}>
           <Text style={styles.botonTexto}>Volver</Text>
         </Pressable>

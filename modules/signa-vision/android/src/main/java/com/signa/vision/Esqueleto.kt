@@ -25,10 +25,15 @@ class Esqueleto(contexto: Context) : View(contexto) {
   // cuerpo sólo dice dónde están—, y esa transparencia va en el color y no en
   // una capa aparte: una capa con alfa obliga a dibujar fuera de pantalla y
   // componer, en cada cuadro, para algo que se resuelve con dos colores.
-  private val haloPose = trazo(Color.argb(83, 255, 255, 255), 6f)
-  private val lineaPose = trazo(conAlfa(ACENTO, 166), 2.6f)
-  private val haloMano = trazo(Color.argb(230, 255, 255, 255), 5f)
-  private val lineaMano = trazo(ACENTO, 2.4f)
+  // La demo dibuja en píxeles de CSS sobre un lienzo escalado por la densidad
+  // de pantalla; acá el lienzo está en píxeles reales, así que los mismos
+  // números se ven tres veces más finos en un teléfono. Todo va en dp.
+  private val dp = contexto.resources.displayMetrics.density
+
+  private val haloPose = trazo(Color.argb(83, 255, 255, 255), 6f * dp)
+  private val lineaPose = trazo(conAlfa(ACENTO, 166), 2.6f * dp)
+  private val haloMano = trazo(Color.argb(230, 255, 255, 255), 5f * dp)
+  private val lineaMano = trazo(ACENTO, 2.4f * dp)
   private val puntoHalo = Paint().apply { color = Color.argb(230, 255, 255, 255); isAntiAlias = true }
   private val puntoAcento = Paint().apply { color = ACENTO; isAntiAlias = true }
   private val puntoHaloPose = Paint().apply { color = Color.argb(150, 255, 255, 255); isAntiAlias = true }
@@ -45,6 +50,18 @@ class Esqueleto(contexto: Context) : View(contexto) {
 
   /** Las puntas de los dedos se dibujan un poco más grandes: son la seña. */
   private val puntas = intArrayOf(4, 8, 12, 16, 20)
+
+  /**
+   * Tamaño del cuadro que vio el detector, ya rotado.
+   *
+   * Hace falta para que los puntos caigan sobre la mano: la previa de la cámara
+   * muestra la imagen RECORTADA para llenar la vista (FILL_CENTER), no
+   * estirada. Dibujando los puntos estirados sobre una imagen recortada, el
+   * esqueleto queda corrido y más chico que la mano, que es exactamente lo que
+   * se veía.
+   */
+  private var anchoCuadro = 0
+  private var altoCuadro = 0
 
   private var pose: FloatArray? = null
   private var poseDestino: FloatArray? = null
@@ -63,6 +80,11 @@ class Esqueleto(contexto: Context) : View(contexto) {
     9 to 10, 10 to 11, 11 to 12, 9 to 13, 13 to 14, 14 to 15, 15 to 16, 13 to 17,
     0 to 17, 17 to 18, 18 to 19, 19 to 20,
   )
+
+  fun encuadre(ancho: Int, alto: Int) {
+    anchoCuadro = ancho
+    altoCuadro = alto
+  }
 
   fun actualizar(
     poseNueva: List<NormalizedLandmark>?,
@@ -115,32 +137,44 @@ class Esqueleto(contexto: Context) : View(contexto) {
     val w = width.toFloat()
     val h = height.toFloat()
 
+    // Mismo recorte que hace la previa: se escala por el lado que sobra y el
+    // resto queda fuera de la vista, centrado.
+    val cw = if (anchoCuadro > 0) anchoCuadro.toFloat() else w
+    val ch = if (altoCuadro > 0) altoCuadro.toFloat() else h
+    val escala = maxOf(w / cw, h / ch)
+    val dw = cw * escala
+    val dh = ch * escala
+    val ox = (w - dw) / 2f
+    val oy = (h - dh) / 2f
+    fun px(x: Float) = ox + x * dw
+    fun py(y: Float) = oy + y * dh
+
     for (paint in arrayOf(haloPose, lineaPose)) {
       for ((a, b) in enlacesPose) {
         lienzo.drawLine(
-          actual[a * 2] * w, actual[a * 2 + 1] * h,
-          actual[b * 2] * w, actual[b * 2 + 1] * h, paint,
+          px(actual[a * 2]), py(actual[a * 2 + 1]),
+          px(actual[b * 2]), py(actual[b * 2 + 1]), paint,
         )
       }
     }
     for (i in puntosPose) {
-      val x = actual[i * 2] * w
-      val y = actual[i * 2 + 1] * h
-      lienzo.drawCircle(x, y, 5f, puntoHaloPose)
-      lienzo.drawCircle(x, y, 3.4f, puntoAcentoPose)
+      val x = px(actual[i * 2])
+      val y = py(actual[i * 2 + 1])
+      lienzo.drawCircle(x, y, 5f * dp, puntoHaloPose)
+      lienzo.drawCircle(x, y, 3.4f * dp, puntoAcentoPose)
     }
 
     for (v in manos.values) {
       for (paint in arrayOf(haloMano, lineaMano)) {
         for ((a, b) in enlacesMano) {
-          lienzo.drawLine(v[a * 2] * w, v[a * 2 + 1] * h, v[b * 2] * w, v[b * 2 + 1] * h, paint)
+          lienzo.drawLine(px(v[a * 2]), py(v[a * 2 + 1]), px(v[b * 2]), py(v[b * 2 + 1]), paint)
         }
       }
       for (i in 0 until v.size / 2) {
-        val x = v[i * 2] * w
-        val y = v[i * 2 + 1] * h
-        val r = if (i == 0) 5f else if (i in puntas) 4.2f else 3f
-        lienzo.drawCircle(x, y, r + 1.5f, puntoHalo)
+        val x = px(v[i * 2])
+        val y = py(v[i * 2 + 1])
+        val r = (if (i == 0) 5f else if (i in puntas) 4.2f else 3f) * dp
+        lienzo.drawCircle(x, y, r + 1.5f * dp, puntoHalo)
         lienzo.drawCircle(x, y, r, puntoAcento)
       }
     }
