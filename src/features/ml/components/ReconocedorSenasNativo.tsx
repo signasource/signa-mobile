@@ -71,6 +71,7 @@ export function ReconocedorSenasNativo({
       drawFps: f?.fps ?? 0,
       drawMs: 0,
       delegado: f?.delegado ?? "",
+      memoriaKB: f?.memoriaKB ?? 0,
     });
   }, [onFrame]);
 

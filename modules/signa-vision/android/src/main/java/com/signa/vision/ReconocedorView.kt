@@ -300,6 +300,9 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
           "delegado" to (if (det.enGpu) "GPU" else "CPU"),
           "ancho" to bitmap.width,
           "inferenciaMs" to (reconocedor?.msInferencia ?: 0.0),
+          // Dos veces por segundo alcanza para ver si la memoria crece, que es
+          // lo que precede a que el sistema cierre la app sin ningún error.
+          "memoriaKB" to (android.os.Debug.getNativeHeapAllocatedSize() / 1024),
         ),
       )
     }

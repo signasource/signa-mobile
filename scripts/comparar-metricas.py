@@ -53,6 +53,19 @@ def main(ruta: Path) -> None:
                 f"{mediana([m['inferMs'] for m in ms]):6.1f}m {len(ms):6}"
             )
 
+    memoria = defaultdict(list)
+    for clave, ms in cuadros.items():
+        crecimiento = [m["memoriaKB"] for m in ms if m.get("memoriaKB")]
+        if len(crecimiento) > 1:
+            memoria[clave] = [crecimiento[0], crecimiento[-1]]
+
+    if memoria:
+        # Una fuga no se ve en el promedio: se ve en que el último valor sea muy
+        # mayor que el primero dentro de la misma sesión.
+        print(f'\n{"memoria nativa: compilación / modo":38} {"inicio":>10} {"final":>10}')
+        for clave, (ini, fin) in sorted(memoria.items()):
+            print(f"{clave:38} {ini:9} KB {fin:9} KB")
+
     if avatares:
         print(f'\n{"avatar: compilación / motor":38} {"ms hasta verse":>15} {"n":>5}')
         for (build, motor), ms in sorted(avatares.items()):

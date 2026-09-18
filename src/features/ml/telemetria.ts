@@ -34,6 +34,8 @@ export interface MuestraFrame {
   sign: string | null;
   confidence: number;
   targetConfidence: number;
+  /** Memoria nativa en uso. Una fuga se ve como una recta que sube. */
+  memoriaKB?: number;
 }
 
 let buffer: (MuestraFrame & { t: number })[] = [];

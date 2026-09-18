@@ -130,6 +130,7 @@ export function PerformSignBlock({ config, active, ultimo, xp, onAnswer, onConti
       drawFps: f.drawFps, drawMs: f.drawMs, delegado: f.delegado,
       body: f.body, hands: f.hands, resting: f.resting, progress: f.progress,
       sign: f.sign, confidence: f.confidence, targetConfidence: f.targetConfidence,
+      memoriaKB: f.memoriaKB,
     });
   }, []);
 

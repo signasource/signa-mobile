@@ -25,33 +25,11 @@ import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerResult
  * de hombros que normaliza y el bloque de cara del abecedario.
  */
 class Detectores private constructor(
-  contexto: Context,
+  private val manos: HandLandmarker,
+  private val pose: PoseLandmarker,
   private val delegado: Delegate,
-  private val cadaCuantosPose: Int = 5,
+  private val cadaCuantosPose: Int,
 ) {
-
-  private val manos: HandLandmarker = HandLandmarker.createFromOptions(
-    contexto,
-    HandLandmarker.HandLandmarkerOptions.builder()
-      .setBaseOptions(base("hand_landmarker.task"))
-      .setRunningMode(RunningMode.IMAGE)
-      .setNumHands(2)
-      // Bajar el piso de seguimiento evita que MediaPipe vuelva a correr el
-      // detector de palmas —lo más caro— cada vez que una mano se gira o se
-      // tapa a medias. Mientras la siga viendo, la sigue.
-      .setMinHandPresenceConfidence(0.3f)
-      .setMinTrackingConfidence(0.3f)
-      .build(),
-  )
-
-  private val pose: PoseLandmarker = PoseLandmarker.createFromOptions(
-    contexto,
-    PoseLandmarker.PoseLandmarkerOptions.builder()
-      .setBaseOptions(base("pose_landmarker.task"))
-      .setRunningMode(RunningMode.IMAGE)
-      .setNumPoses(1)
-      .build(),
-  )
 
   val enGpu: Boolean get() = delegado == Delegate.GPU
 
@@ -65,18 +43,70 @@ class Detectores private constructor(
      * real: sigue siendo tres veces mejor que el camino web, así que vale mucho
      * más caer a CPU que no funcionar.
      */
-    fun crear(contexto: Context, cadaCuantosPose: Int = 5): Detectores =
-      try {
-        Detectores(contexto, Delegate.GPU, cadaCuantosPose)
-      } catch (e: Throwable) {
-        Detectores(contexto, Delegate.CPU, cadaCuantosPose)
-      }
-  }
+    /**
+     * Qué delegado funcionó la última vez. Se recuerda para no volver a
+     * intentar con GPU en un aparato donde ya se sabe que no abre: además de
+     * tardar, el intento fallido deja memoria nativa colgada —MediaPipe alcanza
+     * a cargar el modelo de manos, 7,8 MB, antes de fallar con el de pose— y
+     * eso se acumula con cada entrada al ejercicio.
+     */
+    @Volatile private var delegadoConocido: Delegate? = null
 
-  private fun base(modelo: String) = BaseOptions.builder()
-    .setModelAssetPath(modelo)
-    .setDelegate(delegado)
-    .build()
+    fun crear(contexto: Context, cadaCuantosPose: Int = 5): Detectores {
+      delegadoConocido?.let { return armar(contexto, it, cadaCuantosPose) }
+      return try {
+        armar(contexto, Delegate.GPU, cadaCuantosPose).also { delegadoConocido = Delegate.GPU }
+      } catch (e: Throwable) {
+        armar(contexto, Delegate.CPU, cadaCuantosPose).also { delegadoConocido = Delegate.CPU }
+      }
+    }
+
+    /** Sólo para medir: fuerza CPU y saltea el intento con GPU. */
+    fun crearEnCpu(contexto: Context, cadaCuantosPose: Int = 5): Detectores =
+      armar(contexto, Delegate.CPU, cadaCuantosPose)
+
+    /**
+     * Los dos detectores, o ninguno.
+     *
+     * Se arman por separado y con red: donde el delegado de GPU no anda, el de
+     * manos se crea bien y el de pose tira, y el de manos quedaba abierto para
+     * siempre. Son 7 MB de memoria nativa por cada vez que se entra a un
+     * ejercicio; al rato el sistema cierra la app sin decir nada. Medido con
+     * `estres(8, "detectores")`.
+     */
+    private fun armar(contexto: Context, delegado: Delegate, cadaCuantosPose: Int): Detectores {
+      val base = { modelo: String ->
+        BaseOptions.builder().setModelAssetPath(modelo).setDelegate(delegado).build()
+      }
+      val manos = HandLandmarker.createFromOptions(
+        contexto,
+        HandLandmarker.HandLandmarkerOptions.builder()
+          .setBaseOptions(base("hand_landmarker.task"))
+          .setRunningMode(RunningMode.IMAGE)
+          .setNumHands(2)
+          // Bajar el piso de seguimiento evita que MediaPipe vuelva a correr el
+          // detector de palmas —lo más caro— cada vez que una mano se gira o se
+          // tapa a medias. Mientras la siga viendo, la sigue.
+          .setMinHandPresenceConfidence(0.3f)
+          .setMinTrackingConfidence(0.3f)
+          .build(),
+      )
+      return try {
+        val pose = PoseLandmarker.createFromOptions(
+          contexto,
+          PoseLandmarker.PoseLandmarkerOptions.builder()
+            .setBaseOptions(base("pose_landmarker.task"))
+            .setRunningMode(RunningMode.IMAGE)
+            .setNumPoses(1)
+            .build(),
+        )
+        Detectores(manos, pose, delegado, cadaCuantosPose)
+      } catch (e: Throwable) {
+        manos.close()
+        throw e
+      }
+    }
+  }
 
   private var cuenta = 0L
   private var ultimaPose: PoseLandmarkerResult? = null

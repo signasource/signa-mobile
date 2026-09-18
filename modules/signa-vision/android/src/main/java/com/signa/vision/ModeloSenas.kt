@@ -30,10 +30,15 @@ class ModeloSenas(contexto: Context) {
   val reposo = "reposo"
 
   init {
-    val fd = contexto.assets.openFd("modelo.tflite")
-    val modelo = fd.createInputStream().channel.map(
-      FileChannel.MapMode.READ_ONLY, fd.startOffset, fd.declaredLength,
-    )
+    // El descriptor y el canal se cierran acá mismo: el mapeo sobrevive igual, y
+    // dejándolos abiertos se acumulaba un archivo mapeado por cada vez que se
+    // entra al ejercicio —el del abecedario pesa 8,6 MB— hasta que el sistema
+    // se cansaba y cerraba la app sin decir nada.
+    val modelo = contexto.assets.openFd("modelo.tflite").use { fd ->
+      fd.createInputStream().use { entrada ->
+        entrada.channel.map(FileChannel.MapMode.READ_ONLY, fd.startOffset, fd.declaredLength)
+      }
+    }
     interprete = Interpreter(modelo, Interpreter.Options().apply { numThreads = 2 })
 
     val json = JSONObject(contexto.assets.open("senas.json").bufferedReader().use { it.readText() })

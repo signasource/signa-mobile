@@ -21,6 +21,7 @@ object MotorFilament {
   private var usos = 0
 
   fun tomar(): Engine {
+    android.util.Log.i("SignaAvatar", "motor tomar, usos=${usos + 1}")
     if (motor == null) {
       Filament.init()
       Gltfio.init()
@@ -32,6 +33,7 @@ object MotorFilament {
 
   fun devolver() {
     usos--
+    android.util.Log.i("SignaAvatar", "motor devolver, usos=$usos")
     if (usos <= 0) {
       usos = 0
       motor?.destroy()

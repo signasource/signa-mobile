@@ -25,12 +25,17 @@ interface SignAnimationProps {
 }
 
 /**
- * Qué motor dibuja el avatar: Filament, salvo que se pida el WebView.
+ * Qué motor dibuja el avatar. Por omisión el WebView.
  *
- * El nativo carga en ~195 ms contra un WebView que arrancaba de cero cada vez.
- * La bandera queda para poder volver atrás sin recompilar nada más.
+ * El nativo carga mucho más rápido, pero probado en un teléfono real se ve peor
+ * —la iluminación es un ambiente plano, no el entorno que arma model-viewer— y
+ * se mueve a tirones cuando comparte la GPU con la cámara y MediaPipe. Hasta
+ * que eso esté resuelto manda el WebView, que es lo que la gente ya venía
+ * viendo bien.
+ *
+ * `EXPO_PUBLIC_AVATAR_NATIVO=1` enciende Filament para seguir trabajándolo.
  */
-const NATIVO = process.env.EXPO_PUBLIC_AVATAR_WEBVIEW !== "1";
+const NATIVO = process.env.EXPO_PUBLIC_AVATAR_NATIVO === "1";
 
 export function SignAnimation({ meaning, label, height = 320, tone = "neutral", paused, badge, cameraControls, motor, style }: SignAnimationProps) {
   const nativo = motor ? motor === "nativo" : NATIVO;

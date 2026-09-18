@@ -6,7 +6,7 @@ import { colors, fonts } from "@/theme";
 import { PerformSignBlock } from "@/features/courses/components/lesson/blocks/PerformSignBlock";
 import { SpellNameBlock } from "@/features/courses/components/lesson/blocks/SpellNameBlock";
 import { SignAnimation } from "@/features/courses/components/lesson/SignAnimation";
-import { FrameNativo, golden, ReconocedorNativo } from "../../../modules/signa-vision";
+import { estres, FrameNativo, golden, ReconocedorNativo } from "../../../modules/signa-vision";
 
 /**
  * TEMPORAL — etapa 1 de la migración a nativo.
@@ -44,6 +44,20 @@ export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
   //
   // A pedido y no al arrancar: son cientos de inferencias seguidas y, mientras
   // corren, los ms por cuadro que muestra esta misma pantalla no valen nada.
+  async function medirFugas() {
+    setContraste("abriendo y cerrando los modelos…");
+    try {
+      const partes: string[] = [];
+      for (const que of ["senas", "abecedario", "detectores", "detectoresCpu"] as const) {
+        const r = await estres(8, que);
+        partes.push(`${que} ${r.porVueltaKB}KB`);
+      }
+      setContraste(`fuga por vuelta: ${partes.join(" · ")}`);
+    } catch (e) {
+      setContraste(`estrés falló · ${String(e)}`);
+    }
+  }
+
   function contrastar() {
     setContraste("contrastando…");
     golden()
@@ -177,7 +191,7 @@ export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
         <Text style={styles.referencia}>
           En WebView, este teléfono: manos 57-147 ms · 6-10 fps
         </Text>
-        <Pressable onPress={contrastar}>
+        <Pressable onPress={contrastar} onLongPress={medirFugas}>
           <Text style={styles.referencia}>{contraste}</Text>
         </Pressable>
         <Pressable style={styles.boton} onPress={() => setEjercicio("senas")}>

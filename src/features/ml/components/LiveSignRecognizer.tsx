@@ -27,6 +27,8 @@ export interface LiveFrame {
   drawFps: number;
   drawMs: number;
   delegado: string;
+  /** Memoria nativa en uso, en KB. Sólo la informa el reconocedor nativo. */
+  memoriaKB?: number;
 }
 
 interface LiveSignRecognizerProps {

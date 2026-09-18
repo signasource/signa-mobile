@@ -170,6 +170,65 @@ Tres formas de arruinarlo, ninguna de las cuales da error:
 Las tres las cubre el golden, que ahora contrasta también el abecedario contra
 Python: **diferencia 0,0000**, bloque de cara incluido.
 
+## Etapa 3 en un teléfono real
+
+Primera corrida del usuario con la etapa 3, medida con el colector:
+
+| | WebView (antes) | nativo (etapa 3) |
+|---|---|---|
+| manos | 136-147 ms | **83 ms** |
+| pose | 92-106 ms | **55 ms** |
+| inferencia | 4 ms | 4,6-10,5 ms |
+| fps | 6-7,5 | **10,5** |
+
+Casi la mitad de costo por cuadro y un 40% más de fps, con el delegado de GPU
+funcionando. Es una mejora real pero no la que promete el banco aislado (24 ms),
+y eso tiene explicación: en el ejercicio, además de detectar, hay un avatar 3D
+dibujándose sobre la misma GPU y la LSTM corriendo en el mismo hilo.
+
+### La app se cerraba sola
+
+Reportado desde el teléfono: después de un rato de uso la app se cierra, sin
+error. Es el cuadro típico de que el sistema la mata por memoria, y se reprodujo
+en el emulador: entrando y saliendo de los ejercicios, la memoria del proceso
+subía de 343 a 456 MB en seis vueltas, siempre para arriba.
+
+Medirlo desde la interfaz no servía —los toques no siempre entran y lo que se
+mide termina siendo otra cosa—, así que la prueba se hace desde Kotlin:
+`estres(n, qué)` abre y cierra n veces cada pieza y devuelve cuánta memoria
+nativa quedó. Ahí quedó claro en una sola corrida:
+
+| pieza | por vuelta |
+|---|---|
+| modelo de señas | ~0 |
+| modelo del abecedario | 154 KB |
+| **detectores de MediaPipe** | **7396 KB** |
+
+Eran dos cosas, las dos del mismo origen: se intenta crear los detectores con
+delegado de GPU y, donde eso no anda, el de manos se crea bien y el de pose
+tira. El de manos —7,8 MB de modelo— quedaba abierto para siempre, y encima el
+intento fallido se repetía en cada entrada al ejercicio. Ahora el de manos se
+cierra si el de pose falla, y el delegado que funcionó se recuerda para no
+volver a intentar. Con eso la fuga de los detectores baja a 1,4 MB por vuelta y
+la memoria del proceso deja de crecer: se estabiliza en 206 MB.
+
+Además, los `.tflite` se abrían mapeando el archivo sin cerrar el descriptor,
+y cada cuadro informa ahora la memoria nativa en uso, así una fuga se ve como
+una recta que sube en las métricas del teléfono en vez de como una app que se
+cierra sola.
+
+### El avatar nativo, de vuelta atrás
+
+También reportado desde el teléfono: los avatares de Filament se ven peor que
+el del WebView —sin luz— y se mueven a tirones. Tiene sentido: la iluminación
+es un ambiente plano de armónicos esféricos, no el entorno que arma
+`model-viewer`, y encima compite por la GPU con MediaPipe.
+
+Así que el avatar vuelve al WebView por omisión. `EXPO_PUBLIC_AVATAR_NATIVO=1`
+enciende Filament para seguir trabajándolo: lo que falta es una imagen de
+entorno de verdad y limitarle los cuadros por segundo mientras la cámara esté
+encendida.
+
 ## Lo que falta cerrar
 
 Medir la etapa 2 en el teléfono: cuánto bajó el cuadro con los 480 px, cuánto

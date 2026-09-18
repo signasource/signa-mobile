@@ -31,6 +31,40 @@ class SignaVisionModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("SignaVision")
 
+    /**
+     * Abre y cierra los modelos muchas veces y informa cuánta memoria nativa
+     * quedó. Manejar esto desde la UI no sirve: los toques no siempre entran y
+     * lo que se mide termina siendo otra cosa. Acá no hay cámara ni vistas, así
+     * que lo que crezca es de los modelos.
+     */
+    AsyncFunction("estres") { vueltas: Int, que: String ->
+      val contexto = appContext.reactContext ?: throw IllegalStateException("sin contexto")
+      System.gc()
+      val antes = android.os.Debug.getNativeHeapAllocatedSize()
+      repeat(vueltas) {
+        when (que) {
+          "senas" -> Reconocedor(contexto, Reconocedor.Modo.DINAMICO).cerrar()
+          "abecedario" -> Reconocedor(contexto, Reconocedor.Modo.ESTATICO).cerrar()
+          "detectores" -> Detectores.crear(contexto).cerrar()
+          "detectoresCpu" -> Detectores.crearEnCpu(contexto).cerrar()
+          else -> {
+            Reconocedor(contexto, Reconocedor.Modo.DINAMICO).cerrar()
+            Reconocedor(contexto, Reconocedor.Modo.ESTATICO).cerrar()
+            Detectores.crear(contexto).cerrar()
+          }
+        }
+      }
+      System.gc()
+      val despues = android.os.Debug.getNativeHeapAllocatedSize()
+      mapOf(
+        "que" to que,
+        "vueltas" to vueltas,
+        "antesKB" to antes / 1024,
+        "despuesKB" to despues / 1024,
+        "porVueltaKB" to (despues - antes) / 1024 / maxOf(1, vueltas),
+      )
+    }
+
     AsyncFunction("golden") {
       Golden.correr(appContext.reactContext ?: throw IllegalStateException("sin contexto"))
     }

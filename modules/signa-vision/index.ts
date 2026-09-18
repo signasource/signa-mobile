@@ -27,6 +27,17 @@ export function golden(): Promise<{ peorDiferencia: number; detalle: string; rep
   return nativo.golden();
 }
 
+/** Abre y cierra los modelos N veces y dice cuánta memoria nativa quedó. */
+export function estres(vueltas = 10, que: "senas" | "abecedario" | "detectores" | "detectoresCpu" | "todo" = "todo"): Promise<{
+  que: string;
+  vueltas: number;
+  antesKB: number;
+  despuesKB: number;
+  porVueltaKB: number;
+}> {
+  return nativo.estres(vueltas, que);
+}
+
 export function banco(vueltas = 30, enGpu = true): Promise<ResultadoBanco> {
   return nativo.banco(vueltas, enGpu);
 }
@@ -46,6 +57,8 @@ export interface FrameNativo {
   ancho: number;
   /** Milisegundos de la LSTM. Cero mientras no haya señas que reconocer. */
   inferenciaMs: number;
+  /** Memoria nativa en uso. Sirve para ver fugas desde un teléfono real. */
+  memoriaKB: number;
 }
 
 /** Cómo va la seña que se está mirando ahora. */
