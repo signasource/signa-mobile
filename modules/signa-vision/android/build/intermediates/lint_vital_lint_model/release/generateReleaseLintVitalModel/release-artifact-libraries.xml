@@ -162,10 +162,10 @@
       jars="/home/mateo/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-jdk8/1.8.20/73576ddf378c5b4f1f6b449fe6b119b8183fc078/kotlin-stdlib-jdk8-1.8.20.jar"
       resolved="org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.20"/>
   <library
-      name="com.google.mediapipe:tasks-vision:0.10.14@aar"
-      jars="/home/mateo/.gradle/caches/8.14.3/transforms/1e835948bd2c8c63dd41efa8746831aa/transformed/tasks-vision-0.10.14/jars/classes.jar"
-      resolved="com.google.mediapipe:tasks-vision:0.10.14"
-      folder="/home/mateo/.gradle/caches/8.14.3/transforms/1e835948bd2c8c63dd41efa8746831aa/transformed/tasks-vision-0.10.14"
+      name="com.google.mediapipe:tasks-vision:0.10.35@aar"
+      jars="/home/mateo/.gradle/caches/8.14.3/transforms/269ba9d93a230f65faf1764d249a577d/transformed/tasks-vision-0.10.35/jars/classes.jar"
+      resolved="com.google.mediapipe:tasks-vision:0.10.35"
+      folder="/home/mateo/.gradle/caches/8.14.3/transforms/269ba9d93a230f65faf1764d249a577d/transformed/tasks-vision-0.10.35"
       manifest="AndroidManifest.xml"
       resFolder="res"
       assetsFolder="assets"
@@ -175,10 +175,10 @@
       externalAnnotations="annotations.zip"
       proguardRules="proguard.txt"/>
   <library
-      name="com.google.mediapipe:tasks-core:0.10.14@aar"
-      jars="/home/mateo/.gradle/caches/8.14.3/transforms/4e84d594d192f25059ca18adb2aa4941/transformed/tasks-core-0.10.14/jars/classes.jar"
-      resolved="com.google.mediapipe:tasks-core:0.10.14"
-      folder="/home/mateo/.gradle/caches/8.14.3/transforms/4e84d594d192f25059ca18adb2aa4941/transformed/tasks-core-0.10.14"
+      name="com.google.mediapipe:tasks-core:0.10.35@aar"
+      jars="/home/mateo/.gradle/caches/8.14.3/transforms/7b9a8083b7018129417c8d41ca1a9d2b/transformed/tasks-core-0.10.35/jars/classes.jar"
+      resolved="com.google.mediapipe:tasks-core:0.10.35"
+      folder="/home/mateo/.gradle/caches/8.14.3/transforms/7b9a8083b7018129417c8d41ca1a9d2b/transformed/tasks-core-0.10.35"
       manifest="AndroidManifest.xml"
       resFolder="res"
       assetsFolder="assets"
@@ -313,14 +313,6 @@
       name="javax.inject:javax.inject:1@jar"
       jars="/home/mateo/.gradle/caches/modules-2/files-2.1/javax.inject/javax.inject/1/6975da39a7040257bd51d21a231b76c915872d38/javax.inject-1.jar"
       resolved="javax.inject:javax.inject:1"/>
-  <library
-      name="com.google.auto.value:auto-value-annotations:1.8.1@jar"
-      jars="/home/mateo/.gradle/caches/modules-2/files-2.1/com.google.auto.value/auto-value-annotations/1.8.1/174878f9cc9cbacb8b464d774afb2ccf938f257b/auto-value-annotations-1.8.1.jar"
-      resolved="com.google.auto.value:auto-value-annotations:1.8.1"/>
-  <library
-      name="com.google.auto.value:auto-value:1.8.1@jar"
-      jars="/home/mateo/.gradle/caches/modules-2/files-2.1/com.google.auto.value/auto-value/1.8.1/aacb85fe6fd2a7e6619448efcde89360bda701e9/auto-value-1.8.1.jar"
-      resolved="com.google.auto.value:auto-value:1.8.1"/>
   <library
       name="com.google.guava:failureaccess:1.0.1@jar"
       jars="/home/mateo/.gradle/caches/modules-2/files-2.1/com.google.guava/failureaccess/1.0.1/1dcf1de382a0bf95a3d8b0849546c88bac1292c9/failureaccess-1.0.1.jar"
@@ -953,6 +945,10 @@
       symbolFile="R.txt"
       externalAnnotations="annotations.zip"
       proguardRules="proguard.txt"/>
+  <library
+      name="com.google.auto.value:auto-value-annotations:1.6.3@jar"
+      jars="/home/mateo/.gradle/caches/modules-2/files-2.1/com.google.auto.value/auto-value-annotations/1.6.3/b88c1bb7f149f6d2cc03898359283e57b08f39cc/auto-value-annotations-1.6.3.jar"
+      resolved="com.google.auto.value:auto-value-annotations:1.6.3"/>
   <library
       name="com.facebook.fbjni:fbjni:0.7.0@aar"
       jars="/home/mateo/.gradle/caches/8.14.3/transforms/c4ed38aee617328a15ca67287b31027e/transformed/fbjni-0.7.0/jars/classes.jar"

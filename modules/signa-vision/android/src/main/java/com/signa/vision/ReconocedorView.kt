@@ -34,8 +34,11 @@ import java.util.concurrent.Executors
 @SuppressLint("ViewConstructor")
 class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(contexto, appContext) {
 
-  private val alFrame by EventDispatcher()
-  private val alListo by EventDispatcher()
+  // Los nombres empiezan con "on" por obligación de React Native: los mapea a
+  // "topOnFrame"/"topOnListo" y rechaza en ejecución cualquier evento que no
+  // siga esa convención, tirando la app abajo apenas se emite el primero.
+  private val onFrame by EventDispatcher()
+  private val onListo by EventDispatcher()
 
   private val vista = PreviewView(contexto).apply {
     implementationMode = PreviewView.ImplementationMode.PERFORMANCE
@@ -149,7 +152,7 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
           if (!avisadoDeFallo) {
             avisadoDeFallo = true
             Log.e(ETIQUETA, "falló al procesar el cuadro", e)
-            post { alListo(mapOf("fase" to "error", "error" to ("cuadro: " + (e.message ?: e.toString())))) }
+            post { onListo(mapOf("fase" to "error", "error" to ("cuadro: " + (e.message ?: e.toString())))) }
           }
         } finally {
           imagen.close()
@@ -176,7 +179,7 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
         // en "esperando el primer cuadro" para siempre, sin decir por qué.
         armada = false
         Log.e(ETIQUETA, "no se pudo enlazar la cámara", e)
-        alListo(mapOf("fase" to "error", "error" to ("cámara: " + (e.message ?: e.toString()))))
+        onListo(mapOf("fase" to "error", "error" to ("cámara: " + (e.message ?: e.toString()))))
       }
     }, androidx.core.content.ContextCompat.getMainExecutor(context))
   }
@@ -190,7 +193,7 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
     if (!avisadoPrimerCuadro) {
       avisadoPrimerCuadro = true
       Log.i(ETIQUETA, "primer cuadro: ${imagen.width}x${imagen.height} fmt=${imagen.format}")
-      post { alListo(mapOf("fase" to "cuadros", "detalle" to "${imagen.width}x${imagen.height}")) }
+      post { onListo(mapOf("fase" to "cuadros", "detalle" to "${imagen.width}x${imagen.height}")) }
     }
     val det = detectores ?: crearDetectores() ?: return
 
@@ -224,7 +227,7 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
     // indicador, y cada uno mueve estado en React.
     if (ahora - ultimoAviso >= 500) {
       ultimoAviso = ahora
-      alFrame(
+      onFrame(
         mapOf(
           "fps" to fps,
           "manosMs" to det.msManos,
@@ -243,20 +246,20 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
 
   private fun crearDetectores(): Detectores? {
     return try {
-      val d = Detectores(context.applicationContext, enGpu = true)
+      val d = Detectores.crear(context.applicationContext)
       // Calentar antes de dar por listo: la primera detección cuesta bastante
       // más que las siguientes, y ese costo no debe caer sobre la primera seña.
       val vacio = Bitmap.createBitmap(480, 360, Bitmap.Config.ARGB_8888)
       d.calentar(BitmapImageBuilder(vacio).build())
       detectores = d
-      post { alListo(mapOf("fase" to "detectando")) }
+      post { onListo(mapOf("fase" to "detectando", "detalle" to if (d.enGpu) "GPU" else "CPU")) }
       d
     } catch (e: Throwable) {
       // Throwable y no Exception: que falte una librería nativa es un Error, y
       // atrapando sólo Exception se llevaba puesto el hilo de análisis en
       // silencio.
       Log.e(ETIQUETA, "no se pudieron crear los detectores", e)
-      post { alListo(mapOf("fase" to "error", "error" to ("detector: " + (e.message ?: e.toString())))) }
+      post { onListo(mapOf("fase" to "error", "error" to ("detector: " + (e.message ?: e.toString())))) }
       null
     }
   }

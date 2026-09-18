@@ -23,7 +23,7 @@ dependencies {
   implementation "org.jetbrains.kotlin:kotlin-stdlib:${kotlinVersion}"
   // Los MISMOS modelos que ya usamos, pero con el runtime nativo en vez del
   // WASM dentro del WebView.
-  implementation 'com.google.mediapipe:tasks-vision:0.10.14'
+  implementation 'com.google.mediapipe:tasks-vision:0.10.35'
 
   // Cámara nativa: el frame va de la cámara al detector sin pasar por el
   // puente de JS ni por un canvas intermedio, que es de donde salía buena

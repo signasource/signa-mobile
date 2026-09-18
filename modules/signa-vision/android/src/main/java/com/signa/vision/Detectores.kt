@@ -24,9 +24,11 @@ import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerResult
  * mueve mucho más lento que las manos, y de la pose sólo dependen la referencia
  * de hombros que normaliza y el bloque de cara del abecedario.
  */
-class Detectores(contexto: Context, enGpu: Boolean, private val cadaCuantosPose: Int = 5) {
-
-  private val delegado = if (enGpu) Delegate.GPU else Delegate.CPU
+class Detectores private constructor(
+  contexto: Context,
+  private val delegado: Delegate,
+  private val cadaCuantosPose: Int = 5,
+) {
 
   private val manos: HandLandmarker = HandLandmarker.createFromOptions(
     contexto,
@@ -50,6 +52,26 @@ class Detectores(contexto: Context, enGpu: Boolean, private val cadaCuantosPose:
       .setNumPoses(1)
       .build(),
   )
+
+  val enGpu: Boolean get() = delegado == Delegate.GPU
+
+  companion object {
+    /**
+     * Con GPU si el aparato puede; si no, con CPU.
+     *
+     * Hay aparatos donde el grafo de MediaPipe no abre con delegado de GPU y
+     * falla al crearse. Antes eso dejaba el reconocedor sin detectores y la
+     * pantalla en negro. CPU midió 32 ms contra los 24 de GPU en un teléfono
+     * real: sigue siendo tres veces mejor que el camino web, así que vale mucho
+     * más caer a CPU que no funcionar.
+     */
+    fun crear(contexto: Context, cadaCuantosPose: Int = 5): Detectores =
+      try {
+        Detectores(contexto, Delegate.GPU, cadaCuantosPose)
+      } catch (e: Throwable) {
+        Detectores(contexto, Delegate.CPU, cadaCuantosPose)
+      }
+  }
 
   private fun base(modelo: String) = BaseOptions.builder()
     .setModelAssetPath(modelo)

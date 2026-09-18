@@ -29,7 +29,7 @@ export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
     if (permiso && !permiso.granted) void pedirPermiso();
   }, [permiso, pedirPermiso]);
 
-  function alFrame(e: { nativeEvent: FrameNativo }) {
+  function onFrame(e: { nativeEvent: FrameNativo }) {
     muestras.current.push(e.nativeEvent);
     setUltimo(e.nativeEvent);
   }
@@ -84,8 +84,8 @@ export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
         activo
         mostrarEsqueleto
         usarTrasera={process.env.EXPO_PUBLIC_CAMARA_TRASERA === "1"}
-        alFrame={alFrame}
-        alListo={(e) => {
+        onFrame={onFrame}
+        onListo={(e) => {
           const n = e.nativeEvent;
           setEstado(
             n.fase === "error"

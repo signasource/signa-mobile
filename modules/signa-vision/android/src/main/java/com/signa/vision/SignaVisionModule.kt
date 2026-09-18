@@ -36,7 +36,7 @@ class SignaVisionModule : Module() {
     }
 
     View(ReconocedorView::class) {
-      Events("alFrame", "alListo")
+      Events("onFrame", "onListo")
 
       Prop("mostrarEsqueleto") { vista: ReconocedorView, valor: Boolean ->
         vista.mostrarEsqueleto = valor

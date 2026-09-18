@@ -42,9 +42,9 @@ interface ReconocedorProps {
   mostrarEsqueleto?: boolean;
   /** Sólo para probar en emulador, donde la frontal puede no dar cuadros. */
   usarTrasera?: boolean;
-  alFrame?: (e: { nativeEvent: FrameNativo }) => void;
+  onFrame?: (e: { nativeEvent: FrameNativo }) => void;
   /** fase: "cuadros" (la cámara entrega), "detectando" (listo), "error". */
-  alListo?: (e: { nativeEvent: { fase: string; detalle?: string; error?: string } }) => void;
+  onListo?: (e: { nativeEvent: { fase: string; detalle?: string; error?: string } }) => void;
 }
 
 const VistaNativa = requireNativeViewManager<ReconocedorProps>("SignaVision");
