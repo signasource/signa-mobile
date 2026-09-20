@@ -295,10 +295,19 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
     if (objetivos.isNotEmpty()) {
       val cuerpo = pose?.landmarks()?.firstOrNull()
       if (modo == "estatico") {
-        // El abecedario mira UNA mano, y necesita saber cuál es: el dataset
-        // trata todas como derechas, así que una izquierda se espeja. Por eso
-        // acá se usa la etiqueta de MediaPipe y no el reparto por cercanía.
-        val cual = manos.landmarks().indices.firstOrNull()
+        // El abecedario mira UNA mano: la que MediaPipe ve con más confianza.
+        //
+        // Antes se tomaba la primera de la lista, que servía mientras se pedía
+        // una sola mano. Al volver a pedir dos —para que el esqueleto sea el
+        // mismo que en señas— la primera puede ser la que está descansando, y
+        // la letra se decidía mirando la mano equivocada.
+        //
+        // Y necesita saber cuál es: el dataset trata todas las manos como
+        // derechas, así que una izquierda se espeja. Por eso acá se usa la
+        // etiqueta de MediaPipe y no el reparto por cercanía.
+        val cual = manos.handedness().indices.maxByOrNull { i ->
+          manos.handedness()[i].firstOrNull()?.score() ?: 0f
+        }
         reconocer(
           ahora,
           cuerpo,

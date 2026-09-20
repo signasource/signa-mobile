@@ -50,26 +50,33 @@ class SignaVisionModule : Module() {
       val contexto = appContext.reactContext ?: throw IllegalStateException("sin contexto")
       val am = contexto.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
       if (android.os.Build.VERSION.SDK_INT < 30) return@AsyncFunction mapOf("motivo" to "sin datos")
-      val salidas = am.getHistoricalProcessExitReasons(contexto.packageName, 0, 3)
-      salidas.firstOrNull()?.let { s ->
-        mapOf(
-          "motivo" to when (s.reason) {
-            android.app.ApplicationExitInfo.REASON_LOW_MEMORY -> "memoria del sistema"
-            android.app.ApplicationExitInfo.REASON_CRASH -> "excepción de Java"
-            android.app.ApplicationExitInfo.REASON_CRASH_NATIVE -> "caída nativa"
-            android.app.ApplicationExitInfo.REASON_ANR -> "se colgó (ANR)"
-            android.app.ApplicationExitInfo.REASON_EXCESSIVE_RESOURCE_USAGE -> "consumo excesivo"
-            android.app.ApplicationExitInfo.REASON_USER_REQUESTED -> "la cerró el usuario"
-            android.app.ApplicationExitInfo.REASON_SIGNALED -> "señal ${s.status}"
-            android.app.ApplicationExitInfo.REASON_OTHER -> "otro"
-            else -> "código ${s.reason}"
-          },
-          "descripcion" to (s.description ?: ""),
-          "memoriaKB" to (s.pss),
-          "cuando" to s.timestamp,
-          "importancia" to s.importance,
-        )
-      } ?: mapOf("motivo" to "sin salidas registradas")
+
+      // Se piden varias y se filtran los procesos AISLADOS: el WebView corre su
+      // renderizador en uno aparte, que el sistema mata y revive todo el
+      // tiempo, y esos registros tapaban el de la app.
+      val salidas = am.getHistoricalProcessExitReasons(contexto.packageName, 0, 10)
+        .filter { it.processName == contexto.packageName }
+        .take(3)
+        .map { s ->
+          mapOf(
+            "motivo" to when (s.reason) {
+              android.app.ApplicationExitInfo.REASON_LOW_MEMORY -> "memoria del sistema"
+              android.app.ApplicationExitInfo.REASON_CRASH -> "excepción de Java"
+              android.app.ApplicationExitInfo.REASON_CRASH_NATIVE -> "caída nativa"
+              android.app.ApplicationExitInfo.REASON_ANR -> "se colgó (ANR)"
+              android.app.ApplicationExitInfo.REASON_EXCESSIVE_RESOURCE_USAGE -> "consumo excesivo"
+              android.app.ApplicationExitInfo.REASON_USER_REQUESTED -> "la cerró el usuario"
+              android.app.ApplicationExitInfo.REASON_SIGNALED -> "señal ${s.status}"
+              android.app.ApplicationExitInfo.REASON_OTHER -> "otro"
+              else -> "código ${s.reason}"
+            },
+            "descripcion" to (s.description ?: ""),
+            "memoriaKB" to s.pss,
+            "cuando" to s.timestamp,
+            "importancia" to s.importance,
+          )
+        }
+      mapOf("salidas" to salidas)
     }
 
     AsyncFunction("estres") { vueltas: Int, que: String ->

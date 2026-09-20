@@ -78,7 +78,7 @@ export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
   // desde afuera se ven igual.
   useEffect(() => {
     ultimaSalida()
-      .then((s) => marcar("salida-anterior", s as unknown as Record<string, unknown>))
+      .then((r) => (r.salidas ?? []).forEach((s) => marcar("salida-anterior", s)))
       .catch(() => {});
   }, []);
 

@@ -29,11 +29,13 @@ export function golden(): Promise<{ peorDiferencia: number; detalle: string; rep
 
 /** Por qué se cerró la app la última vez, según Android. */
 export function ultimaSalida(): Promise<{
-  motivo: string;
-  descripcion?: string;
-  memoriaKB?: number;
-  cuando?: number;
-  importancia?: number;
+  salidas: {
+    motivo: string;
+    descripcion?: string;
+    memoriaKB?: number;
+    cuando?: number;
+    importancia?: number;
+  }[];
 }> {
   return nativo.ultimaSalida();
 }
