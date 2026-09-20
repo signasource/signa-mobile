@@ -20,11 +20,14 @@ import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerResult
  * llamada sincrónica es lo que se quiere: un frame entra, un resultado sale, y
  * el tiempo que tardó es el tiempo que tardó.
  *
- * La pose se detecta 1 de cada N frames y se reutiliza la última: el torso se
+ * La pose se detecta 1 de cada 5 frames y se reutiliza la última: el torso se
  * mueve mucho más lento que las manos, y de la pose sólo dependen la referencia
- * de hombros que normaliza y el bloque de cara del abecedario. Medida en un
- * teléfono, cada pose cuesta 55 ms: espaciarla es de lo poco que baja el costo
- * por cuadro sin cambiar de modelo.
+ * de hombros que normaliza y el bloque de cara del abecedario.
+ *
+ * Ese 5 es el mismo del motor web, y se vuelve a él a propósito: probé subirlo a
+ * 8 para ahorrar unos milisegundos, pero de la pose depende el bloque de cara
+ * que separa letras hechas a distinta altura, y no medí que eso no empeorara el
+ * reconocimiento. Ahorro sin medir no vale contra acierto.
  */
 class Detectores private constructor(
   private val manos: HandLandmarker,
@@ -54,7 +57,7 @@ class Detectores private constructor(
      */
     @Volatile private var delegadoConocido: Delegate? = null
 
-    fun crear(contexto: Context, cadaCuantosPose: Int = 8, manos: Int = 2): Detectores {
+    fun crear(contexto: Context, cadaCuantosPose: Int = 5, manos: Int = 2): Detectores {
       delegadoConocido?.let { return armar(contexto, it, cadaCuantosPose, manos) }
       return try {
         armar(contexto, Delegate.GPU, cadaCuantosPose, manos).also { delegadoConocido = Delegate.GPU }
@@ -64,7 +67,7 @@ class Detectores private constructor(
     }
 
     /** Sólo para medir: fuerza CPU y saltea el intento con GPU. */
-    fun crearEnCpu(contexto: Context, cadaCuantosPose: Int = 8): Detectores =
+    fun crearEnCpu(contexto: Context, cadaCuantosPose: Int = 5): Detectores =
       armar(contexto, Delegate.CPU, cadaCuantosPose, 2)
 
     /**

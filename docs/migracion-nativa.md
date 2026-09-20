@@ -223,6 +223,41 @@ El rango es ancho a propósito: depende de cuánta gente y cuántas manos haya e
 cuadro, del calor del teléfono y de qué más esté dibujando la app en ese momento.
 La mejor corrida dio 21,6 fps con 30 ms por cuadro; la peor, 9,3 con 87.
 
+## Qué se cambió del pipeline y qué no
+
+Al portar hay una tentación permanente: aprovechar el viaje para "mejorar" cosas.
+Eso mezcla dos preguntas que conviene mantener separadas —¿anda igual? y ¿anda
+más rápido?— y cuando algo se degrada ya no se sabe por cuál de las dos. Lo que
+efectivamente quedó igual y lo que no:
+
+| | motor web | nativo |
+|---|---|---|
+| manos que se le piden a MediaPipe | 2 | 2 |
+| qué mano mira el abecedario | la de mayor confianza | la de mayor confianza |
+| asignación izquierda/derecha | por cercanía al cuadro anterior | ídem |
+| resolución de entrada | 480x360 | 480 de lado mayor |
+| pose 1 de cada N cuadros | 5 | 5 |
+| inferencias por segundo | 12 | 12 |
+| ventana, umbrales, suavizado, confirmación | — | idénticos (prueba contra referencia: 0,0000) |
+
+Tres de esas filas dicen "igual" porque se volvieron atrás después de haberlas
+cambiado, y vale la pena registrar por qué:
+
+- **Una sola mano en el abecedario.** Para decidir la letra alcanza con una y es
+  más barato, pero el esqueleto es lo que la persona usa para saber si la cámara
+  la está viendo: con una sola mano dibujada, el ejercicio de letras se sentía
+  distinto del de señas sin ninguna razón visible. Volvió a dos.
+- **La primera mano de la lista en vez de la de mayor confianza.** Esto fue
+  directamente un error introducido al volver a pedir dos manos: la primera puede
+  ser la que está descansando, y la letra se decidía mirando la mano equivocada.
+- **Pose 1 de cada 8 en vez de 1 de cada 5.** Ahorraba unos milisegundos, pero de
+  la pose depende el bloque de cara que separa letras hechas a distinta altura, y
+  nunca se midió que ese ahorro no costara aciertos. Volvió a 5.
+
+La regla que queda: **un cambio de comportamiento necesita una medición que lo
+respalde; si no la tiene, el comportamiento se mantiene**. La optimización que no
+se puede demostrar no se paga con acierto.
+
 ## Lo que se aprendió por el camino
 
 **El emulador sirve para que no se caiga, no para medir.** Ahí MediaPipe corre
@@ -246,10 +281,10 @@ encontraron por un número que no cerraba, no por mirar la pantalla.
   decisión de producto antes que técnica.
 - **El APK pesa 222 MB** y 158 son librerías nativas de cuatro arquitecturas.
   Partirlo por arquitectura lo baja a menos de la mitad.
-- **Dos manos en el abecedario.** Para decidir la letra alcanza con una, pero el
-  esqueleto se veía distinto entre ejercicios. Volvió a dos por pedido explícito;
-  medido en el teléfono, con una mano el ejercicio daba 48 ms y 15 fps, y con dos
-  ronda los 76 ms y 10 fps. Es reversible en una línea.
+- **El costo de las dos manos en el abecedario.** Medido en el teléfono, con una
+  mano el ejercicio daba 48 ms por cuadro y 15 fps; con dos, unos 76 ms y 10 fps.
+  Se eligió acierto y coherencia visual antes que velocidad, pero si en algún
+  momento hacen falta esos fps, es una línea.
 - **Un hallazgo para `signa-ml`**: reproduciendo un clip de *reposo* por la
   ventana que arma la app, el modelo devuelve **hermano con 0,996**. No es un
   error de portación —la prueba contra referencia da 0,0000— sino una diferencia
