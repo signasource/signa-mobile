@@ -135,7 +135,7 @@ class SignaVisionModule : Module() {
     }
 
     View(AvatarView::class) {
-      Events("onCargado", "onFalla")
+      Events("onCargado", "onFalla", "onCuadros")
 
       Prop("url") { vista: AvatarView, valor: String ->
         vista.url = valor

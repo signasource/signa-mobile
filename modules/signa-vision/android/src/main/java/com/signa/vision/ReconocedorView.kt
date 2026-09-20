@@ -424,12 +424,15 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
 
   private fun crearDetectores(): Detectores? {
     return try {
-      // El abecedario mira una sola mano: pedirle dos a MediaPipe es pagar el
-      // seguimiento de una mano que después se descarta.
-      val d = Detectores.crear(
-        context.applicationContext,
-        manos = if (modo == "estatico") 1 else 2,
-      )
+      // Las dos manos SIEMPRE, también en el abecedario.
+      //
+      // Para decidir la letra alcanza con una, y pedirle sólo una a MediaPipe
+      // era más barato. Pero el esqueleto es lo que la persona usa para saber
+      // si la cámara la está viendo bien, y con una sola mano dibujada el
+      // ejercicio de letras se sentía distinto del de señas sin ninguna razón
+      // visible. Medido, la segunda mano cuesta poco: MediaPipe sólo corre el
+      // detector de palmas de nuevo cuando pierde una.
+      val d = Detectores.crear(context.applicationContext, manos = 2)
       // Calentar antes de dar por listo: la primera detección cuesta bastante
       // más que las siguientes, y ese costo no debe caer sobre la primera seña.
       val vacio = Bitmap.createBitmap(480, 360, Bitmap.Config.ARGB_8888)

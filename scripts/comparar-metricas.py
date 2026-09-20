@@ -68,6 +68,27 @@ def main(ruta: Path) -> None:
         for clave, (ini, fin) in sorted(memoria.items()):
             print(f"{clave:38} {ini:9} KB {fin:9} KB")
 
+    fluidez: dict[str, list[dict]] = defaultdict(list)
+    for linea in ruta.read_text().splitlines():
+        lote = json.loads(linea)
+        if lote.get("evento") == "avatar-fluidez":
+            fluidez[lote.get("build", "sin-marca")].append(lote)
+
+    if fluidez:
+        # Fluidez del avatar: el promedio dice poco si hay tirones, así que va
+        # también el peor cuadro de cada tanda.
+        print(f'\n{"avatar, fluidez: compilación":30} {"fps":>7} {"ms dibujo":>11} {"peor ms":>9} {"n":>5}')
+        for build, ms in sorted(fluidez.items()):
+            # El peor cuadro se toma del percentil 90 y no del máximo: el primer
+            # cuadro de cada avatar incluye compilar los sombreadores y subir
+            # las texturas, así que el máximo siempre es ése y no dice nada de
+            # cómo se ve la animación después.
+            peores = sorted(m["peorMs"] for m in ms)
+            p90 = peores[int(len(peores) * 0.9) - 1] if peores else 0.0
+            print(f"{build:30} {mediana([m['fps'] for m in ms]):7.1f} "
+                  f"{mediana([m['msDibujo'] for m in ms]):11.1f} "
+                  f"{p90:9.1f} {len(ms):5}")
+
     if avatares:
         print(f'\n{"avatar: compilación / motor":38} {"ms hasta verse":>15} {"n":>5}')
         for (build, motor), ms in sorted(avatares.items()):

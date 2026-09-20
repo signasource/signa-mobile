@@ -53,6 +53,7 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
 
   private val onCargado by EventDispatcher()
   private val onFalla by EventDispatcher()
+  private val onCuadros by EventDispatcher()
 
   // TextureView y no SurfaceView: el avatar va ENCIMA de la cámara en el
   // picture-in-picture, y dos superficies nativas superpuestas se pelean por el
@@ -216,6 +217,15 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
 
   private var ultimoDibujo = 0L
 
+  // Cuánto se dibuja de verdad. El tope es de 30 por segundo, pero si la GPU no
+  // llega —peleándola con MediaPipe, por ejemplo— salen menos, y eso es
+  // exactamente lo que se ve como animación a tirones. El peor cuadro va
+  // aparte: un promedio de 30 con un tirón de 200 ms se siente mal igual.
+  private var dibujados = 0
+  private var msAcumulados = 0.0
+  private var peorCuadro = 0.0
+  private var desdeInforme = 0L
+
   private val cuadros = object : Choreographer.FrameCallback {
     override fun doFrame(tiempo: Long) {
       Choreographer.getInstance().postFrameCallback(this)
@@ -279,9 +289,30 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
       )
     }
 
+    val t0 = System.nanoTime()
     if (renderizador.beginFrame(cadena, tiempo)) {
       renderizador.render(vista)
       renderizador.endFrame()
+    }
+    val ms = (System.nanoTime() - t0) / 1_000_000.0
+
+    dibujados++
+    msAcumulados += ms
+    peorCuadro = maxOf(peorCuadro, ms)
+    if (desdeInforme == 0L) desdeInforme = tiempo
+    val transcurrido = (tiempo - desdeInforme) / 1_000_000
+    if (transcurrido >= 2_000) {
+      onCuadros(
+        mapOf(
+          "fps" to dibujados * 1000.0 / transcurrido,
+          "msDibujo" to msAcumulados / maxOf(1, dibujados),
+          "peorMs" to peorCuadro,
+        ),
+      )
+      dibujados = 0
+      msAcumulados = 0.0
+      peorCuadro = 0.0
+      desdeInforme = tiempo
     }
   }
 

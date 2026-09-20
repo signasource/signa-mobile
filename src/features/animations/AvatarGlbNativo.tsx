@@ -12,6 +12,8 @@ interface Props {
   cameraControls?: boolean;
   style?: ViewStyle;
   onLoaded?: (clips: string[]) => void;
+  /** Cada dos segundos: fluidez del avatar, para poder compararla. */
+  onFluidez?: (f: { fps: number; msDibujo: number; peorMs: number }) => void;
   /** Cuánto tardó en estar a la vista, partido en archivo y escena. */
   onTiempos?: (t: { msArchivo: number; msMontaje: number }) => void;
   onError?: (mensaje: string) => void;
@@ -25,7 +27,7 @@ interface Props {
  * de `<model-viewer>` de un CDN antes de empezar; ahora el motor ya está en la
  * app y el .glb queda guardado en disco después de la primera vez.
  */
-export function AvatarGlbNativo({ url, urlRespaldo, paused, cameraControls = true, style, onLoaded, onTiempos, onError }: Props) {
+export function AvatarGlbNativo({ url, urlRespaldo, paused, cameraControls = true, style, onLoaded, onTiempos, onFluidez, onError }: Props) {
   return (
     <AvatarNativo
       style={StyleSheet.flatten([styles.lienzo, style])}
@@ -37,6 +39,7 @@ export function AvatarGlbNativo({ url, urlRespaldo, paused, cameraControls = tru
         onTiempos?.({ msArchivo: e.nativeEvent.msArchivo, msMontaje: e.nativeEvent.msMontaje });
         onLoaded?.(new Array(e.nativeEvent.clips).fill(""));
       }}
+      onCuadros={(e) => onFluidez?.(e.nativeEvent)}
       onFalla={(e) => onError?.(e.nativeEvent.error)}
     />
   );

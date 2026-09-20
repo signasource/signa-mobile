@@ -79,6 +79,7 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
           paused={paused}
           cameraControls={cameraControls}
           onTiempos={listo}
+          onFluidez={(f) => marcar("avatar-fluidez", { sena: meaning, ...f })}
           onError={() => setFailed(true)}
         />
       ) : (
