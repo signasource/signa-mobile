@@ -44,13 +44,17 @@ def main(ruta: Path) -> None:
             if lote.get("evento") == "avatar":
                 avatares[(build, m.get("motor", "?"))].append(m.get("ms", 0))
             elif "fps" in m and "handsMs" in m and t - inicio[sesion] >= DESCARTE_MS:
-                cuadros[f'{build}/{m.get("modo", "?")}'].append(m)
+                # El emulador y el teléfono se mezclaban en la misma fila y las
+                # medianas no querían decir nada. El delegado los separa: en el
+                # emulador MediaPipe cae a CPU porque no hay GPU de verdad.
+                donde = "teléfono" if m.get("delegado") == "GPU" else "emulador"
+                cuadros[f'{build}/{m.get("modo", "?")}/{donde}'].append(m)
 
     if cuadros:
-        print(f'{"compilación / modo":28} {"fps":>6} {"manos":>7} {"pose":>7} {"infer":>7} {"n":>6}')
+        print(f'{"compilación / modo / dónde":38} {"fps":>6} {"manos":>7} {"pose":>7} {"infer":>7} {"n":>6}')
         for clave, ms in sorted(cuadros.items()):
             print(
-                f"{clave:28} {mediana([m['fps'] for m in ms]):6.1f} "
+                f"{clave:38} {mediana([m['fps'] for m in ms]):6.1f} "
                 f"{mediana([m['handsMs'] for m in ms]):6.0f}m {mediana([m['poseMs'] for m in ms]):6.0f}m "
                 f"{mediana([m['inferMs'] for m in ms]):6.1f}m {len(ms):6}"
             )
