@@ -336,6 +336,7 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
   }
 
   private fun descargar(desde: String) {
+    if (soltado) return
     // Filament aborta el PROCESO —no tira una excepción— si la GPU no puede
     // compilar sus shaders, y eso pasa en aparatos viejos con OpenGL ES 2. Se
     // pregunta antes: sin 3.0 no se enciende el motor y el ejercicio se queda
@@ -381,21 +382,34 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
         }
         val bytes = listo.readBytes()
         val msPreparar = System.currentTimeMillis() - t0
-        post { montar(bytes, msPreparar) }
+        post { if (!soltado) montar(bytes, msPreparar) }
       } catch (e: Throwable) {
         val respaldo = urlRespaldo
         if (respaldo != null && respaldo != desde) {
           Log.w(ETIQUETA, "no se pudo bajar de $desde, se prueba el respaldo: ${e.message}")
-          post { descargar(respaldo) }
+          post { if (!soltado) descargar(respaldo) }
         } else {
           Log.e(ETIQUETA, "no se pudo bajar el avatar", e)
-          post { onFalla(mapOf("error" to (e.message ?: e.toString()))) }
+          post { if (!soltado) onFalla(mapOf("error" to (e.message ?: e.toString()))) }
         }
       }
     }
   }
 
+  /**
+   * Arma la escena con el .glb ya en memoria.
+   *
+   * El `soltado` de arriba no es de más: bajar el archivo tarda, y en el
+   * ejercicio de deletrear el avatar cambia en cada letra. Si la vista se
+   * desmonta mientras una descarga viaja, ésta vuelve después con el cargador,
+   * la escena y el renderizador ya destruidos, y crear el modelo sobre eso es
+   * usar memoria liberada: gltfio tira una excepción de C++ que nadie puede
+   * atrapar desde Kotlin y el proceso entero se aborta. Es la caída que sólo
+   * aparecía en el ejercicio de letras, nunca en el de señas, que cambia de
+   * avatar cada tanto y no en cada acierto.
+   */
   private fun montar(bytes: ByteArray, msPreparar: Long) {
+    if (soltado) return
     val t0 = System.currentTimeMillis()
     try {
       modelo?.let { anterior ->

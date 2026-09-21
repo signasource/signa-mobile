@@ -31,6 +31,9 @@ export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
   const [ultimo, setUltimo] = useState<FrameNativo | null>(null);
   const [estado, setEstado] = useState("arrancando…");
   const [contraste, setContraste] = useState("tocá para contrastar contra Python");
+  // Se muestra EN PANTALLA además de mandarse: si la app se cierra en casa del
+  // usuario y el colector no está a mano, esto es lo único que queda.
+  const [salida, setSalida] = useState("");
   // El ejercicio real, montado suelto: es la única forma de probarlo sin
   // completar cinco lecciones para desbloquear la que lo contiene.
   // "senas" es el ejercicio dinámico y "letras" el del abecedario: son los dos
@@ -78,7 +81,15 @@ export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
   // desde afuera se ven igual.
   useEffect(() => {
     ultimaSalida()
-      .then((r) => (r.salidas ?? []).forEach((s) => marcar("salida-anterior", s)))
+      .then((r) => {
+        const lista = r.salidas ?? [];
+        lista.forEach((s) => marcar("salida-anterior", s));
+        const ultima = lista[0];
+        if (ultima) {
+          const cuando = ultima.cuando ? new Date(ultima.cuando).toLocaleTimeString() : "";
+          setSalida(`cierre anterior: ${ultima.motivo} ${cuando} · ${Math.round((ultima.memoriaKB ?? 0) / 1024)} MB`);
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -229,6 +240,7 @@ export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
         <Pressable onPress={contrastar} onLongPress={medirFugas}>
           <Text style={styles.referencia}>{contraste}</Text>
         </Pressable>
+        {salida ? <Text style={styles.referencia}>{salida}</Text> : null}
         <Pressable style={styles.boton} onPress={() => setEjercicio("senas")}>
           <Text style={styles.botonTexto}>Probar señas</Text>
         </Pressable>
