@@ -77,7 +77,7 @@ class SignaVisionModule : Module() {
             // Para una caída nativa, Android guarda el volcado con la señal y
             // la pila. Es lo único que dice en qué librería se cayó: sin esto,
             // "caída nativa" es todo lo que se sabe.
-            "pila" to pila(s),
+            "volcado" to volcado(s),
           )
         }
       mapOf("salidas" to salidas)
@@ -168,23 +168,25 @@ class SignaVisionModule : Module() {
   }
 
   /**
-   * Las líneas útiles del volcado de una caída: la señal, el motivo y los
-   * primeros marcos de la pila que nombran una librería.
+   * El volcado de la caída, tal cual, codificado para que viaje por JSON.
+   *
+   * No es texto: Android lo guarda como protobuf binario, así que filtrarlo por
+   * líneas devuelve basura. Se manda crudo —acotado— y se interpreta del otro
+   * lado, donde sí hay herramientas. Sin esto, "caída nativa" es todo lo que se
+   * sabe de un teléfono que no se tiene a mano.
    */
   @androidx.annotation.RequiresApi(30)
-  private fun pila(salida: android.app.ApplicationExitInfo): String {
+  private fun volcado(salida: android.app.ApplicationExitInfo): String {
     if (salida.reason != android.app.ApplicationExitInfo.REASON_CRASH_NATIVE &&
       salida.reason != android.app.ApplicationExitInfo.REASON_ANR
     ) {
       return ""
     }
     return try {
-      salida.traceInputStream?.bufferedReader()?.use { lector ->
-        val interesa = Regex("signal |Abort message|backtrace:|#\\d\\d ")
-        lector.lineSequence()
-          .filter { interesa.containsMatchIn(it) }
-          .take(14)
-          .joinToString(" | ") { it.trim() }
+      salida.traceInputStream?.use { entrada ->
+        val tope = 96 * 1024
+        val bytes = entrada.readBytes().let { if (it.size > tope) it.copyOf(tope) else it }
+        android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
       } ?: ""
     } catch (e: Throwable) {
       "no se pudo leer: ${e.message}"

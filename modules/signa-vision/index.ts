@@ -35,8 +35,8 @@ export function ultimaSalida(): Promise<{
     memoriaKB?: number;
     cuando?: number;
     importancia?: number;
-    /** Señal y primeros marcos de la pila, si fue una caída nativa. */
-    pila?: string;
+    /** El volcado de la caída en base64, si fue una caída nativa. */
+    volcado?: string;
   }[];
 }> {
   return nativo.ultimaSalida();
