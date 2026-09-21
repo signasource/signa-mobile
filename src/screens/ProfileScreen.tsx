@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Pressable,
+  RefreshControl,
   DimensionValue,
   StyleProp,
   ViewStyle,
@@ -191,6 +192,7 @@ export function ProfileScreen({ navigation }: Props) {
 
   // Data state (populated from API, with fallback defaults shown below)
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
 
@@ -250,8 +252,9 @@ export function ProfileScreen({ navigation }: Props) {
     return () => clearInterval(tick);
   }, [livesCount, infiniteActive]);
 
-  async function loadProfile() {
-    setLoading(true);
+  async function loadProfile(isRefresh = false) {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
     const [profileRes, weekRes, goalRes, statsRes, invRes, unlockedRes, lockedRes, coursesRes, settingsRes] =
       await Promise.allSettled([
         usersApi.getMe(),
@@ -313,6 +316,7 @@ export function ProfileScreen({ navigation }: Props) {
     }
 
     setLoading(false);
+    setRefreshing(false);
   }
 
   /** Picking a swatch applies it immediately and persists it — no confirm step. */
@@ -932,7 +936,19 @@ export function ProfileScreen({ navigation }: Props) {
         <>
           {renderHeader()}
           <SegmentedControl options={sections} value={activeSection} onChange={setActiveSection} />
-          <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => loadProfile(true)}
+                tintColor={colors.primary}
+                colors={[colors.primary]}
+              />
+            }
+          >
             {activeSection === "general" && renderGeneral()}
             {activeSection === "cursos" && renderCursos()}
             {activeSection === "inventario" && renderInventario()}

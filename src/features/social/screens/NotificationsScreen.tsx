@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { View, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { View, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -18,11 +18,13 @@ export function NotificationsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (isRefresh = false) => {
     setError(null);
-    setLoading(true);
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
     try {
       const { data } = await notificationsApi.getInbox();
       setNotifications(data.content);
@@ -34,6 +36,7 @@ export function NotificationsScreen({ navigation }: Props) {
       setError(err?.response?.data?.message ?? "No pudimos cargar tus notificaciones.");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
@@ -60,42 +63,54 @@ export function NotificationsScreen({ navigation }: Props) {
       ) : error ? (
         <View style={styles.centered}>
           <EmptyState title="No pudimos cargar" description={error} />
-          <TouchableOpacity style={styles.retry} onPress={load}>
+          <TouchableOpacity style={styles.retry} onPress={() => load()}>
             <Text style={styles.retryLabel}>Reintentar</Text>
           </TouchableOpacity>
-        </View>
-      ) : notifications.length === 0 ? (
-        <View style={styles.centered}>
-          <EmptyState
-            title="Sin notificaciones"
-            description="Acá vas a ver los me gusta, las solicitudes y los logros de tus amigos."
-          />
         </View>
       ) : (
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: insets.bottom + 24 },
+            notifications.length === 0 && styles.scrollContentEmpty,
+          ]}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => load(true)}
+              tintColor={colors.socialWine}
+              colors={[colors.socialWine]}
+            />
+          }
         >
-          {notifications.map((notification) => {
-            const visual = notificationVisual(notification.code);
-            const unread = !notification.read;
+          {notifications.length === 0 ? (
+            <EmptyState
+              title="Sin notificaciones"
+              description="Acá vas a ver los me gusta, las solicitudes y los logros de tus amigos."
+            />
+          ) : (
+            notifications.map((notification) => {
+              const visual = notificationVisual(notification.code);
+              const unread = !notification.read;
 
-            return (
-              <View key={notification.id} style={styles.row}>
-                <View style={[styles.iconBox, { backgroundColor: visual.tint }]}>
-                  <Ionicons name={visual.icon} size={17} color={visual.tone} />
+              return (
+                <View key={notification.id} style={styles.row}>
+                  <View style={[styles.iconBox, { backgroundColor: visual.tint }]}>
+                    <Ionicons name={visual.icon} size={17} color={visual.tone} />
+                  </View>
+
+                  <View style={styles.body}>
+                    <Text style={styles.title}>{notification.title}</Text>
+                    <Text style={styles.text}>{notification.body}</Text>
+                    <Text style={styles.time}>{relativeTime(notification.sentAt)}</Text>
+                  </View>
+
+                  {unread && <View style={styles.dot} />}
                 </View>
-
-                <View style={styles.body}>
-                  <Text style={styles.title}>{notification.title}</Text>
-                  <Text style={styles.text}>{notification.body}</Text>
-                  <Text style={styles.time}>{relativeTime(notification.sentAt)}</Text>
-                </View>
-
-                {unread && <View style={styles.dot} />}
-              </View>
-            );
-          })}
+              );
+            })
+          )}
         </ScrollView>
       )}
     </View>
@@ -131,6 +146,10 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 6,
+  },
+  scrollContentEmpty: {
+    flex: 1,
+    justifyContent: "center",
   },
   row: {
     flexDirection: "row",
