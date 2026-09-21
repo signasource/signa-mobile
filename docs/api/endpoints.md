@@ -130,6 +130,17 @@ block-renderer components `LessonScreen` uses — see [features/practice.md](../
 
 > **GLB animation URLs** are no longer fetched from the backend. `getGlbUrl(meaning)` (`src/features/animations/glbUrl.ts`) builds the public R2 URL deterministically: `https://pub-f40a1de4d1fc46b0b6f07299847c66e0.r2.dev/lsa/{meaning}.glb`. `POST /signs/animations` is removed from the mobile client.
 
+## `rankingApi` (`src/api/ranking.ts`) — mirrors `RankingController.java`
+
+Both endpoints are authenticated. The backend computes ranks from `UserStats.weeklyXp` and snapshots them every Monday 00:00 ART via `WeeklyResetScheduler`.
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getGlobal()` | `GET /ranking/global` | `WeeklyRanking` | Top 100 users by `weeklyXp` this week + caller's position. `entries[].delta`: positions gained (positive) or lost (negative) vs last Monday; null until the first reset runs. `me.gapText`: pre-formatted Spanish string e.g. "Te faltan 320 XP para entrar al top 10". |
+| `getFriends()` | `GET /ranking/friends` | `WeeklyRanking` | Caller's accepted friends ranked by `weeklyXp`, plus the caller. Delta derived from each user's stored global previous rank re-ranked within the friends group. |
+
+`WeeklyRanking = { entries: RankingEntry[], total: number, me: MyRankingPosition }`.
+
 ## `health` (`src/api/health.ts`)
 
 `pingBackend()` for the connection test: GET to the API root with a short timeout.

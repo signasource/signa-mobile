@@ -19,7 +19,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 | Store / Tienda (browse catalog, buy for self) | real | [api/endpoints.md](./api/endpoints.md#shopapi-srcapishopts--mirrors-shopitemcontrollerpurchasecontroller) |
 | Inicio (Home) roadmap screen | real (topics/lessons + per-lesson state from `signa-api`) | [features/courses.md](./features/courses.md#inicio-home-roadmap-screen) |
 | Lesson player (`LessonScreen`) | real, wired to `signa-api` | [features/courses.md](./features/courses.md#lesson-player--real) |
-| Social (feed + likes, amigos, solicitudes, búsqueda) | real | [features/social.md](./features/social.md) |
+| Social (feed + likes, amigos, solicitudes, búsqueda, ranking semanal) | real | [features/social.md](./features/social.md) |
 | Notifications inbox | real | [features/social.md](./features/social.md#notificationsscreen) |
 | Public profile (read-only, of another user) | real | [features/social.md](./features/social.md#publicprofilescreen) |
 | Courses flat browse (`CoursesListScreen`) | stub | [features/courses.md](./features/courses.md#course-catalog--stub) |
@@ -33,7 +33,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 - **No ESLint/Prettier config.** `npm run lint` runs eslint without configured rules; the real check today is `npm run typecheck` (tsc strict).
 - **Legacy theme tokens** (`accent`, `morado`, `azulOscuro`, `headingSemiBold`, …) still used by `AppNavigator` and old screens; migrate to current tokens.
 - **Gifting has no UI.** `POST /store/gifts` exists and friends are now listable (`socialApi.getFriends()`), but the Store screen still only buys for yourself.
-- **No leaderboard.** `signa-api` has nothing resembling a ranking or league, so the Social header shows *Solicitudes* where the mockup had *Ranking*. Deferred to a later iteration; `UserStats.weeklyXp` already exists to build it on.
+- ~~No leaderboard.~~ Implemented in `feature/ranking`: `GET /ranking/global` + `GET /ranking/friends`, weekly reset scheduler, and the Social Ranking tab.
 - **`CourseProgress` and `Achievement` client types do not match the backend.** `src/api/learning.ts` declares `CourseProgress { courseId, icon, color, progressPercent, lessonsCompleted, currentUnit, unitProgressPercent, lastPractice }` and `src/api/achievements.ts` declares `Achievement { id: number, name, icon, color, unlocked }`, but `CourseProgressResponse` and `AchievementResponse` send entirely different fields. `ProfileScreen`'s **Cursos** and **Logros** sections therefore render `undefined`. Pre-existing. `PublicProfileScreen` sidesteps it by typing against the real shapes (`PublicCourseProgress` / `PublicAchievement` in `src/api/social.ts`).
 - **`inventoryApi` and `shopApi` declare separate client types for the same endpoint.** Both call `GET /inventories/me`; `shopApi.ts`'s `ShopInventory` matches the backend `UserInventoryResponse` field-for-field, while `inventoryApi.ts`'s `UserInventory` used to declare its own (wrong) `lives`/`xpMultiplier` fields — fixed to mirror `ShopInventory` plus `learnedSignsCount`, but the duplication itself remains: a backend field rename only needs fixing in one of the two files to silently break the other.
 - **CI:** GitHub Actions (`.github/workflows/release.yml`, semantic-release on push to `master`). No GitLab pipeline.
@@ -42,7 +42,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 
 - Deep linking for password reset.
 - Wire the Inicio roadmap lesson CTA to navigate into the now-real `LessonScreen`.
-- Leaderboard endpoint + the Social *Ranking* tile.
+- ~~Leaderboard endpoint + the Social *Ranking* tile.~~ Done.
 - Fix `CourseProgress` / `Achievement` client types and re-point `ProfileScreen` at them.
 - Confirm real `courses` endpoints for the flat browse stub, or retire it in favor of the Inicio roadmap.
 - Decide the camera + ML runtime stack and migrate to a dev build.

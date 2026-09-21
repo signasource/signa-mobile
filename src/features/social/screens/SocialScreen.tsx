@@ -40,6 +40,7 @@ import { FeedCard } from "@/features/social/components/FeedCard";
 import { EmptyNote, EmptyState } from "@/components/EmptyState";
 import { ConfirmSheet, ConfirmSpec } from "@/features/social/components/ConfirmSheet";
 import { Toast } from "@/features/social/components/Toast";
+import { RankingTab } from "@/features/social/screens/RankingTab";
 
 type SocialNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, "Social">,
@@ -47,7 +48,7 @@ type SocialNavigation = CompositeNavigationProp<
 >;
 type Props = BottomTabScreenProps<TabParamList, "Social"> & { navigation: SocialNavigation };
 
-type Tab = "feed" | "amigos";
+type Tab = "feed" | "amigos" | "ranking";
 type Section = "amigos" | "solicitudes";
 
 const SECTION_TABS: ReadonlyArray<SubTab<Section>> = [
@@ -457,9 +458,11 @@ export function SocialScreen({ navigation }: Props) {
 
   const headerPaddingTop = insets.top + 14;
   const isFeed = tab === "feed";
+  const isRanking = tab === "ranking";
   const tabs: ReadonlyArray<Segment<Tab>> = [
     { key: "feed", label: "Feed" },
     { key: "amigos", label: "Amigos", badge: incoming.length },
+    { key: "ranking", label: "Ranking" },
   ];
 
   return (
@@ -501,7 +504,9 @@ export function SocialScreen({ navigation }: Props) {
         onChange={setTab}
       />
 
-      {loading ? (
+      {isRanking ? (
+        <RankingTab onPressProfile={openProfile} />
+      ) : loading ? (
         <View style={styles.centered}>
           <ActivityIndicator color={colors.socialWine} />
         </View>
