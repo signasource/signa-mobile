@@ -133,6 +133,7 @@ export interface PublicUserStats {
   longestStreak: number;
   totalXp: number;
   weeklyXp: number;
+  weeklyRank: number;
   learnedSignsCount: number;
 }
 

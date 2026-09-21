@@ -152,7 +152,24 @@ interval: 30 s + AppState foreground resume.
 `EmptyState` / `EmptyNote` now live in `@/components/EmptyState` (the local file only re-exports them);
 the header comes from `@/components/ScreenHeader`.
 
+## Ranking tab — `RankingTab.tsx`
+
+Third tab in the Social `SegmentedControl`. Self-contained component that:
+- Fetches `GET /ranking/global` and `GET /ranking/friends` in parallel (plus `GET /users/me` for the user's own name/initials), all at mount time.
+- Shows a **scope toggle** (Global · Mis amigos) backed by local state; no re-fetch on switch.
+- **Countdown** banner ("Se reinicia el lunes a las 00:00") with a live 1-second timer based on device local time (users are assumed to be in ART).
+- **Podium** card: top 3 in 2nd–1st–3rd visual order, avatar rings in gold/silver/bronze, bar heights proportional to rank.
+- **List rows** for positions 4+: rank number, avatar initials, name, `@handle`, streak flame, delta badge (↑/↓/–), weekly XP.
+- **Sticky me bar** at the bottom (outside the `ScrollView`): wine-tinted background, user's rank, initials, gap-to-next text, delta, weekly XP.
+
+Delta (position change since last Monday) comes from the backend's `delta` field on each entry and on `me`. It is null until the first weekly reset runs.
+
+## Components — `features/social/components/`
+
+`Avatar`, `PersonRow` (+ `RowAction`), `FeedCard`, `ConfirmSheet`, `Toast`, `FriendAcceptedModal`.
+`EmptyState` / `EmptyNote` now live in `@/components/EmptyState` (the local file only re-exports them);
+the header comes from `@/components/ScreenHeader`.
+
 ## Not implemented
 
-- **Ranking / leaderboard.** Deferred; no backend support exists.
 - **Like counts.** Intentionally dropped — the button is on/off only.
