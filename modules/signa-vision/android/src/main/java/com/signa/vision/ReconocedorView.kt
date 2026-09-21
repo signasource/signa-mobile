@@ -97,10 +97,14 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
    */
   var objetivos: List<String> = emptyList()
     set(valor) {
+      val primeraVez = field.isEmpty() && valor.isNotEmpty()
       field = valor
       // Soltar la confirmación anterior, o la seña recién hecha quedaría
       // trabada al pasar al ejercicio siguiente.
       reconocedor?.objetivos = valor
+      // Los objetivos llegan después de que la vista se adjunta, así que la
+      // primera vez hay que volver a intentar la carga por adelantado.
+      if (primeraVez && isAttachedToWindow) prepararEnParalelo()
     }
 
   // Frontal siempre, salvo para probar: en el emulador la frontal está mapeada
@@ -144,6 +148,35 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
   override fun onAttachedToWindow() {
     super.onAttachedToWindow()
     arrancar()
+    prepararEnParalelo()
+  }
+
+  /**
+   * Cargar los modelos mientras la cámara arranca, y no con el primer cuadro.
+   *
+   * Los detectores tardan ~600 ms en abrirse y el modelo de letras pesa 8,6 MB;
+   * haciéndolo con el primer cuadro, ese tiempo se suma al de encender la
+   * cámara y la pantalla se queda en "preparando" todo junto. Encender la
+   * cámara no ocupa este hilo, así que las dos cosas pueden pasar a la vez.
+   *
+   * Va en el hilo del analizador a propósito: es el mismo que después los usa,
+   * así que no hay dos hilos tocando los mismos objetos nativos.
+   */
+  private fun prepararEnParalelo() {
+    if (soltando) return
+    hilo.execute {
+      try {
+        if (detectores == null) crearDetectores()
+        if (objetivos.isNotEmpty() && reconocedor == null) {
+          val cual = if (modo == "estatico") Reconocedor.Modo.ESTATICO else Reconocedor.Modo.DINAMICO
+          val t0 = System.currentTimeMillis()
+          reconocedor = Reconocedor(context.applicationContext, cual).also { it.objetivos = objetivos }
+          Log.i(ETIQUETA, "modelo $cual cargado en ${System.currentTimeMillis() - t0} ms")
+        }
+      } catch (e: Throwable) {
+        Log.w(ETIQUETA, "no se pudo preparar por adelantado: ${e.message}")
+      }
+    }
   }
 
   private var armada = false
@@ -360,7 +393,12 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
   ) {
     val r = reconocedor ?: try {
       val cual = if (modo == "estatico") Reconocedor.Modo.ESTATICO else Reconocedor.Modo.DINAMICO
-      Reconocedor(context.applicationContext, cual).also { it.objetivos = objetivos; reconocedor = it }
+      val t0 = System.currentTimeMillis()
+      Reconocedor(context.applicationContext, cual).also {
+        it.objetivos = objetivos
+        reconocedor = it
+        Log.i(ETIQUETA, "modelo $cual cargado en ${System.currentTimeMillis() - t0} ms")
+      }
     } catch (e: Throwable) {
       Log.e(ETIQUETA, "no se pudo cargar el modelo de señas", e)
       objetivos = emptyList()
@@ -441,11 +479,16 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
       // ejercicio de letras se sentía distinto del de señas sin ninguna razón
       // visible. Medido, la segunda mano cuesta poco: MediaPipe sólo corre el
       // detector de palmas de nuevo cuando pierde una.
+      val t0 = System.currentTimeMillis()
       val d = Detectores.crear(context.applicationContext, manos = 2)
+      val msCrear = System.currentTimeMillis() - t0
       // Calentar antes de dar por listo: la primera detección cuesta bastante
       // más que las siguientes, y ese costo no debe caer sobre la primera seña.
+      val t1 = System.currentTimeMillis()
       val vacio = Bitmap.createBitmap(480, 360, Bitmap.Config.ARGB_8888)
       d.calentar(BitmapImageBuilder(vacio).build())
+      val msCalentar = System.currentTimeMillis() - t1
+      Log.i(ETIQUETA, "detectores: ${msCrear} ms de carga + ${msCalentar} ms de calentamiento")
       detectores = d
       post { onListo(mapOf("fase" to "detectando", "detalle" to if (d.enGpu) "GPU" else "CPU")) }
       d
