@@ -42,7 +42,11 @@ interface SignAnimationProps {
 const NATIVO = process.env.EXPO_PUBLIC_AVATAR_WEBVIEW !== "1";
 
 export function SignAnimation({ meaning, label, height = 320, tone = "neutral", paused, badge, cameraControls, motor, style }: SignAnimationProps) {
-  const nativo = motor ? motor === "nativo" : NATIVO;
+  // Si el motor nativo no puede con este modelo, se cae al visor web en vez de
+  // mostrar la lámina fija: hay avatares —M y N— con un esqueleto de 574 huesos
+  // contra el tope de 256 de Filament, y el web los dibuja igual.
+  const [caidoANavegador, setCaidoANavegador] = useState(false);
+  const nativo = (motor ? motor === "nativo" : NATIVO) && !caidoANavegador;
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
   const wrong = tone === "wrong";
@@ -80,7 +84,10 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
           cameraControls={cameraControls}
           onTiempos={listo}
           onFluidez={(f) => marcar("avatar-fluidez", { sena: meaning, ...f })}
-          onError={() => setFailed(true)}
+          onError={(motivo) => {
+            marcar("avatar-al-navegador", { sena: meaning, motivo });
+            setCaidoANavegador(true);
+          }}
         />
       ) : (
         <GlbAnimationView

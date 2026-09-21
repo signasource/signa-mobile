@@ -24,9 +24,41 @@ import org.json.JSONObject
  */
 object Glb {
 
+  /**
+   * Tope de huesos por malla que admite Filament (CONFIG_MAX_BONE_COUNT).
+   *
+   * Pasarse no da un error que se pueda atrapar: Filament valida el límite con
+   * una precondición que lanza una excepción de C++, y eso aborta el proceso
+   * entero. Los avatares de las letras M y N vienen con un esqueleto de 574
+   * huesos —el resto tiene 198— y eran exactamente la caída que cerraba la app
+   * en el ejercicio de deletrear.
+   */
+  const val MAX_HUESOS = 256
+
   private const val JSON = 0x4E4F534A
   private const val BIN = 0x004E4942
   private const val WEBP = "EXT_texture_webp"
+
+  /**
+   * Por qué este .glb no se puede dibujar con Filament, o null si se puede.
+   *
+   * Se pregunta ANTES de dárselo al cargador porque los límites que valida
+   * Filament no se reportan: se abortan.
+   */
+  fun porQueNo(bytes: ByteArray): String? {
+    val doc = try {
+      leerJson(bytes)
+    } catch (e: Throwable) {
+      return "no se pudo leer: ${e.message}"
+    } ?: return "sin parte JSON"
+
+    val esqueletos = doc.optJSONArray("skins") ?: return null
+    for (i in 0 until esqueletos.length()) {
+      val huesos = esqueletos.getJSONObject(i).optJSONArray("joints")?.length() ?: 0
+      if (huesos > MAX_HUESOS) return "esqueleto de $huesos huesos, el tope es $MAX_HUESOS"
+    }
+    return null
+  }
 
   /** Devuelve el archivo arreglado, o el original si no hacía falta tocarlo. */
   fun sinWebp(bytes: ByteArray): ByteArray {
@@ -189,6 +221,23 @@ object Glb {
     5120, 5121 -> 1
     5122, 5123 -> 2
     else -> 4
+  }
+
+  private fun leerJson(bytes: ByteArray): JSONObject? {
+    val buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
+    if (buffer.remaining() < 12 || buffer.int != 0x46546C67) return null
+    buffer.int
+    buffer.int
+    while (buffer.remaining() >= 8) {
+      val largo = buffer.int
+      val tipo = buffer.int
+      if (largo < 0 || largo > buffer.remaining()) return null
+      val trozo = ByteArray(largo)
+      buffer.get(trozo)
+      if (tipo == JSON) return JSONObject(String(trozo, Charsets.UTF_8))
+      buffer.position(minOf(buffer.position() + (4 - largo % 4) % 4, buffer.limit()))
+    }
+    return null
   }
 
   private fun usa(doc: JSONObject, extension: String): Boolean {

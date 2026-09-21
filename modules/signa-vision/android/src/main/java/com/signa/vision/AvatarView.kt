@@ -410,6 +410,16 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
    */
   private fun montar(bytes: ByteArray, msPreparar: Long) {
     if (soltado) return
+
+    // Antes de dárselo a Filament: lo que no cumple sus límites no falla, mata
+    // el proceso. Si no se puede, se avisa y el ejercicio muestra el avatar por
+    // el otro camino.
+    Glb.porQueNo(bytes)?.let { motivo ->
+      Log.w(ETIQUETA, "no se puede dibujar con Filament: $motivo")
+      onFalla(mapOf("error" to motivo))
+      return
+    }
+
     val t0 = System.currentTimeMillis()
     try {
       modelo?.let { anterior ->

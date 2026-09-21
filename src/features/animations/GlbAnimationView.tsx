@@ -152,6 +152,10 @@ export function GlbAnimationView({
       javaScriptEnabled
       domStorageEnabled
       allowsInlineMediaPlayback
+      // Sin esto, Android considera la animación del modelo como reproducción
+      // de medios y la deja en pausa detrás de un botón de play hasta que
+      // alguien lo toque.
+      mediaPlaybackRequiresUserAction={false}
       mixedContentMode="always"
     />
   );

@@ -91,6 +91,37 @@ cada dos segundos **cuadros por segundo reales, milisegundos por cuadro y el peo
 cuadro de la tanda**. El peor importa: un promedio de 30 con un tirón de 200 ms se
 siente mal igual.
 
+### 5. La app se cerraba sola en el ejercicio de deletrear
+
+El síntoma: entrar al ejercicio de nombres cerraba la app de golpe, sin llegar a
+abrir la cámara. El de señas dinámicas no fallaba nunca. Costó cinco horas y
+tres hipótesis equivocadas —contención de GPU, el motor que se destruía entre
+avatares, una carrera entre la descarga y el desmontaje, todas corregidas de
+paso— hasta poder leer el volcado de la caída:
+
+    terminating due to uncaught exception of type utils::PreconditionPanic
+    filament::RenderableManager::Builder::build(...)
+    filament::gltfio::AssetLoader::createAsset(...)
+
+No era GPU ni hilos: era una **validación de datos**. Filament admite hasta 256
+huesos por malla (`CONFIG_MAX_BONE_COUNT`), y los avatares de las letras **M y
+N** vienen con un esqueleto de **574** —el resto del bucket tiene 198—. Cuando
+un modelo se pasa de ese límite, Filament no devuelve error: lanza una excepción
+de C++ que, cruzando el JNI, **aborta el proceso entero**. El nombre con el que
+se probaba empezaba con M.
+
+Dos cosas cambiaron:
+
+- **Se pregunta antes de cargar.** `Glb.porQueNo()` mira el .glb y, si excede un
+  límite que Filament valida abortando, no se lo entrega. Una app nunca puede
+  depender de que sus archivos estén bien formados.
+- **Ese avatar cae al visor web.** En vez de mostrar la lámina fija, el modelo
+  que Filament no puede dibujar lo dibuja `model-viewer`, que no tiene ese
+  límite. Se pierde velocidad en esos dos avatares y nada más.
+
+La solución de fondo es del lado de los archivos: reexportar M y N con el mismo
+esqueleto que los demás. Mientras tanto, la app no se cae.
+
 ## Ventajas y desventajas del cambio
 
 **A favor**
