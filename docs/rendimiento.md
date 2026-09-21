@@ -271,6 +271,28 @@ Medir la etapa 2 en el teléfono: cuánto bajó el cuadro con los 480 px, cuánt
 pesa la LSTM nativa (en WebView eran 4 ms) y cuánto tarda el avatar la segunda
 vez contra lo que tardaba el WebView.
 
+## Cómo compilar liviana
+
+Por omisión el APK se empaqueta para cuatro arquitecturas y cada una lleva su
+copia de MediaPipe, TensorFlow Lite y Filament: **158 de 222 MB son eso**, y un
+teléfono usa una sola. Para una APK de prueba alcanza con pedir la que hace
+falta:
+
+    # teléfono
+    sh android/gradlew -p android assembleRelease -PreactNativeArchitectures=arm64-v8a
+    # emulador
+    sh android/gradlew -p android assembleRelease -PreactNativeArchitectures=x86_64
+
+De 222 MB a **103 MB**, que es lo que se nota al descargarla e instalarla. Para
+publicar conviene un App Bundle, que le manda a cada teléfono sólo lo suyo sin
+tener que elegir a mano.
+
+Lo que queda adentro después de eso: 39 MB de librerías nativas, ~22 MB de
+modelos (abecedario, manos, pose) y **otros ~33 MB del motor web del
+reconocimiento**, que lleva su propia copia de los tres modelos más el runtime
+de MediaPipe en WASM. Ese motor ya no lo usa ningún ejercicio en Android: sacarlo
+es la decisión pendiente de iOS.
+
 ## Cómo medir
 
 Compilar con `EXPO_PUBLIC_METRICS_URL` apuntando a `scripts/colector-metricas.py`

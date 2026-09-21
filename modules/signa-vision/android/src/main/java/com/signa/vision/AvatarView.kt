@@ -403,15 +403,19 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
         cargador.destroyAsset(anterior)
       }
       val buffer = ByteBuffer.allocateDirect(bytes.size).apply { put(bytes); flip() }
-      // Instanciado: en gltfio las animaciones cuelgan de la INSTANCIA, y con
-      // createAsset la instancia implícita venía sin ninguna.
-      val instancias = arrayOfNulls<com.google.android.filament.gltfio.FilamentInstance>(1)
-      val asset = cargador.createInstancedAsset(buffer, instancias)
-        ?: throw IllegalStateException("glb ilegible")
+      // createAsset y NO createInstancedAsset.
+      //
+      // Lo instanciado fue una hipótesis para explicar por qué el animador
+      // informaba cero clips —la causa real era otra, un accessor sin datos en
+      // el archivo— y quedó puesto sin motivo. Cuesta caro: en el teléfono del
+      // usuario tiraba una excepción de C++ adentro de gltfio que nadie puede
+      // atrapar desde Kotlin, y el proceso entero se abortaba con SIGABRT al
+      // entrar al ejercicio. Se vio en el volcado de la caída.
+      val asset = cargador.createAsset(buffer) ?: throw IllegalStateException("glb ilegible")
       recursos.loadResources(asset)
       // El animador se toma UNA vez, acá, y se guarda: es lo que hace el visor
       // de referencia de Filament.
-      animador = (instancias[0] ?: asset.instance).animator
+      animador = asset.instance.animator
       // OJO: nada de releaseSourceData(). Suena a lo correcto —las mallas y las
       // texturas ya están en la GPU— pero entre lo que libera están los datos
       // crudos de la animación, y el avatar se queda para siempre en la pose
