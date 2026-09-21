@@ -74,6 +74,10 @@ class SignaVisionModule : Module() {
             "memoriaKB" to s.pss,
             "cuando" to s.timestamp,
             "importancia" to s.importance,
+            // Para una caída nativa, Android guarda el volcado con la señal y
+            // la pila. Es lo único que dice en qué librería se cayó: sin esto,
+            // "caída nativa" es todo lo que se sabe.
+            "pila" to pila(s),
           )
         }
       mapOf("salidas" to salidas)
@@ -160,6 +164,30 @@ class SignaVisionModule : Module() {
       OnViewDestroys { vista: AvatarView ->
         vista.soltar()
       }
+    }
+  }
+
+  /**
+   * Las líneas útiles del volcado de una caída: la señal, el motivo y los
+   * primeros marcos de la pila que nombran una librería.
+   */
+  @androidx.annotation.RequiresApi(30)
+  private fun pila(salida: android.app.ApplicationExitInfo): String {
+    if (salida.reason != android.app.ApplicationExitInfo.REASON_CRASH_NATIVE &&
+      salida.reason != android.app.ApplicationExitInfo.REASON_ANR
+    ) {
+      return ""
+    }
+    return try {
+      salida.traceInputStream?.bufferedReader()?.use { lector ->
+        val interesa = Regex("signal |Abort message|backtrace:|#\\d\\d ")
+        lector.lineSequence()
+          .filter { interesa.containsMatchIn(it) }
+          .take(14)
+          .joinToString(" | ") { it.trim() }
+      } ?: ""
+    } catch (e: Throwable) {
+      "no se pudo leer: ${e.message}"
     }
   }
 
