@@ -29,6 +29,7 @@ import {
   UserSearchResult,
 } from "@/api/social";
 import { notificationsApi } from "@/api/notifications";
+import { usersApi } from "@/api/users";
 import { formatXp, mutualLabel } from "@/features/social/people";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SegmentedControl, Segment } from "@/components/SegmentedControl";
@@ -133,6 +134,11 @@ export function SocialScreen({ navigation }: Props) {
   const [busy, setBusy] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<PendingConfirm | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [myUsername, setMyUsername] = useState<string | null>(null);
+
+  useEffect(() => {
+    usersApi.getMe().then(({ data }) => setMyUsername(data.username)).catch(() => {});
+  }, []);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchAbort = useRef<AbortController | null>(null);
@@ -442,8 +448,14 @@ export function SocialScreen({ navigation }: Props) {
   );
 
   const openProfile = useCallback(
-    (username: string) => navigation.navigate("PublicProfile", { username }),
-    [navigation]
+    (username: string) => {
+      if (myUsername && username === myUsername) {
+        navigation.navigate("Profile");
+      } else {
+        navigation.navigate("PublicProfile", { username });
+      }
+    },
+    [navigation, myUsername]
   );
 
   const friendStats = (friend: Friend): PersonStat[] => [
