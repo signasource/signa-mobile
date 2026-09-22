@@ -13,7 +13,7 @@ interface Props {
   style?: ViewStyle;
   onLoaded?: (clips: string[]) => void;
   /** Cada dos segundos: fluidez del avatar, para poder compararla. */
-  onFluidez?: (f: { fps: number; msDibujo: number; peorMs: number }) => void;
+  onFluidez?: (f: { fps: number; msDibujo: number; peorMs: number; clips: number; pausado: boolean }) => void;
   /** Cuánto tardó en estar a la vista, partido en archivo y escena. */
   onTiempos?: (t: { msArchivo: number; msMontaje: number }) => void;
   onError?: (mensaje: string) => void;

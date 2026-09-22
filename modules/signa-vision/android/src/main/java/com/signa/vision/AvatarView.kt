@@ -307,6 +307,10 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
           "fps" to dibujados * 1000.0 / transcurrido,
           "msDibujo" to msAcumulados / maxOf(1, dibujados),
           "peorMs" to peorCuadro,
+          // Sin esto, un avatar quieto no distingue entre "no tiene animación"
+          // y "está en pausa", que se arreglan en lugares distintos.
+          "clips" to (animador?.animationCount ?: -1),
+          "pausado" to pausado,
         ),
       )
       dibujados = 0

@@ -139,7 +139,9 @@ interface AvatarProps {
   }) => void;
   onFalla?: (e: { nativeEvent: { error: string } }) => void;
   /** Cada dos segundos: qué tan fluido va el avatar. */
-  onCuadros?: (e: { nativeEvent: { fps: number; msDibujo: number; peorMs: number } }) => void;
+  onCuadros?: (e: {
+    nativeEvent: { fps: number; msDibujo: number; peorMs: number; clips: number; pausado: boolean };
+  }) => void;
 }
 
 const VistaAvatar = requireNativeViewManager<AvatarProps>("SignaVision", "AvatarView");
