@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Keyboard,
+  RefreshControl,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -116,6 +117,7 @@ export function SocialScreen({ navigation }: Props) {
   );
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [events, setEvents] = useState<FriendEvent[]>([]);
@@ -150,8 +152,9 @@ export function SocialScreen({ navigation }: Props) {
     toastTimer.current = setTimeout(() => setToast(null), 2800);
   }, []);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (isRefresh = false) => {
     setError(null);
+    if (isRefresh) setRefreshing(true);
     try {
       const [eventsRes, friendsRes, incomingRes, outgoingRes, unreadRes] = await Promise.all([
         socialApi.getEvents(),
@@ -169,6 +172,7 @@ export function SocialScreen({ navigation }: Props) {
       setError(err?.response?.data?.message ?? "No pudimos cargar tu actividad social.");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
@@ -525,7 +529,7 @@ export function SocialScreen({ navigation }: Props) {
       ) : error ? (
         <View style={styles.centered}>
           <EmptyState title="No pudimos cargar" description={error} />
-          <TouchableOpacity style={styles.retry} onPress={load}>
+          <TouchableOpacity style={styles.retry} onPress={() => load()}>
             <Text style={styles.retryLabel}>Reintentar</Text>
           </TouchableOpacity>
         </View>
@@ -536,6 +540,14 @@ export function SocialScreen({ navigation }: Props) {
           keyboardShouldPersistTaps="handled"
           enableOnAndroid
           extraScrollHeight={20}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => load(true)}
+              tintColor={colors.socialWine}
+              colors={[colors.socialWine]}
+            />
+          }
         >
           {isFeed ? (
             <View style={styles.feed}>
