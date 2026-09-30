@@ -8,6 +8,7 @@ import {
   Modal,
   Pressable,
   SafeAreaView,
+  Platform,
 } from "react-native";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -17,8 +18,10 @@ import { TabParamList } from "@/navigation/TabNavigator";
 import { colors, fonts } from "@/theme";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SegmentedControl, Segment } from "@/components/SegmentedControl";
-import { EmptyState } from "@/components/EmptyState";
+import { EmptyState, EmptyNote } from "@/components/EmptyState";
 import { shopApi, ShopItem, ShopItemType, ShopInventory, AppliedEffect } from "@/api/shop";
+import { GemPurchaseResult } from "@/api/gemPurchases";
+import { GemPacksSection } from "@/features/store/components/GemPacksSection";
 import ManoVacia from "@assets/ilus/mano-vacia.svg";
 import HeartConFondo from "@assets/ilus/heart-con-fondo.svg";
 import ManoConCaja from "@assets/ilus/mano-con-caja.svg";
@@ -43,8 +46,11 @@ const TABS: ReadonlyArray<Segment<TabKey>> = [
 const TAB_TYPES: Record<TabKey, ShopItemType[]> = {
   vidas: ["LIFE", "UNLIMITED_LIVES"],
   potenciadores: ["XP_MULTIPLIER", "STREAK_SHIELD"],
-  especiales: ["MYSTERY_CHEST", "GEMS"],
+  especiales: ["MYSTERY_CHEST"],
 };
+
+/** Google Play Billing only exists on Android; elsewhere the packs section explains that. */
+const GEM_PACKS_SUPPORTED = Platform.OS === "android";
 
 const ICON: Record<ShopItemType, keyof typeof Ionicons.glyphMap> = {
   LIFE: "heart",
@@ -208,6 +214,65 @@ function SuccessOverlay({ flow, gems, inventory, fromLesson, insets, onClose }: 
   );
 }
 
+interface GemsSuccessOverlayProps {
+  result: GemPurchaseResult;
+  insets: { top: number; bottom: number };
+  onClose: () => void;
+}
+
+function GemsSuccessOverlay({ result, insets, onClose }: GemsSuccessOverlayProps) {
+  return (
+    <SafeAreaView style={styles.fullOverlay}>
+      <View style={[styles.successBadgeRow, { paddingTop: insets.top + 16 }]}>
+        <View style={styles.successBadge}>
+          <Text style={styles.successBadgeText}>COMPRA LISTA</Text>
+        </View>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.successScroll}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <View style={styles.successIllustration}>
+          <ManoConCaja width={260} height={260} />
+        </View>
+
+        <Text style={styles.fullTitle}>
+          {result.alreadyGranted
+            ? "Esas gemas ya estaban acreditadas"
+            : `¡Sumaste ${result.gemsGranted.toLocaleString("es-AR")} gemas!`}
+        </Text>
+        <Text style={styles.fullSub}>Ya podés gastarlas en vidas, escudos y potenciadores.</Text>
+
+        <View style={styles.purchaseCard}>
+          <View style={styles.purchaseCardLeft}>
+            <View style={styles.purchaseCardIconWrap}>
+              <Ionicons name="diamond" size={21} color={colors.onDark} />
+            </View>
+            <View style={styles.purchaseCardTexts}>
+              <Text style={styles.purchaseCardTitle}>Pack de gemas</Text>
+              <Text style={styles.purchaseCardSub}>
+                Ahora tenés {result.inventory.gems.toLocaleString("es-AR")} gemas
+              </Text>
+            </View>
+          </View>
+          <View style={styles.purchaseCardGems}>
+            <Ionicons name="diamond" size={14} color={colors.onDark} />
+            <Text style={styles.purchaseCardGemCount}>+{result.gemsGranted}</Text>
+          </View>
+        </View>
+      </ScrollView>
+
+      <View style={[styles.successButtonRow, { paddingBottom: Math.max(insets.bottom, 28) }]}>
+        <TouchableOpacity style={styles.successCloseButton} onPress={onClose} activeOpacity={0.86}>
+          <Text style={styles.darkButtonText}>Volver a la tienda</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+}
+
 export function StoreTabScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
@@ -220,7 +285,9 @@ export function StoreTabScreen() {
   const [tab, setTab] = useState<TabKey>("vidas");
   const [flow, setFlow] = useState<Flow | null>(null);
   const [purchasing, setPurchasing] = useState(false);
+  const [gemsCredited, setGemsCredited] = useState<GemPurchaseResult | null>(null);
   const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const listRef = useRef<ScrollView>(null);
 
   const { storeModalVisible, dismissStoreModal, showSectionModal } = useTour();
 
@@ -259,6 +326,18 @@ export function StoreTabScreen() {
     setFlow(null);
     navigation.setParams({ fromLesson: undefined } as any);
   }
+
+  /** "Conseguir gemas": jump to the packs, which sit at the top of the Especiales tab. */
+  function goToGemPacks() {
+    closeFlow();
+    setTab("especiales");
+    listRef.current?.scrollTo({ y: 0, animated: true });
+  }
+
+  const onGemsCredited = useCallback((result: GemPurchaseResult) => {
+    setInventory(result.inventory);
+    setGemsCredited(result);
+  }, []);
 
   function openBuy(item: ShopItem) {
     const enough = (inventory?.gems ?? 0) >= item.priceGems;
@@ -321,9 +400,16 @@ export function StoreTabScreen() {
         </View>
       ) : (
         <ScrollView
+          ref={listRef}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
         >
+          {tab === "especiales" &&
+            (GEM_PACKS_SUPPORTED ? (
+              <GemPacksSection onCredited={onGemsCredited} />
+            ) : (
+              <EmptyNote>Los packs de gemas se compran desde la app de Android, a través de Google Play.</EmptyNote>
+            ))}
           {visibleItems.map((item) => {
             const featured = item.itemType === "UNLIMITED_LIVES";
             return (
@@ -485,7 +571,7 @@ export function StoreTabScreen() {
                 </Text>
               </View>
               <View style={styles.insufficientActions}>
-                <TouchableOpacity style={styles.darkButton} onPress={closeFlow} activeOpacity={0.86}>
+                <TouchableOpacity style={styles.darkButton} onPress={goToGemPacks} activeOpacity={0.86}>
                   <Text style={styles.darkButtonText}>Conseguir gemas</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.secondaryButton} onPress={closeFlow} activeOpacity={0.86}>
@@ -512,6 +598,22 @@ export function StoreTabScreen() {
             fromLesson={fromLesson}
             insets={insets}
             onClose={closeFlow}
+          />
+        )}
+      </Modal>
+
+      <Modal
+        visible={gemsCredited != null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setGemsCredited(null)}
+        statusBarTranslucent
+      >
+        {gemsCredited != null && (
+          <GemsSuccessOverlay
+            result={gemsCredited}
+            insets={insets}
+            onClose={() => setGemsCredited(null)}
           />
         )}
       </Modal>

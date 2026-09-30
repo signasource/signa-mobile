@@ -98,7 +98,7 @@ const STEP_DATA: Record<number, StepData> = {
   4: {
     title: "Gastá tus gemas acá",
     description:
-      "Vidas, escudos para tu racha y potenciadores de XP. Arrancás con 50 gemas de regalo.",
+      "Vidas, escudos para tu racha y potenciadores de XP. Arrancás con 100 gemas de regalo.",
     accentColor: colors.shopAmber,
     lisaBody: "waving",
     lisaSize: 230,

@@ -2,7 +2,7 @@
 
 > Responsibility: catalog of API endpoints exposed through `src/api/`.
 > Update when: an endpoint is added, changed, or removed, or a stub becomes real.
-> Sources: src/api/auth.ts, src/api/users.ts, src/api/health.ts, src/api/shop.ts, src/api/signs.ts, src/api/social.ts, src/api/notifications.ts, src/features/courses/api.ts
+> Sources: src/api/auth.ts, src/api/users.ts, src/api/health.ts, src/api/shop.ts, src/api/gemPurchases.ts, src/api/signs.ts, src/api/social.ts, src/api/notifications.ts, src/features/courses/api.ts
 
 Types → [types.md](./types.md). Client behavior → [http-client.md](./http-client.md).
 
@@ -47,6 +47,15 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 | `purchase(shopItemId)` | `POST /store/purchases` | `PurchaseResult` | `{ shopItemId }`; response includes `effect` (resolved reward, notably for `MYSTERY_CHEST`) and the refreshed `inventory` |
 
 The Store screen only supports buying for yourself: the "regalar a un amigo" flow (`POST /store/gifts`) is not wired into the UI. Friends *are* listable now (`socialApi.getFriends()`), so this is a UI gap, not an API one.
+
+## `gemPurchasesApi` (`src/api/gemPurchases.ts`) — mirrors `GemPurchaseController`
+
+Real-money gem packs through Google Play Billing. Flow and edge cases → [features/store.md](../features/store.md).
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getPacks()` | `GET /store/gem-packs` | `GemPack[]` | active packs ordered by `sortOrder`; `productId` is the Play in-app product id. **No price** — the app reads it from Play (`displayPrice`) |
+| `redeem(productId, purchaseToken)` | `POST /store/gem-purchases` | `GemPurchaseResult` | 201. Backend verifies the token with the Google Play Developer API and credits gems **once per token**: same token + same user again → 201 with `alreadyGranted: true`; same token + another user, or a token Play reports as already consumed → 409; pending/cancelled payment → 400; unknown `productId` → 404. Rate-limited (30/min per IP). Call `finishTransaction` only after this succeeds |
 
 ## `socialApi` (`src/api/social.ts`) — mirrors `FriendshipController.java` + `UserController.searchUsers`
 
