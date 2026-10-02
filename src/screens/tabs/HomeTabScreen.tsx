@@ -7,6 +7,7 @@ import {
   Modal,
   Pressable,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -87,6 +88,7 @@ export function HomeTabScreen({ navigation }: Props) {
   const [xp, setXp] = useState(0);
   const [roadmap, setRoadmap] = useState<CourseRoadmap | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openLesson, setOpenLesson] = useState<{
     lesson: RoadmapLesson;
@@ -103,8 +105,9 @@ export function HomeTabScreen({ navigation }: Props) {
   // Track if checklist auto-checks have been applied this load
   const autoChecked = useRef(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
     setError(null);
     autoChecked.current = false;
     Promise.all([usersApi.getStats(), inventoryApi.getMyInventory()])
@@ -132,6 +135,7 @@ export function HomeTabScreen({ navigation }: Props) {
       setError(err?.response?.data?.message ?? err?.message ?? "No pudimos cargar tu curso.");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [checklistItems.lesson, checklistItems.streak, markLesson, markStreak]);
 
@@ -190,7 +194,7 @@ export function HomeTabScreen({ navigation }: Props) {
       ) : error ? (
         <View style={styles.centerFill}>
           <EmptyState title="No pudimos cargar tu curso" description={error} />
-          <TouchableOpacity style={styles.retryButton} onPress={load} activeOpacity={0.85}>
+          <TouchableOpacity style={styles.retryButton} onPress={() => load()} activeOpacity={0.85}>
             <Text style={styles.retryButtonText}>Reintentar</Text>
           </TouchableOpacity>
         </View>
@@ -199,6 +203,14 @@ export function HomeTabScreen({ navigation }: Props) {
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => load(true)}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
         >
           {checklistVisible && (
             <ChecklistCard
