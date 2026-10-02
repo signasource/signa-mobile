@@ -24,6 +24,8 @@ interface ScreenHeaderProps {
   stats?: HeaderStat[];
   left?: React.ReactNode;
   right?: React.ReactNode;
+  /** Rendered above the title row (e.g. a course selector chip). */
+  top?: React.ReactNode;
   children?: React.ReactNode;
   /**
    * Drops the shared minimum height so the header hugs its content. Used by
@@ -49,6 +51,7 @@ export function ScreenHeader({
   stats,
   left,
   right,
+  top,
   children,
   compact = false,
 }: ScreenHeaderProps) {
@@ -68,6 +71,8 @@ export function ScreenHeader({
       ]}
     >
       <View style={[styles.bubble, { backgroundColor: bubble }]} />
+
+      {top}
 
       <View style={styles.row}>
         {left}

@@ -22,6 +22,8 @@ import { TabParamList } from "@/navigation/TabNavigator";
 import { AppStackParamList } from "@/navigation/AppNavigator";
 import { usersApi } from "@/api/users";
 import { inventoryApi } from "@/api/inventory";
+import { learningApi, EnrollmentSummary } from "@/api/learning";
+import type { PublicCourseProgress } from "@/api/social";
 import {
   coursesApi,
   CourseRoadmap,
@@ -56,17 +58,51 @@ function ctaFor(state: RoadmapLessonState): {
   }
 }
 
-async function fetchRoadmap(): Promise<CourseRoadmap> {
-  const { data: languages } = await coursesApi.getSignLanguages();
-  const lsa = languages.find((l) => l.code === "LSA") ?? languages[0];
-  if (!lsa) throw new Error("No hay lenguas de señas disponibles.");
+interface HomeData {
+  roadmap: CourseRoadmap;
+  enrollments: EnrollmentSummary[];
+  lessonCounts: PublicCourseProgress[];
+}
 
-  const { data: catalog } = await coursesApi.getCatalog(lsa.id);
-  const course = catalog.content[0];
-  if (!course) throw new Error("Todavía no hay cursos disponibles.");
+/**
+ * Loads the roadmap of the user's current course (the server persists the selection). Falls back
+ * to the first catalog course when the user has no enrollment yet.
+ */
+async function fetchHomeData(): Promise<HomeData> {
+  const [enrollments, lessonCounts] = await Promise.all([
+    learningApi.getEnrollments().then((r) => r.data).catch(() => [] as EnrollmentSummary[]),
+    learningApi.getLessonCounts().then((r) => r.data).catch(() => [] as PublicCourseProgress[]),
+  ]);
 
-  const { data: roadmap } = await coursesApi.getRoadmap(course.id);
-  return roadmap;
+  const enrolled = enrollments.find((e) => e.isCurrent) ?? enrollments[0];
+  let courseId = enrolled?.courseId;
+
+  if (!courseId) {
+    const { data: languages } = await coursesApi.getSignLanguages();
+    const lsa = languages.find((l) => l.code === "LSA") ?? languages[0];
+    if (!lsa) throw new Error("No hay lenguas de señas disponibles.");
+
+    const { data: catalog } = await coursesApi.getCatalog(lsa.id);
+    courseId = catalog.content[0]?.id;
+    if (!courseId) throw new Error("Todavía no hay cursos disponibles.");
+  }
+
+  const { data: roadmap } = await coursesApi.getRoadmap(courseId);
+  return { roadmap, enrollments, lessonCounts };
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+function courseSubtitle(course: EnrollmentSummary, counts: PublicCourseProgress[]): string {
+  const owner = course.organizationName ?? "Tu curso personal";
+  const progress = counts.find((c) => c.courseName === course.courseName);
+  return progress ? `${owner} · ${progress.completedLessons} de ${progress.totalLessons}` : owner;
 }
 
 function findCurrentLessonId(topics: RoadmapTopic[]): string | null {
@@ -87,6 +123,10 @@ export function HomeTabScreen({ navigation }: Props) {
   const [gems, setGems] = useState(0);
   const [xp, setXp] = useState(0);
   const [roadmap, setRoadmap] = useState<CourseRoadmap | null>(null);
+  const [enrollments, setEnrollments] = useState<EnrollmentSummary[]>([]);
+  const [lessonCounts, setLessonCounts] = useState<PublicCourseProgress[]>([]);
+  const [selectorOpen, setSelectorOpen] = useState(false);
+  const [switching, setSwitching] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -122,8 +162,10 @@ export function HomeTabScreen({ navigation }: Props) {
       })
       .catch(() => {});
     try {
-      const rm = await fetchRoadmap();
+      const { roadmap: rm, enrollments: enr, lessonCounts: counts } = await fetchHomeData();
       setRoadmap(rm);
+      setEnrollments(enr);
+      setLessonCounts(counts);
       // Auto-mark lesson checklist item when any lesson is completed
       if (!checklistItems.lesson) {
         const hasCompleted = rm.topics.some((t) =>
@@ -143,6 +185,26 @@ export function HomeTabScreen({ navigation }: Props) {
 
   const currentLessonId = roadmap ? findCurrentLessonId(roadmap.topics) : null;
   const cta = openLesson ? ctaFor(openLesson.lesson.state) : null;
+
+  const currentCourse = enrollments.find((e) => e.isCurrent) ?? enrollments[0] ?? null;
+
+  async function selectCourse(course: EnrollmentSummary) {
+    if (course.courseId === currentCourse?.courseId) {
+      setSelectorOpen(false);
+      return;
+    }
+    setSwitching(true);
+    try {
+      await learningApi.setCurrentCourse(course.courseId);
+      setSelectorOpen(false);
+      await load();
+    } catch (err: any) {
+      setSelectorOpen(false);
+      setError(err?.response?.data?.message ?? "No pudimos cambiar de curso.");
+    } finally {
+      setSwitching(false);
+    }
+  }
 
   function navigateToLesson(lesson: RoadmapLesson, unitLabel: string) {
     setOpenLesson(null);
@@ -179,6 +241,21 @@ export function HomeTabScreen({ navigation }: Props) {
         description="Seguí la ruta lección por lección y sumá señas todos los días."
         paddingTop={insets.top + 14}
         tone={colors.primary}
+        top={
+          currentCourse && enrollments.length > 1 ? (
+            <TouchableOpacity
+              style={styles.courseChip}
+              onPress={() => setSelectorOpen(true)}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="briefcase" size={14} color={colors.onDark} />
+              <Text style={styles.courseChipText} numberOfLines={1}>
+                {currentCourse.courseName}
+              </Text>
+              <Ionicons name="chevron-down" size={14} color={colors.onDark} />
+            </TouchableOpacity>
+          ) : null
+        }
         stats={[
           { key: "streak", label: "Racha", value: String(streak), icon: "flame" },
           { key: "gems", label: "Gemas", value: gems.toLocaleString("es-AR"), icon: "diamond" },
@@ -218,6 +295,21 @@ export function HomeTabScreen({ navigation }: Props) {
               onItemPress={handleChecklistItemPress}
             />
           )}
+          {currentCourse?.organizationName && (
+            <View style={styles.orgBanner}>
+              <Ionicons name="business" size={20} color={colors.primary} />
+              <View style={styles.orgBannerText}>
+                <Text style={styles.orgBannerTitle} numberOfLines={1}>
+                  Curso de {currentCourse.organizationName}
+                </Text>
+                {!!currentCourse.accessExpiresAt && (
+                  <Text style={styles.orgBannerSub}>
+                    Acceso incluido hasta el {formatDate(currentCourse.accessExpiresAt)}
+                  </Text>
+                )}
+              </View>
+            </View>
+          )}
           {roadmap?.topics.map((topic) => (
             <TopicSection
               key={topic.id}
@@ -235,6 +327,68 @@ export function HomeTabScreen({ navigation }: Props) {
           )}
         </ScrollView>
       )}
+
+      {/* ── Course selector (bottom sheet) ── */}
+      <Modal
+        visible={selectorOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSelectorOpen(false)}
+        statusBarTranslucent
+      >
+        <Pressable style={styles.sheetBackdrop} onPress={() => setSelectorOpen(false)}>
+          <Pressable
+            style={[styles.sheet, { paddingBottom: insets.bottom + 20 }]}
+            onPress={() => {}}
+          >
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>Elegí tu curso</Text>
+            <Text style={styles.sheetSubtitle}>
+              Tu progreso se guarda por separado en cada curso.
+            </Text>
+            {enrollments.map((course) => {
+              const selected = course.courseId === currentCourse?.courseId;
+              const isOrg = !!course.organizationName;
+              return (
+                <TouchableOpacity
+                  key={course.courseId}
+                  style={[styles.courseOption, selected && styles.courseOptionSelected]}
+                  onPress={() => selectCourse(course)}
+                  disabled={switching}
+                  activeOpacity={0.85}
+                >
+                  <View
+                    style={[
+                      styles.courseOptionIcon,
+                      { backgroundColor: isOrg ? colors.success : colors.primary },
+                    ]}
+                  >
+                    <Ionicons
+                      name={isOrg ? "medkit" : "hand-left"}
+                      size={22}
+                      color={colors.onDark}
+                    />
+                  </View>
+                  <View style={styles.courseOptionText}>
+                    <Text style={styles.courseOptionName} numberOfLines={1}>
+                      {course.courseName}
+                    </Text>
+                    <Text style={styles.courseOptionSub} numberOfLines={1}>
+                      {courseSubtitle(course, lessonCounts)}
+                    </Text>
+                  </View>
+                  {selected &&
+                    (switching ? (
+                      <ActivityIndicator color={colors.primary} />
+                    ) : (
+                      <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                    ))}
+                </TouchableOpacity>
+              );
+            })}
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* ── Lesson info modal (centered) ── */}
       <Modal
@@ -503,6 +657,116 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodySemiBold,
     fontSize: fontSizes.sm,
     color: colors.onDark,
+  },
+
+  // Course selector chip (header) and organization banner
+  courseChip: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    maxWidth: "80%",
+    backgroundColor: "rgba(255,255,255,0.16)",
+    borderRadius: 999,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+  },
+  courseChipText: {
+    flexShrink: 1,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.onDark,
+  },
+  orgBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: colors.primaryLight,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 20,
+  },
+  orgBannerText: { flex: 1, minWidth: 0 },
+  orgBannerTitle: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+    color: colors.text,
+  },
+  orgBannerSub: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+
+  // Course selector sheet
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(36,26,22,0.45)",
+    justifyContent: "flex-end",
+  },
+  sheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    gap: 10,
+  },
+  sheetHandle: {
+    alignSelf: "center",
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.roadmapLockedBorder,
+    marginBottom: 10,
+  },
+  sheetTitle: {
+    fontFamily: fonts.displayExtraBold,
+    fontSize: fontSizes.lg,
+    color: colors.text,
+    textAlign: "center",
+  },
+  sheetSubtitle: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 13,
+    color: colors.textMuted,
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  courseOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: colors.fill,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: "transparent",
+    padding: 12,
+  },
+  courseOptionSelected: {
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.primary,
+  },
+  courseOptionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  courseOptionText: { flex: 1, minWidth: 0 },
+  courseOptionName: {
+    fontFamily: fonts.displayExtraBold,
+    fontSize: 16,
+    color: colors.text,
+  },
+  courseOptionSub: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 12.5,
+    color: colors.textMuted,
+    marginTop: 2,
   },
 
   // Timeline
