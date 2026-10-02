@@ -105,7 +105,10 @@ Read-only: notifications are produced server-side by whatever triggers them.
 
 | Method | Path | Returns | Notes |
 |---|---|---|---|
-| `getProgress()` | `GET /learning/tracking/progress` | `CourseProgress[]` | per-course progress, unit info, signs learned |
+| `getProgress()` | `GET /learning/tracking/progress` | `PublicCourseProgress[]` | per-course progress of **active enrollments** (`courseName`, `completedLessons`, `totalLessons`, `progressPercentage`, `signsLearned`, `currentTopic`); no `courseId`/icon/color. Feeds the profile's Cursos tab and the Home selector |
+| `joinCourse(courseId)` | `POST /learning/tracking/courses/{courseId}/join` | `void` | idempotent self-enrolment in a **free** course by course id (403 if not free). Called by `HomeTabScreen` for free catalog courses the user isn't enrolled in |
+| `getEnrollments()` | `GET /learning/tracking/enrollments` | `EnrollmentSummary[]` | active enrollments (dropped/expired filtered server-side); `isCurrent` marks the selected course; `organizationName` / `accessExpiresAt` set for organization-granted access |
+| `setCurrentCourse(courseId)` | `PATCH /learning/tracking/current-course` | `void` | persists the selected course on the user; 404 if not actively enrolled |
 | `enroll(courseVersionId)` | `POST /learning/tracking/courses/{courseVersionId}/enroll` | `void` | not yet called from any screen |
 | `recordBlockInteraction(lessonBlockId, isCorrect)` | `POST /learning/tracking/blocks/{lessonBlockId}/interactions` | `void` | `isCorrect` is `null` for an `INFO` block view, `true`/`false` for an evaluable block attempt. Called from `LessonScreen` per block interaction (see [features/courses.md](../features/courses.md)); XP/lesson/topic/course completion is awarded server-side on the **first correct** attempt per block, so it's safe to call once per attempt (including repeated wrong taps inside `MATCH`/`VISUAL_RECOGNITION`) |
 

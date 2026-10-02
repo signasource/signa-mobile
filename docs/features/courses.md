@@ -133,8 +133,19 @@ error) instead of the local optimistic decrement, to remove the drift risk on a 
 `src/screens/tabs/HomeTabScreen.tsx` renders the vertical lesson recorrido from
 `Inicio - Direcciones.dc.html` (Claude Design): purple header + scrollable editorial rail timeline
 + centered lesson-detail modal.
-- **Content** is **real**: on mount it resolves LSA via `getSignLanguages()`, takes the **first**
-  course from `getCatalog(lsa.id)`, and loads `getRoadmap(course.id)`. Shows a spinner while
+- **Multiple courses / current course**: `fetchHomeData()` loads `learningApi.getEnrollments()`
+  and shows the roadmap of the enrollment with `isCurrent` (else the first one). The selection is
+  persisted **server-side** (`PATCH /learning/tracking/current-course`), so it survives restarts and
+  devices; progress is already per course. With 2+ enrollments the header shows a course chip
+  (`ScreenHeader`'s `top` slot) that opens an "Elegí tu curso" bottom sheet; picking one calls
+  `setCurrentCourse` and reloads. Each option's subtitle is `organizationName` or "Tu curso
+  personal" plus `X de Y` lessons (from `getProgress()`, matched by `courseName` because the
+  progress DTO has no `courseId`). When the current course comes from an organization, a banner
+  above the roadmap shows "Curso de {org}" and the "Acceso incluido hasta" date. Enrolment is what makes a course
+  appear in the selector and in the profile's Cursos tab, and nothing enrolled users before: once
+  per app session `joinMissingFreeCourses()` calls `joinCourse` for every free catalog course the
+  user lacks, then refetches. If that fails, the first catalog course is shown (previous behaviour).
+- **Content** is **real**: it loads `getRoadmap(courseId)` for that course. Shows a spinner while
   loading and an error + "Reintentar" on failure. Units = topics; each unit header shows `topic.title`
   as the (uppercase) kicker, `topic.subtitle` as the bold line, and `X de Y` progress.
 - **Header**: the shared `ScreenHeader` with `tone={colors.primary}`, the "Tu recorrido" title, a

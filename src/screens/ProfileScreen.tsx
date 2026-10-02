@@ -31,7 +31,8 @@ import { useAuth } from "@/context/AuthContext";
 import { usersApi, WeeklyXpEntry, UserStats } from "@/api/users";
 import { inventoryApi, UserInventory } from "@/api/inventory";
 import { achievementsApi, Achievement } from "@/api/achievements";
-import { learningApi, CourseProgress } from "@/api/learning";
+import { learningApi } from "@/api/learning";
+import type { PublicCourseProgress } from "@/api/social";
 
 type ProfileNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, "Profile">,
@@ -201,7 +202,7 @@ export function ProfileScreen({ navigation }: Props) {
   const [dailyGoalMinutes, setDailyGoalMinutes] = useState(15);
   const [inventory, setInventory] = useState<UserInventory>(DEFAULT_INVENTORY);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
-  const [courses, setCourses] = useState<CourseProgress[]>([]);
+  const [courses, setCourses] = useState<PublicCourseProgress[]>([]);
   const [savingGoal, setSavingGoal] = useState(false);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [minutesToday, setMinutesToday] = useState(0);
@@ -578,21 +579,22 @@ export function ProfileScreen({ navigation }: Props) {
       <View style={styles.section}>
         <SectionTitle icon="school" label="Cursos" />
         {courses.map((c) => {
-          const courseColor = c.color;
+          const courseColor = colors.primary;
+          const unit = c.currentTopic;
           return (
-            <View key={c.courseId} style={styles.courseCard}>
+            <View key={c.courseName} style={styles.courseCard}>
               <View style={styles.courseCardTop}>
                 <View style={[styles.courseChip, { backgroundColor: courseColor + "1F" }]}>
-                  <Ionicons name={c.icon as any} size={22} color={courseColor} />
+                  <Ionicons name="school" size={22} color={courseColor} />
                 </View>
                 <View style={styles.courseInfo}>
                   <Text style={styles.courseName}>{c.courseName}</Text>
                   <Text style={styles.courseLessons}>
-                    {c.lessonsCompleted} de {c.totalLessons} lecciones
+                    {c.completedLessons} de {c.totalLessons} lecciones
                   </Text>
                 </View>
                 <Text style={[styles.coursePct, { color: courseColor }]}>
-                  {c.progressPercent}%
+                  {c.progressPercentage}%
                 </Text>
               </View>
 
@@ -600,35 +602,33 @@ export function ProfileScreen({ navigation }: Props) {
                 <View
                   style={[
                     styles.courseFill,
-                    { width: `${c.progressPercent}%` as any, backgroundColor: courseColor },
+                    { width: `${c.progressPercentage}%` as any, backgroundColor: courseColor },
                   ]}
                 />
               </View>
 
-              <View style={styles.courseUnit}>
-                <View style={styles.courseUnitHeader}>
-                  <Text style={styles.courseUnitLabel}>{c.currentUnit}</Text>
-                  <Text style={styles.courseUnitPct}>{c.unitProgressPercent}% de la unidad</Text>
+              {unit && (
+                <View style={styles.courseUnit}>
+                  <View style={styles.courseUnitHeader}>
+                    <Text style={styles.courseUnitLabel}>{unit.title}</Text>
+                    <Text style={styles.courseUnitPct}>{unit.progressPercentage}% de la unidad</Text>
+                  </View>
+                  <View style={styles.courseUnitTrack}>
+                    <View
+                      style={[
+                        styles.courseUnitFill,
+                        { width: `${unit.progressPercentage}%` as any, backgroundColor: courseColor },
+                      ]}
+                    />
+                  </View>
                 </View>
-                <View style={styles.courseUnitTrack}>
-                  <View
-                    style={[
-                      styles.courseUnitFill,
-                      { width: `${c.unitProgressPercent}%` as any, backgroundColor: courseColor },
-                    ]}
-                  />
-                </View>
-              </View>
+              )}
 
               <View style={styles.courseFooter}>
                 <View style={styles.courseMeta}>
                   <View style={styles.courseMetaItem}>
                     <Ionicons name="hand-left" size={14} color={colors.courseTeal} />
                     <Text style={styles.courseMetaText}>{c.signsLearned} señas</Text>
-                  </View>
-                  <View style={styles.courseMetaItem}>
-                    <Ionicons name="time-outline" size={14} color={colors.neutral600} />
-                    <Text style={styles.courseMetaText}>{c.lastPractice}</Text>
                   </View>
                 </View>
                 <TouchableOpacity
