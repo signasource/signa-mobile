@@ -64,15 +64,45 @@ interface HomeData {
   lessonCounts: PublicCourseProgress[];
 }
 
-/**
- * Loads the roadmap of the user's current course (the server persists the selection). Falls back
- * to the first catalog course when the user has no enrollment yet.
- */
-async function fetchHomeData(): Promise<HomeData> {
+async function fetchEnrollmentData() {
   const [enrollments, lessonCounts] = await Promise.all([
     learningApi.getEnrollments().then((r) => r.data).catch(() => [] as EnrollmentSummary[]),
-    learningApi.getLessonCounts().then((r) => r.data).catch(() => [] as PublicCourseProgress[]),
+    learningApi.getProgress().then((r) => r.data).catch(() => [] as PublicCourseProgress[]),
   ]);
+  return { enrollments, lessonCounts };
+}
+
+// Free courses are joined once per app session; enrolment is what makes a course show up in
+// the selector and in the profile's "Cursos" progress.
+let freeCoursesJoined = false;
+
+/** Enrolls the user in the free catalog courses they're missing. Returns true if any was joined. */
+async function joinMissingFreeCourses(enrollments: EnrollmentSummary[]): Promise<boolean> {
+  if (freeCoursesJoined) return false;
+  try {
+    const { data: languages } = await coursesApi.getSignLanguages();
+    const lsa = languages.find((l) => l.code === "LSA") ?? languages[0];
+    if (!lsa) return false;
+    const { data: catalog } = await coursesApi.getCatalog(lsa.id);
+    const enrolledIds = new Set(enrollments.map((e) => e.courseId));
+    const missing = catalog.content.filter((c) => c.isFree && !enrolledIds.has(c.id));
+    await Promise.all(missing.map((c) => learningApi.joinCourse(c.id)));
+    freeCoursesJoined = true;
+    return missing.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Loads the roadmap of the user's current course (the server persists the selection). Falls back
+ * to the first catalog course if enrolment isn't available.
+ */
+async function fetchHomeData(): Promise<HomeData> {
+  let { enrollments, lessonCounts } = await fetchEnrollmentData();
+  if (await joinMissingFreeCourses(enrollments)) {
+    ({ enrollments, lessonCounts } = await fetchEnrollmentData());
+  }
 
   const enrolled = enrollments.find((e) => e.isCurrent) ?? enrollments[0];
   let courseId = enrolled?.courseId;
@@ -242,7 +272,7 @@ export function HomeTabScreen({ navigation }: Props) {
         paddingTop={insets.top + 14}
         tone={colors.primary}
         top={
-          currentCourse && enrollments.length > 1 ? (
+          currentCourse ? (
             <TouchableOpacity
               style={styles.courseChip}
               onPress={() => setSelectorOpen(true)}

@@ -98,7 +98,7 @@ export const socialApi = {
     apiClient.get<UserSearchResult[]>("/users/search", { params: { query }, signal }),
 };
 
-/** Mirrors `CourseProgressResponse`. Distinct from `CourseProgress` in `api/learning.ts`. */
+/** Mirrors `CourseProgressResponse`; also what `learningApi.getProgress()` returns. */
 export interface PublicCourseProgress {
   courseName: string;
   status: "ENROLLED" | "COMPLETED" | "DROPPED";

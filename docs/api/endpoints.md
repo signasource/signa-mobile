@@ -105,8 +105,8 @@ Read-only: notifications are produced server-side by whatever triggers them.
 
 | Method | Path | Returns | Notes |
 |---|---|---|---|
-| `getProgress()` | `GET /learning/tracking/progress` | `CourseProgress[]` | per-course progress, unit info, signs learned |
-| `getLessonCounts()` | `GET /learning/tracking/progress` | `PublicCourseProgress[]` | same endpoint as `getProgress`, typed with the real backend shape (`courseName`, `completedLessons`, `totalLessons`; no `courseId`). Used by the Home course selector |
+| `getProgress()` | `GET /learning/tracking/progress` | `PublicCourseProgress[]` | per-course progress of **active enrollments** (`courseName`, `completedLessons`, `totalLessons`, `progressPercentage`, `signsLearned`, `currentTopic`); no `courseId`/icon/color. Feeds the profile's Cursos tab and the Home selector |
+| `joinCourse(courseId)` | `POST /learning/tracking/courses/{courseId}/join` | `void` | idempotent self-enrolment in a **free** course by course id (403 if not free). Called by `HomeTabScreen` for free catalog courses the user isn't enrolled in |
 | `getEnrollments()` | `GET /learning/tracking/enrollments` | `EnrollmentSummary[]` | active enrollments (dropped/expired filtered server-side); `isCurrent` marks the selected course; `organizationName` / `accessExpiresAt` set for organization-granted access |
 | `setCurrentCourse(courseId)` | `PATCH /learning/tracking/current-course` | `void` | persists the selected course on the user; 404 if not actively enrolled |
 | `enroll(courseVersionId)` | `POST /learning/tracking/courses/{courseVersionId}/enroll` | `void` | not yet called from any screen |

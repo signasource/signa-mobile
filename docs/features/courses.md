@@ -139,10 +139,12 @@ error) instead of the local optimistic decrement, to remove the drift risk on a 
   devices; progress is already per course. With 2+ enrollments the header shows a course chip
   (`ScreenHeader`'s `top` slot) that opens an "Elegí tu curso" bottom sheet; picking one calls
   `setCurrentCourse` and reloads. Each option's subtitle is `organizationName` or "Tu curso
-  personal" plus `X de Y` lessons (from `getLessonCounts()`, matched by `courseName` because the
+  personal" plus `X de Y` lessons (from `getProgress()`, matched by `courseName` because the
   progress DTO has no `courseId`). When the current course comes from an organization, a banner
-  above the roadmap shows "Curso de {org}" and the "Acceso incluido hasta" date. Fallback when the
-  user has no enrollment: the first course of `getCatalog(lsa.id)` (previous behaviour).
+  above the roadmap shows "Curso de {org}" and the "Acceso incluido hasta" date. Enrolment is what makes a course
+  appear in the selector and in the profile's Cursos tab, and nothing enrolled users before: once
+  per app session `joinMissingFreeCourses()` calls `joinCourse` for every free catalog course the
+  user lacks, then refetches. If that fails, the first catalog course is shown (previous behaviour).
 - **Content** is **real**: it loads `getRoadmap(courseId)` for that course. Shows a spinner while
   loading and an error + "Reintentar" on failure. Units = topics; each unit header shows `topic.title`
   as the (uppercase) kicker, `topic.subtitle` as the bold line, and `X de Y` progress.
