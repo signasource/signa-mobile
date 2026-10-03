@@ -55,10 +55,30 @@ export interface PurchaseResult {
   inventory: ShopInventory;
 }
 
+export type GiftStatus = "PENDING" | "CLAIMED" | "EXPIRED";
+
+/** Mirrors `GiftResponse`. `status` is already `EXPIRED` when a pending gift passed `expiresAt`. */
+export interface Gift {
+  id: string;
+  item: ShopItem;
+  senderId: string;
+  senderUsername: string;
+  recipientId: string;
+  recipientUsername: string;
+  message: string | null;
+  status: GiftStatus;
+  sentAt: string;
+  claimedAt: string | null;
+  expiresAt: string | null;
+}
+
 export const shopApi = {
   getItems: () => apiClient.get<ShopItem[]>("/store/items"),
   /** `GET /inventories/me` — the single client for this endpoint (also re-exported by `inventoryApi`). */
   getMyInventory: () => apiClient.get<ShopInventory>("/inventories/me"),
   purchase: (shopItemId: string) =>
     apiClient.post<PurchaseResult>("/store/purchases", { shopItemId }),
+  /** Debits the sender's gems; the recipient (must be a friend) claims it later. `message` max 500 chars. */
+  sendGift: (shopItemId: string, recipientUserId: string, message?: string) =>
+    apiClient.post<Gift>("/store/gifts", { shopItemId, recipientUserId, message }),
 };

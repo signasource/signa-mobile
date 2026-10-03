@@ -84,5 +84,15 @@ Packs are seeded by the backend (`gems_pack_120` · `gems_pack_300` · `gems_pac
 
 ## Gifting
 
-`POST /store/gifts` exists and friends are listable, but the Store has no gifting UI yet — see
-[../status.md](../status.md).
+Every card in the catalog has a **"Regalar a un amigo"** link under *Comprar*. It opens `GiftSheet`
+(`src/features/store/components/GiftSheet.tsx`): friend list from `socialApi.getFriends()`, an
+optional message (max 500) once a friend is picked, and **"Regalar a @user"** →
+`shopApi.sendGift(itemId, friendId, message)`. The sheet then switches to a "¡Regalo enviado!"
+state and the screen refetches `/inventories/me` (the endpoint returns no inventory) to show the
+debited gems.
+
+- Not enough gems → the same `insufficient` sheet as buying ("Conseguir gemas").
+- The backend rejects non-friends and self-gifts; its message is shown inline in the sheet.
+- Gem-priced catalog items only; gem packs (real money) can't be gifted.
+- **Receiving is not built**: no inbox of received gifts and no claim action yet. The friend-accepted
+  modal's "send gift" button just navigates to this tab.

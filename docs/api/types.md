@@ -17,6 +17,7 @@
 - `ShopInventory { gems, streakShields, livesMode, currentLives, nextLifeAt, effectiveXpMultiplier, xpMultiplierExpiresAt, xpMultiplierActive, unlimitedLivesExpiresAt, unlimitedLivesActive, learnedSignsCount }` — mirrors `UserInventoryResponse`; `livesMode` is `INFINITE | LIMITED`. `UserInventory` (`inventoryApi`) is an alias of it.
 - `AppliedEffect { type, gemsGranted, livesGranted, streakShieldsGranted, xpMultiplierValue, durationMinutes }` — mirrors `AppliedEffectResponse`; for a `MYSTERY_CHEST` purchase, `type` is the resolved reward, not the chest itself.
 - `PurchaseResult { id, item, gemsSpent, purchasedAt, effect, inventory }` — mirrors `PurchaseResponse`.
+- `Gift { id, item, senderId, senderUsername, recipientId, recipientUsername, message, status, sentAt, claimedAt, expiresAt }` — mirrors `GiftResponse`. `status` is `PENDING | CLAIMED | EXPIRED` (already `EXPIRED` once a pending gift passes `expiresAt`).
 - `GemPack { id, productId, gems, sortOrder }` — mirrors `GemPackResponse`. A gem bundle sold through Google Play; `productId` is the Play in-app product id. Carries no price.
 - `GemPurchaseResult { id, productId, gemsGranted, orderId, purchasedAt, alreadyGranted, inventory }` — mirrors `GemPurchaseResponse`. `alreadyGranted` is `true` when the token had been credited before (idempotent replay); `inventory` is the refreshed `ShopInventory`.
 - `GemOffer { pack: GemPack, product: Product }` (`src/features/store/useGemPurchase.ts`) — client-only pairing of a pack with its `expo-iap` product (localized `displayPrice`).

@@ -22,6 +22,7 @@ import { EmptyState, EmptyNote } from "@/components/EmptyState";
 import { shopApi, ShopItem, ShopItemType, ShopInventory, AppliedEffect } from "@/api/shop";
 import { GemPurchaseResult } from "@/api/gemPurchases";
 import { GemPacksSection } from "@/features/store/components/GemPacksSection";
+import { GiftSheet } from "@/features/store/components/GiftSheet";
 import ManoVacia from "@assets/ilus/mano-vacia.svg";
 import HeartConFondo from "@assets/ilus/heart-con-fondo.svg";
 import ManoConCaja from "@assets/ilus/mano-con-caja.svg";
@@ -285,6 +286,7 @@ export function StoreTabScreen() {
   const [tab, setTab] = useState<TabKey>("vidas");
   const [flow, setFlow] = useState<Flow | null>(null);
   const [purchasing, setPurchasing] = useState(false);
+  const [giftItem, setGiftItem] = useState<ShopItem | null>(null);
   const [gemsCredited, setGemsCredited] = useState<GemPurchaseResult | null>(null);
   const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const listRef = useRef<ScrollView>(null);
@@ -342,6 +344,23 @@ export function StoreTabScreen() {
   function openBuy(item: ShopItem) {
     const enough = (inventory?.gems ?? 0) >= item.priceGems;
     setFlow({ step: enough ? "confirm" : "insufficient", item });
+  }
+
+  function openGift(item: ShopItem) {
+    if ((inventory?.gems ?? 0) < item.priceGems) {
+      setFlow({ step: "insufficient", item });
+      return;
+    }
+    setGiftItem(item);
+  }
+
+  /** The gift endpoint returns no inventory, so refetch it to show the debited gems. */
+  async function refreshInventory() {
+    try {
+      setInventory((await shopApi.getMyInventory()).data);
+    } catch {
+      // The balance resyncs on the next load; the gift itself already went through.
+    }
   }
 
   async function confirmPurchase(item: ShopItem) {
@@ -481,6 +500,20 @@ export function StoreTabScreen() {
                     Comprar
                   </Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.giftButton}
+                  onPress={() => openGift(item)}
+                  activeOpacity={0.86}
+                >
+                  <Ionicons
+                    name="gift-outline"
+                    size={17}
+                    color={featured ? colors.onDark : colors.shopAmberDark}
+                  />
+                  <Text style={[styles.giftButtonText, featured && styles.giftButtonTextFeatured]}>
+                    Regalar a un amigo
+                  </Text>
+                </TouchableOpacity>
               </View>
             );
           })}
@@ -492,6 +525,13 @@ export function StoreTabScreen() {
           )}
         </ScrollView>
       )}
+
+      <GiftSheet
+        item={giftItem}
+        gems={gems}
+        onClose={() => setGiftItem(null)}
+        onSent={refreshInventory}
+      />
 
       <Modal
         visible={!!flow}
@@ -806,6 +846,22 @@ const styles = StyleSheet.create({
   },
   buyButtonTextFeatured: {
     color: colors.shopAmberDark,
+  },
+  giftButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 8,
+    paddingVertical: 10,
+  },
+  giftButtonText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+    color: colors.shopAmberDark,
+  },
+  giftButtonTextFeatured: {
+    color: colors.onDark,
   },
   backdrop: {
     flex: 1,
