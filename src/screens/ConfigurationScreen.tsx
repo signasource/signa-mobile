@@ -547,8 +547,9 @@ export function ConfigurationScreen({ navigation, route }: Props) {
       {/* ── Bottom sheets ── */}
       {sheet !== null && (
         <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
-          <Pressable style={styles.overlay} onPress={() => setSheet(null)}>
-            <View style={[styles.sheetCard, { paddingBottom: Math.max(insets.bottom, 32) }]} onStartShouldSetResponder={() => true}>
+          <View style={styles.overlay}>
+            <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setSheet(null)} />
+            <View style={[styles.sheetCard, { paddingBottom: Math.max(insets.bottom, 32) }]}>
               <View style={styles.sheetHandle} />
               <View style={styles.sheetTitleRow}>
                 <Text style={styles.sheetTitle}>
@@ -665,8 +666,15 @@ export function ConfigurationScreen({ navigation, route }: Props) {
                         }}
                       >
                         <View style={{ height: WHEEL_PAD }} />
-                        {HOURS.map((h) => (
-                          <View key={h} style={styles.wheelItem}>
+                        {HOURS.map((h, i) => (
+                          <Pressable
+                            key={h}
+                            style={styles.wheelItem}
+                            onPress={() => {
+                              setDraftHour(h);
+                              hourScrollRef.current?.scrollTo({ y: i * ITEM_H, animated: true });
+                            }}
+                          >
                             <Text
                               style={[
                                 styles.wheelText,
@@ -677,7 +685,7 @@ export function ConfigurationScreen({ navigation, route }: Props) {
                             >
                               {h}
                             </Text>
-                          </View>
+                          </Pressable>
                         ))}
                         <View style={{ height: WHEEL_PAD }} />
                       </ScrollView>
@@ -702,8 +710,15 @@ export function ConfigurationScreen({ navigation, route }: Props) {
                         }}
                       >
                         <View style={{ height: WHEEL_PAD }} />
-                        {MINUTES.map((m) => (
-                          <View key={m} style={styles.wheelItem}>
+                        {MINUTES.map((m, i) => (
+                          <Pressable
+                            key={m}
+                            style={styles.wheelItem}
+                            onPress={() => {
+                              setDraftMinute(m);
+                              minuteScrollRef.current?.scrollTo({ y: i * ITEM_H, animated: true });
+                            }}
+                          >
                             <Text
                               style={[
                                 styles.wheelText,
@@ -714,7 +729,7 @@ export function ConfigurationScreen({ navigation, route }: Props) {
                             >
                               {m}
                             </Text>
-                          </View>
+                          </Pressable>
                         ))}
                         <View style={{ height: WHEEL_PAD }} />
                       </ScrollView>
@@ -740,7 +755,7 @@ export function ConfigurationScreen({ navigation, route }: Props) {
                 </>
               )}
             </View>
-          </Pressable>
+          </View>
         </View>
       )}
 
