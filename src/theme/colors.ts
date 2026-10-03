@@ -29,6 +29,7 @@ export const colors = {
 
   // Gamification / profile palette
   streakOrange: "#FB8B24",
+  streakCelebration: "#FDA55A",
   gemsBlue: "#29B6E8",
   gemsBlueDark: "#1B84AB",
   courseTeal: "#2FA8A0",

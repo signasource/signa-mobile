@@ -70,13 +70,13 @@ export function StreakMilestoneScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.streakOrange,
+    backgroundColor: colors.streakCelebration,
     paddingHorizontal: 24,
     justifyContent: "space-between",
   },
   fireWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
   // Sized by the free height (not width) so it shrinks on short phones instead of covering the text.
-  fire: { height: "100%", maxHeight: 440, aspectRatio: FIRE_ASPECT },
+  fire: { height: "100%", maxHeight: 360, aspectRatio: FIRE_ASPECT },
   body: { gap: 12, alignItems: "center", paddingBottom: 20 },
   title: {
     fontFamily: fonts.displayExtraBold,

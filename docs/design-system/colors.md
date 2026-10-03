@@ -32,6 +32,7 @@ Import: `import { colors } from "@/theme"`. Rule: every visual value comes from 
 | Token | Hex | Use |
 |---|---|---|
 | `colors.streakOrange` | `#FB8B24` | streak badge, racha |
+| `colors.streakCelebration` | `#FDA55A` | background of the streak-milestone celebration screen (lighter than `streakOrange`) |
 | `colors.gemsBlue` | `#29B6E8` | gems icon/border |
 | `colors.gemsBlueDark` | `#1B84AB` | gems text/count |
 | `colors.courseTeal` | `#2FA8A0` | courses, sign count |
