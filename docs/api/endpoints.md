@@ -47,7 +47,9 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 | `getMyInventory()` | `GET /inventories/me` | `ShopInventory` | full inventory shape (gems, `livesMode`, `currentLives`, streak shields, XP multiplier/unlimited-lives status) — **not** the narrower `UserInventory` from `inventoryApi` |
 | `purchase(shopItemId)` | `POST /store/purchases` | `PurchaseResult` | `{ shopItemId }`; response includes `effect` (resolved reward, notably for `MYSTERY_CHEST`) and the refreshed `inventory` |
 
-The Store screen only supports buying for yourself: the "regalar a un amigo" flow (`POST /store/gifts`) is not wired into the UI. Friends *are* listable now (`socialApi.getFriends()`), so this is a UI gap, not an API one.
+| `sendGift(shopItemId, recipientUserId, message?)` | `POST /store/gifts` | `Gift` (201) | debits the sender's gems; recipient must be a friend and not the sender (400 otherwise), `message` max 500 chars. Returns no inventory — refetch it |
+
+Receiving side (`GET /store/gifts/received`, `GET /store/gifts/sent`, `POST /store/gifts/{id}/claim`) exists on the backend but has no client or UI yet — see [../status.md](../status.md).
 
 ## `gemPurchasesApi` (`src/api/gemPurchases.ts`) — mirrors `GemPurchaseController`
 

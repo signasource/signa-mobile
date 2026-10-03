@@ -32,7 +32,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 - **Password-reset token pasted by hand.** No deep linking; the user copies the token from the email. Email verification still exists on the backend (`verified` flag) but registration auto-logs in and the app surfaces no verify/resend UI.
 - **No ESLint/Prettier config.** `npm run lint` runs eslint without configured rules; the real check today is `npm run typecheck` (tsc strict).
 - **Legacy theme tokens** (`accent`, `morado`, `azulOscuro`, `headingSemiBold`, …) still used by `AppNavigator` and old screens; migrate to current tokens.
-- **Gifting has no UI.** `POST /store/gifts` exists and friends are now listable (`socialApi.getFriends()`), but the Store screen still only buys for yourself.
+- **Gifts can be sent but not received.** The Store sends gifts (`GiftSheet`), but there is no client or UI for `GET /store/gifts/received`, `GET /store/gifts/sent` or `POST /store/gifts/{id}/claim`: a recipient has no way to see or claim what they were sent.
 - **Gem packs are Android-only.** `useGemPurchase` only requests Google products; iOS would need App Store products, a StoreKit branch (`request.apple`) and App Store receipt verification on the backend. The section is simply not mounted off Android.
 - **No `obfuscatedAccountId` on Play purchases.** The JWT carries only the email and there is no user id on the client, so purchases are not tagged with an account hash; the backend ties every token to the redeeming user anyway.
 - ~~No leaderboard.~~ Implemented in `feature/ranking`: `GET /ranking/global` + `GET /ranking/friends`, weekly reset scheduler, and the Social Ranking tab.
