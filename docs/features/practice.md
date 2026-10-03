@@ -47,10 +47,13 @@ mount-all-blocks-simultaneously pattern for WebView/3D preload.
   `learningApi.recordBlockInteraction` — practice never costs lives or advances lesson/topic/course
   progress (`PracticeAttempt` is a separate table server-side), and individual answers never grant
   XP either.
-- **Exception — finishing a `mode: "mistakes"` batch does grant XP.** Reaching the end of the batch
-  calls `practiceApi.completeMistakeReview()`, which awards a flat backend-side bonus (see Backend
-  below) unrelated to `xpReward` on the individual blocks. The result feeds `PracticeComplete`'s
-  `xpEarned` prop. Other modes (`type`, `sign`) never call this and never show an XP card.
+- **Exception — finishing a `mode: "mistakes"` batch can grant XP.** Reaching the end of the batch
+  calls `practiceApi.completeMistakeReview()` (once, via `finishSession`, after the in-flight
+  `recordAttempt` calls settle), which awards a flat backend-side bonus (see Backend below) unrelated
+  to `xpReward` on the individual blocks — but only if the backend saw a mistake resolved; otherwise
+  it returns `xpEarned: 0`. The result feeds `PracticeComplete`'s `xpEarned` prop.
+- Answering only records the attempt; the block's own "Continuar" advances. (Advancing from
+  `onAnswer` too used to hide the right/wrong feedback the moment it showed.) Other modes (`type`, `sign`) never call this and never show an XP card.
 - Results screen is `PracticeComplete` (own component, not `LessonComplete`): aciertos/total, plus
   an XP card only when `xpEarned > 0` (i.e. only after a completed mistakes batch). "Repetir"
   re-fetches a fresh batch — important for `mode: "mistakes"`, so items answered correctly this
@@ -72,9 +75,13 @@ mistake if its most recent attempt, in either one, was wrong.
 `POST /practice/mistakes/complete` (`PracticeService.completeMistakeReview`) is the one exception
 to "practice never grants XP": it publishes an `XpEarnedEvent` for a flat
 `MISTAKE_REVIEW_XP_REWARD` bonus, picked up by the same `UserStatsEventListener` that handles
-lesson-block XP. It's deliberately not tied to individual block correctness — the anti-farming
-guard is structural, not a cooldown: `getMistakeExercises` only ever returns pending mistakes, so
-once they're resolved the next batch is empty and there's nothing left to complete.
+lesson-block XP. Anti-farming: it pays only if, since `UserStats.lastMistakeReviewAt`, the user
+answered right a block they had previously missed (lesson or practice); the claim stamps that field.
+Answering wrong on purpose resolves nothing, so it returns 0 XP and publishes no event.
+
+**Scope of practice.** Exercises by type/sign come only from lessons the user has started
+(`UserLessonProgress`) in their enrolled courses — it's a review, not a preview. "Ejercicios hechos"
+(`getSummary`) = practice attempts + evaluable lesson attempts (`isCorrect != null`).
 
 **Practicable blocks.** `PracticeService.NOT_PRACTICABLE` = `INFO`, `INTRODUCE_SIGN`,
 `INVISIBLE_SIGNS`, `PERFORM_SIGN`, `SPELL_NAME`. It's applied to exercises by type, by sign, **and**
@@ -82,10 +89,6 @@ to mistake detection (a skipped camera exercise is recorded as a wrong lesson at
 replayed here). The client also drops unknown types (`isPracticableType` in
 `features/practice/types.ts`) so a stray block can't blank the session or crash the Errores list.
 `GET /practice/signs` is capped at `MAX_SIGNS_LIMIT` (200), separate from the 20-item exercise cap.
-
-Known gaps (see [status.md](../status.md)): `exercisesDoneCount` only counts `PracticeAttempt`
-(lesson attempts don't add to it); practice draws from every enrolled block, not only lessons the
-user has reached; `completeMistakeReview` doesn't verify any mistake was resolved.
 
 Not covered: a per-exercise-type "session length" setting, and spaced-repetition ordering for
 mistakes (currently most-recently-wrong first).

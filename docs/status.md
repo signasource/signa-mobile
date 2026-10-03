@@ -51,4 +51,3 @@ Per-feature detail is owned by each feature doc; this is the index.
 - Decide the camera + ML runtime stack and migrate to a dev build.
 - Persist onboarding answers once there is a place to store them.
 - (Optional) Configure ESLint/Prettier.
-- **Práctica libre — pending fixes** (found reviewing a tester's report; the practicable-block filter and the signs cap are already fixed, see [features/practice.md](./features/practice.md)): (1) "Ejercicios hechos" ignores lesson attempts; (2) practice draws from lessons the user hasn't reached; (3) `completeMistakeReview` grants 20 XP without checking a mistake was resolved, so answering wrong on purpose can farm it; (4) `goToNextBlock` calls `completeMistakeReview()` inside a `setBlockIndex` updater (double call under StrictMode); (5) content: `junio`, `agosto`, `diciembre` appear in `INTRODUCE_SIGN` but in no exercise, so they never count as learned.

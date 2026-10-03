@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -39,6 +39,10 @@ export function PracticeSessionScreen({ route, navigation }: Props) {
   const [correctBlockIds, setCorrectBlockIds] = useState<Set<string>>(new Set());
   const [completed, setCompleted] = useState(false);
   const [xpEarned, setXpEarned] = useState(0);
+  // Attempts in flight and a one-shot guard: the XP claim must run once, after the backend has
+  // every answer it's going to reward (see finishSession).
+  const pendingAttempts = useRef<Promise<unknown>[]>([]);
+  const finished = useRef(false);
 
   const title = useMemo(() => {
     if (mode.mode === "type") return mode.title;
@@ -53,6 +57,8 @@ export function PracticeSessionScreen({ route, navigation }: Props) {
     setCorrectBlockIds(new Set());
     setCompleted(false);
     setXpEarned(0);
+    pendingAttempts.current = [];
+    finished.current = false;
 
     const request =
       mode.mode === "type"
@@ -71,29 +77,38 @@ export function PracticeSessionScreen({ route, navigation }: Props) {
     loadExercises();
   }, [loadExercises]);
 
-  function goToNextBlock() {
-    setBlockIndex((i) => {
-      const next = i + 1;
-      if (!blocks || next >= blocks.length) {
-        setCompleted(true);
-        if (mode.mode === "mistakes") {
-          practiceApi
-            .completeMistakeReview()
-            .then((res) => setXpEarned(res.data.xpEarned))
-            .catch(() => {});
-        }
-        return i;
-      }
-      return next;
-    });
+  function finishSession() {
+    if (finished.current) return;
+    finished.current = true;
+    setCompleted(true);
+    if (mode.mode !== "mistakes") return;
+
+    // Side effects live here, not in a state updater (React may run those twice). Waiting for the
+    // attempts matters: the backend only pays out for mistakes it has seen resolved.
+    Promise.all(pendingAttempts.current)
+      .then(() => practiceApi.completeMistakeReview())
+      .then((res) => setXpEarned(res.data.xpEarned))
+      .catch(() => {});
   }
 
+  function goToNextBlock() {
+    if (!blocks) return;
+    if (blockIndex + 1 >= blocks.length) {
+      finishSession();
+    } else {
+      setBlockIndex(blockIndex + 1);
+    }
+  }
+
+  /**
+   * Only records the answer. Advancing is the block's "Continuar" (onContinue): moving on here too
+   * hid the right/wrong feedback the instant it appeared.
+   */
   function handleAnswer(block: LessonContentBlock, correct: boolean) {
-    practiceApi.recordAttempt(block.id, correct).catch(() => {});
+    pendingAttempts.current.push(practiceApi.recordAttempt(block.id, correct).catch(() => {}));
     if (correct) {
       setCorrectBlockIds((prev) => new Set(prev).add(block.id));
     }
-    goToNextBlock();
   }
 
   if (loading) {
