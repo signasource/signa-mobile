@@ -25,7 +25,7 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 | `getMe()` | `GET /users/me` | `UserProfile` | `{ name, lastName, username }` |
 | `updateProfile({ username, name, lastName })` | `PATCH /users/me` | `void` (204) | persists username, name and last name; name/lastName optional server-side. 409 if username taken |
 | `getWeeklyXp()` | `GET /users/me/weekly-xp` | `WeeklyXpEntry[]` | `[{ date, xpEarned }]` Mon–today; zeros for inactive days |
-| `getDailyGoal()` | `GET /users/daily-goal` | `{ dailyGoalMinutes, minutesToday }` | `minutesToday` comes from `UserDailyActivity` (today's row, UTC date) |
+| `getDailyGoal()` | `GET /users/daily-goal` | `{ dailyGoalMinutes, minutesToday }` | `minutesToday` comes from `UserDailyActivity` (today's row, Argentina date, `America/Argentina/Cordoba`) |
 | `updateDailyGoal(minutes)` | `PATCH /users/daily-goal` | `void` | body: `{ daily_goal_minutes }` (snake_case via interceptor) |
 | `recordActivity(minutes)` | `POST /users/me/activity` | `void` (204) | body: `{ minutes }`, server clamps `1..5` per call; upserts today's `UserDailyActivity` row. Called by `useActivityTracker()` (`src/hooks/useActivityTracker.ts`), used from `LessonScreen` — tracks foreground time only, flushed every ~60s and on unmount |
 | `getSettings()` | `GET /users/settings` | `UserSettings` | returns full settings; front-end uses `profileHeaderColor` |
