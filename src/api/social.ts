@@ -128,6 +128,8 @@ export interface PublicAchievement {
   earnedAt: string | null;
   /** Streak shields credited the moment the achievement is earned. */
   rewardStreakShields: number;
+  /** Gems credited the moment the achievement is earned. */
+  rewardGems: number;
 }
 
 export interface PublicUserStats {

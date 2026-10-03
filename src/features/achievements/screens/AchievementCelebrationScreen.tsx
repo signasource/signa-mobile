@@ -2,7 +2,6 @@ import React, { useEffect } from "react";
 import { StatusBar, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import LottieView from "lottie-react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
 import { Button } from "@/components/Button";
@@ -10,14 +9,22 @@ import { colors, fonts } from "@/theme";
 import { achievementsApi } from "@/api/achievements";
 import { AppStackParamList } from "@/navigation/AppNavigator";
 import { StreakMedal } from "@/features/achievements/components/StreakMedal";
+import { CelebrationAnimation } from "@/features/achievements/components/CelebrationAnimation";
+import {
+  CELEBRATION_THEMES,
+  formatCount,
+  headlineFor,
+  kindFor,
+  subtitleFor,
+} from "@/features/achievements/celebrations";
 
-type Props = NativeStackScreenProps<AppStackParamList, "StreakMilestone">;
+type Props = NativeStackScreenProps<AppStackParamList, "AchievementCelebration">;
 
-const FIRE_ASPECT = 500 / 690;
-
-export function StreakMilestoneScreen({ navigation, route }: Props) {
-  const { achievementId, days, title, rewardStreakShields } = route.params;
+export function AchievementCelebrationScreen({ navigation, route }: Props) {
+  const { achievementId, criteriaType, criteriaValue, title, rewardStreakShields, rewardGems } = route.params;
   const insets = useSafeAreaInsets();
+  const kind = kindFor(criteriaType);
+  const theme = CELEBRATION_THEMES[kind];
 
   // The reward is already credited server-side; marking it seen up front keeps a
   // killed app from replaying the same celebration forever.
@@ -26,38 +33,51 @@ export function StreakMilestoneScreen({ navigation, route }: Props) {
   }, [achievementId]);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 20 }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: theme.background, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 20 },
+      ]}
+    >
       <StatusBar barStyle="dark-content" />
 
-      <View style={styles.fireWrap}>
-        <LottieView
-          source={require("@assets/animations/streak-fire.json")}
-          autoPlay
-          loop
-          style={styles.fire}
-          resizeMode="contain"
-        />
+      <View style={styles.animationWrap}>
+        <CelebrationAnimation theme={theme} />
       </View>
 
       <View style={styles.body}>
-        <Text style={styles.title}>¡Llegaste a {days} días de racha!</Text>
-        <Text style={styles.subtitle}>Seguís aprendiendo todos los días. ¡Así se hace!</Text>
+        <Text style={styles.title}>{headlineFor(kind, criteriaValue)}</Text>
+        <Text style={styles.subtitle}>{subtitleFor(kind)}</Text>
 
         <View style={styles.rewardCard}>
-          <StreakMedal days={days} size={72} animated />
+          {kind === "streak" ? (
+            <StreakMedal days={criteriaValue} size={72} animated />
+          ) : (
+            <View style={[styles.iconBadge, { backgroundColor: theme.background }]}>
+              <Ionicons name={theme.icon} size={34} color={colors.white} />
+            </View>
+          )}
           <View style={styles.rewardInfo}>
             <Text style={styles.rewardKicker}>Logro desbloqueado</Text>
             <Text style={styles.rewardTitle} numberOfLines={2}>
               {title}
             </Text>
-            {rewardStreakShields > 0 && (
-              <View style={styles.rewardPill}>
-                <Ionicons name="snow" size={14} color={colors.gemsBlueDark} />
-                <Text style={styles.rewardPillText}>
-                  +{rewardStreakShields} protector{rewardStreakShields > 1 ? "es" : ""} de racha
-                </Text>
-              </View>
-            )}
+            <View style={styles.pills}>
+              {rewardGems > 0 && (
+                <View style={[styles.pill, styles.gemsPill]}>
+                  <Ionicons name="diamond" size={13} color={colors.gemsBlueDark} />
+                  <Text style={[styles.pillText, { color: colors.gemsBlueDark }]}>+{formatCount(rewardGems)} gemas</Text>
+                </View>
+              )}
+              {rewardStreakShields > 0 && (
+                <View style={[styles.pill, styles.gemsPill]}>
+                  <Ionicons name="snow" size={13} color={colors.gemsBlueDark} />
+                  <Text style={[styles.pillText, { color: colors.gemsBlueDark }]}>
+                    +{rewardStreakShields} protector{rewardStreakShields > 1 ? "es" : ""} de racha
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
         </View>
       </View>
@@ -70,13 +90,10 @@ export function StreakMilestoneScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.streakCelebration,
     paddingHorizontal: 24,
     justifyContent: "space-between",
   },
-  fireWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
-  // Sized by the free height (not width) so it shrinks on short phones instead of covering the text.
-  fire: { height: "100%", maxHeight: 360, aspectRatio: FIRE_ASPECT },
+  animationWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
   body: { gap: 12, alignItems: "center", paddingBottom: 20 },
   title: {
     fontFamily: fonts.displayExtraBold,
@@ -103,6 +120,13 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: colors.surface,
   },
+  iconBadge: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   rewardInfo: { flex: 1, gap: 4 },
   rewardKicker: {
     fontFamily: fonts.bodySemiBold,
@@ -114,19 +138,18 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: colors.text,
   },
-  rewardPill: {
+  pills: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  pill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    alignSelf: "flex-start",
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderRadius: 999,
-    backgroundColor: colors.gemsBlue + "1F",
   },
-  rewardPillText: {
+  gemsPill: { backgroundColor: colors.gemsBlue + "1F" },
+  pillText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 12.5,
-    color: colors.gemsBlueDark,
   },
 });

@@ -32,7 +32,15 @@ Import: `import { colors } from "@/theme"`. Rule: every visual value comes from 
 | Token | Hex | Use |
 |---|---|---|
 | `colors.streakOrange` | `#FB8B24` | streak badge, racha |
-| `colors.streakCelebration` | `#FDA55A` | background of the streak-milestone celebration screen (lighter than `streakOrange`) |
+| `colors.streakCelebration` | `#FDA55A` | background of the streak achievement celebration screen (lighter than `streakOrange`) |
+| `colors.celebrationLessons` | `#9B86FF` | achievement celebration background: lessons |
+| `colors.celebrationCourses` | `#5FC4BB` | achievement celebration background: courses |
+| `colors.celebrationXp` | `#F6BC4B` | achievement celebration background: total XP |
+| `colors.celebrationWeeklyXp` | `#7FA6FF` | achievement celebration background: weekly XP |
+| `colors.celebrationFriends` | `#E27FA9` | achievement celebration background: friends |
+| `colors.celebrationGifts` | `#F59BC4` | achievement celebration background: gifts |
+| `colors.celebrationShop` | `#F29A4F` | achievement celebration background: shop |
+| `colors.celebrationGeneric` | `#9B86FF` | achievement celebration background: any other achievement |
 | `colors.gemsBlue` | `#29B6E8` | gems icon/border |
 | `colors.gemsBlueDark` | `#1B84AB` | gems text/count |
 | `colors.courseTeal` | `#2FA8A0` | courses, sign count |

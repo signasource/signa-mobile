@@ -30,6 +30,16 @@ export const colors = {
   // Gamification / profile palette
   streakOrange: "#FB8B24",
   streakCelebration: "#FDA55A",
+
+  // Achievement celebration backgrounds (one per achievement group)
+  celebrationLessons: "#9B86FF",
+  celebrationCourses: "#5FC4BB",
+  celebrationXp: "#F6BC4B",
+  celebrationWeeklyXp: "#7FA6FF",
+  celebrationFriends: "#E27FA9",
+  celebrationGifts: "#F59BC4",
+  celebrationShop: "#F29A4F",
+  celebrationGeneric: "#9B86FF",
   gemsBlue: "#29B6E8",
   gemsBlueDark: "#1B84AB",
   courseTeal: "#2FA8A0",
