@@ -1,10 +1,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { AppState, AppStateStatus } from "react-native";
 import { achievementsApi, Achievement } from "@/api/achievements";
-import { isStreakAchievement } from "@/features/achievements/streakTier";
 
-interface StreakMilestoneContextValue {
-  /** Next streak achievement whose celebration hasn't been shown. */
+interface AchievementCelebrationContextValue {
+  /** Next achievement whose celebration hasn't been shown. */
   pending: Achievement | null;
   /** Drops `pending` from the queue; the screen marks it as seen on the backend. */
   consume: () => void;
@@ -12,14 +11,14 @@ interface StreakMilestoneContextValue {
   refresh: () => void;
 }
 
-const StreakMilestoneContext = createContext<StreakMilestoneContextValue>({
+const AchievementCelebrationContext = createContext<AchievementCelebrationContextValue>({
   pending: null,
   consume: () => {},
   refresh: () => {},
 });
 
-export function useStreakMilestone() {
-  return useContext(StreakMilestoneContext);
+export function useAchievementCelebration() {
+  return useContext(AchievementCelebrationContext);
 }
 
 interface Props {
@@ -27,7 +26,7 @@ interface Props {
   isAuthenticated: boolean;
 }
 
-export function StreakMilestoneProvider({ children, isAuthenticated }: Props) {
+export function AchievementCelebrationProvider({ children, isAuthenticated }: Props) {
   const [queue, setQueue] = useState<Achievement[]>([]);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   // Handed to the screen already; the backend may still list it until `markSeen` lands.
@@ -37,7 +36,7 @@ export function StreakMilestoneProvider({ children, isAuthenticated }: Props) {
     if (!isAuthenticated) return;
     try {
       const { data } = await achievementsApi.getUnseen();
-      setQueue(data.filter((a) => isStreakAchievement(a) && !handedOutIds.current.has(a.id)));
+      setQueue(data.filter((a) => !handedOutIds.current.has(a.id)));
     } catch {
       // Cosmetic celebration: a failed check is retried on the next lesson or app resume.
     }
@@ -69,8 +68,8 @@ export function StreakMilestoneProvider({ children, isAuthenticated }: Props) {
   }, [isAuthenticated, refresh]);
 
   return (
-    <StreakMilestoneContext.Provider value={{ pending: queue[0] ?? null, consume, refresh }}>
+    <AchievementCelebrationContext.Provider value={{ pending: queue[0] ?? null, consume, refresh }}>
       {children}
-    </StreakMilestoneContext.Provider>
+    </AchievementCelebrationContext.Provider>
   );
 }

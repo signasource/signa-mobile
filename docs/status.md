@@ -24,7 +24,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 | Public profile (read-only, of another user) | real | [features/social.md](./features/social.md#publicprofilescreen) |
 | Courses flat browse (`CoursesListScreen`) | stub | [features/courses.md](./features/courses.md#course-catalog--stub) |
 | Práctica libre (`PracticeTabScreen` + `PracticeSessionScreen`) | real, wired to `signa-api` | [features/practice.md](./features/practice.md) |
-| Streak achievements (milestone celebration + medal + shield reward) | real (needs `signa-api` with streak tracking; dev-build rebuild for Lottie) | [features/achievements.md](./features/achievements.md) |
+| Achievements (catalog, unlocked by the backend, celebration screen per group, streak medals) | real; animations of every group except streak are **mocked** until the Lottie files are added; needs `signa-api` with the achievement catalog and a dev-build rebuild for Lottie | [features/achievements.md](./features/achievements.md) |
 | ML (sign recognition) | real, **on-device and real time** (nothing leaves the phone) | [features/ml.md](./features/ml.md) |
 
 ## Cross-cutting tech debt
