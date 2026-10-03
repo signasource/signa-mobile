@@ -119,26 +119,30 @@ export function EditProfileScreen({ navigation, route }: Props) {
             autoCapitalize="none"
             autoCorrect={false}
           />
-          {usernameStatus === "available" && (
-            <Ionicons name="checkmark-circle" size={19} color={colors.success} />
-          )}
-          {(usernameStatus === "taken" || usernameStatus === "invalid") && (
-            <Ionicons name="close-circle" size={19} color={colors.danger} />
-          )}
-          {usernameStatus === "checking" && (
-            <Ionicons name="ellipsis-horizontal" size={19} color={colors.neutral600} />
-          )}
+          {/* Slot de ancho fijo: el ícono cambia sin alterar el layout (y sin perder el foco). */}
+          <View style={styles.statusSlot}>
+            {usernameStatus === "available" && (
+              <Ionicons name="checkmark-circle" size={19} color={colors.success} />
+            )}
+            {(usernameStatus === "taken" || usernameStatus === "invalid") && (
+              <Ionicons name="close-circle" size={19} color={colors.danger} />
+            )}
+            {usernameStatus === "checking" && (
+              <Ionicons name="ellipsis-horizontal" size={19} color={colors.neutral600} />
+            )}
+          </View>
         </View>
-        {usernameMessage && (
-          <Text
-            style={[
-              styles.fieldHint,
-              usernameStatus === "available" ? { color: colors.success } : { color: colors.danger },
-            ]}
-          >
-            {usernameMessage}
-          </Text>
-        )}
+        {/* Siempre montado: si aparece/desaparece, el scroll se reacomoda y el teclado deselecciona el campo. */}
+        <Text
+          style={[
+            styles.fieldHint,
+            usernameStatus === "available" ? { color: colors.success } : { color: colors.danger },
+          ]}
+        >
+          {usernameMessage ?? " "}
+        </Text>
+
+        {error && <Text style={[styles.fieldHint, { color: colors.danger }]}>{error}</Text>}
 
         {error && <Text style={[styles.fieldHint, { color: colors.danger }]}>{error}</Text>}
 
@@ -208,6 +212,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     paddingVertical: 18,
   },
+  statusSlot: { width: 19, height: 19, alignItems: "center", justifyContent: "center" },
   fieldHint: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 13,
