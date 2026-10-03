@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { NavigationContainer, NavigationContainerRef, NavigationState } from "@react-navigation/native";
 import { useAuth } from "@/context/AuthContext";
@@ -8,6 +8,7 @@ import { AppStackParamList } from "./AppNavigator";
 import { SessionExpiredModal } from "@/components/SessionExpiredModal";
 import { FriendAcceptedProvider, useFriendAccepted } from "@/context/FriendAcceptedContext";
 import { FriendAcceptedModal } from "@/features/social/components/FriendAcceptedModal";
+import { StreakMilestoneProvider, useStreakMilestone } from "@/features/achievements/StreakMilestoneContext";
 import { TourProvider } from "@/features/tour/TourContext";
 import { TourOverlay } from "@/features/tour/components/TourOverlay";
 import { colors } from "@/theme";
@@ -49,6 +50,43 @@ function FriendAcceptedModalConnected({
   );
 }
 
+/**
+ * Shows the streak-milestone celebration on top of whatever the user is doing, except mid-lesson,
+ * and re-checks for new achievements as soon as a lesson or practice session is left.
+ */
+function StreakMilestoneConnected({
+  currentRouteName,
+  navigationRef,
+}: {
+  currentRouteName: string;
+  navigationRef: React.RefObject<NavigationContainerRef<AppStackParamList> | null>;
+}) {
+  const { pending, consume, refresh } = useStreakMilestone();
+  const previousRoute = useRef("");
+
+  useEffect(() => {
+    const left = previousRoute.current;
+    previousRoute.current = currentRouteName;
+    if (left === "Lesson" || left === "PracticeSession") refresh();
+  }, [currentRouteName, refresh]);
+
+  useEffect(() => {
+    if (!pending) return;
+    if (currentRouteName === "" || currentRouteName === "Lesson" || currentRouteName === "StreakMilestone") return;
+    if (!navigationRef.current?.isReady()) return;
+
+    navigationRef.current.navigate("StreakMilestone", {
+      achievementId: pending.id,
+      days: pending.criteriaValue,
+      title: pending.title,
+      rewardStreakShields: pending.rewardStreakShields,
+    });
+    consume();
+  }, [pending, currentRouteName, consume, navigationRef]);
+
+  return null;
+}
+
 export function RootNavigator() {
   const {
     isAuthenticated,
@@ -73,6 +111,7 @@ export function RootNavigator() {
 
   return (
     <FriendAcceptedProvider isAuthenticated={isAuthenticated}>
+      <StreakMilestoneProvider isAuthenticated={isAuthenticated}>
       <TourProvider isAuthenticated={isAuthenticated} userId={user?.email ?? null}>
         <NavigationContainer
           ref={navigationRef}
@@ -96,8 +135,10 @@ export function RootNavigator() {
           isInLesson={currentRouteName === "Lesson"}
           navigationRef={navigationRef}
         />
+        <StreakMilestoneConnected currentRouteName={currentRouteName} navigationRef={navigationRef} />
         <TourOverlay />
       </TourProvider>
+      </StreakMilestoneProvider>
     </FriendAcceptedProvider>
   );
 }

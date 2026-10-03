@@ -31,6 +31,8 @@ import { useAuth } from "@/context/AuthContext";
 import { usersApi, WeeklyXpEntry, UserStats } from "@/api/users";
 import { inventoryApi, UserInventory } from "@/api/inventory";
 import { achievementsApi, Achievement } from "@/api/achievements";
+import { StreakMedal } from "@/features/achievements/components/StreakMedal";
+import { isStreakAchievement } from "@/features/achievements/streakTier";
 import { learningApi } from "@/api/learning";
 import type { PublicCourseProgress } from "@/api/social";
 
@@ -857,11 +859,15 @@ export function ProfileScreen({ navigation }: Props) {
               activeOpacity={0.7}
             >
               <View style={[styles.achBadge, { backgroundColor: a.earned ? colors.warning + "22" : colors.neutral100 }]}>
-                <Ionicons
-                  name={a.earned ? "trophy" : "lock-closed"}
-                  size={28}
-                  color={a.earned ? colors.warning : "#B8B8BD"}
-                />
+                {a.earned && isStreakAchievement(a) ? (
+                  <StreakMedal days={a.criteriaValue} size={52} />
+                ) : (
+                  <Ionicons
+                    name={a.earned ? "trophy" : "lock-closed"}
+                    size={28}
+                    color={a.earned ? colors.warning : "#B8B8BD"}
+                  />
+                )}
                 {!a.earned && (
                   <View style={styles.achLock}>
                     <Ionicons name="lock-closed" size={11} color={colors.neutral600} />
@@ -1045,11 +1051,15 @@ export function ProfileScreen({ navigation }: Props) {
               </View>
               <View style={styles.achDetailBody}>
                 <View style={[styles.achDetailBadge, { backgroundColor: achievementDetail.earned ? colors.warning + "22" : colors.neutral100 }]}>
-                  <Ionicons
-                    name={achievementDetail.earned ? "trophy" : "lock-closed"}
-                    size={38}
-                    color={achievementDetail.earned ? colors.warning : "#B8B8BD"}
-                  />
+                  {achievementDetail.earned && isStreakAchievement(achievementDetail) ? (
+                    <StreakMedal days={achievementDetail.criteriaValue} size={72} animated />
+                  ) : (
+                    <Ionicons
+                      name={achievementDetail.earned ? "trophy" : "lock-closed"}
+                      size={38}
+                      color={achievementDetail.earned ? colors.warning : "#B8B8BD"}
+                    />
+                  )}
                 </View>
                 <Text style={styles.achDetailName}>{achievementDetail.title}</Text>
                 <Text style={styles.achDetailDesc}>{achievementDetail.description}</Text>

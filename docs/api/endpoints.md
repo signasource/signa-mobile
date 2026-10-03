@@ -106,6 +106,8 @@ Read-only: notifications are produced server-side by whatever triggers them.
 | Method | Path | Returns | Notes |
 |---|---|---|---|
 | `getAchievements(unlocked)` | `GET /achievements?unlocked=` | `Achievement[]` (= `PublicAchievement`) | pass `true` or `false` |
+| `getUnseen()` | `GET /achievements/unseen` | `Achievement[]` | earned achievements whose celebration wasn't shown yet, oldest first |
+| `markSeen(id)` | `POST /achievements/{id}/seen` | 204 | idempotent; 404 if the user hasn't earned it |
 
 ## `learningApi` (`src/api/learning.ts`) — mirrors `CourseTrackingController.java`
 
