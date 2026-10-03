@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
 import { MatchConfig } from "@/features/courses/lessonContent.types";
-import { MultiGlbView } from "@/features/animations/MultiGlbView";
+import { MultiAvatarNativo } from "@/features/animations/MultiAvatarNativo";
 import { getGlbUrl } from "@/features/animations/glbUrl";
 import { XpChip } from "../XpChip";
 import { LessonButton } from "../LessonButton";
@@ -198,7 +198,7 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
         <View style={styles.grid}>
           <View style={[styles.column, { height: columnHeight }]}>
             {!modelsFailed && (
-              <MultiGlbView
+              <MultiAvatarNativo
                 urls={signUrls}
                 activeIndex={0}
                 layout="rows"

@@ -3,7 +3,7 @@ import { StyleSheet, TouchableOpacity, View, ViewStyle } from "react-native";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "@/theme";
-import { MultiGlbView } from "@/features/animations/MultiGlbView";
+import { MultiAvatarNativo } from "@/features/animations/MultiAvatarNativo";
 import { getGlbUrl } from "@/features/animations/glbUrl";
 import { SignPlaceholder } from "../SignPlaceholder";
 import { XpChip } from "../XpChip";
@@ -51,7 +51,7 @@ function CarouselAnimation({ options, activeIndex, tone, paused, style }: Carous
       </View>
 
       {!failed ? (
-        <MultiGlbView
+        <MultiAvatarNativo
           urls={urls}
           activeIndex={activeIndex}
           paused={paused}

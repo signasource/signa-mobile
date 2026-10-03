@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "@/theme";
 import { VisualRecognitionConfig } from "@/features/courses/lessonContent.types";
 import { SignPlaceholder } from "../SignPlaceholder";
-import { MultiGlbView } from "@/features/animations/MultiGlbView";
+import { MultiAvatarNativo } from "@/features/animations/MultiAvatarNativo";
 import { getGlbUrl } from "@/features/animations/glbUrl";
 import { XpChip } from "../XpChip";
 import { FeedbackBar } from "../FeedbackBar";
@@ -80,7 +80,7 @@ export function VisualRecognitionBlock({ config, xp, onAnswer, onContinue }: Vis
           <SignPlaceholder label={`secuencia · ${total} señas`} height={SEQUENCE_HEIGHT} />
         ) : (
           <View style={styles.sequence}>
-            <MultiGlbView
+            <MultiAvatarNativo
               key={replayKey}
               urls={seqUrls}
               activeIndex={seqIndex}
