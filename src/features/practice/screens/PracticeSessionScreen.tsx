@@ -17,7 +17,7 @@ import { MatchBlock } from "@/features/courses/components/lesson/blocks/MatchBlo
 import { VisualRecognitionBlock } from "@/features/courses/components/lesson/blocks/VisualRecognitionBlock";
 import { PracticeSessionHeader } from "@/features/practice/components/PracticeSessionHeader";
 import { PracticeComplete } from "@/features/practice/components/PracticeComplete";
-import { EXERCISE_TYPE_BY_KEY } from "@/features/practice/types";
+import { EXERCISE_TYPE_BY_KEY, isPracticableType } from "@/features/practice/types";
 
 type Props = NativeStackScreenProps<AppStackParamList, "PracticeSession">;
 
@@ -62,7 +62,7 @@ export function PracticeSessionScreen({ route, navigation }: Props) {
           : practiceApi.getMistakeExercises();
 
     request
-      .then((res) => setBlocks(res.data))
+      .then((res) => setBlocks(res.data.filter((block) => isPracticableType(block.type as BlockType))))
       .catch(() => setError("No pudimos cargar los ejercicios."))
       .finally(() => setLoading(false));
   }, [mode]);

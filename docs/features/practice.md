@@ -76,5 +76,16 @@ lesson-block XP. It's deliberately not tied to individual block correctness — 
 guard is structural, not a cooldown: `getMistakeExercises` only ever returns pending mistakes, so
 once they're resolved the next batch is empty and there's nothing left to complete.
 
+**Practicable blocks.** `PracticeService.NOT_PRACTICABLE` = `INFO`, `INTRODUCE_SIGN`,
+`INVISIBLE_SIGNS`, `PERFORM_SIGN`, `SPELL_NAME`. It's applied to exercises by type, by sign, **and**
+to mistake detection (a skipped camera exercise is recorded as a wrong lesson attempt, but can't be
+replayed here). The client also drops unknown types (`isPracticableType` in
+`features/practice/types.ts`) so a stray block can't blank the session or crash the Errores list.
+`GET /practice/signs` is capped at `MAX_SIGNS_LIMIT` (200), separate from the 20-item exercise cap.
+
+Known gaps (see [status.md](../status.md)): `exercisesDoneCount` only counts `PracticeAttempt`
+(lesson attempts don't add to it); practice draws from every enrolled block, not only lessons the
+user has reached; `completeMistakeReview` doesn't verify any mistake was resolved.
+
 Not covered: a per-exercise-type "session length" setting, and spaced-repetition ordering for
 mistakes (currently most-recently-wrong first).

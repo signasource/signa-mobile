@@ -50,3 +50,12 @@ export const EXERCISE_TYPE_BY_KEY: Record<BlockType, ExerciseTypeInfo> = EXERCIS
   (acc, type) => ({ ...acc, [type.key]: type }),
   {} as Record<BlockType, ExerciseTypeInfo>
 );
+
+/**
+ * ¿El reproductor de práctica sabe mostrar este tipo? El backend ya excluye el
+ * resto (INFO, INTRODUCE_SIGN, cámara…), pero un tipo desconocido dejaba la
+ * sesión en blanco o rompía la lista de errores: se descarta acá por las dudas.
+ */
+export function isPracticableType(type: BlockType): boolean {
+  return EXERCISE_TYPE_BY_KEY[type] !== undefined;
+}

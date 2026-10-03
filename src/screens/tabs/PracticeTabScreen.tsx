@@ -15,7 +15,7 @@ import { TabParamList } from "@/navigation/TabNavigator";
 import { AppStackParamList } from "@/navigation/AppNavigator";
 import { practiceApi, LearnedSign, PracticeMistake } from "@/api/practice";
 import { SignAnimation } from "@/features/courses/components/lesson/SignAnimation";
-import { EXERCISE_TYPES, EXERCISE_TYPE_BY_KEY } from "@/features/practice/types";
+import { EXERCISE_TYPES, EXERCISE_TYPE_BY_KEY, isPracticableType } from "@/features/practice/types";
 import { useTour } from "@/features/tour/TourContext";
 import { SectionWelcomeModal } from "@/features/tour/components/SectionWelcomeModal";
 
@@ -317,7 +317,7 @@ function MistakesTab({
   useEffect(() => {
     practiceApi
       .getMistakes()
-      .then((res) => setMistakes(res.data))
+      .then((res) => setMistakes(res.data.filter((m) => isPracticableType(m.type))))
       .catch(() => setMistakes([]));
   }, []);
 
@@ -372,7 +372,7 @@ function MistakesTab({
       </View>
 
       <Text style={[styles.sectionLabel, styles.sectionLabelSpaced]}>
-        EN ESTA LECCIÓN · {mistakes.length}
+        PENDIENTES DE REPASO · {mistakes.length}
       </Text>
 
       <View style={styles.mistakesList}>
