@@ -187,7 +187,7 @@ export function ProfileScreen({ navigation }: Props) {
   const [headerColorOpen, setHeaderColorOpen] = useState(false);
   const [goalOpen, setGoalOpen] = useState(false);
   const [goalDraft, setGoalDraft] = useState(15);
-  const [achievementDetailId, setAchievementDetailId] = useState<number | null>(null);
+  const [achievementDetailId, setAchievementDetailId] = useState<string | null>(null);
   const [achFilter, setAchFilter] = useState<AchFilter>("unlocked");
   const [selectedDayIndex, setSelectedDayIndex] = useState(todayIdx);
 
@@ -365,11 +365,11 @@ export function ProfileScreen({ navigation }: Props) {
   const selectedDayName = selectedDayIndex === todayIdx ? "Hoy" : selectedDay.name;
 
   const sortedAchievements = [
-    ...achievements.filter((a) => a.unlocked).sort((a, b) => ((a.earnedAt ?? "") < (b.earnedAt ?? "") ? 1 : -1)),
-    ...achievements.filter((a) => !a.unlocked),
+    ...achievements.filter((a) => a.earned).sort((a, b) => ((a.earnedAt ?? "") < (b.earnedAt ?? "") ? 1 : -1)),
+    ...achievements.filter((a) => !a.earned),
   ];
   const achievementsShown = sortedAchievements.filter((a) =>
-    achFilter === "unlocked" ? a.unlocked : !a.unlocked
+    achFilter === "unlocked" ? a.earned : !a.earned
   );
   const achievementDetail = achievements.find((a) => a.id === achievementDetailId) ?? null;
 
@@ -384,12 +384,12 @@ export function ProfileScreen({ navigation }: Props) {
     {
       key: "unlocked",
       label: "Conseguidos",
-      count: achievements.filter((a) => a.unlocked).length,
+      count: achievements.filter((a) => a.earned).length,
     },
     {
       key: "locked",
       label: "Bloqueados",
-      count: achievements.filter((a) => !a.unlocked).length,
+      count: achievements.filter((a) => !a.earned).length,
     },
   ];
 
@@ -856,20 +856,20 @@ export function ProfileScreen({ navigation }: Props) {
               onPress={() => setAchievementDetailId(a.id)}
               activeOpacity={0.7}
             >
-              <View style={[styles.achBadge, { backgroundColor: a.unlocked ? a.color + "22" : colors.neutral100 }]}>
+              <View style={[styles.achBadge, { backgroundColor: a.earned ? colors.warning + "22" : colors.neutral100 }]}>
                 <Ionicons
-                  name={a.icon as any}
+                  name={a.earned ? "trophy" : "lock-closed"}
                   size={28}
-                  color={a.unlocked ? a.color : "#B8B8BD"}
+                  color={a.earned ? colors.warning : "#B8B8BD"}
                 />
-                {!a.unlocked && (
+                {!a.earned && (
                   <View style={styles.achLock}>
                     <Ionicons name="lock-closed" size={11} color={colors.neutral600} />
                   </View>
                 )}
               </View>
-              <Text style={[styles.achName, !a.unlocked && { color: colors.neutral600 }]} numberOfLines={2}>
-                {a.name}
+              <Text style={[styles.achName, !a.earned && { color: colors.neutral600 }]} numberOfLines={2}>
+                {a.title}
               </Text>
             </TouchableOpacity>
           ))}
@@ -1044,25 +1044,25 @@ export function ProfileScreen({ navigation }: Props) {
                 </TouchableOpacity>
               </View>
               <View style={styles.achDetailBody}>
-                <View style={[styles.achDetailBadge, { backgroundColor: achievementDetail.unlocked ? achievementDetail.color + "22" : colors.neutral100 }]}>
+                <View style={[styles.achDetailBadge, { backgroundColor: achievementDetail.earned ? colors.warning + "22" : colors.neutral100 }]}>
                   <Ionicons
-                    name={achievementDetail.icon as any}
+                    name={achievementDetail.earned ? "trophy" : "lock-closed"}
                     size={38}
-                    color={achievementDetail.unlocked ? achievementDetail.color : "#B8B8BD"}
+                    color={achievementDetail.earned ? colors.warning : "#B8B8BD"}
                   />
                 </View>
-                <Text style={styles.achDetailName}>{achievementDetail.name}</Text>
+                <Text style={styles.achDetailName}>{achievementDetail.title}</Text>
                 <Text style={styles.achDetailDesc}>{achievementDetail.description}</Text>
-                {!achievementDetail.unlocked && achievementDetail.progress && (
+                {!achievementDetail.earned && (
                   <View style={styles.progressPill}>
-                    <Text style={styles.progressPillText}>{achievementDetail.progress}</Text>
+                    <Text style={styles.progressPillText}>Meta: {achievementDetail.criteriaValue}</Text>
                   </View>
                 )}
-                {achievementDetail.unlocked && achievementDetail.earnedLabel && (
+                {achievementDetail.earned && achievementDetail.earnedAt && (
                   <View style={styles.achEarnedRow}>
                     <Ionicons name="checkmark-circle" size={16} color={colors.success} />
                     <Text style={styles.achEarnedText}>
-                      Desbloqueado {achievementDetail.earnedLabel}
+                      Desbloqueado el {new Date(achievementDetail.earnedAt).toLocaleDateString("es-AR")}
                     </Text>
                   </View>
                 )}

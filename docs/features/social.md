@@ -123,8 +123,7 @@ shows identity plus the friendship action over an "esta cuenta es privada" state
 a 404, so someone found through search can still be added.
 
 Courses and achievements are typed against the **real** backend shapes (`PublicCourseProgress`,
-`PublicAchievement`), not the mismatched `CourseProgress` / `Achievement` types in
-`src/api/learning.ts` and `src/api/achievements.ts` — see [../status.md](../status.md). Course
+`PublicAchievement`), the same shapes `learningApi` and `achievementsApi` now return. Course
 colours are derived from list position since the backend sends none.
 
 ## Shared helpers — `features/social/people.ts`

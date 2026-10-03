@@ -34,6 +34,7 @@ export interface ShopInventory {
   xpMultiplierActive: boolean;
   unlimitedLivesExpiresAt: string | null;
   unlimitedLivesActive: boolean;
+  learnedSignsCount: number;
 }
 
 export interface AppliedEffect {
@@ -56,6 +57,7 @@ export interface PurchaseResult {
 
 export const shopApi = {
   getItems: () => apiClient.get<ShopItem[]>("/store/items"),
+  /** `GET /inventories/me` — the single client for this endpoint (also re-exported by `inventoryApi`). */
   getMyInventory: () => apiClient.get<ShopInventory>("/inventories/me"),
   purchase: (shopItemId: string) =>
     apiClient.post<PurchaseResult>("/store/purchases", { shopItemId }),
