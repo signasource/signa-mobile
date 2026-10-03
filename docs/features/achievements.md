@@ -30,6 +30,25 @@ Seeded in `signa-api` (`db/seed/achievements.sql`). The medal colour comes from 
 | 60 | `STREAK_60` | +4 | amethyst |
 | 100 | `STREAK_100` | +5 | ruby |
 
+## Other achievements
+
+Streak achievements are the only ones with a celebration screen. The rest are granted silently by the
+backend (`AchievementService.awardReached`, gems credited on the spot) and just show up in the
+profile's **Logros** section with the trophy icon. Catalog in `signa-api`
+(`db/seed/achievements.sql`), inspired by `Gamificación.xlsx`:
+
+| Group | Achievements |
+|---|---|
+| Lessons | 1, 25, 50, 100 completed |
+| Courses | 1, 3 completed |
+| Total XP | 500, 5.000, 25.000, 100.000 |
+| Weekly XP | 1.000, 3.000 |
+| Social | **Primer amigo**, 1 and 5 gifts sent |
+| Shop | 1 and 5 purchases |
+
+Left out until the backend can award them: daily/weekly challenges and "streak without shields".
+`CHALLENGE_CHAMPION` is seeded inactive, which is why the app asks for `active=true`.
+
 ## Mobile pieces
 
 | Piece | File |
