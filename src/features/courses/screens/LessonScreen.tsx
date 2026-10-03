@@ -29,6 +29,9 @@ type Props = NativeStackScreenProps<AppStackParamList, "Lesson">;
 /** Tope de espera al salir: pasado esto se vuelve igual. */
 const ESPERA_MAX_SALIDA = 2500;
 
+/** Bloques informativos: nunca llaman a `onAnswer`, así que no entran en "Aciertos". */
+const NON_GRADED_BLOCKS: ReadonlySet<BlockType> = new Set<BlockType>(["INFO", "INTRODUCE_SIGN"]);
+
 const STARTING_LIVES = 5;
 
 export function LessonScreen({ route, navigation }: Props) {
@@ -174,7 +177,7 @@ export function LessonScreen({ route, navigation }: Props) {
           unitLabel={unitLabel ?? lesson.name}
           xpEarned={xpEarned}
           correctBlocks={correctBlockIds.size}
-          totalBlocks={blocks.length}
+          totalBlocks={blocks.filter((b) => !NON_GRADED_BLOCKS.has(b.type as BlockType)).length}
           signsLearned={signsCount ?? 0}
           onClose={volver}
           onRestart={resetProgress}
