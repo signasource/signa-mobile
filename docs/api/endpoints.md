@@ -49,7 +49,10 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 
 | `sendGift(shopItemId, recipientUserId, message?)` | `POST /store/gifts` | `Gift` (201) | debits the sender's gems; recipient must be a friend and not the sender (400 otherwise), `message` max 500 chars. Returns no inventory — refetch it |
 
-Receiving side (`GET /store/gifts/received`, `GET /store/gifts/sent`, `POST /store/gifts/{id}/claim`) exists on the backend but has no client or UI yet — see [../status.md](../status.md).
+| `getReceivedGifts(status?)` | `GET /store/gifts/received?status=` | `Gift[]` | newest first; a stale `PENDING` is returned as `EXPIRED` but still matches the `PENDING` filter, so filter client-side too |
+| `claimGift(giftId)` | `POST /store/gifts/{id}/claim` | `GiftClaimResult` | `{ gift, effect, inventory }`; 404 not yours, 409 already claimed, 400 expired |
+
+`GET /store/gifts/sent` exists on the backend but has no client or UI yet — see [../status.md](../status.md).
 
 ## `gemPurchasesApi` (`src/api/gemPurchases.ts`) — mirrors `GemPurchaseController`
 
