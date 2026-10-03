@@ -126,6 +126,8 @@ export interface PublicAchievement {
   active: boolean;
   earned: boolean;
   earnedAt: string | null;
+  /** Streak shields credited the moment the achievement is earned. */
+  rewardStreakShields: number;
 }
 
 export interface PublicUserStats {

@@ -31,6 +31,8 @@ import { useAuth } from "@/context/AuthContext";
 import { usersApi, WeeklyXpEntry, UserStats } from "@/api/users";
 import { inventoryApi, UserInventory } from "@/api/inventory";
 import { achievementsApi, Achievement } from "@/api/achievements";
+import { StreakMedal } from "@/features/achievements/components/StreakMedal";
+import { isStreakAchievement } from "@/features/achievements/streakTier";
 import { learningApi } from "@/api/learning";
 import type { PublicCourseProgress } from "@/api/social";
 
@@ -856,16 +858,15 @@ export function ProfileScreen({ navigation }: Props) {
               onPress={() => setAchievementDetailId(a.id)}
               activeOpacity={0.7}
             >
-              <View style={[styles.achBadge, { backgroundColor: a.earned ? colors.warning + "22" : colors.neutral100 }]}>
-                <Ionicons
-                  name={a.earned ? "trophy" : "lock-closed"}
-                  size={28}
-                  color={a.earned ? colors.warning : "#B8B8BD"}
-                />
-                {!a.earned && (
-                  <View style={styles.achLock}>
-                    <Ionicons name="lock-closed" size={11} color={colors.neutral600} />
-                  </View>
+              <View style={styles.achBadge}>
+                {a.earned && isStreakAchievement(a) ? (
+                  <StreakMedal days={a.criteriaValue} size={64} />
+                ) : (
+                  <Ionicons
+                    name={a.earned ? "trophy" : "lock-closed-outline"}
+                    size={28}
+                    color={a.earned ? colors.warning : colors.roadmapLockedIcon}
+                  />
                 )}
               </View>
               <Text style={[styles.achName, !a.earned && { color: colors.neutral600 }]} numberOfLines={2}>
@@ -1044,12 +1045,16 @@ export function ProfileScreen({ navigation }: Props) {
                 </TouchableOpacity>
               </View>
               <View style={styles.achDetailBody}>
-                <View style={[styles.achDetailBadge, { backgroundColor: achievementDetail.earned ? colors.warning + "22" : colors.neutral100 }]}>
-                  <Ionicons
-                    name={achievementDetail.earned ? "trophy" : "lock-closed"}
-                    size={38}
-                    color={achievementDetail.earned ? colors.warning : "#B8B8BD"}
-                  />
+                <View style={styles.achDetailBadge}>
+                  {achievementDetail.earned && isStreakAchievement(achievementDetail) ? (
+                    <StreakMedal days={achievementDetail.criteriaValue} size={84} animated />
+                  ) : (
+                    <Ionicons
+                      name={achievementDetail.earned ? "trophy" : "lock-closed-outline"}
+                      size={38}
+                      color={achievementDetail.earned ? colors.warning : colors.roadmapLockedIcon}
+                    />
+                  )}
                 </View>
                 <Text style={styles.achDetailName}>{achievementDetail.title}</Text>
                 <Text style={styles.achDetailDesc}>{achievementDetail.description}</Text>
@@ -1646,21 +1651,6 @@ const styles = StyleSheet.create({
   achBadge: {
     width: 64,
     height: 64,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-  },
-  achLock: {
-    position: "absolute",
-    right: 0,
-    bottom: 0,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.neutral200,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1787,7 +1777,6 @@ const styles = StyleSheet.create({
   achDetailBadge: {
     width: 84,
     height: 84,
-    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
   },

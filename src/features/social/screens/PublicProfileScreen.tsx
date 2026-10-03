@@ -13,6 +13,8 @@ import PictureIllustration from "@assets/ilus/picture.svg";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { StreakMedal } from "@/features/achievements/components/StreakMedal";
+import { isStreakAchievement } from "@/features/achievements/streakTier";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AppStackParamList } from "@/navigation/AppNavigator";
 import { colors, fonts } from "@/theme";
@@ -494,21 +496,15 @@ export function PublicProfileScreen({ route, navigation }: Props) {
           <View style={styles.achGrid}>
             {achievementsShown.map((a) => (
               <View key={a.id} style={styles.achItem}>
-                <View
-                  style={[
-                    styles.achBadge,
-                    { backgroundColor: a.earned ? colors.warning + "22" : colors.neutral100 },
-                  ]}
-                >
-                  <Ionicons
-                    name={a.earned ? "trophy" : "lock-closed"}
-                    size={28}
-                    color={a.earned ? colors.warning : "#B8B8BD"}
-                  />
-                  {!a.earned && (
-                    <View style={styles.achLock}>
-                      <Ionicons name="lock-closed" size={11} color={colors.neutral600} />
-                    </View>
+                <View style={styles.achBadge}>
+                  {a.earned && isStreakAchievement(a) ? (
+                    <StreakMedal days={a.criteriaValue} size={64} />
+                  ) : (
+                    <Ionicons
+                      name={a.earned ? "trophy" : "lock-closed-outline"}
+                      size={28}
+                      color={a.earned ? colors.warning : colors.roadmapLockedIcon}
+                    />
                   )}
                 </View>
                 <Text
@@ -972,21 +968,6 @@ const styles = StyleSheet.create({
   achBadge: {
     width: 64,
     height: 64,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-  },
-  achLock: {
-    position: "absolute",
-    right: 0,
-    bottom: 0,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.neutral200,
     alignItems: "center",
     justifyContent: "center",
   },

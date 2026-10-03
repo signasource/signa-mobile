@@ -43,6 +43,7 @@ Versions live in `package.json` — not duplicated here.
 - Global state: Context API only (no Redux/Zustand).
 - Storage: `expo-secure-store` (tokens) + `@react-native-async-storage/async-storage` (non-sensitive).
 - Fonts: `@expo-google-fonts/*` (Bricolage Grotesque + Figtree).
+- Animations: `lottie-react-native` (Lottie JSON in `assets/animations/`). Native module → needs a dev-build rebuild after install. See [features/achievements.md](./features/achievements.md).
 - Icons: `@expo/vector-icons` (Ionicons) for the icon font set; `react-native-svg` for one-off SVG icons/illustrations. See [design-system/components.md](./design-system/components.md#svg-icons--illustrations).
 
 ## Boot sequence (`App.tsx`)
