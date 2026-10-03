@@ -226,6 +226,10 @@ export function ProfileScreen({ navigation }: Props) {
         firstFocus.current = false;
         return;
       }
+      usersApi.getMe().then((res) => {
+        setDisplayName(res.data.name);
+        setUsername(res.data.username);
+      }).catch(() => {});
       usersApi.getSettings().then((res) => {
         const color = res.data.profileHeaderColor;
         setHeaderColor(color);

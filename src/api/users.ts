@@ -3,6 +3,7 @@ import { AuthResponse, ChangePasswordRequest } from "@/types";
 
 export interface UserProfile {
   name: string;
+  lastName?: string;
   username: string;
 }
 
@@ -62,8 +63,8 @@ export const usersApi = {
   updateSettings: (payload: Partial<UserSettings>) =>
     apiClient.patch<UserSettings>("/users/settings", payload),
 
-  updateUsername: (username: string) =>
-    apiClient.patch<void>("/users/me", { username }),
+  updateProfile: (payload: { username: string; name: string; lastName: string }) =>
+    apiClient.patch<void>("/users/me", payload),
 
   deleteMe: () => apiClient.delete<void>("/users/me"),
 };

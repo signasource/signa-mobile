@@ -22,6 +22,7 @@ export function EditProfileScreen({ navigation, route }: Props) {
   const [lastNameValue, setLastNameValue] = useState(lastName);
   const [usernameValue, setUsernameValue] = useState(username);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const { status: usernameStatus, message: usernameMessage } = useUsernameAvailability(
     usernameValue.trim() === username ? "" : usernameValue
@@ -36,12 +37,15 @@ export function EditProfileScreen({ navigation, route }: Props) {
 
   async function handleSave() {
     if (!ready) return;
+    setError(null);
     setSaving(true);
     const trimmedUsername = usernameValue.trim();
     try {
-      if (trimmedUsername !== username) {
-        await usersApi.updateUsername(trimmedUsername);
-      }
+      await usersApi.updateProfile({
+        username: trimmedUsername,
+        name: name.trim(),
+        lastName: lastNameValue.trim(),
+      });
       navigation.navigate("Configuration", {
         updatedProfile: {
           displayName: name.trim(),
@@ -49,8 +53,8 @@ export function EditProfileScreen({ navigation, route }: Props) {
           username: trimmedUsername,
         },
       });
-    } catch {
-      navigation.goBack();
+    } catch (err: any) {
+      setError(err?.response?.data?.message ?? "No pudimos guardar los cambios. Intentá de nuevo.");
     } finally {
       setSaving(false);
     }
@@ -135,6 +139,8 @@ export function EditProfileScreen({ navigation, route }: Props) {
             {usernameMessage}
           </Text>
         )}
+
+        {error && <Text style={[styles.fieldHint, { color: colors.danger }]}>{error}</Text>}
 
         <TouchableOpacity
           style={[styles.primaryBtn, !ready && { opacity: 0.45 }]}
