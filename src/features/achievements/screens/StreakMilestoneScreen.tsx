@@ -75,7 +75,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   fireWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
-  fire: { width: "100%", maxWidth: 320, aspectRatio: FIRE_ASPECT },
+  // Sized by the free height (not width) so it shrinks on short phones instead of covering the text.
+  fire: { height: "100%", maxHeight: 440, aspectRatio: FIRE_ASPECT },
   body: { gap: 12, alignItems: "center", paddingBottom: 20 },
   title: {
     fontFamily: fonts.displayExtraBold,
