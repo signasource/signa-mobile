@@ -237,6 +237,12 @@ export function ProfileScreen({ navigation }: Props) {
       usersApi.getDailyGoal().then((res) => {
         setMinutesToday(res.data.minutesToday);
       }).catch(() => {});
+      // Las lecciones gastan vidas en el backend: sin esto el inventario queda con las de antes.
+      inventoryApi.getMyInventory().then((res) => {
+        setInventory(res.data);
+        setLivesCount(res.data.currentLives ?? MAX_LIVES);
+        setGemsCount(res.data.gems);
+      }).catch(() => {});
     }, [])
   );
 
