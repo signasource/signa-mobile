@@ -104,7 +104,7 @@ object Glb {
       val salida = ByteArrayOutputStream()
       mapa.compress(
         if (conAlfa) Bitmap.CompressFormat.PNG else Bitmap.CompressFormat.JPEG,
-        90,
+        97,
         salida,
       )
       mapa.recycle()

@@ -7,6 +7,7 @@ import android.view.Choreographer
 import android.view.MotionEvent
 import android.view.TextureView
 import com.google.android.filament.Camera
+import com.google.android.filament.ColorGrading
 import com.google.android.filament.Colors
 import com.google.android.filament.Engine
 import com.google.android.filament.EntityManager
@@ -14,6 +15,7 @@ import com.google.android.filament.IndirectLight
 import com.google.android.filament.LightManager
 import com.google.android.filament.Renderer
 import com.google.android.filament.Scene
+import com.google.android.filament.ToneMapper
 import com.google.android.filament.SwapChain
 import com.google.android.filament.View as VistaFilament
 import com.google.android.filament.Viewport
@@ -129,26 +131,35 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
     vista.bloomOptions = VistaFilament.BloomOptions().apply { enabled = false }
     vista.blendMode = VistaFilament.BlendMode.OPAQUE
 
-    // Iluminación de tres puntos, como una foto de estudio.
+    // Un cuarto de estudio, como el que arma model-viewer.
     //
-    // Antes era un ambiente parejo de una sola banda y el avatar se veía plano
-    // y apagado al lado del de model-viewer, que trae un entorno de verdad. Sin
-    // ese entorno, lo que da volumen es que la luz venga de algún lado: una luz
-    // principal adelante y arriba, un relleno más frío del otro lado para que
-    // las sombras no queden negras, y un contraluz que despega la silueta del
-    // fondo.
+    // La versión web se veía mejor y la razón no era ningún truco: trae un
+    // entorno por omisión —paredes grises, techo claro, piso oscuro y unos
+    // paneles de luz— y el modelo se ilumina con ESO, no con dos focos. Eso es
+    // lo que le da volumen parejo y sombras suaves en vez de caras planas.
+    //
+    // El cuarto entra por dos lados, porque un material PBR tiene dos mitades.
+    //
+    // `irradiance` es la difusa: el color que devuelve una superficie mate, y
+    // para eso alcanzan nueve coeficientes por color. La especular —el cuarto
+    // REFLEJADO en la superficie— necesita el cuarto como imagen, y sin ella
+    // todo queda mate y liso: la piel de un tono plano, el pelo sin hilo, la
+    // tela sin trama. Es la diferencia que se veía contra el visor web, que
+    // trae un entorno completo. Ver [Reflejos].
     iluminacion = IndirectLight.Builder()
-      .irradiance(1, floatArrayOf(0.80f, 0.80f, 0.86f))
-      .intensity(34_000f)
+      .irradiance(3, ESTUDIO)
+      .apply { Reflejos.tomar(motor, context)?.let { reflections(it) } }
+      .intensity(14_000f)
       .build(motor)
       .also { escena.indirectLight = it }
 
-    val (rk, gk, bk) = Colors.cct(5_800f)
-    val (rf, gf, bf) = Colors.cct(8_000f)
+    // Dos luces para los brillos marcados, que el entorno da suaves: son las
+    // que despegan la silueta del fondo.
+    val (rk, gk, bk) = Colors.cct(5_600f)
+    val (rf, gf, bf) = Colors.cct(7_200f)
     val focos = listOf(
-      Triple(floatArrayOf(-0.45f, -0.55f, -0.70f), 62_000f, floatArrayOf(rk, gk, bk)),
-      Triple(floatArrayOf(0.75f, -0.25f, -0.55f), 26_000f, floatArrayOf(rf, gf, bf)),
-      Triple(floatArrayOf(0.15f, -0.35f, 0.90f), 34_000f, floatArrayOf(rf, gf, bf)),
+      Triple(floatArrayOf(-0.4f, -0.6f, -0.7f), 21_000f, floatArrayOf(rk, gk, bk)),
+      Triple(floatArrayOf(0.6f, -0.2f, -0.5f), 3_000f, floatArrayOf(rf, gf, bf)),
     )
     focos.forEachIndexed { i, (dir, intensidad, color) ->
       val entidad = EntityManager.get().create()
@@ -161,6 +172,17 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
       escena.addEntity(entidad)
       luces[i] = entidad
     }
+
+    // El mismo mapeo de tonos que usa model-viewer: convierte la luz calculada
+    // en colores de pantalla sin lavar los saturados, que es lo que hacía el
+    // anterior con el violeta de la ropa.
+    vista.colorGrading = ColorGrading.Builder()
+      .toneMapper(ToneMapper.PBRNeutralToneMapper())
+      // Un punto menos de saturación: medido contra el visor web sobre la misma
+      // seña, el nativo llegaba a 45,5 y el web a 39,7, y eso es el naranja de
+      // la remera saliendo fluorescente.
+      .saturation(0.9f)
+      .build(motor)
 
     uiHelper.renderCallback = Renderizado()
     uiHelper.attachTo(superficie)
@@ -341,6 +363,26 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
 
   private fun descargar(desde: String) {
     if (soltado) return
+
+    // Algunos avatares viajan adentro de la app.
+    //
+    // Los de las letras M y N vienen del servidor con un esqueleto de 574
+    // huesos —el resto tiene 198— y arriba de 256 Filament aborta el proceso.
+    // Hasta que estén arreglados allá, la app lleva su propia copia ya
+    // corregida, que además se muestra al instante porque no hay que bajarla.
+    val nombre = desde.substringAfterLast('/').substringBefore('?')
+    val propio = "avatares/" + java.net.URLDecoder.decode(nombre, "UTF-8")
+    val incluido = try {
+      context.assets.open(propio).use { it.readBytes() }
+    } catch (e: Throwable) {
+      null
+    }
+    if (incluido != null) {
+      Log.i(ETIQUETA, "avatar incluido en la app: $propio")
+      post { if (!soltado) montar(incluido, 0) }
+      return
+    }
+
     // Filament aborta el PROCESO —no tira una excepción— si la GPU no puede
     // compilar sus shaders, y eso pasa en aparatos viejos con OpenGL ES 2. Se
     // pregunta antes: sin 3.0 no se enciende el motor y el ejercicio se queda
@@ -516,6 +558,23 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
 
     /** Qué fracción del alto del avatar entra en el cuadro. */
     const val ENCUADRE = 0.52f
+
+    /**
+     * El cuarto de estudio, en armónicos esféricos: nueve coeficientes por
+     * color. Salen de `scripts/avatares/entorno_estudio.py` en signa-ml.
+     */
+    val ESTUDIO = floatArrayOf(
+      3.192537f, 3.248288f, 3.398032f,
+      2.050926f, 2.096639f, 2.206669f,
+      1.014265f, 1.034985f, 1.086763f,
+      -0.354451f, -0.361667f, -0.379727f,
+      -0.158383f, -0.161614f, -0.169694f,
+      0.504348f, 0.514638f, 0.540365f,
+      0.011657f, 0.011417f, 0.011343f,
+      -0.157467f, -0.160688f, -0.168733f,
+      -0.211115f, -0.216246f, -0.228167f,
+    )
+
 
     /** colors.fill, el mismo fondo que tiene la tarjeta alrededor. */
     val FONDO = doubleArrayOf(0.94, 0.93, 0.91)

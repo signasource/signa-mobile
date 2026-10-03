@@ -53,11 +53,38 @@ problema era el archivo.
 
 ### Se veía plano y oscuro
 
-- **La iluminación era un ambiente parejo de una sola banda.** `model-viewer`
-  trae un entorno de estudio y eso es lo que le da volumen a un modelo PBR (el
-  modelo de materiales que simula cómo se comporta la luz real sobre cada
-  superficie). Ahora hay **tres luces** principal, relleno más frío del otro
-  lado, y contraluz que despega la silueta del fondo.
+`model-viewer` trae un cuarto de estudio por omisión —paredes, techo, piso y
+unos paneles de luz— y el modelo se ilumina con eso, no con focos sueltos. Eso
+es lo que le da volumen a un modelo PBR (el modelo de materiales que simula cómo
+se comporta la luz real sobre cada superficie).
+
+Acá el mismo cuarto entra por dos lados, porque un material PBR tiene dos
+mitades:
+
+- **La difusa** —el color que devuelve una superficie mate— son nueve
+  coeficientes por color: cuánta luz llega de cada dirección, resumido. Los
+  calcula `signa-ml/scripts/avatares/entorno_estudio.py`.
+- **La especular** es el cuarto REFLEJADO en la superficie, y para eso no
+  alcanza un resumen: hace falta el cuarto como imagen. Es un cubemap de 128
+  píxeles por cara que arma `reflejos_estudio.py`; el desenfoque por rugosidad
+  lo hace el motor en la GPU al cargarlo.
+
+**Sin la segunda mitad todo queda mate y liso**: la piel de un solo tono en vez
+de tener variaciones, el pelo sin hilo, la tela sin trama. Es lo que más se
+notaba contra el visor web, y no se arregla subiendo o bajando luces.
+
+Encima van dos focos para los brillos marcados, el mismo mapeo de tonos que usa
+`model-viewer` (PBR Neutral, de Khronos) y un punto menos de saturación.
+
+Medido contra el visor web sobre la misma seña, comparando la región del avatar:
+
+| | nativo | visor web |
+|---|---|---|
+| brillo medio | 191,6 | 192,8 |
+| contraste | 61,0 | 62,1 |
+| sombras (percentil 10) | 100,7 | 91,0 |
+| saturación | 41,8 | 39,7 |
+| micro-detalle | **4,21** | 3,69 |
 
 
 ### Iba a tirones
