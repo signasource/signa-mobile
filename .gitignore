@@ -8,3 +8,6 @@ node_modules
 /ios
 # Salida de compilación del módulo nativo
 modules/*/android/build/
+
+# Caché de gradle del módulo nativo.
+modules/signa-vision/android/.gradle/
