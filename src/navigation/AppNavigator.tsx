@@ -10,7 +10,7 @@ import { PracticeSessionScreen } from "@/features/practice/screens/PracticeSessi
 import { NotificationsScreen } from "@/features/social/screens/NotificationsScreen";
 import { PublicProfileScreen } from "@/features/social/screens/PublicProfileScreen";
 import { FriendAcceptedScreen } from "@/features/social/screens/FriendAcceptedScreen";
-import { StreakMilestoneScreen } from "@/features/achievements/screens/StreakMilestoneScreen";
+import { AchievementCelebrationScreen } from "@/features/achievements/screens/AchievementCelebrationScreen";
 import { TabNavigator, TabParamList } from "./TabNavigator";
 import { colors, fonts } from "@/theme";
 import { useSettings } from "@/context/SettingsContext";
@@ -41,11 +41,13 @@ export type AppStackParamList = {
     friendUsername: string;
     friendStreak: number;
   };
-  StreakMilestone: {
+  AchievementCelebration: {
     achievementId: string;
-    days: number;
+    criteriaType: string;
+    criteriaValue: number;
     title: string;
     rewardStreakShields: number;
+    rewardGems: number;
   };
   ConnectionTest: undefined;
 };
@@ -77,8 +79,8 @@ export function AppNavigator() {
       <Stack.Screen name="PublicProfile" component={PublicProfileScreen} options={{ headerShown: false }} />
       <Stack.Screen name="FriendAccepted" component={FriendAcceptedScreen} options={{ headerShown: false }} />
       <Stack.Screen
-        name="StreakMilestone"
-        component={StreakMilestoneScreen}
+        name="AchievementCelebration"
+        component={AchievementCelebrationScreen}
         options={{ headerShown: false, presentation: "fullScreenModal", animation: "fade", gestureEnabled: false }}
       />
       <Stack.Screen name="ConnectionTest" component={ConnectionTestScreen} options={{ title: "Test de conexion" }} />
