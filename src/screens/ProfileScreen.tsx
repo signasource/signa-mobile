@@ -863,15 +863,10 @@ export function ProfileScreen({ navigation }: Props) {
                   <StreakMedal days={a.criteriaValue} size={52} />
                 ) : (
                   <Ionicons
-                    name={a.earned ? "trophy" : "lock-closed"}
+                    name={a.earned ? "trophy" : "lock-closed-outline"}
                     size={28}
-                    color={a.earned ? colors.warning : "#B8B8BD"}
+                    color={a.earned ? colors.warning : colors.roadmapLockedIcon}
                   />
-                )}
-                {!a.earned && (
-                  <View style={styles.achLock}>
-                    <Ionicons name="lock-closed" size={11} color={colors.neutral600} />
-                  </View>
                 )}
               </View>
               <Text style={[styles.achName, !a.earned && { color: colors.neutral600 }]} numberOfLines={2}>
@@ -1055,9 +1050,9 @@ export function ProfileScreen({ navigation }: Props) {
                     <StreakMedal days={achievementDetail.criteriaValue} size={72} animated />
                   ) : (
                     <Ionicons
-                      name={achievementDetail.earned ? "trophy" : "lock-closed"}
+                      name={achievementDetail.earned ? "trophy" : "lock-closed-outline"}
                       size={38}
-                      color={achievementDetail.earned ? colors.warning : "#B8B8BD"}
+                      color={achievementDetail.earned ? colors.warning : colors.roadmapLockedIcon}
                     />
                   )}
                 </View>
@@ -1660,19 +1655,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
-  },
-  achLock: {
-    position: "absolute",
-    right: 0,
-    bottom: 0,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.neutral200,
-    alignItems: "center",
-    justifyContent: "center",
   },
   achName: {
     fontFamily: fonts.bodySemiBold,
