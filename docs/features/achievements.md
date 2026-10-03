@@ -8,9 +8,9 @@
 
 ## How it works end to end
 
-1. **Backend counts the streak.** Each `XpEarnedEvent` calls `UserStats.registerStreakActivity(todayUTC)`:
+1. **Backend counts the streak.** Each `XpEarnedEvent` calls `UserStats.registerStreakActivity(streakDay)`:
    consecutive days extend it; every missed day burns one **streak shield**; without enough shields
-   it restarts at 1. Days are **UTC**, same as daily XP.
+   it restarts at 1. The streak day rolls over at local midnight in **Argentina** (`America/Argentina/Cordoba`, UTC-3); daily XP, the daily goal and weekly XP use the same Argentina calendar.
 2. **Backend grants the achievement** (`AchievementService.awardStreakMilestones`) for every active
    `STREAK_DAYS` achievement the streak has reached, and credits its `rewardStreakShields`.
 3. **Mobile finds out** through `GET /achievements/unseen` and shows the celebration, then
