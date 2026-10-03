@@ -49,8 +49,8 @@ The look comes from `features/achievements/celebrations.ts`:
 | Kind (`criteriaType`) | Background token | Icon | Animation |
 |---|---|---|---|
 | `streak` (`STREAK_DAYS`) | `streakCelebration` | flame | **real**: `streak-fire.json` |
-| `lessons` (`LESSONS_COMPLETED`) | `celebrationLessons` | book | mock |
-| `courses` (`COURSES_COMPLETED`) | `celebrationCourses` | school | mock |
+| `lessons` (`LESSONS_COMPLETED`) | `celebrationLessons` | book | **real**: `achievement-lessons.json` |
+| `courses` (`COURSES_COMPLETED`) | `celebrationCourses` | school | **real**: `achievement-courses.json` |
 | `xp` (`TOTAL_XP`) | `celebrationXp` | flash | mock |
 | `weeklyXp` (`WEEKLY_XP`) | `celebrationWeeklyXp` | trending-up | mock |
 | `friends` (`FRIENDS_COUNT`) | `celebrationFriends` | people | mock |
@@ -100,6 +100,7 @@ The look comes from `features/achievements/celebrations.ts`:
 
 | File | Use |
 |---|---|
+| `assets/animations/achievement-<group>.json` | Celebration animation of a group (lessons, courses). They carry After Effects expressions (elastic bounce, colours linked to a controller layer) that native Lottie ignores: they play with their base colours and without the bounce |
 | `assets/animations/streak-fire.json` | Big fire of the streak celebration (gradient fills, not recoloured) |
 | `assets/animations/streak-medal-base.json` | Gold source medal as downloaded |
 | `assets/animations/medals/<tier>.json` | One recoloured medal per tier, **generated** |
