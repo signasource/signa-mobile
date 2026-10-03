@@ -858,9 +858,9 @@ export function ProfileScreen({ navigation }: Props) {
               onPress={() => setAchievementDetailId(a.id)}
               activeOpacity={0.7}
             >
-              <View style={[styles.achBadge, { backgroundColor: a.earned ? colors.warning + "22" : colors.neutral100 }]}>
+              <View style={styles.achBadge}>
                 {a.earned && isStreakAchievement(a) ? (
-                  <StreakMedal days={a.criteriaValue} size={52} />
+                  <StreakMedal days={a.criteriaValue} size={64} />
                 ) : (
                   <Ionicons
                     name={a.earned ? "trophy" : "lock-closed-outline"}
@@ -1045,9 +1045,9 @@ export function ProfileScreen({ navigation }: Props) {
                 </TouchableOpacity>
               </View>
               <View style={styles.achDetailBody}>
-                <View style={[styles.achDetailBadge, { backgroundColor: achievementDetail.earned ? colors.warning + "22" : colors.neutral100 }]}>
+                <View style={styles.achDetailBadge}>
                   {achievementDetail.earned && isStreakAchievement(achievementDetail) ? (
-                    <StreakMedal days={achievementDetail.criteriaValue} size={72} animated />
+                    <StreakMedal days={achievementDetail.criteriaValue} size={84} animated />
                   ) : (
                     <Ionicons
                       name={achievementDetail.earned ? "trophy" : "lock-closed-outline"}
@@ -1651,10 +1651,8 @@ const styles = StyleSheet.create({
   achBadge: {
     width: 64,
     height: 64,
-    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    position: "relative",
   },
   achName: {
     fontFamily: fonts.bodySemiBold,
@@ -1779,7 +1777,6 @@ const styles = StyleSheet.create({
   achDetailBadge: {
     width: 84,
     height: 84,
-    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
   },
