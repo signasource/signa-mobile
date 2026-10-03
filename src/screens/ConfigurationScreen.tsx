@@ -216,6 +216,7 @@ export function ConfigurationScreen({ navigation, route }: Props) {
     if (profileRes.status === "fulfilled") {
       const p = profileRes.value.data;
       setDisplayName(p.name);
+      setLastName(p.lastName ?? "");
       setUsername(p.username);
     }
 
