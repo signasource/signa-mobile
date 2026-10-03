@@ -89,6 +89,8 @@ The look comes from `features/achievements/celebrations.ts`:
 
 ## Streak medals
 
+All animation files, their sources and compatibility notes are inventoried in [`assets/animations/README.md`](../../assets/animations/README.md).
+
 | Days | Medal |
 |---|---|
 | 3 | bronze |
