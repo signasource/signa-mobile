@@ -37,14 +37,14 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 
 | Method | Path | Returns | Notes |
 |---|---|---|---|
-| `getMyInventory()` | `GET /inventories/me` | `UserInventory` | gems, streakShields, livesMode, currentLives, nextLifeAt, effectiveXpMultiplier, xpMultiplierExpiresAt, xpMultiplierActive, unlimitedLivesExpiresAt, unlimitedLivesActive, learnedSignsCount — same endpoint and shape as `shopApi.getMyInventory()` (`ShopInventory`), plus `learnedSignsCount` |
+| `getMyInventory()` | `GET /inventories/me` | `UserInventory` | alias of `ShopInventory`; delegates to `shopApi.getMyInventory()` |
 
 ## `shopApi` (`src/api/shop.ts`) — mirrors `ShopItemController`/`PurchaseController`
 
 | Method | Path | Returns | Notes |
 |---|---|---|---|
 | `getItems()` | `GET /store/items` | `ShopItem[]` | full catalog; screen groups client-side by `itemType` into tabs (Vidas / Potenciadores / Especiales) |
-| `getMyInventory()` | `GET /inventories/me` | `ShopInventory` | full inventory shape (gems, `livesMode`, `currentLives`, streak shields, XP multiplier/unlimited-lives status) — **not** the narrower `UserInventory` from `inventoryApi` |
+| `getMyInventory()` | `GET /inventories/me` | `ShopInventory` | full inventory shape (gems, `livesMode`, `currentLives`, streak shields, XP multiplier/unlimited-lives status, `learnedSignsCount`) |
 | `purchase(shopItemId)` | `POST /store/purchases` | `PurchaseResult` | `{ shopItemId }`; response includes `effect` (resolved reward, notably for `MYSTERY_CHEST`) and the refreshed `inventory` |
 
 The Store screen only supports buying for yourself: the "regalar a un amigo" flow (`POST /store/gifts`) is not wired into the UI. Friends *are* listable now (`socialApi.getFriends()`), so this is a UI gap, not an API one.
@@ -100,7 +100,7 @@ Read-only: notifications are produced server-side by whatever triggers them.
 
 | Method | Path | Returns | Notes |
 |---|---|---|---|
-| `getAchievements(unlocked)` | `GET /achievements?unlocked=` | `Achievement[]` | pass `true` or `false` |
+| `getAchievements(unlocked)` | `GET /achievements?unlocked=` | `Achievement[]` (= `PublicAchievement`) | pass `true` or `false` |
 
 ## `learningApi` (`src/api/learning.ts`) — mirrors `CourseTrackingController.java`
 

@@ -122,9 +122,7 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   to `SignPlaceholder` — without it, an Android WebView renderer crash (e.g. from a low-memory
   device) took the whole host app process down with it instead of just that one card.
 
-To advance: wire the Inicio roadmap's lesson CTA to navigate into this real `LessonScreen` with a
-real `unitLabel` (currently it just closes the sheet — see below). Once `signa-api` #60 merges,
-consider trusting the server as the sole source of truth for `lives` (e.g. refetch
+To advance: once `signa-api` #60 merges, consider trusting the server as the sole source of truth for `lives` (e.g. refetch
 `shopApi.getMyInventory()` after each wrong answer, or surface the fire-and-forget interaction
 error) instead of the local optimistic decrement, to remove the drift risk on a dropped request.
 

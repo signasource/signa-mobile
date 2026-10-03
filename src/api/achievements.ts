@@ -1,16 +1,8 @@
 import { apiClient } from "./client";
+import type { PublicAchievement } from "./social";
 
-export interface Achievement {
-  id: number;
-  name: string;
-  description: string;
-  icon: string;
-  color: string;
-  unlocked: boolean;
-  earnedAt?: string;
-  earnedLabel?: string;
-  progress?: string;
-}
+/** Mirrors `AchievementResponse`; same shape the public profile receives. */
+export type Achievement = PublicAchievement;
 
 export const achievementsApi = {
   getAchievements: (unlocked: boolean) =>

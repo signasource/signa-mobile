@@ -36,17 +36,17 @@ Per-feature detail is owned by each feature doc; this is the index.
 - **Gem packs are Android-only.** `useGemPurchase` only requests Google products; iOS would need App Store products, a StoreKit branch (`request.apple`) and App Store receipt verification on the backend. The section is simply not mounted off Android.
 - **No `obfuscatedAccountId` on Play purchases.** The JWT carries only the email and there is no user id on the client, so purchases are not tagged with an account hash; the backend ties every token to the redeeming user anyway.
 - ~~No leaderboard.~~ Implemented in `feature/ranking`: `GET /ranking/global` + `GET /ranking/friends`, weekly reset scheduler, and the Social Ranking tab.
-- **`CourseProgress` and `Achievement` client types do not match the backend.** `src/api/learning.ts` declares `CourseProgress { courseId, icon, color, progressPercent, lessonsCompleted, currentUnit, unitProgressPercent, lastPractice }` and `src/api/achievements.ts` declares `Achievement { id: number, name, icon, color, unlocked }`, but `CourseProgressResponse` and `AchievementResponse` send entirely different fields. `ProfileScreen`'s **Cursos** and **Logros** sections therefore render `undefined`. Pre-existing. `PublicProfileScreen` sidesteps it by typing against the real shapes (`PublicCourseProgress` / `PublicAchievement` in `src/api/social.ts`).
-- **`inventoryApi` and `shopApi` declare separate client types for the same endpoint.** Both call `GET /inventories/me`; `shopApi.ts`'s `ShopInventory` matches the backend `UserInventoryResponse` field-for-field, while `inventoryApi.ts`'s `UserInventory` used to declare its own (wrong) `lives`/`xpMultiplier` fields — fixed to mirror `ShopInventory` plus `learnedSignsCount`, but the duplication itself remains: a backend field rename only needs fixing in one of the two files to silently break the other.
+- ~~`CourseProgress` / `Achievement` client types out of sync with the backend.~~ Fixed: `learningApi.getProgress()` returns `PublicCourseProgress[]` and `achievementsApi` returns `Achievement` = `PublicAchievement` (alias); `ProfileScreen` renders the real fields (`title`, `earned`, `earnedAt`, `criteriaValue`; trophy/lock icons since the backend sends no icon or colour).
+- ~~`inventoryApi` / `shopApi` duplicated types.~~ Fixed: `ShopInventory` (`api/shop.ts`) is the single type and `shopApi.getMyInventory` the single call; `inventoryApi` / `UserInventory` are thin aliases of them.
 - **CI:** GitHub Actions (`.github/workflows/release.yml`, semantic-release on push to `master`). No GitLab pipeline.
 
 ## Next steps
 
 - Deep linking for password reset.
 - Play Console setup for gem packs (app + 4 in-app products + service account) and an end-to-end test with a license tester.
-- Wire the Inicio roadmap lesson CTA to navigate into the now-real `LessonScreen`.
+- ~~Wire the Inicio roadmap lesson CTA to navigate into `LessonScreen`.~~ Done (`HomeTabScreen.navigateToLesson`).
 - ~~Leaderboard endpoint + the Social *Ranking* tile.~~ Done.
-- Fix `CourseProgress` / `Achievement` client types and re-point `ProfileScreen` at them.
+- ~~Fix `CourseProgress` / `Achievement` client types.~~ Done.
 - Confirm real `courses` endpoints for the flat browse stub, or retire it in favor of the Inicio roadmap.
 - Decide the camera + ML runtime stack and migrate to a dev build.
 - Persist onboarding answers once there is a place to store them.
