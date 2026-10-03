@@ -30,7 +30,7 @@ export const practiceApi = {
   getExercisesByType: (type: BlockType, limit = 10) =>
     apiClient.get<LessonContentBlock[]>("/practice/exercises", { params: { type, limit } }),
 
-  getLearnedSigns: (limit = 50) =>
+  getLearnedSigns: (limit = 200) =>
     apiClient.get<LearnedSign[]>("/practice/signs", { params: { limit } }),
 
   getExercisesForSign: (meaning: string, limit = 10) =>
