@@ -19,13 +19,16 @@ import { colors, fonts } from "@/theme";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SegmentedControl, Segment } from "@/components/SegmentedControl";
 import { EmptyState, EmptyNote } from "@/components/EmptyState";
-import { shopApi, ShopItem, ShopItemType, ShopInventory, AppliedEffect } from "@/api/shop";
+import { shopApi, ShopItem, ShopItemType, ShopInventory, AppliedEffect, GiftClaimResult } from "@/api/shop";
+import type { Friend } from "@/api/social";
 import { GemPurchaseResult } from "@/api/gemPurchases";
 import { GemPacksSection } from "@/features/store/components/GemPacksSection";
 import { GiftSheet } from "@/features/store/components/GiftSheet";
+import { ReceivedGiftsSection } from "@/features/store/components/ReceivedGiftsSection";
 import ManoVacia from "@assets/ilus/mano-vacia.svg";
 import HeartConFondo from "@assets/ilus/heart-con-fondo.svg";
 import ManoConCaja from "@assets/ilus/mano-con-caja.svg";
+import ManoConGlobo from "@assets/ilus/mano-con-globo.svg";
 import { useTour } from "@/features/tour/TourContext";
 import { SectionWelcomeModal } from "@/features/tour/components/SectionWelcomeModal";
 
@@ -215,6 +218,84 @@ function SuccessOverlay({ flow, gems, inventory, fromLesson, insets, onClose }: 
   );
 }
 
+type GiftDone =
+  | { kind: "sent"; item: ShopItem; friend: Friend }
+  | { kind: "claimed"; result: GiftClaimResult };
+
+interface GiftDoneOverlayProps {
+  done: GiftDone;
+  gems: number;
+  insets: { top: number; bottom: number };
+  onClose: () => void;
+}
+
+/** Full-screen celebration after sending or claiming a gift, same look as the purchase ones. */
+function GiftDoneOverlay({ done, gems, insets, onClose }: GiftDoneOverlayProps) {
+  const item = done.kind === "sent" ? done.item : done.result.gift.item;
+  const sender = done.kind === "claimed" ? done.result.gift.senderUsername : null;
+
+  return (
+    <SafeAreaView style={styles.fullOverlay}>
+      <View style={[styles.successBadgeRow, { paddingTop: insets.top + 16 }]}>
+        <View style={styles.successBadge}>
+          <Text style={styles.successBadgeText}>
+            {done.kind === "sent" ? "REGALO ENVIADO" : "REGALO RECIBIDO"}
+          </Text>
+        </View>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.successScroll}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <View style={styles.successIllustration}>
+          {done.kind === "sent" ? (
+            <ManoConGlobo width={260} height={263} />
+          ) : (
+            <ManoConCaja width={260} height={260} />
+          )}
+        </View>
+
+        <Text style={styles.fullTitle}>
+          {done.kind === "sent" ? "¡Regalo enviado!" : "¡Regalo reclamado!"}
+        </Text>
+        <Text style={styles.fullSub}>
+          {done.kind === "sent"
+            ? `${item.title} ya va camino a @${done.friend.username}. Lo puede reclamar durante los próximos días.`
+            : `@${sender} te regaló ${effectLabel(done.result.effect)}. Ya está en tu inventario.`}
+        </Text>
+
+        <View style={styles.purchaseCard}>
+          <View style={styles.purchaseCardLeft}>
+            <View style={styles.purchaseCardIconWrap}>
+              <Ionicons name={ICON[item.itemType]} size={21} color={colors.onDark} />
+            </View>
+            <View style={styles.purchaseCardTexts}>
+              <Text style={styles.purchaseCardTitle}>{item.title}</Text>
+              <Text style={styles.purchaseCardSub}>
+                {done.kind === "sent" ? `Te quedan ${gems} gemas` : `De @${sender}`}
+              </Text>
+            </View>
+          </View>
+          {done.kind === "sent" && (
+            <View style={styles.purchaseCardGems}>
+              <Ionicons name="diamond" size={14} color={colors.onDark} />
+              <Text style={styles.purchaseCardGemCount}>{item.priceGems}</Text>
+            </View>
+          )}
+        </View>
+      </ScrollView>
+
+      <View style={[styles.successButtonRow, { paddingBottom: Math.max(insets.bottom, 28) }]}>
+        <TouchableOpacity style={styles.successCloseButton} onPress={onClose} activeOpacity={0.86}>
+          <Text style={styles.darkButtonText}>Volver a la tienda</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+}
+
 interface GemsSuccessOverlayProps {
   result: GemPurchaseResult;
   insets: { top: number; bottom: number };
@@ -287,6 +368,7 @@ export function StoreTabScreen() {
   const [flow, setFlow] = useState<Flow | null>(null);
   const [purchasing, setPurchasing] = useState(false);
   const [giftItem, setGiftItem] = useState<ShopItem | null>(null);
+  const [giftDone, setGiftDone] = useState<GiftDone | null>(null);
   const [gemsCredited, setGemsCredited] = useState<GemPurchaseResult | null>(null);
   const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const listRef = useRef<ScrollView>(null);
@@ -423,6 +505,12 @@ export function StoreTabScreen() {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
         >
+          <ReceivedGiftsSection
+            onClaimed={(result) => {
+              setInventory(result.inventory);
+              setGiftDone({ kind: "claimed", result });
+            }}
+          />
           {tab === "especiales" &&
             (GEM_PACKS_SUPPORTED ? (
               <GemPacksSection onCredited={onGemsCredited} />
@@ -530,8 +618,29 @@ export function StoreTabScreen() {
         item={giftItem}
         gems={gems}
         onClose={() => setGiftItem(null)}
-        onSent={refreshInventory}
+        onSent={(friend) => {
+          if (giftItem) setGiftDone({ kind: "sent", item: giftItem, friend });
+          setGiftItem(null);
+          refreshInventory();
+        }}
       />
+
+      <Modal
+        visible={giftDone != null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setGiftDone(null)}
+        statusBarTranslucent
+      >
+        {giftDone != null && (
+          <GiftDoneOverlay
+            done={giftDone}
+            gems={gems}
+            insets={insets}
+            onClose={() => setGiftDone(null)}
+          />
+        )}
+      </Modal>
 
       <Modal
         visible={!!flow}

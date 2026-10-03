@@ -12,7 +12,7 @@ import {
   Platform,
 } from "react-native";
 import { Text } from "@/components/Text";
-import { EmptyNote } from "@/components/EmptyState";
+import ManoVacia from "@assets/ilus/mano-vacia.svg";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, fonts } from "@/theme";
@@ -28,7 +28,7 @@ interface GiftSheetProps {
   gems: number;
   onClose: () => void;
   /** Fired once the backend accepted the gift (gems already debited server-side). */
-  onSent: () => void;
+  onSent: (recipient: Friend) => void;
 }
 
 export function GiftSheet({ item, gems, onClose, onSent }: GiftSheetProps) {
@@ -38,14 +38,12 @@ export function GiftSheet({ item, gems, onClose, onSent }: GiftSheetProps) {
   const [recipient, setRecipient] = useState<Friend | null>(null);
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
-  const [sentTo, setSentTo] = useState<Friend | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!item) return;
     setRecipient(null);
     setMessage("");
-    setSentTo(null);
     setError(null);
     setLoadingFriends(true);
     socialApi
@@ -63,8 +61,7 @@ export function GiftSheet({ item, gems, onClose, onSent }: GiftSheetProps) {
     setSending(true);
     try {
       await shopApi.sendGift(item.id, recipient.id, message.trim() || undefined);
-      setSentTo(recipient);
-      onSent();
+      onSent(recipient);
     } catch (err: any) {
       setError(err?.response?.data?.message ?? "No pudimos enviar el regalo.");
     } finally {
@@ -91,21 +88,7 @@ export function GiftSheet({ item, gems, onClose, onSent }: GiftSheetProps) {
           >
             <View style={styles.handle} />
 
-            {item && sentTo ? (
-              <View style={styles.sentBody}>
-                <View style={styles.sentBadge}>
-                  <Ionicons name="gift" size={34} color={colors.shopAmberDark} />
-                </View>
-                <Text style={styles.title}>¡Regalo enviado!</Text>
-                <Text style={styles.sub}>
-                  {item.title} ya está en camino para @{sentTo.username}. Lo puede reclamar durante
-                  los próximos días.
-                </Text>
-                <TouchableOpacity style={styles.primaryButton} onPress={onClose} activeOpacity={0.86}>
-                  <Text style={styles.primaryButtonText}>Listo</Text>
-                </TouchableOpacity>
-              </View>
-            ) : item ? (
+            {item ? (
               <>
                 <Text style={styles.title}>Regalar {item.title}</Text>
                 <View style={styles.priceRow}>
@@ -119,7 +102,12 @@ export function GiftSheet({ item, gems, onClose, onSent }: GiftSheetProps) {
                 {loadingFriends ? (
                   <ActivityIndicator color={colors.shopAmber} style={styles.loader} />
                 ) : friends.length === 0 ? (
-                  <EmptyNote>Todavía no tenés amigos para regalarle. Sumalos desde Social.</EmptyNote>
+                  <View style={styles.emptyFriends}>
+                    <ManoVacia width={140} height={142} />
+                    <Text style={styles.emptyText}>
+                      Todavía no tenés amigos para regalarle. Sumalos desde Social.
+                    </Text>
+                  </View>
                 ) : (
                   <FlatList
                     data={friends}
@@ -233,14 +221,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: colors.text,
   },
-  sub: {
-    fontFamily: fonts.bodyRegular,
-    fontSize: 14.5,
-    lineHeight: 21,
-    color: colors.textMuted,
-    textAlign: "center",
-    marginTop: 8,
-  },
   priceRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -351,17 +331,16 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.neutral900,
   },
-  sentBody: {
+  emptyFriends: {
     alignItems: "center",
-    paddingBottom: 4,
+    gap: 6,
+    paddingVertical: 8,
   },
-  sentBadge: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: colors.avatarAmberLight,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 14,
+  emptyText: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.textMuted,
+    textAlign: "center",
   },
 });

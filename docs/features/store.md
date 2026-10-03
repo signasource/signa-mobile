@@ -1,7 +1,7 @@
 # Store (Tienda)
 
 > Responsibility: the Store tab — gem-priced catalog and the real-money gem packs bought through Google Play.
-> Update when: a store tab, purchase flow, gem pack, or its backing endpoint changes.
+> Update when: a store tab, purchase flow, gem pack, gift flow, or its backing endpoint changes.
 > Sources: src/screens/tabs/StoreTabScreen.tsx, src/features/store/, src/api/shop.ts, src/api/gemPurchases.ts, app.json
 
 **Real**, wired end to end to `signa-api`. Endpoints → [../api/endpoints.md](../api/endpoints.md).
@@ -87,12 +87,24 @@ Packs are seeded by the backend (`gems_pack_120` · `gems_pack_300` · `gems_pac
 Every card in the catalog has a **"Regalar a un amigo"** link under *Comprar*. It opens `GiftSheet`
 (`src/features/store/components/GiftSheet.tsx`): friend list from `socialApi.getFriends()`, an
 optional message (max 500) once a friend is picked, and **"Regalar a @user"** →
-`shopApi.sendGift(itemId, friendId, message)`. The sheet then switches to a "¡Regalo enviado!"
-state and the screen refetches `/inventories/me` (the endpoint returns no inventory) to show the
-debited gems.
+`shopApi.sendGift(itemId, friendId, message)`. On success the sheet closes and the screen opens
+`GiftDoneOverlay` (full-screen amber, `mano-con-globo.svg`, "¡Regalo enviado!") and refetches
+`/inventories/me` (the endpoint returns no inventory) to show the debited gems. With no friends
+the sheet shows `mano-vacia.svg` instead of a list.
 
 - Not enough gems → the same `insufficient` sheet as buying ("Conseguir gemas").
 - The backend rejects non-friends and self-gifts; its message is shown inline in the sheet.
 - Gem-priced catalog items only; gem packs (real money) can't be gifted.
-- **Receiving is not built**: no inbox of received gifts and no claim action yet. The friend-accepted
-  modal's "send gift" button just navigates to this tab.
+- The friend-accepted modal's "send gift" button just navigates to this tab.
+
+### Receiving gifts
+
+`ReceivedGiftsSection` (`src/features/store/components/`) sits at the top of every tab as
+**"Regalos para vos"**. On each focus it loads `shopApi.getReceivedGifts("PENDING")` (and keeps only
+`status === "PENDING"`, since the server filters on the stored status and a stale one can come back
+`EXPIRED`). Each card shows the item (`mano-con-caja.svg`), `@sender`, days left and the message;
+**"Reclamar"** → `shopApi.claimGift(id)`. On success the screen sets `inventory = result.inventory`
+and opens `GiftDoneOverlay` (`mano-con-caja.svg`, "¡Regalo reclamado!", the resolved effect via
+`effectLabel`). The block renders nothing while loading, on load errors, or when there are no
+pending gifts. A 400 (expired) / 409 (already claimed) on claim shows the backend message and drops
+the card. Sent gifts (`GET /store/gifts/sent`) still have no client or UI.
