@@ -24,6 +24,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 | Public profile (read-only, of another user) | real | [features/social.md](./features/social.md#publicprofilescreen) |
 | Courses flat browse (`CoursesListScreen`) | stub | [features/courses.md](./features/courses.md#course-catalog--stub) |
 | Práctica libre (`PracticeTabScreen` + `PracticeSessionScreen`) | real, wired to `signa-api` | [features/practice.md](./features/practice.md) |
+| Primeros pasos + daily challenges (server-side progress, claimable gem rewards; the main source of gems) | real; needs `signa-api` with `/challenges` and the `challenges.sql` seed | [features/challenges.md](./features/challenges.md) |
 | Achievements (catalog, unlocked by the backend, celebration screen per group, streak medals) | real; animations are real for streak, lessons and courses and **mocked** for the rest until their Lottie files are added; needs `signa-api` with the achievement catalog and a dev-build rebuild for Lottie | [features/achievements.md](./features/achievements.md) |
 | ML (sign recognition) | real, **on-device and real time** (nothing leaves the phone) | [features/ml.md](./features/ml.md) |
 
@@ -39,6 +40,8 @@ Per-feature detail is owned by each feature doc; this is the index.
 - ~~No leaderboard.~~ Implemented in `feature/ranking`: `GET /ranking/global` + `GET /ranking/friends`, weekly reset scheduler, and the Social Ranking tab.
 - ~~`CourseProgress` / `Achievement` client types out of sync with the backend.~~ Fixed: `learningApi.getProgress()` returns `PublicCourseProgress[]` and `achievementsApi` returns `Achievement` = `PublicAchievement` (alias); `ProfileScreen` renders the real fields (`title`, `earned`, `earnedAt`, `criteriaValue`; trophy/lock icons since the backend sends no icon or colour).
 - ~~`inventoryApi` / `shopApi` duplicated types.~~ Fixed: `ShopInventory` (`api/shop.ts`) is the single type and `shopApi.getMyInventory` the single call; `inventoryApi` / `UserInventory` are thin aliases of them.
+- **Weekly and course challenges are not implemented.** Only the first-steps and daily sets from `Gamificación.xlsx` exist; the achievements `DAILY_CHALLENGES_COMPLETED` / `WEEKLY_CHALLENGES_COMPLETED` still have nothing to count them.
+- **Unclaimed daily rewards expire at midnight.** The card only lists today's challenges, so a reward completed but not claimed before the rollover can't be claimed afterwards.
 - **CI:** GitHub Actions (`.github/workflows/release.yml`, semantic-release on push to `master`). No GitLab pipeline.
 
 ## Next steps

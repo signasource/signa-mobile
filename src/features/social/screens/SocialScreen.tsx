@@ -108,7 +108,7 @@ function searchSub(result: UserSearchResult): string {
 
 export function SocialScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { socialModalVisible, dismissSocialModal, showSectionModal, markFriend } = useTour();
+  const { socialModalVisible, dismissSocialModal, showSectionModal } = useTour();
 
   useFocusEffect(
     useCallback(() => {
@@ -248,7 +248,6 @@ export function SocialScreen({ navigation }: Props) {
         `${userId}:add`,
         async () => {
           await socialApi.sendRequest(userId);
-          markFriend();
           patchRelation(userId, "OUTGOING");
           setOutgoing((prev) => [
             ...prev,

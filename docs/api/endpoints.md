@@ -109,6 +109,13 @@ Read-only: notifications are produced server-side by whatever triggers them.
 | `getUnseen()` | `GET /achievements/unseen` | `Achievement[]` | earned achievements whose celebration wasn't shown yet, oldest first |
 | `markSeen(id)` | `POST /achievements/{id}/seen` | 204 | idempotent; 404 if the user hasn't earned it |
 
+## `challengesApi` (`src/api/challenges.ts`)
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getChallenges()` | `GET /challenges` | `Challenges` | `firstSteps`, `firstStepsDone`, `daily` (empty until every first step is claimed) and `resetsAt`. Creates the user's rows for today on first call |
+| `claim(id)` | `POST /challenges/{id}/claim` | `ChallengeClaim` | `id` is `Challenge.id` (the user's row). Credits the reward and returns the new gem balance. 400 if not completed or already claimed; 404 if it isn't the caller's |
+
 ## `learningApi` (`src/api/learning.ts`) — mirrors `CourseTrackingController.java`
 
 | Method | Path | Returns | Notes |

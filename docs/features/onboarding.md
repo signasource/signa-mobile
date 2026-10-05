@@ -2,7 +2,7 @@
 
 > Responsibility: onboarding module scope and state.
 > Update when: onboarding screens, data types, or progress logic change.
-> Sources: src/features/onboarding/, src/features/tour/
+> Sources: src/features/onboarding/, src/features/tour/, src/features/challenges/
 
 ## Pre-login onboarding (`src/features/onboarding/`)
 
@@ -18,7 +18,7 @@ Known gap: onboarding answers (daily goal, experience, motivation) are not persi
 
 ## Post-login tour (`src/features/tour/`)
 
-Status: **real**. Three-part feature that runs after first login.
+Status: **real**. Three-part feature that runs after first login (the first-steps checklist is now the first set of daily challenges).
 
 ### A · Welcome tour (first login only)
 
@@ -33,16 +33,9 @@ A full-screen `Modal` (`TourOverlay`) mounted in `RootNavigator`, driven by `Tou
 
 Trigger rules: once only, on first authenticated app open. Skippable via "Saltear". Replayable from Perfil → Configuración → Volver a ver el tour (calls `tourReplay()` from `useTour()`).
 
-### B · Checklist de primeros pasos (Inicio screen)
+### B · Primeros pasos (Inicio screen)
 
-`ChecklistCard` appears above the roadmap in `HomeTabScreen` after the tour completes, until all 4 items are done:
-
-1. **Completá tu primera lección** — auto-checked when the roadmap returns any `COMPLETED` lesson.
-2. **Probá la cámara en Práctica** — marked when the user starts any `PracticeSession` from `PracticeTabScreen`.
-3. **Sumá tu primer amigo en Social** — marked when `sendRequest` succeeds in `SocialScreen`.
-4. **Volvé mañana y hacé racha de 2 días** — auto-checked when `currentStreak >= 2`.
-
-Tapping an uncompleted item navigates to the relevant screen. When all 4 are done the card celebrates and then removes itself from storage.
+No longer a local checklist: the four steps are the **first set of daily challenges**, tracked and paid in gems by `signa-api`, and shown by `ChallengesCard` above the roadmap (hidden while the tour runs). Once all four are claimed the card switches to the daily challenges. Steps, rewards and rules → [challenges.md](./challenges.md).
 
 ### C · Section welcome modals (first visit per tab)
 
@@ -59,6 +52,4 @@ At most one modal per session (`sessionModalShown` ref in `TourContext`).
 | Key | Purpose |
 |---|---|
 | `tour_completed` | Tour has been finished/skipped |
-| `tour_checklist_dismissed` | Checklist has been hidden after all 4 done |
-| `tour_cl_lesson` / `_practice` / `_friend` / `_streak` | Individual checklist item flags |
 | `tour_tab_practice` / `_store` / `_social` | Section modal seen flags |

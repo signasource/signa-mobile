@@ -22,7 +22,7 @@ Detailed implementation docs for `signa-mobile`. Entry point and mandatory rules
 | What color tokens exist? | [design-system/colors.md](./design-system/colors.md) |
 | What fonts / sizes exist? | [design-system/typography.md](./design-system/typography.md) |
 | What UI primitives exist? | [design-system/components.md](./design-system/components.md) |
-| State of onboarding / courses / practice / store / social / ml / achievements? | [features/onboarding.md](./features/onboarding.md) · [features/courses.md](./features/courses.md) · [features/practice.md](./features/practice.md) · [features/store.md](./features/store.md) · [features/social.md](./features/social.md) · [features/ml.md](./features/ml.md) · [features/achievements.md](./features/achievements.md) |
+| State of onboarding / courses / practice / store / challenges / social / ml / achievements? | [features/onboarding.md](./features/onboarding.md) · [features/courses.md](./features/courses.md) · [features/practice.md](./features/practice.md) · [features/store.md](./features/store.md) · [features/challenges.md](./features/challenges.md) · [features/social.md](./features/social.md) · [features/ml.md](./features/ml.md) · [features/achievements.md](./features/achievements.md) |
 | What is real vs stub? What is the tech debt? | [status.md](./status.md) |
 
 ## Rules for these docs
