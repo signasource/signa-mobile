@@ -400,31 +400,38 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
         // Caché en disco: el mismo avatar aparece en varios ejercicios seguidos
         // y el .glb pesa megas. La versión web lo volvía a pedir cada vez que se
         // montaba el WebView.
-        val archivo = File(context.cacheDir, "avatares/" + desde.hashCode().toString() + ".glb")
-        if (!archivo.exists()) {
-          archivo.parentFile?.mkdirs()
-          val conexion = URL(desde).openConnection() as HttpURLConnection
-          // Corto a propósito: si el origen no responde, lo que importa es
-          // pasar al respaldo rápido y no dejar el avatar en blanco mientras
-          // se agota una espera larga.
-          conexion.connectTimeout = 4_000
-          conexion.readTimeout = 20_000
-          conexion.inputStream.use { entrada ->
-            val temporal = File(archivo.path + ".parcial")
-            temporal.outputStream().use { entrada.copyTo(it) }
-            temporal.renameTo(archivo)
-          }
-        }
-        // La conversión de texturas es cara y se hace una sola vez: lo que
-        // queda en disco ya está listo para Filament.
-        // El número va en el nombre: si cambia cómo se convierte, los archivos
-        // viejos dejan de usarse solos en vez de quedar pegados en el teléfono.
+        val archivo = File(context.cacheDir, "avatares2/" + desde.hashCode().toString() + ".glb")
         val listo = File(archivo.path + ".filament" + VERSION_CONVERSION)
-        if (!listo.exists()) {
-          val convertido = Glb.sinWebp(archivo.readBytes())
-          val temporal = File(listo.path + ".parcial")
-          temporal.writeBytes(convertido)
-          temporal.renameTo(listo)
+        // Una sola vista a la vez por archivo. LessonScreen monta el bloque
+        // actual y el siguiente, y cuando los dos muestran la misma seña
+        // (presentarla y preguntarla) bajaban y convertían el mismo .glb en
+        // paralelo, escribiendo al mismo ".parcial": el archivo que quedaba
+        // en disco era una mezcla de los dos y el avatar se veía con texturas
+        // que no eran, hasta que se borraba la caché.
+        synchronized(candado(archivo.path)) {
+          if (!listo.exists()) {
+            if (!archivo.exists()) {
+              archivo.parentFile?.mkdirs()
+              val conexion = URL(desde).openConnection() as HttpURLConnection
+              // Corto a propósito: si el origen no responde, lo que importa es
+              // pasar al respaldo rápido y no dejar el avatar en blanco mientras
+              // se agota una espera larga.
+              conexion.connectTimeout = 4_000
+              conexion.readTimeout = 20_000
+              val temporal = File(archivo.path + ".parcial")
+              conexion.inputStream.use { entrada ->
+                temporal.outputStream().use { entrada.copyTo(it) }
+              }
+              if (!temporal.renameTo(archivo)) throw IllegalStateException("no se pudo guardar el avatar")
+            }
+            // La conversión de texturas es cara y se hace una sola vez: lo que
+            // queda en disco ya está listo para Filament.
+            // El número va en el nombre: si cambia cómo se convierte, los archivos
+            // viejos dejan de usarse solos en vez de quedar pegados en el teléfono.
+            val temporal = File(listo.path + ".parcial")
+            temporal.writeBytes(Glb.sinWebp(archivo.readBytes()))
+            if (!temporal.renameTo(listo)) throw IllegalStateException("no se pudo guardar la conversión")
+          }
         }
         val bytes = listo.readBytes()
         val msPreparar = System.currentTimeMillis() - t0
@@ -545,6 +552,11 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
 
   private companion object {
     const val ETIQUETA = "SignaAvatar"
+
+    private val candados = java.util.concurrent.ConcurrentHashMap<String, Any>()
+
+    /** Un objeto por ruta, compartido por todas las vistas del proceso. */
+    fun candado(ruta: String): Any = candados.getOrPut(ruta) { Any() }
 
 
     /** Nanosegundos entre cuadros del avatar: 30 por segundo. */

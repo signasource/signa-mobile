@@ -221,3 +221,18 @@ hoy paga cada teléfono la primera vez que ve cada avatar.
   la seña. Las manos son justamente donde se concentra el detalle.
 - **Bajar de 1024 las texturas**: se nota al agrandar el avatar, que es cuando
   la persona lo está mirando de cerca para copiar la seña.
+
+## Caché en disco y texturas que no corresponden
+
+`AvatarView.descargar()` guarda el `.glb` en `cacheDir/avatares2/<hash de la URL>.glb` y la versión
+convertida (`Glb.sinWebp`) al lado, como `.filament<VERSION_CONVERSION>`.
+
+**Carrera conocida (arreglada, sin verificar en el teléfono).** `LessonScreen` monta el bloque actual y
+el siguiente. Si los dos muestran la misma seña —presentarla y preguntarla—, cada vista bajaba y
+convertía el mismo archivo en su propio hilo, escribiendo al mismo `.parcial`: quedaba en disco una
+mezcla de ambos y el avatar se veía con texturas que no eran, hasta borrar la caché. Ahora la descarga y
+la conversión van dentro de un `synchronized` por ruta. El directorio pasó de `avatares/` a `avatares2/`
+para descartar los archivos que ya hubieran quedado dañados.
+
+Si vuelve a pasar, el botón de recarga del avatar no lo arregla (remonta la vista, no toca el disco):
+anotar la seña y mirar `adb logcat -s SignaAvatar`.
