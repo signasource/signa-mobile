@@ -78,6 +78,7 @@ The look comes from `features/achievements/celebrations.ts`:
 | Animation or its mock | `features/achievements/components/CelebrationAnimation.tsx` |
 | Streak medal (`<StreakMedal days size animated />`) | `features/achievements/components/StreakMedal.tsx` |
 | Medal tier mapping + Lottie sources | `features/achievements/streakTier.ts` |
+| Looping Lottie (drives `progress` from JS; never use `autoPlay` — on Android its native `play` command crashes with "play on view with tag N, since the view does not exist" when the screen unmounts) | `features/achievements/components/LoopingLottie.tsx` |
 
 - `AchievementCelebrationProvider` checks on login and when the app returns to the foreground.
   `RootNavigator` (`AchievementCelebrationConnected`) re-checks as soon as the user **leaves `Lesson` or

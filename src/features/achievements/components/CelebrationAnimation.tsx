@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, Easing, StyleSheet, View } from "react-native";
-import LottieView from "lottie-react-native";
+import { LoopingLottie } from "@/features/achievements/components/LoopingLottie";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/theme";
 import type { CelebrationTheme } from "@/features/achievements/celebrations";
@@ -14,13 +14,7 @@ const RING_SIZES = [150, 210, 270];
 export function CelebrationAnimation({ theme }: { theme: CelebrationTheme }) {
   if (theme.animation) {
     return (
-      <LottieView
-        source={theme.animation}
-        autoPlay
-        loop
-        style={[styles.lottie, { aspectRatio: theme.aspect }]}
-        resizeMode="contain"
-      />
+      <LoopingLottie source={theme.animation} style={[styles.lottie, { aspectRatio: theme.aspect }]} />
     );
   }
   return <MockAnimation icon={theme.icon} />;

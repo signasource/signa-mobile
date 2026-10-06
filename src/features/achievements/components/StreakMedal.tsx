@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import LottieView from "lottie-react-native";
+import { LoopingLottie } from "@/features/achievements/components/LoopingLottie";
 import { MEDAL_SOURCES, tierForDays } from "@/features/achievements/streakTier";
 
 interface StreakMedalProps {
@@ -15,14 +16,11 @@ interface StreakMedalProps {
 export function StreakMedal({ days, size, animated = false, style }: StreakMedalProps) {
   return (
     <View style={[{ width: size, height: size }, style]} pointerEvents="none">
-      <LottieView
-        source={MEDAL_SOURCES[tierForDays(days)]}
-        autoPlay={animated}
-        loop={animated}
-        progress={animated ? undefined : 0.35}
-        style={styles.fill}
-        resizeMode="contain"
-      />
+      {animated ? (
+        <LoopingLottie source={MEDAL_SOURCES[tierForDays(days)]} style={styles.fill} />
+      ) : (
+        <LottieView source={MEDAL_SOURCES[tierForDays(days)]} progress={0.35} style={styles.fill} resizeMode="contain" />
+      )}
     </View>
   );
 }
