@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
   hint: { fontFamily: fonts.bodyRegular, fontSize: 13, lineHeight: 18, color: colors.textMuted },
   grid: { flexDirection: "row", gap: ROW_GAP },
   column: { flex: 1, gap: ROW_GAP },
-  models: { ...StyleSheet.absoluteFillObject, borderRadius: 16, overflow: "hidden" },
+  models: { ...StyleSheet.absoluteFill, borderRadius: 16, overflow: "hidden" },
   tile: {
     height: ROW_HEIGHT,
     borderRadius: 16,

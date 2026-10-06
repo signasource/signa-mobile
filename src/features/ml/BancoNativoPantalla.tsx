@@ -260,7 +260,7 @@ export function BancoNativoPantalla({ onSeguir }: { onSeguir: () => void }) {
 
 const styles = StyleSheet.create({
   pantalla: { flex: 1, backgroundColor: "#000" },
-  camara: { ...StyleSheet.absoluteFillObject },
+  camara: { ...StyleSheet.absoluteFill },
   centro: { flex: 1, alignItems: "center", justifyContent: "center", gap: 14, padding: 24 },
   varios: { flex: 1, gap: 10, padding: 12, justifyContent: "center", backgroundColor: colors.background },
   tarjeta: {

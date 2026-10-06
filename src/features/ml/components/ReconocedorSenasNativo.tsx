@@ -122,9 +122,9 @@ export function ReconocedorSenasNativo({
 
 const styles = StyleSheet.create({
   marco: { overflow: "hidden", backgroundColor: "#000" },
-  camara: { ...StyleSheet.absoluteFillObject },
+  camara: { ...StyleSheet.absoluteFill },
   aviso: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
     padding: 20,

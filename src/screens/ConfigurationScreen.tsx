@@ -546,7 +546,7 @@ export function ConfigurationScreen({ navigation, route }: Props) {
 
       {/* ── Bottom sheets ── */}
       {sheet !== null && (
-        <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
+        <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
           <Pressable style={styles.overlay} onPress={() => setSheet(null)}>
             <View style={[styles.sheetCard, { paddingBottom: Math.max(insets.bottom, 32) }]} onStartShouldSetResponder={() => true}>
               <View style={styles.sheetHandle} />
@@ -746,7 +746,7 @@ export function ConfigurationScreen({ navigation, route }: Props) {
 
       {/* ── Dialogs ── */}
       {dialog !== null && (
-        <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
+        <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
           <Pressable style={styles.overlay} onPress={() => setDialog(null)}>
             <View style={styles.dialogCard} onStartShouldSetResponder={() => true}>
               <View

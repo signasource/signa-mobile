@@ -86,3 +86,20 @@ npm run typecheck  # tsc --noEmit ← minimum check before considering a change 
 
 Environment: copy `.env.example` → `.env`, set `EXPO_PUBLIC_API_URL` (base without `/api`).
 Per-platform host → [docs/api/http-client.md](./docs/api/http-client.md).
+
+### Running on a physical phone (Expo Go)
+
+```bash
+EXPO_TOKEN=<your-token> npx expo start --lan   # QR points at your LAN IP
+```
+
+- `--lan` is required: with `--localhost` the QR encodes `127.0.0.1`, which on the phone is the
+  phone itself. The phone must be on the same Wi-Fi as the computer.
+- `EXPO_TOKEN` (from expo.dev → Settings → Access tokens) is needed because Expo Go refuses to
+  open a dev server that is not signed in to the same account. Without a token, use
+  `EXPO_OFFLINE=1` and log out of Expo Go on the phone instead.
+- iOS: scan the QR with the **Camera** app — Expo Go for iOS has no built-in scanner.
+- Expo Go only ships the latest SDK, so the project's SDK must match the installed Expo Go.
+
+**iOS runs without the native module** — recognition exercises are skipped and avatars fall back
+to the WebView renderer. See [docs/status.md](./docs/status.md#plataformas).

@@ -879,7 +879,7 @@ export function ProfileScreen({ navigation }: Props) {
   }) {
     if (!open) return null;
     return (
-      <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
+      <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
         <Pressable style={styles.overlay} onPress={onClose}>
           <View
             style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 28) }]}
@@ -1000,7 +1000,7 @@ export function ProfileScreen({ navigation }: Props) {
 
       {/* Achievement detail modal */}
       {achievementDetail !== null && (
-        <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
+        <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
           <Pressable style={styles.overlay} onPress={() => setAchievementDetailId(null)}>
             <View
               style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 32) }]}

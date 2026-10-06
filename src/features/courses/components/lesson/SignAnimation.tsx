@@ -99,7 +99,7 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
         />
       )}
       {!ready && (
-        <SignPlaceholder label={label} height={height} tone={tone} preparing style={StyleSheet.absoluteFillObject} />
+        <SignPlaceholder label={label} height={height} tone={tone} preparing style={StyleSheet.absoluteFill} />
       )}
     </View>
   );

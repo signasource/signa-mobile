@@ -36,7 +36,7 @@ export function NoLivesOverlay({ onGoToStore, onExit }: NoLivesOverlayProps) {
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(36,26,22,0.42)",
     justifyContent: "flex-end",
   },
