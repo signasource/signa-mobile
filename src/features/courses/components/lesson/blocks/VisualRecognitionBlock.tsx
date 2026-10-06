@@ -7,6 +7,7 @@ import { VisualRecognitionConfig } from "@/features/courses/lessonContent.types"
 import { SignPlaceholder } from "../SignPlaceholder";
 import { MultiAvatarNativo } from "@/features/animations/MultiAvatarNativo";
 import { getGlbUrl } from "@/features/animations/glbUrl";
+import { ReloadButton } from "@/features/animations/ReloadButton";
 import { XpChip } from "../XpChip";
 import { FeedbackBar } from "../FeedbackBar";
 import { LessonButton } from "../LessonButton";
@@ -84,6 +85,7 @@ export function VisualRecognitionBlock({ config, xp, onAnswer, onContinue }: Vis
               key={replayKey}
               urls={seqUrls}
               activeIndex={seqIndex}
+              reloadable={false}
               onError={() => setSeqFailed(true)}
             />
             <View style={styles.sequenceBadge}>
@@ -91,7 +93,11 @@ export function VisualRecognitionBlock({ config, xp, onAnswer, onContinue }: Vis
                 Seña {seqIndex + 1} de {total}
               </Text>
             </View>
-            {!playing && (
+            {/* Un solo botón de repetir: la pastilla al terminar la secuencia y,
+                mientras corre, el de recarga. Los dos reinician desde la primera seña. */}
+            {playing ? (
+              <ReloadButton onPress={replay} />
+            ) : (
               <TouchableOpacity onPress={replay} style={styles.replayButton} activeOpacity={0.85}>
                 <Ionicons name="refresh" size={15} color={colors.text} />
                 <Text style={styles.replayText}>Repetir</Text>

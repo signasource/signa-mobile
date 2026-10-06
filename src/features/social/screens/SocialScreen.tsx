@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   Keyboard,
 } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { FocusKeyboardScrollView } from "@/components/FocusKeyboardScrollView";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomTabNavigationProp, BottomTabScreenProps } from "@react-navigation/bottom-tabs";
@@ -522,7 +522,7 @@ export function SocialScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
       ) : (
-        <KeyboardAwareScrollView
+        <FocusKeyboardScrollView
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
@@ -708,7 +708,7 @@ export function SocialScreen({ navigation }: Props) {
               )}
             </View>
           )}
-        </KeyboardAwareScrollView>
+        </FocusKeyboardScrollView>
       )}
 
       <Toast message={toast} bottom={16} />

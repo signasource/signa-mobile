@@ -18,6 +18,8 @@ export interface MultiAvatarNativoProps {
   rowHeight?: number;
   rowGap?: number;
   style?: ViewStyle;
+  /** Botón de recarga propio. Apagarlo si el llamador ya pone el suyo. */
+  reloadable?: boolean;
   label?: string;
   onError?: (mensaje: string) => void;
 }
@@ -41,6 +43,7 @@ export function MultiAvatarNativo({
   rowHeight = 96,
   rowGap = 10,
   style,
+  reloadable = true,
   onError,
 }: MultiAvatarNativoProps) {
   const [falló, setFalló] = useState(false);
@@ -65,7 +68,7 @@ export function MultiAvatarNativo({
           rowGap={rowGap}
           style={style}
         />
-        <ReloadButton onPress={recargar} />
+        {reloadable && <ReloadButton onPress={recargar} />}
       </>
     );
   }
@@ -74,7 +77,7 @@ export function MultiAvatarNativo({
     return (
       <>
         <View style={style} />
-        <ReloadButton onPress={recargar} />
+        {reloadable && <ReloadButton onPress={recargar} />}
       </>
     );
   }
@@ -105,7 +108,7 @@ export function MultiAvatarNativo({
         <View style={[styles.filas, { gap: rowGap }, style]} pointerEvents="none">
           {urls.map((url, i) => avatar(url, rowHeight, `${i}-${url}`, paused))}
         </View>
-        <ReloadButton onPress={recargar} />
+        {reloadable && <ReloadButton onPress={recargar} />}
       </>
     );
   }
@@ -118,7 +121,7 @@ export function MultiAvatarNativo({
       <View style={[styles.completo, style]} pointerEvents="none">
         {avatar(url, "todo", `activo-${activeIndex}`, paused)}
       </View>
-      <ReloadButton onPress={recargar} />
+      {reloadable && <ReloadButton onPress={recargar} />}
     </>
   );
 }

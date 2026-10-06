@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { FocusKeyboardScrollView } from "@/components/FocusKeyboardScrollView";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -63,7 +63,7 @@ export function EditProfileScreen({ navigation, route }: Props) {
         style={{ marginTop: insets.top + 8, marginLeft: 8 }}
       />
 
-      <KeyboardAwareScrollView
+      <FocusKeyboardScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         enableOnAndroid
@@ -145,7 +145,7 @@ export function EditProfileScreen({ navigation, route }: Props) {
             {saving ? "Guardando…" : "Guardar cambios"}
           </Text>
         </TouchableOpacity>
-      </KeyboardAwareScrollView>
+      </FocusKeyboardScrollView>
 
       <TouchableOpacity
         style={[styles.cancelBtn, { paddingBottom: insets.bottom + 12 }]}

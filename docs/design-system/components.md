@@ -68,3 +68,12 @@ Barrel exports (`src/components/auth/index.ts`): `AuthScreen`, `AuthField`, `Pri
 Round refresh button pinned to the bottom-right of an avatar. `SignAnimation` and `MultiAvatarNativo`
 render it themselves, so every 3D avatar always has one; pressing it bumps a `key` and remounts the
 viewer from scratch (also clears a failed state). The parent of the avatar must be a positioned box.
+`MultiAvatarNativo` takes `reloadable={false}` when the caller already draws its own button (the sequence
+exercise does: one button, restarting from the first sign).
+
+## FocusKeyboardScrollView (`@/components/FocusKeyboardScrollView`)
+
+Use it instead of `KeyboardAwareScrollView` directly. It turns `enableAutomaticScroll` off while its
+screen is not focused: the library listens to the keyboard in every mounted instance, and with the input in
+another screen or inside a `<Modal>` each one logged `viewIsDescendantOf() noop: Cannot find view with
+reactTag N`. Must render inside a navigator screen (`useIsFocused`).

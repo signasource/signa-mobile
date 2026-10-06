@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, ViewStyle, StyleProp } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { FocusKeyboardScrollView } from "@/components/FocusKeyboardScrollView";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BackButton } from "@/components/BackButton";
 import { colors } from "@/theme";
@@ -25,7 +25,7 @@ export function AuthScreen({ children, onBack, canGoBack = true, contentStyle }:
   const insets = useSafeAreaInsets();
 
   return (
-    <KeyboardAwareScrollView
+    <FocusKeyboardScrollView
       style={styles.flex}
       contentContainerStyle={[
         styles.container,
@@ -39,7 +39,7 @@ export function AuthScreen({ children, onBack, canGoBack = true, contentStyle }:
     >
       {onBack ? <BackButton onPress={onBack} visible={canGoBack} /> : null}
       {children}
-    </KeyboardAwareScrollView>
+    </FocusKeyboardScrollView>
   );
 }
 
