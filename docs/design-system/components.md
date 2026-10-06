@@ -77,3 +77,7 @@ Use it instead of `KeyboardAwareScrollView` directly. It turns `enableAutomaticS
 screen is not focused: the library listens to the keyboard in every mounted instance, and with the input in
 another screen or inside a `<Modal>` each one logged `viewIsDescendantOf() noop: Cannot find view with
 reactTag N`. Must render inside a navigator screen (`useIsFocused`).
+
+At import it also patches `UIManager.viewIsDescendantOf` (Fabric only) to return silently when either tag has no
+shadow node — an input unmounted with the keyboard open, or living in another root (`<Modal>`). Same outcome RN
+produces after logging the error, minus the log. The focus gate alone cannot cover those cases.

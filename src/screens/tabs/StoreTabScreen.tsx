@@ -7,10 +7,9 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
-  SafeAreaView,
 } from "react-native";
 import { Text } from "@/components/Text";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from "@react-navigation/native";
 import { TabParamList } from "@/navigation/TabNavigator";
@@ -497,7 +496,7 @@ export function StoreTabScreen() {
         )}
 
         {flow?.step === "opening" && (
-          <View style={styles.fullOverlay}>
+          <View style={[styles.fullOverlay, styles.openingOverlay]}>
             <Ionicons name="gift" size={82} color={colors.onDark} />
             <Text style={styles.fullTitle}>Abriendo el cofre…</Text>
             <Text style={styles.fullSub}>Veamos qué te tocó</Text>
@@ -841,6 +840,10 @@ const styles = StyleSheet.create({
   fullOverlay: {
     flex: 1,
     backgroundColor: colors.shopAmber,
+  },
+  openingOverlay: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   successScroll: {
     flexGrow: 1,
