@@ -125,6 +125,7 @@ export function LessonScreen({ route, navigation }: Props) {
   function goToNextBlock() {
     if (!lesson) return;
     if (blockIndex + 1 >= lesson.blocks.length) {
+      enVuelo.current.push(learningApi.completeLesson(lessonId).catch(() => {}));
       setCompleted(true);
     } else {
       setBlockIndex((prev) => prev + 1);

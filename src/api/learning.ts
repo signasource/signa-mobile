@@ -27,4 +27,7 @@ export const learningApi = {
   /** `isCorrect` es null para bloques INFO (vista); true/false para bloques evaluables. */
   recordBlockInteraction: (lessonBlockId: string, isCorrect: boolean | null) =>
     apiClient.post<void>(`/learning/tracking/blocks/${lessonBlockId}/interactions`, { isCorrect }),
+  /** Marca la lección como completada independientemente de si cada bloque fue respondido correctamente. */
+  completeLesson: (lessonId: string) =>
+    apiClient.post<void>(`/learning/tracking/lessons/${lessonId}/complete`),
 };
