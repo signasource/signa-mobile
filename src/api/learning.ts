@@ -18,6 +18,12 @@ export const learningApi = {
   getProgress: () => apiClient.get<CourseProgress[]>("/learning/tracking/progress"),
   enroll: (courseVersionId: string) =>
     apiClient.post<void>(`/learning/tracking/courses/${courseVersionId}/enroll`),
+  /**
+   * Idempotent self-enrolment by course id. `enroll` needs a courseVersionId that no endpoint
+   * exposes, so this is the only enrolment the client can actually perform.
+   */
+  joinFreeCourse: (courseId: string) =>
+    apiClient.post<void>(`/learning/tracking/courses/${courseId}/join`),
   /** `isCorrect` es null para bloques INFO (vista); true/false para bloques evaluables. */
   recordBlockInteraction: (lessonBlockId: string, isCorrect: boolean | null) =>
     apiClient.post<void>(`/learning/tracking/blocks/${lessonBlockId}/interactions`, { isCorrect }),

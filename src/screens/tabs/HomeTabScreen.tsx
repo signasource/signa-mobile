@@ -20,6 +20,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { TabParamList } from "@/navigation/TabNavigator";
 import { AppStackParamList } from "@/navigation/AppNavigator";
 import { usersApi } from "@/api/users";
+import { learningApi } from "@/api/learning";
 import { inventoryApi } from "@/api/inventory";
 import {
   coursesApi,
@@ -63,6 +64,10 @@ async function fetchRoadmap(): Promise<CourseRoadmap> {
   const { data: catalog } = await coursesApi.getCatalog(lsa.id);
   const course = catalog.content[0];
   if (!course) throw new Error("Todavía no hay cursos disponibles.");
+
+  // Sin inscripcion el backend responde 403 al abrir cualquier leccion. Es idempotente,
+  // y no debe tumbar Inicio si el curso no fuera gratuito.
+  await learningApi.joinFreeCourse(course.id).catch(() => undefined);
 
   const { data: roadmap } = await coursesApi.getRoadmap(course.id);
   return roadmap;

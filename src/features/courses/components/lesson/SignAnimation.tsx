@@ -6,6 +6,7 @@ import { AvatarGlbNativo } from "@/features/animations/AvatarGlbNativo";
 import { GlbAnimationView } from "@/features/animations/GlbAnimationView";
 import { getGlbUrl, getGlbUrlOficial } from "@/features/animations/glbUrl";
 import { marcar } from "@/features/ml/telemetria";
+import { hayNativo } from "../../../../../modules/signa-vision";
 import { SignPlaceholder } from "./SignPlaceholder";
 
 type Tone = "neutral" | "wrong";
@@ -46,7 +47,8 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
   // mostrar la lámina fija: hay avatares —M y N— con un esqueleto de 574 huesos
   // contra el tope de 256 de Filament, y el web los dibuja igual.
   const [caidoANavegador, setCaidoANavegador] = useState(false);
-  const nativo = (motor ? motor === "nativo" : NATIVO) && !caidoANavegador;
+  // hayNativo es false en iOS y en Expo Go: ahi dibuja el visor web, como en develop.
+  const nativo = hayNativo && (motor ? motor === "nativo" : NATIVO) && !caidoANavegador;
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
   const wrong = tone === "wrong";

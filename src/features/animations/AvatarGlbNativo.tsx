@@ -37,7 +37,11 @@ export function AvatarGlbNativo({ url, urlRespaldo, paused, cameraControls = tru
         paused={paused}
         cameraControls={cameraControls}
         style={style}
-        onLoaded={onLoaded}
+        onLoaded={(clips) => {
+          onLoaded?.(clips);
+          // El llamador puede escuchar solo onTiempos; sin esto el placeholder no se va.
+          onTiempos?.({ msArchivo: 0, msMontaje: 0 });
+        }}
         onError={onError}
       />
     );
