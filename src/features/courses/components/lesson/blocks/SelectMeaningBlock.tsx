@@ -46,7 +46,7 @@ export function SelectMeaningBlock({ config, xp, onAnswer, onContinue }: SelectM
         />
 
         <View style={styles.grid}>
-          {config.options.map((option) => {
+          {config.options.map((option, i) => {
             const isSelected = option === selected;
             const isCorrectOption = option === config.sign;
             const showCorrect = answered && isCorrectOption;
@@ -55,7 +55,7 @@ export function SelectMeaningBlock({ config, xp, onAnswer, onContinue }: SelectM
 
             return (
               <TouchableOpacity
-                key={option}
+                key={`${option}-${i}`}
                 onPress={() => handleSelect(option)}
                 activeOpacity={0.85}
                 disabled={answered}

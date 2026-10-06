@@ -67,6 +67,8 @@ Powers the Social tab (see [features/social.md](../features/social.md)).
 | `unblockUser(userId)` | `PATCH /friendships/unblock/{id}` | 200 | deletes the relation entirely |
 | `likeEvent(type, refId)` | `POST /friendships/events/{type}/{refId}/like` | 204 | idempotent; notifies the event's owner. Rejects your own activity and non-friends |
 | `unlikeEvent(type, refId)` | `DELETE /friendships/events/{type}/{refId}/like` | 204 | no-op if there was no like |
+| `getGlobalRanking()` | `GET /ranking/global` | `WeeklyRanking` | `{ entries: RankingEntry[], total, me }` — top 100 by weekly XP; `me = { rank, weeklyXp, delta, gapText }`; `delta` null = no previous data |
+| `getFriendsRanking()` | `GET /ranking/friends` | `WeeklyRanking` | same shape, only the caller's accepted friends |
 | `searchUsers(query, signal?)` | `GET /users/search?query=&limit=` | `UserSearchResult[]` | `query` is a **contains** match on username or display name, min 2 chars (shorter → 400), max 50 results. Each result carries `relation` and `mutualFriends` already resolved against the caller. Users who blocked the caller are filtered out. Accepts `AbortSignal` |
 
 ## `publicProfileApi` (`src/api/social.ts`) — mirrors `UserController.getByUsername`

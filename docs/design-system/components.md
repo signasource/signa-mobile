@@ -62,3 +62,9 @@ Barrel exports (`src/components/auth/index.ts`): `AuthScreen`, `AuthField`, `Pri
 - Selectors: `SegmentedControl` (primary) and `SubTabs` (secondary) always span the full width. `Segment.icon` is optional: Perfil's section selector is **text-only** and its icons live in the section headings instead.
 - Long-form body/paragraph copy opts into `textAlign: "justify"` on its own style (e.g. `InfoBlock`'s `paragraph`) — it is not a default on `@/components/Text`, see [typography.md](./typography.md).
 - **Spacing**: no centralized scale; paddings/margins are per-component in each `StyleSheet` (typical 4–32). Screen horizontal padding **20px** (header, selectors and content share the same gutter); card padding ~18px.
+
+## ReloadButton (`@/features/animations/ReloadButton`)
+
+Round refresh button pinned to the bottom-right of an avatar. `SignAnimation` and `MultiAvatarNativo`
+render it themselves, so every 3D avatar always has one; pressing it bumps a `key` and remounts the
+viewer from scratch (also clears a failed state). The parent of the avatar must be a positioned box.

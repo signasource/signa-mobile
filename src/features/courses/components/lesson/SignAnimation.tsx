@@ -7,6 +7,7 @@ import { GlbAnimationView } from "@/features/animations/GlbAnimationView";
 import { getGlbUrl, getGlbUrlOficial } from "@/features/animations/glbUrl";
 import { marcar } from "@/features/ml/telemetria";
 import { hayNativo } from "../../../../../modules/signa-vision";
+import { ReloadButton } from "@/features/animations/ReloadButton";
 import { SignPlaceholder } from "./SignPlaceholder";
 
 type Tone = "neutral" | "wrong";
@@ -51,6 +52,7 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
   const nativo = hayNativo && (motor ? motor === "nativo" : NATIVO) && !caidoANavegador;
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const wrong = tone === "wrong";
 
   // Cuánto tarda el avatar en aparecer, medido desde el mismo lugar para los dos
@@ -67,8 +69,21 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
     });
   }
 
+  function recargar() {
+    setFailed(false);
+    setCaidoANavegador(false);
+    setReady(false);
+    desde.current = Date.now();
+    setReloadKey((k) => k + 1);
+  }
+
   if (failed) {
-    return <SignPlaceholder label={label} height={height} tone={tone} badge={badge} style={style} />;
+    return (
+      <View style={[styles.container, { height }, style]}>
+        <SignPlaceholder label={label} height={height} tone={tone} badge={badge} />
+        <ReloadButton onPress={recargar} />
+      </View>
+    );
   }
 
   return (
@@ -80,6 +95,7 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
       )}
       {nativo ? (
         <AvatarGlbNativo
+          key={reloadKey}
           url={getGlbUrl(meaning)}
           urlRespaldo={getGlbUrlOficial(meaning)}
           paused={paused}
@@ -93,6 +109,7 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
         />
       ) : (
         <GlbAnimationView
+          key={reloadKey}
           url={getGlbUrl(meaning)}
           paused={paused}
           cameraControls={cameraControls}
@@ -103,6 +120,7 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
       {!ready && (
         <SignPlaceholder label={label} height={height} tone={tone} preparing style={StyleSheet.absoluteFill} />
       )}
+      <ReloadButton onPress={recargar} />
     </View>
   );
 }

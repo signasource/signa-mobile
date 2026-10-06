@@ -40,6 +40,7 @@ import { FeedCard } from "@/features/social/components/FeedCard";
 import { EmptyNote, EmptyState } from "@/components/EmptyState";
 import { ConfirmSheet, ConfirmSpec } from "@/features/social/components/ConfirmSheet";
 import { Toast } from "@/features/social/components/Toast";
+import { RankingView } from "@/features/social/components/RankingView";
 
 type SocialNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, "Social">,
@@ -47,7 +48,7 @@ type SocialNavigation = CompositeNavigationProp<
 >;
 type Props = BottomTabScreenProps<TabParamList, "Social"> & { navigation: SocialNavigation };
 
-type Tab = "feed" | "amigos";
+type Tab = "feed" | "amigos" | "ranking";
 type Section = "amigos" | "solicitudes";
 
 const SECTION_TABS: ReadonlyArray<SubTab<Section>> = [
@@ -124,6 +125,7 @@ export function SocialScreen({ navigation }: Props) {
 
   const [tab, setTab] = useState<Tab>("feed");
   const [section, setSection] = useState<Section>("amigos");
+  const [globalRank, setGlobalRank] = useState<number | null>(null);
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<UserSearchResult[]>([]);
@@ -460,6 +462,7 @@ export function SocialScreen({ navigation }: Props) {
   const tabs: ReadonlyArray<Segment<Tab>> = [
     { key: "feed", label: "Feed" },
     { key: "amigos", label: "Amigos", badge: incoming.length },
+    { key: "ranking", label: "Ranking" },
   ];
 
   return (
@@ -476,6 +479,12 @@ export function SocialScreen({ navigation }: Props) {
             label: "Solicitudes",
             value: String(incoming.length),
             icon: "mail-open",
+          },
+          {
+            key: "rank",
+            label: "Ranking",
+            value: globalRank != null ? `#${globalRank}` : "—",
+            icon: "ribbon",
           },
         ]}
         right={
@@ -539,6 +548,8 @@ export function SocialScreen({ navigation }: Props) {
                 ))
               )}
             </View>
+          ) : tab === "ranking" ? (
+            <RankingView onPressUser={openProfile} onGlobalRank={setGlobalRank} />
           ) : (
             <View style={styles.friendsTab}>
               <View style={styles.search}>

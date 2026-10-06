@@ -23,12 +23,15 @@ directly, like `LessonScreen` in `features/courses`.
 ## SocialScreen
 
 Wine `ScreenHeader` (`tone={colors.socialWine}`) with the background-less bell (unread badge from
-`notificationsApi.getUnreadCount()`) and two stat tiles: **Amigos** and **Solicitudes**. The header is
+`notificationsApi.getUnreadCount()`) and three stat tiles: **Amigos**, **Solicitudes** and **Ranking** (`#n`, the caller's global weekly position, filled once the Ranking tab loads). The header is
 the shared one — same title size, description, top-right bubble and `minHeight` as every other
 top-level screen.
 
-> The mockup's second tile was a **Ranking** (`#3`). The backend has no leaderboard at all, and
-> ranking was explicitly deferred to a later iteration, so the tile shows pending requests instead.
+### Ranking
+
+Third `SegmentedControl` tab → `RankingView` (`features/social/components/RankingView.tsx`). `SubTabs`
+**Global / Amigos** → `GET /ranking/global` (top 100) or `GET /ranking/friends`, both weekly XP. Shows the
+caller's own position (`me`, with `gapText`) above the list; rows open the public profile.
 
 Two tabs below the header, rendered by the shared `SegmentedControl` (full width, black active
 state); the **Mis amigos / Solicitudes** sub-selector uses `SubTabs`:
@@ -154,5 +157,4 @@ the header comes from `@/components/ScreenHeader`.
 
 ## Not implemented
 
-- **Ranking / leaderboard.** Deferred; no backend support exists.
 - **Like counts.** Intentionally dropped — the button is on/off only.

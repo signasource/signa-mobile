@@ -108,12 +108,12 @@ export function VisualRecognitionBlock({ config, xp, onAnswer, onContinue }: Vis
         </View>
 
         <View style={styles.grid}>
-          {config.options.map((option) => {
+          {config.options.map((option, i) => {
             const isMarked = marked.has(option);
             const isWrong = wrongOption === option;
             return (
               <TouchableOpacity
-                key={option}
+                key={`${option}-${i}`}
                 onPress={() => handleTap(option)}
                 disabled={isMarked || !!wrongOption}
                 activeOpacity={0.85}

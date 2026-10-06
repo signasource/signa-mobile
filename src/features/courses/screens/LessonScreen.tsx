@@ -208,7 +208,7 @@ export function LessonScreen({ route, navigation }: Props) {
           if (i < blockIndex || i > blockIndex + 1) return null;
           return (
             <View
-              key={block.id}
+              key={`${block.id}-${i}`}
               style={[StyleSheet.absoluteFill, { opacity: i === blockIndex ? 1 : 0 }]}
               pointerEvents={i === blockIndex ? "auto" : "none"}
             >

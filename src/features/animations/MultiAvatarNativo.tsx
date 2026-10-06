@@ -4,6 +4,7 @@ import { StyleSheet, View, ViewStyle } from "react-native";
 import { colors } from "@/theme";
 import { AvatarNativo, hayNativo } from "../../../modules/signa-vision";
 import { MultiGlbView } from "./MultiGlbView";
+import { ReloadButton } from "./ReloadButton";
 import { getGlbUrlOficial } from "./glbUrl";
 
 export interface MultiAvatarNativoProps {
@@ -42,24 +43,41 @@ export function MultiAvatarNativo({
   style,
   onError,
 }: MultiAvatarNativoProps) {
+  const [falló, setFalló] = useState(false);
+  const [recarga, setRecarga] = useState(0);
+
+  function recargar() {
+    setFalló(false);
+    setRecarga((r) => r + 1);
+  }
+
   // Sin modulo nativo (iOS) se vuelve al render por WebView con <model-viewer>.
   if (!hayNativo) {
     return (
-      <MultiGlbView
-        urls={urls}
-        activeIndex={activeIndex}
-        paused={paused}
-        layout={layout}
-        rowHeight={rowHeight}
-        rowGap={rowGap}
-        style={style}
-      />
+      <>
+        <MultiGlbView
+          key={recarga}
+          urls={urls}
+          activeIndex={activeIndex}
+          paused={paused}
+          layout={layout}
+          rowHeight={rowHeight}
+          rowGap={rowGap}
+          style={style}
+        />
+        <ReloadButton onPress={recargar} />
+      </>
     );
   }
 
-  const [falló, setFalló] = useState(false);
-
-  if (falló) return <View style={style} />;
+  if (falló) {
+    return (
+      <>
+        <View style={style} />
+        <ReloadButton onPress={recargar} />
+      </>
+    );
+  }
 
   function avatar(url: string, alto: number | "todo", key: string, enPausa: boolean) {
     const caja: ViewStyle =
@@ -67,7 +85,7 @@ export function MultiAvatarNativo({
     if (!url) return <View key={key} style={caja} />;
     return (
       <AvatarNativo
-        key={key}
+        key={`${recarga}-${key}`}
         style={caja}
         url={url}
         urlRespaldo={getGlbUrlOficial(url.split("/").pop()?.replace(/\.glb$/, "") ?? "")}
@@ -83,9 +101,12 @@ export function MultiAvatarNativo({
 
   if (layout === "rows") {
     return (
-      <View style={[styles.filas, { gap: rowGap }, style]} pointerEvents="none">
-        {urls.map((url, i) => avatar(url, rowHeight, `${i}-${url}`, paused))}
-      </View>
+      <>
+        <View style={[styles.filas, { gap: rowGap }, style]} pointerEvents="none">
+          {urls.map((url, i) => avatar(url, rowHeight, `${i}-${url}`, paused))}
+        </View>
+        <ReloadButton onPress={recargar} />
+      </>
     );
   }
 
@@ -93,9 +114,12 @@ export function MultiAvatarNativo({
   // acá pasa lo mismo y sólo se dibuja la seña que se está mirando.
   const url = urls[activeIndex] ?? "";
   return (
-    <View style={[styles.completo, style]} pointerEvents="none">
-      {avatar(url, "todo", `activo-${activeIndex}`, paused)}
-    </View>
+    <>
+      <View style={[styles.completo, style]} pointerEvents="none">
+        {avatar(url, "todo", `activo-${activeIndex}`, paused)}
+      </View>
+      <ReloadButton onPress={recargar} />
+    </>
   );
 }
 
