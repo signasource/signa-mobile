@@ -2,7 +2,8 @@ import React from "react";
 import { StyleSheet, ViewStyle } from "react-native";
 
 import { colors } from "@/theme";
-import { AvatarNativo } from "../../../modules/signa-vision";
+import { AvatarNativo, hayNativo } from "../../../modules/signa-vision";
+import { GlbAnimationView } from "./GlbAnimationView";
 
 interface Props {
   url: string;
@@ -28,6 +29,20 @@ interface Props {
  * app y el .glb queda guardado en disco después de la primera vez.
  */
 export function AvatarGlbNativo({ url, urlRespaldo, paused, cameraControls = true, style, onLoaded, onTiempos, onFluidez, onError }: Props) {
+  // Sin modulo nativo (iOS) se vuelve al render por WebView con <model-viewer>.
+  if (!hayNativo) {
+    return (
+      <GlbAnimationView
+        url={url}
+        paused={paused}
+        cameraControls={cameraControls}
+        style={style}
+        onLoaded={onLoaded}
+        onError={onError}
+      />
+    );
+  }
+
   return (
     <AvatarNativo
       style={StyleSheet.flatten([styles.lienzo, style])}

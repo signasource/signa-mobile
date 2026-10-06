@@ -7,6 +7,7 @@ import { colors, fonts } from "@/theme";
 import { PerformSignConfig } from "@/features/courses/lessonContent.types";
 import type { LiveFrame } from "@/features/ml/components/LiveSignRecognizer";
 import { ReconocedorSenasNativo } from "@/features/ml/components/ReconocedorSenasNativo";
+import { hayNativo } from "../../../../../../modules/signa-vision";
 import { signMeaning } from "@/features/ml";
 // TEMPORAL: rama de diagnóstico, ver src/features/ml/telemetria.ts
 import { cerrarMedicion, marcar, medir } from "@/features/ml/telemetria";
@@ -164,6 +165,26 @@ export function PerformSignBlock({ config, active, ultimo, xp, onAnswer, onConti
       onAnswer(false);
     }
     setRendido(true);
+  }
+
+  if (!hayNativo) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.permission}>
+          <View style={styles.permissionIcon}>
+            <Ionicons name="camera-outline" size={34} color={colors.primary} />
+          </View>
+          <Text style={styles.permissionTitle}>Reconocimiento no disponible</Text>
+          <Text style={styles.permissionText}>
+            Este dispositivo todavía no puede reconocer señas con la cámara. Podés seguir con el
+            resto de la lección.
+          </Text>
+        </View>
+        <View style={styles.footer}>
+          <LessonButton label={ultimo ? "Terminar" : "Continuar"} onPress={onContinue} />
+        </View>
+      </View>
+    );
   }
 
   if (!permission?.granted) {

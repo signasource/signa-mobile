@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { StyleSheet, View, ViewStyle } from "react-native";
 
 import { colors } from "@/theme";
-import { AvatarNativo } from "../../../modules/signa-vision";
+import { AvatarNativo, hayNativo } from "../../../modules/signa-vision";
+import { MultiGlbView } from "./MultiGlbView";
 import { getGlbUrlOficial } from "./glbUrl";
 
 export interface MultiAvatarNativoProps {
@@ -41,6 +42,21 @@ export function MultiAvatarNativo({
   style,
   onError,
 }: MultiAvatarNativoProps) {
+  // Sin modulo nativo (iOS) se vuelve al render por WebView con <model-viewer>.
+  if (!hayNativo) {
+    return (
+      <MultiGlbView
+        urls={urls}
+        activeIndex={activeIndex}
+        paused={paused}
+        layout={layout}
+        rowHeight={rowHeight}
+        rowGap={rowGap}
+        style={style}
+      />
+    );
+  }
+
   const [falló, setFalló] = useState(false);
 
   if (falló) return <View style={style} />;

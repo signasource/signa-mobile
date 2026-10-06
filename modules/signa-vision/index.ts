@@ -1,4 +1,4 @@
-import { requireNativeModule } from "expo-modules-core";
+import { requireOptionalNativeModule } from "expo-modules-core";
 
 /**
  * Espiga del reconocimiento nativo. Ver el módulo Kotlin para el porqué.
@@ -17,13 +17,20 @@ export interface ResultadoBanco {
   manosMsMin: number;
 }
 
-const nativo = requireNativeModule("SignaVision");
+const nativo = requireOptionalNativeModule("SignaVision");
+
+/** Solo Android trae el modulo: en iOS no hay implementacion nativa. */
+export const hayNativo = nativo !== null;
+
+/** Callers reject instead of throwing: a sync throw inside an effect kills the render. */
+const SIN_NATIVO = "SignaVision no esta disponible en esta plataforma";
 
 /**
  * Contrasta ventana + modelo nativos contra las probabilidades que da el
  * pipeline de Python sobre las mismas secuencias. Diferencia esperada: ~0.
  */
 export function golden(): Promise<{ peorDiferencia: number; detalle: string; reproduccion: string }> {
+  if (!nativo) return Promise.reject(new Error(SIN_NATIVO));
   return nativo.golden();
 }
 
@@ -39,6 +46,7 @@ export function ultimaSalida(): Promise<{
     volcado?: string;
   }[];
 }> {
+  if (!nativo) return Promise.resolve({ salidas: [] });
   return nativo.ultimaSalida();
 }
 
@@ -50,10 +58,12 @@ export function estres(vueltas = 10, que: "senas" | "abecedario" | "detectores" 
   despuesKB: number;
   porVueltaKB: number;
 }> {
+  if (!nativo) return Promise.reject(new Error(SIN_NATIVO));
   return nativo.estres(vueltas, que);
 }
 
 export function banco(vueltas = 30, enGpu = true): Promise<ResultadoBanco> {
+  if (!nativo) return Promise.reject(new Error(SIN_NATIVO));
   return nativo.banco(vueltas, enGpu);
 }
 

@@ -19,6 +19,7 @@ import { SettingsProvider } from "@/context/SettingsContext";
 import { RootNavigator } from "@/navigation/RootNavigator";
 // ESPIGA: mide MediaPipe nativo contra los números que ya tenemos del WebView.
 import { BancoNativoPantalla } from "@/features/ml/BancoNativoPantalla";
+import { hayNativo } from "./modules/signa-vision";
 import { colors } from "@/theme";
 
 export default function App() {
@@ -38,7 +39,8 @@ export default function App() {
 
   // Dentro de SettingsProvider: el banco monta el ejercicio real, y los
   // componentes de la app leen el tamaño de letra de ahí.
-  if (fontsLoaded && !bancoListo) {
+  // El banco mide el reconocedor nativo: sin modulo (iOS) no hay nada que medir.
+  if (fontsLoaded && !bancoListo && hayNativo) {
     return (
       <SafeAreaProvider>
         <SettingsProvider>

@@ -5,6 +5,7 @@ import { Animated, StyleSheet, TextInput, View } from "react-native";
 
 import { Text } from "@/components/Text";
 import { ReconocedorSenasNativo } from "@/features/ml/components/ReconocedorSenasNativo";
+import { hayNativo } from "../../../../../../modules/signa-vision";
 import { colors, fonts } from "@/theme";
 // TEMPORAL: rama de diagnóstico, ver src/features/ml/telemetria.ts
 import { cerrarMedicion, marcar, medir } from "@/features/ml/telemetria";
@@ -170,6 +171,26 @@ export function SpellNameBlock({ config, active, ultimo, xp, onAnswer, onContinu
             disabled={nombre.length === 0}
             onPress={() => setEmpezado(true)}
           />
+        </View>
+      </View>
+    );
+  }
+
+  if (!hayNativo) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.permission}>
+          <View style={styles.permissionIcon}>
+            <Ionicons name="camera-outline" size={34} color={colors.primary} />
+          </View>
+          <Text style={styles.permissionTitle}>Reconocimiento no disponible</Text>
+          <Text style={styles.permissionText}>
+            Este dispositivo todavía no puede reconocer señas con la cámara. Podés seguir con el
+            resto de la lección.
+          </Text>
+        </View>
+        <View style={styles.footer}>
+          <LessonButton label={ultimo ? "Terminar" : "Continuar"} onPress={onContinue} />
         </View>
       </View>
     );
