@@ -9,6 +9,8 @@ Metro only bundles what the code `require()`s, so files in `spare/` cost nothing
 
 | File | Used by | Notes |
 |---|---|---|
+| `loading.json` | `LoadingAnimation` (sign-model + screen loaders) | Bouncing dots, recoloured to the Signa violet palette |
+| `confetti.json` | `LessonComplete` (lesson-finished burst) | One-shot confetti over the illustration |
 | `streak-fire.json` | streak celebration (`celebrations.ts`, `streak`) | Big fire, gradient fills |
 | `streak-medal-base.json` | source of `medals/*` | Gold medal as downloaded; edit this one, then regenerate |
 | `medals/<tier>.json` | `StreakMedal` (`streakTier.ts`) | **Generated**, don't edit by hand |

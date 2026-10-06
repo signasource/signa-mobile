@@ -1,7 +1,8 @@
-import React, { useMemo, useRef, useEffect } from "react";
-import { StyleSheet, ViewStyle } from "react-native";
+import React, { useMemo, useRef, useEffect, useState } from "react";
+import { StyleSheet, View, ViewStyle } from "react-native";
 import { WebView, WebViewMessageEvent } from "react-native-webview";
 import { colors } from "@/theme";
+import { LoadingAnimation } from "@/components/LoadingAnimation";
 
 const MODEL_VIEWER_CDN =
   "https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js";
@@ -153,7 +154,10 @@ export function MultiGlbView({
     if (initialLayout.current.layout === "rows") return;
     if (prevIndexRef.current === activeIndex) return;
     prevIndexRef.current = activeIndex;
-    const play = pausedRef.current ? "" : "mv.play();";
+    // `currentTime=0` rewinds the model before playing so every sign is read
+    // from its first frame — model-viewer otherwise keeps the end pose from the
+    // last time the model was shown (all models autoplay once on load).
+    const play = pausedRef.current ? "" : "mv.currentTime=0;mv.play();";
     webviewRef.current?.injectJavaScript(
       `(function(){Object.keys(ns).forEach(function(k){ns[k].className=ns[k].className.replace(/\\bactive\\b/,"").trim();ns[k].pause();});var mv=ns[${activeIndex}];if(mv){mv.className+=" active";window.frameMv(mv);${play}}})();true;`
     );
@@ -174,31 +178,58 @@ export function MultiGlbView({
 
   const filas = initialLayout.current.layout === "rows";
 
+  // Which model slots have finished loading, so we can cover the WebView with a
+  // Signa loader until the sign the user is meant to see is actually on screen.
+  const [loadedIndices, setLoadedIndices] = useState<Set<number>>(new Set());
+  const expectedLoads = useMemo(() => initialUrls.current.filter((u) => u).length, []);
+  const ready = filas
+    ? loadedIndices.size >= expectedLoads
+    : !initialUrls.current[activeIndex] || loadedIndices.has(activeIndex);
+
   function handleMessage(event: WebViewMessageEvent) {
     try {
       const msg = JSON.parse(event.nativeEvent.data);
-      if (msg.type === "error") onError?.(msg.index as number);
+      if (msg.type === "loaded") {
+        setLoadedIndices((prev) => {
+          if (prev.has(msg.index)) return prev;
+          const next = new Set(prev);
+          next.add(msg.index as number);
+          return next;
+        });
+      } else if (msg.type === "error") {
+        onError?.(msg.index as number);
+      }
     } catch {}
   }
 
   return (
-    <WebView
-      ref={webviewRef}
-      style={[styles.web, filas && styles.webFilas, style]}
-      originWhitelist={["*"]}
-      source={{ html, baseUrl: "https://localhost" }}
-      onMessage={handleMessage}
-      onError={() => onError?.(activeIndexRef.current)}
-      onRenderProcessGone={() => onError?.(activeIndexRef.current)}
-      javaScriptEnabled
-      domStorageEnabled
-      allowsInlineMediaPlayback
-      mixedContentMode="always"
-    />
+    <View style={[styles.web, filas && styles.webFilas, style]}>
+      <WebView
+        ref={webviewRef}
+        style={[styles.flex, { backgroundColor: filas ? colors.background : colors.fill }]}
+        originWhitelist={["*"]}
+        source={{ html, baseUrl: "https://localhost" }}
+        onMessage={handleMessage}
+        onError={() => onError?.(activeIndexRef.current)}
+        onRenderProcessGone={() => onError?.(activeIndexRef.current)}
+        javaScriptEnabled
+        domStorageEnabled
+        allowsInlineMediaPlayback
+        mixedContentMode="always"
+      />
+      <View
+        style={[styles.loader, { backgroundColor: filas ? colors.background : colors.fill, opacity: ready ? 0 : 1 }]}
+        pointerEvents="none"
+      >
+        <LoadingAnimation size={110} />
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   web: { flex: 1, backgroundColor: colors.fill },
   webFilas: { backgroundColor: colors.background },
+  flex: { flex: 1 },
+  loader: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
 });

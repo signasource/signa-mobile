@@ -20,8 +20,6 @@ interface VisualRecognitionBlockProps {
   onContinue: () => void;
 }
 
-/** How long each sign of the sequence stays on screen. */
-const SIGN_DURATION_MS = 2600;
 const SEQUENCE_HEIGHT = 250;
 
 export function VisualRecognitionBlock({ config, xp, onAnswer, onContinue }: VisualRecognitionBlockProps) {
@@ -36,22 +34,28 @@ export function VisualRecognitionBlock({ config, xp, onAnswer, onContinue }: Vis
 
   const done = marked.size === total;
 
-  // The sequence plays one sign at a time inside a single WebView; `seqIndex`
-  // advances on a timer and `replayKey` restarts it from the first sign.
+  // The sequence shows one sign at a time inside a single WebView; the learner
+  // moves through them by hand — `seqIndex` only changes on a tap, never on a
+  // timer, so there's time to read each sign before the next one.
   const seqUrls = useMemo(() => config.sign_sequence.map(getGlbUrl), [config.sign_sequence]);
   const [seqIndex, setSeqIndex] = useState(0);
   const [replayKey, setReplayKey] = useState(0);
   const [seqFailed, setSeqFailed] = useState(false);
-  const playing = seqIndex < total - 1;
+  const atFirst = seqIndex === 0;
+  const atLast = seqIndex >= total - 1;
 
-  useEffect(() => {
-    if (!playing) return;
-    const id = setTimeout(() => setSeqIndex((i) => i + 1), SIGN_DURATION_MS);
-    return () => clearTimeout(id);
-  }, [seqIndex, playing, replayKey]);
+  function goPrev() {
+    if (!atFirst) setSeqIndex((i) => i - 1);
+  }
+
+  function goNext() {
+    if (!atLast) setSeqIndex((i) => i + 1);
+  }
 
   function replay() {
     setSeqIndex(0);
+    // Remounting the WebView guarantees the first sign restarts from frame 0,
+    // even when we were already sitting on it.
     setReplayKey((k) => k + 1);
   }
 
@@ -91,10 +95,21 @@ export function VisualRecognitionBlock({ config, xp, onAnswer, onContinue }: Vis
                 Seña {seqIndex + 1} de {total}
               </Text>
             </View>
-            {!playing && (
-              <TouchableOpacity onPress={replay} style={styles.replayButton} activeOpacity={0.85}>
+            {!atFirst && (
+              <TouchableOpacity onPress={goPrev} style={styles.prevButton} activeOpacity={0.85}>
+                <Ionicons name="chevron-back" size={15} color={colors.text} />
+                <Text style={styles.navText}>Anterior</Text>
+              </TouchableOpacity>
+            )}
+            {atLast ? (
+              <TouchableOpacity onPress={replay} style={styles.nextButton} activeOpacity={0.85}>
                 <Ionicons name="refresh" size={15} color={colors.text} />
-                <Text style={styles.replayText}>Repetir</Text>
+                <Text style={styles.navText}>Repetir</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity onPress={goNext} style={styles.nextButton} activeOpacity={0.85}>
+                <Text style={styles.navText}>Siguiente</Text>
+                <Ionicons name="chevron-forward" size={15} color={colors.text} />
               </TouchableOpacity>
             )}
           </View>
@@ -181,7 +196,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
   },
   sequenceBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: 11.5, color: colors.textMuted },
-  replayButton: {
+  nextButton: {
     position: "absolute",
     bottom: 12,
     right: 12,
@@ -193,7 +208,19 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: 13,
   },
-  replayText: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.text },
+  prevButton: {
+    position: "absolute",
+    bottom: 12,
+    left: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(255,255,255,0.94)",
+    borderRadius: 999,
+    paddingVertical: 7,
+    paddingHorizontal: 13,
+  },
+  navText: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.text },
   hintRow: { flexDirection: "row", alignItems: "center", gap: 7 },
   hint: { flex: 1, fontFamily: fonts.bodyRegular, fontSize: 13, color: colors.textMuted },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },

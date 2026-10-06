@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { AppState, AppStateStatus } from "react-native";
 import { usersApi } from "@/api/users";
 
@@ -10,35 +10,43 @@ const MAX_MINUTES_PER_REQUEST = 5;
  * to the backend as "learning minutes" (`POST /users/me/activity`), which backs the
  * "Meta diaria" progress in ProfileScreen. Time spent with the app backgrounded is
  * never counted, so leaving the app open idle does not inflate the daily goal.
+ *
+ * Returns a `flush()` that reports the minutes accrued so far and resolves once the
+ * backend has them — the lesson awaits it before reading the streak, so the day's
+ * first activity has registered by the time we check whether the streak went up.
  */
 export function useActivityTracker() {
   const activeSecondsRef = useRef(0);
   const lastTickAtRef = useRef<number | null>(null);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
+  const tick = useCallback(() => {
+    const now = Date.now();
+    if (appStateRef.current === "active" && lastTickAtRef.current !== null) {
+      activeSecondsRef.current += (now - lastTickAtRef.current) / 1000;
+    }
+    lastTickAtRef.current = now;
+  }, []);
+
+  const flush = useCallback(async () => {
+    tick();
+    let minutes = Math.floor(activeSecondsRef.current / 60);
+    if (minutes <= 0) return;
+    activeSecondsRef.current -= minutes * 60;
+    const calls: Promise<unknown>[] = [];
+    while (minutes > 0) {
+      const chunk = Math.min(MAX_MINUTES_PER_REQUEST, minutes);
+      calls.push(usersApi.recordActivity(chunk).catch(() => {}));
+      minutes -= chunk;
+    }
+    await Promise.all(calls);
+  }, [tick]);
+
   useEffect(() => {
-    function tick() {
-      const now = Date.now();
-      if (appStateRef.current === "active" && lastTickAtRef.current !== null) {
-        activeSecondsRef.current += (now - lastTickAtRef.current) / 1000;
-      }
-      lastTickAtRef.current = now;
-    }
-
-    function flush() {
-      tick();
-      let minutes = Math.floor(activeSecondsRef.current / 60);
-      if (minutes <= 0) return;
-      activeSecondsRef.current -= minutes * 60;
-      while (minutes > 0) {
-        const chunk = Math.min(MAX_MINUTES_PER_REQUEST, minutes);
-        usersApi.recordActivity(chunk).catch(() => {});
-        minutes -= chunk;
-      }
-    }
-
     lastTickAtRef.current = Date.now();
-    const interval = setInterval(flush, FLUSH_INTERVAL_MS);
+    const interval = setInterval(() => {
+      flush();
+    }, FLUSH_INTERVAL_MS);
     const subscription = AppState.addEventListener("change", (next) => {
       tick();
       appStateRef.current = next;
@@ -49,5 +57,7 @@ export function useActivityTracker() {
       subscription.remove();
       flush();
     };
-  }, []);
+  }, [flush, tick]);
+
+  return flush;
 }

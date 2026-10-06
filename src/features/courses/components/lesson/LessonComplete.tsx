@@ -1,11 +1,14 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
+import LottieView from "lottie-react-native";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "@/theme";
 import { NavIconButton } from "@/components/BackButton";
 import { LessonButton } from "./LessonButton";
 import ManoLeccionFinalizada from "@assets/ilus/mano-leccion-finalizada.svg";
+
+const CONFETTI = require("@assets/animations/confetti.json");
 
 interface LessonCompleteProps {
   lessonName: string;
@@ -65,6 +68,14 @@ export function LessonComplete({
       <View style={styles.body}>
         <View style={styles.illustration}>
           <ManoLeccionFinalizada width={190} height={190} />
+          {/* Bursts once when the summary appears, framing the illustration. */}
+          <LottieView
+            source={CONFETTI}
+            autoPlay
+            loop={false}
+            style={styles.confetti}
+            resizeMode="cover"
+          />
         </View>
         <Text style={styles.title}>¡Lección completada!</Text>
         <Text style={styles.subtitle}>
@@ -100,9 +111,19 @@ const styles = StyleSheet.create({
   topRow: { paddingHorizontal: 20, alignItems: "flex-end" },
   body: { flex: 1, paddingHorizontal: 24, alignItems: "center", gap: 14 },
   illustration: {
+    width: 220,
+    height: 220,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 4,
+  },
+  confetti: {
+    position: "absolute",
+    width: 380,
+    height: 380,
+    top: -80,
+    left: -80,
+    pointerEvents: "none",
   },
   title: {
     fontFamily: fonts.displayBold,

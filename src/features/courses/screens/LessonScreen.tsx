@@ -8,12 +8,15 @@ import { AppStackParamList } from "@/navigation/AppNavigator";
 import { lessonsApi } from "@/api/lessons";
 import { learningApi } from "@/api/learning";
 import { shopApi } from "@/api/shop";
+import { usersApi } from "@/api/users";
 import { useActivityTracker } from "@/hooks/useActivityTracker";
+import { LoadingAnimation } from "@/components/LoadingAnimation";
 import { BlockType, LessonContent, LessonContentBlock, parseBlockConfig } from "@/features/courses/lessonContent.types";
 import { LessonButton } from "@/features/courses/components/lesson/LessonButton";
 import { LessonHeader } from "@/features/courses/components/lesson/LessonHeader";
 import { NoLivesOverlay } from "@/features/courses/components/lesson/NoLivesOverlay";
 import { LessonComplete } from "@/features/courses/components/lesson/LessonComplete";
+import { StreakKeptCelebration } from "@/features/achievements/components/StreakKeptCelebration";
 import { InfoBlock } from "@/features/courses/components/lesson/blocks/InfoBlock";
 import { SelectMeaningBlock } from "@/features/courses/components/lesson/blocks/SelectMeaningBlock";
 import { SelectSignBlock } from "@/features/courses/components/lesson/blocks/SelectSignBlock";
@@ -29,6 +32,9 @@ type Props = NativeStackScreenProps<AppStackParamList, "Lesson">;
 /** Tope de espera al salir: pasado esto se vuelve igual. */
 const ESPERA_MAX_SALIDA = 2500;
 
+/** Tope de espera del chequeo de racha al terminar: pasado esto se muestra el resumen igual. */
+const ESPERA_MAX_RACHA = 2500;
+
 /** Bloques informativos: nunca llaman a `onAnswer`, así que no entran en "Aciertos". */
 const NON_GRADED_BLOCKS: ReadonlySet<BlockType> = new Set<BlockType>(["INFO", "INTRODUCE_SIGN"]);
 
@@ -38,7 +44,7 @@ export function LessonScreen({ route, navigation }: Props) {
   const { lessonId, unitLabel, signsCount } = route.params;
   const insets = useSafeAreaInsets();
 
-  useActivityTracker();
+  const flushActivity = useActivityTracker();
 
   const [lesson, setLesson] = useState<LessonContent | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,6 +56,12 @@ export function LessonScreen({ route, navigation }: Props) {
   const [awardedXp, setAwardedXp] = useState<Record<string, number>>({});
   const [correctBlockIds, setCorrectBlockIds] = useState<Set<string>>(new Set());
   const [completed, setCompleted] = useState(false);
+  // Racha al empezar (antes de contar la actividad de hoy); se compara al terminar
+  // para saber si esta lección mantuvo viva la racha.
+  const streakAtStart = useRef<number | null>(null);
+  const [streakChecked, setStreakChecked] = useState(false);
+  const [streakDays, setStreakDays] = useState<number | null>(null);
+  const [streakDismissed, setStreakDismissed] = useState(false);
   // Respuestas ya mandadas al backend cuyo POST sigue viajando.
   const enVuelo = useRef<Promise<unknown>[]>([]);
 
@@ -62,12 +74,21 @@ export function LessonScreen({ route, navigation }: Props) {
     setError(null);
 
     setLoading(true);
-    Promise.all([lessonsApi.getLesson(lessonId), shopApi.getMyInventory().catch(() => null)])
-      .then(([lessonRes, inventoryRes]) => {
+    Promise.all([
+      lessonsApi.getLesson(lessonId),
+      shopApi.getMyInventory().catch(() => null),
+      // Snapshot the streak before today's activity is counted — the activity
+      // tracker starts recording on mount, so capture it as early as possible.
+      usersApi.getStats().catch(() => null),
+    ])
+      .then(([lessonRes, inventoryRes, statsRes]) => {
         setLesson(lessonRes.data);
         if (inventoryRes?.data) {
           setUnlimitedLives(inventoryRes.data.livesMode === "INFINITE");
           setLives(inventoryRes.data.currentLives ?? STARTING_LIVES);
+        }
+        if (statsRes?.data && streakAtStart.current === null) {
+          streakAtStart.current = statsRes.data.currentStreak;
         }
       })
       .catch((err: any) => setError(err?.response?.data?.message ?? "No pudimos cargar la lección."))
@@ -83,7 +104,41 @@ export function LessonScreen({ route, navigation }: Props) {
     setAwardedXp({});
     setCorrectBlockIds(new Set());
     setCompleted(false);
+    setStreakChecked(false);
+    setStreakDays(null);
+    setStreakDismissed(false);
   }
+
+  // When the lesson is finished, make sure today's activity is recorded and then
+  // ask the backend whether the streak went up — if it did, the streak-kept screen
+  // shows before the completion summary.
+  useEffect(() => {
+    if (!completed) return;
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      setStreakChecked(true);
+    };
+    (async () => {
+      try {
+        await flushActivity();
+        const { data } = await usersApi.getStats();
+        if (done) return;
+        if (streakAtStart.current !== null && data.currentStreak > streakAtStart.current) {
+          setStreakDays(data.currentStreak);
+        }
+      } catch {
+        // Cosmetic: a failed check just skips the streak screen, never the summary.
+      }
+      finish();
+    })();
+    const timeout = setTimeout(finish, ESPERA_MAX_RACHA);
+    return () => {
+      done = true;
+      clearTimeout(timeout);
+    };
+  }, [completed, flushActivity]);
 
   function recordInteraction(block: LessonContentBlock, isCorrect: boolean | null) {
     enVuelo.current.push(learningApi.recordBlockInteraction(block.id, isCorrect).catch(() => {}));
@@ -169,6 +224,20 @@ export function LessonScreen({ route, navigation }: Props) {
   const noLives = lives <= 0 && !unlimitedLives && !completed;
 
   if (completed) {
+    // Hold on a Signa loader until the streak check settles, so the summary and its
+    // confetti mount once — after the streak screen, if there is one — not twice.
+    if (!streakChecked) {
+      return (
+        <View style={[styles.centerFill, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+          <LoadingAnimation size={130} />
+        </View>
+      );
+    }
+
+    if (streakDays !== null && !streakDismissed) {
+      return <StreakKeptCelebration days={streakDays} onContinue={() => setStreakDismissed(true)} />;
+    }
+
     const xpEarned = Object.values(awardedXp).reduce((sum, v) => sum + v, 0);
     return (
       <View style={[styles.container, { paddingTop: insets.top + 12, paddingBottom: insets.bottom }]}>

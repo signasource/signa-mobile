@@ -64,6 +64,11 @@ The look comes from `features/achievements/celebrations.ts`:
   and `+N gemas` / `+N protectores de racha` pills when the reward is not zero.
 - **Mock animation** (`components/CelebrationAnimation.tsx`): while a theme has `animation: null` it
   shows the group icon pulsing inside expanding rings.
+- **Daily streak-kept screen** (`components/StreakKeptCelebration.tsx`): *not* a milestone. Shown by
+  `LessonScreen` when the day's first lesson keeps the streak alive (the post-completion `getStats()`
+  streak is higher than the one snapshotted on lesson load). Reuses the `streak` theme's
+  `streak-fire.json` via `CelebrationAnimation`, over the current day count and a single "¡Dale!".
+  The 3/7/14/30/60/100-day thresholds still come through `AchievementCelebrationScreen` separately.
 - **Plug a real animation in:** drop the Lottie JSON in `assets/animations/` and set
   `animation: require("@assets/animations/<file>.json")` (and `aspect` = width / height) on the
   theme. Nothing else changes.

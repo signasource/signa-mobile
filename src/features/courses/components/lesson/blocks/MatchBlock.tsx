@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
 import { MatchConfig } from "@/features/courses/lessonContent.types";
@@ -29,7 +30,7 @@ function shuffled<T>(items: T[]): T[] {
 type Kind = "sign" | "word";
 
 /** Shared by both columns so the WebView rows line up with the RN word tiles. */
-const ROW_HEIGHT = 96;
+const ROW_HEIGHT = 132;
 const ROW_GAP = 16;
 
 /**
@@ -62,6 +63,9 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
   const [matched, setMatched] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<{ kind: Kind; concept: string } | null>(null);
   const [wrongPair, setWrongPair] = useState<{ sign: string; word: string } | null>(null);
+  // Concept whose sign is open full-screen for a closer look. The word stays
+  // hidden here so zooming in never gives the answer away.
+  const [zoomConcept, setZoomConcept] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => {
@@ -137,6 +141,14 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
         ]}
       >
         <StateIcon state={state} />
+        <TouchableOpacity
+          onPress={() => setZoomConcept(concept)}
+          hitSlop={8}
+          style={styles.zoomButton}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="expand" size={16} color={colors.text} />
+        </TouchableOpacity>
       </TouchableOpacity>
     );
   }
@@ -230,6 +242,36 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
           </Text>
         )}
       </View>
+
+      <Modal
+        visible={zoomConcept !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setZoomConcept(null)}
+      >
+        <Pressable style={styles.zoomBackdrop} onPress={() => setZoomConcept(null)}>
+          <View style={styles.zoomCard}>
+            {zoomConcept && !modelsFailed && (
+              <MultiGlbView
+                key={zoomConcept}
+                urls={[getGlbUrl(zoomConcept)]}
+                activeIndex={0}
+                style={styles.zoomModel}
+                onError={() => setModelsFailed(true)}
+              />
+            )}
+            <TouchableOpacity
+              onPress={() => setZoomConcept(null)}
+              hitSlop={10}
+              style={styles.zoomClose}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="close" size={22} color={colors.text} />
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.zoomHint}>Tocá fuera para cerrar</Text>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -285,7 +327,47 @@ const styles = StyleSheet.create({
   tileMatched: { backgroundColor: colors.successLight, opacity: 0.6 },
   tileWrong: { backgroundColor: colors.dangerLight, borderColor: colors.danger },
   tileSelected: { borderWidth: 2, borderColor: colors.primary, backgroundColor: colors.primaryLight },
-  wordText: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.text },
+  wordText: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.text, textAlign: "center" },
+  zoomButton: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(255,255,255,0.92)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  zoomBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(36,26,22,0.72)",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 14,
+    padding: 24,
+  },
+  zoomCard: {
+    width: "100%",
+    maxWidth: 420,
+    aspectRatio: 0.82,
+    borderRadius: 24,
+    backgroundColor: colors.fill,
+    overflow: "hidden",
+  },
+  zoomModel: { ...StyleSheet.absoluteFillObject },
+  zoomClose: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.94)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  zoomHint: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.white },
   // Sin alignItems: el botón ocupa el ancho, como en el resto de los ejercicios.
   footer: { paddingHorizontal: 20, paddingVertical: 16 },
   footerHint: { fontFamily: fonts.bodyRegular, fontSize: 13, color: "#B0A7A0", textAlign: "center" },

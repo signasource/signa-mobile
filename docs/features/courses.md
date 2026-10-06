@@ -52,8 +52,17 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   foreground-only seconds (via `AppState`) for as long as the screen is mounted and flushes whole
   minutes to `usersApi.recordActivity()` (`POST /users/me/activity`) roughly every 60s and again on
   unmount, capped at 5 minutes per request to match the backend's `RecordActivityRequest` validation.
-  This is what backs `minutesToday`/"Meta diaria" in `ProfileScreen` — see
+  The hook **returns a `flush()`**; `LessonScreen` awaits it on completion so the day's activity is
+  recorded before it reads the streak (see the streak-kept flow below). This is what backs
+  `minutesToday`/"Meta diaria" in `ProfileScreen` — see
   [../api/endpoints.md](../api/endpoints.md).
+- **Streak-kept flow**: `LessonScreen` snapshots `usersApi.getStats().currentStreak` on load (before
+  today's activity is counted). When the lesson finishes it awaits `flush()` + a fresh `getStats()`
+  (capped at `ESPERA_MAX_RACHA`, with a Signa loader shown meanwhile so the summary mounts once); if
+  the streak went **up**, it shows `StreakKeptCelebration`
+  (`features/achievements/components/StreakKeptCelebration.tsx` — the streak-fire Lottie + the new
+  day count, the *daily* streak-extended screen, not the 3/7/14-day milestone
+  `AchievementCelebrationScreen`) before the completion summary. See [achievements.md](./achievements.md).
 - `components/lesson/`: `LessonHeader` (back + progress + lives), `XpChip`, `FeedbackBar`
   (correct/incorrect banner — icon is the `check.svg`/`denied.svg` spot illustration, not an
   Ionicon), `LessonButton`, `SignPlaceholder` (fallback when a model fails to load or a meaning has
@@ -62,14 +71,23 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   GLB URL deterministically via `getGlbUrl(meaning)`, renders `GlbAnimationView`, and overlays
   `SignPlaceholder preparing` until the model's `onLoaded` fires or `SignPlaceholder` on `onError`),
   `NoLivesOverlay`, `LessonComplete` (its three tiles — XP, aciertos, señas nuevas — are filtered to
-  the ones actually **earned**, `> 0`; the row disappears when none is), and `blocks/` with one
+  the ones actually **earned**, `> 0`; the row disappears when none is; `assets/animations/confetti.json`
+  bursts once over the finished-lesson illustration when the summary mounts), and `blocks/` with one
   component per `BlockType` (`InfoBlock`, `IntroduceSignBlock`, `SelectMeaningBlock`,
   `SelectSignBlock`, `ContextResponseBlock` and `SelectSignBlock` share `SignCarouselBlock`,
   `MatchBlock`, `VisualRecognitionBlock`). `IntroduceSignBlock` presents a new sign with its
   full-height `SignAnimation` and a "La practico" button — no answer required, `xpReward` is
   ignored. `SelectMeaningBlock` and `SignCarouselBlock` (so `SelectSignBlock`/`ContextResponseBlock`)
-  render the sign via `SignAnimation`; `MatchBlock`/`VisualRecognitionBlock` still use static
-  cards/swatches (they show many signs at once, not one at a time). Answer-option buttons across
+  render the sign via `SignAnimation`; `MatchBlock`/`VisualRecognitionBlock` render their signs
+  through `MultiGlbView` (one WebView, many models). `MatchBlock` uses the `rows` layout — every
+  sign visible at once, tall rows (`ROW_HEIGHT` 132) with smaller word tiles; each sign row has an
+  `expand` button that opens that single sign full-screen in a `Modal` (`stack` `MultiGlbView`,
+  keyed by concept), with the matching word hidden so zooming never leaks the answer.
+  `VisualRecognitionBlock` plays the sequence one sign at a time in a `stack` `MultiGlbView` the
+  learner **steps through by hand** — `Anterior`/`Siguiente`, `Repetir` on the last sign (remounts
+  via `replayKey` to restart from frame 0). There is **no auto-advance timer**: the earlier
+  `setTimeout` could fire after the block unmounted (advancing past it in `LessonScreen`) and drive
+  an `injectJavaScript` at a torn-down WebView — an `IllegalViewOperationException`. Answer-option buttons across
   `SelectMeaningBlock`/`VisualRecognitionBlock`/`MatchBlock` share the same idle look — flat
   `colors.fill` background, no border — and the same `check.svg`/`denied.svg` icons for the
   correct/wrong states (no shared `OptionButton` component yet, each block still owns its own
@@ -121,6 +139,11 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   `onRenderProcessGone` by calling the same `onError` callback the caller already uses to fall back
   to `SignPlaceholder` — without it, an Android WebView renderer crash (e.g. from a low-memory
   device) took the whole host app process down with it instead of just that one card.
+  `MultiGlbView` tracks which model slots have posted their `loaded` message and covers the WebView
+  with `@/components/LoadingAnimation` (the Signa-coloured Lottie dots, `assets/animations/loading.json`)
+  until the sign the user is meant to see is on screen (in `rows`, until every model is loaded).
+  When the active model changes it rewinds with `currentTime=0` before `play()`, so every sign is
+  read from its first frame instead of keeping the end pose from the last time it was shown.
 
 To advance: once `signa-api` #60 merges, consider trusting the server as the sole source of truth for `lives` (e.g. refetch
 `shopApi.getMyInventory()` after each wrong answer, or surface the fire-and-forget interaction
