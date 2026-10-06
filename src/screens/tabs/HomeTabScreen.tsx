@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   ScrollView,
@@ -32,8 +32,9 @@ import {
   RoadmapTopic,
 } from "@/features/courses/api";
 import { accentFor, progressFor } from "@/features/courses/roadmap";
-import { useTour, ChecklistItems } from "@/features/tour/TourContext";
-import { ChecklistCard } from "@/features/tour/components/ChecklistCard";
+import { useTour } from "@/features/tour/TourContext";
+import { challengesApi, Challenge, Challenges } from "@/api/challenges";
+import { ChallengesCard } from "@/features/challenges/components/ChallengesCard";
 
 type HomeNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, "Home">,
@@ -165,51 +166,40 @@ export function HomeTabScreen({ navigation }: Props) {
     unitLabel: string;
   } | null>(null);
 
-  const {
-    checklistVisible,
-    checklistItems,
-    markLesson,
-    markStreak,
-  } = useTour();
+  const [challenges, setChallenges] = useState<Challenges | null>(null);
+  const [claimingId, setClaimingId] = useState<string | null>(null);
+  const [claimError, setClaimError] = useState<string | null>(null);
 
-  // Track if checklist auto-checks have been applied this load
-  const autoChecked = useRef(false);
+  // The welcome tour spotlights elements of this screen: the card would shift them.
+  const { tourVisible } = useTour();
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     setError(null);
-    autoChecked.current = false;
     Promise.all([usersApi.getStats(), inventoryApi.getMyInventory()])
       .then(([stats, inventory]) => {
         setStreak(stats.data.currentStreak);
         setXp(stats.data.totalXp);
         setGems(inventory.data.gems);
-        // Auto-mark streak checklist item when streak >= 2
-        if (stats.data.currentStreak >= 2 && !checklistItems.streak) {
-          markStreak();
-        }
       })
+      .catch(() => {});
+    challengesApi
+      .getChallenges()
+      .then((res) => setChallenges(res.data))
       .catch(() => {});
     try {
       const { roadmap: rm, enrollments: enr, lessonCounts: counts } = await fetchHomeData();
       setRoadmap(rm);
       setEnrollments(enr);
       setLessonCounts(counts);
-      // Auto-mark lesson checklist item when any lesson is completed
-      if (!checklistItems.lesson) {
-        const hasCompleted = rm.topics.some((t) =>
-          t.lessons.some((l) => l.state === "COMPLETED"),
-        );
-        if (hasCompleted) markLesson();
-      }
     } catch (err: any) {
       setError(err?.response?.data?.message ?? err?.message ?? "No pudimos cargar tu curso.");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [checklistItems.lesson, checklistItems.streak, markLesson, markStreak]);
+  }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
@@ -241,25 +231,38 @@ export function HomeTabScreen({ navigation }: Props) {
     navigation.navigate("Lesson", { lessonId: lesson.id, unitLabel, signsCount: lesson.signsCount });
   }
 
-  function handleChecklistItemPress(key: keyof ChecklistItems) {
-    switch (key) {
-      case "lesson":
-        if (currentLessonId) {
-          const allLessons = roadmap?.topics.flatMap((t) => t.lessons) ?? [];
-          const lesson = allLessons.find((l) => l.id === currentLessonId);
-          const topic = roadmap?.topics.find((t) => t.lessons.some((l) => l.id === currentLessonId));
-          if (lesson && topic) navigateToLesson(lesson, topic.title);
-        }
-        break;
-      case "practice":
+  function handleChallengePress(challenge: Challenge) {
+    switch (challenge.criteriaType) {
+      case "CAMERA_PRACTICES":
         navigation.navigate("Tabs", { screen: "Practice" });
         break;
-      case "friend":
+      case "FRIEND_REQUESTS_SENT":
         navigation.navigate("Tabs", { screen: "Social" });
         break;
-      case "streak":
-        // No-op: streak is earned naturally
+      case "STREAK_DAYS":
+        // No-op: the streak is earned naturally.
         break;
+      default: {
+        const lessons = roadmap?.topics.flatMap((t) => t.lessons) ?? [];
+        const lesson = lessons.find((l) => l.id === currentLessonId);
+        const topic = roadmap?.topics.find((t) => t.lessons.some((l) => l.id === currentLessonId));
+        if (lesson && topic) navigateToLesson(lesson, topic.title);
+      }
+    }
+  }
+
+  async function handleClaim(challenge: Challenge) {
+    setClaimError(null);
+    setClaimingId(challenge.id);
+    try {
+      const { data } = await challengesApi.claim(challenge.id);
+      setGems(data.gems);
+      const refreshed = await challengesApi.getChallenges();
+      setChallenges(refreshed.data);
+    } catch (err: any) {
+      setClaimError(err?.response?.data?.message ?? "No pudimos reclamar la recompensa.");
+    } finally {
+      setClaimingId(null);
     }
   }
 
@@ -319,10 +322,13 @@ export function HomeTabScreen({ navigation }: Props) {
             />
           }
         >
-          {checklistVisible && (
-            <ChecklistCard
-              items={checklistItems}
-              onItemPress={handleChecklistItemPress}
+          {challenges && !tourVisible && (
+            <ChallengesCard
+              challenges={challenges}
+              claimingId={claimingId}
+              error={claimError}
+              onClaim={handleClaim}
+              onPress={handleChallengePress}
             />
           )}
           {currentCourse?.organizationName && (

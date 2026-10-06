@@ -56,7 +56,6 @@ export function PracticeTabScreen({ navigation }: Props) {
     practiceModalVisible,
     dismissPracticeModal,
     showSectionModal,
-    markPractice,
   } = useTour();
 
   useFocusEffect(
@@ -117,16 +116,13 @@ export function PracticeTabScreen({ navigation }: Props) {
         showsVerticalScrollIndicator={false}
       >
         {tab === "ejercicios" && (
-          <ExercisesTab
-            navigation={navigation}
-            onSessionStart={markPractice}
-          />
+          <ExercisesTab navigation={navigation} />
         )}
         {tab === "señas" && (
           <SignsTab query={query} onQueryChange={setQuery} onOpenSign={setDetail} />
         )}
         {tab === "errores" && (
-          <MistakesTab navigation={navigation} onSessionStart={markPractice} />
+          <MistakesTab navigation={navigation} />
         )}
       </ScrollView>
 
@@ -162,13 +158,7 @@ export function PracticeTabScreen({ navigation }: Props) {
 
 // ── Ejercicios ────────────────────────────────────────────────────────────
 
-function ExercisesTab({
-  navigation,
-  onSessionStart,
-}: {
-  navigation: PracticeNavigation;
-  onSessionStart: () => void;
-}) {
+function ExercisesTab({ navigation }: { navigation: PracticeNavigation }) {
   return (
     <View>
       <Text style={styles.sectionLabel}>ELEGÍ UN TIPO DE EJERCICIO</Text>
@@ -178,12 +168,11 @@ function ExercisesTab({
             key={type.key}
             style={styles.typeCard}
             activeOpacity={0.85}
-            onPress={() => {
-              onSessionStart();
+            onPress={() =>
               navigation.navigate("PracticeSession", {
                 mode: { mode: "type", blockType: type.key, title: type.title },
-              });
-            }}
+              })
+            }
           >
             <View style={styles.typeIcon}>
               <Ionicons name={type.icon} size={19} color={colors.courseTeal} />
@@ -305,13 +294,7 @@ function SignsTab({
 
 // ── Errores ───────────────────────────────────────────────────────────────
 
-function MistakesTab({
-  navigation,
-  onSessionStart,
-}: {
-  navigation: PracticeNavigation;
-  onSessionStart: () => void;
-}) {
+function MistakesTab({ navigation }: { navigation: PracticeNavigation }) {
   const [mistakes, setMistakes] = useState<PracticeMistake[] | null>(null);
 
   useEffect(() => {
@@ -361,10 +344,7 @@ function MistakesTab({
         <TouchableOpacity
           style={styles.ctaButton}
           activeOpacity={0.85}
-          onPress={() => {
-            onSessionStart();
-            navigation.navigate("PracticeSession", { mode: { mode: "mistakes" } });
-          }}
+          onPress={() => navigation.navigate("PracticeSession", { mode: { mode: "mistakes" } })}
         >
           <Ionicons name="play" size={18} color={colors.onDark} />
           <Text style={styles.ctaText}>Empezar</Text>
