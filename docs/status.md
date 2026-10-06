@@ -19,7 +19,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 | Store / Tienda (browse catalog, buy for self) | real | [api/endpoints.md](./api/endpoints.md#shopapi-srcapishopts--mirrors-shopitemcontrollerpurchasecontroller) |
 | Inicio (Home) roadmap screen | real (topics/lessons + per-lesson state from `signa-api`) | [features/courses.md](./features/courses.md#inicio-home-roadmap-screen) |
 | Lesson player (`LessonScreen`) | real, wired to `signa-api` | [features/courses.md](./features/courses.md#lesson-player--real) |
-| Social (feed + likes, amigos, solicitudes, búsqueda) | real | [features/social.md](./features/social.md) |
+| Social (feed + likes, amigos, solicitudes, búsqueda, ranking semanal) | real | [features/social.md](./features/social.md) |
 | Notifications inbox | real | [features/social.md](./features/social.md#notificationsscreen) |
 | Public profile (read-only, of another user) | real | [features/social.md](./features/social.md#publicprofilescreen) |
 | Courses flat browse (`CoursesListScreen`) | stub | [features/courses.md](./features/courses.md#course-catalog--stub) |

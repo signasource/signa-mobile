@@ -59,36 +59,7 @@ export interface UserSearchResult {
   mutualFriends: number;
 }
 
-export interface RankingEntry {
-  rank: number;
-  id: string;
-  username: string;
-  name: string;
-  weeklyXp: number;
-  currentStreak: number;
-  /** Positive = moved up; negative = moved down; null = no previous data. */
-  delta: number | null;
-}
-
-export interface MyRankingPosition {
-  rank: number;
-  weeklyXp: number;
-  delta: number | null;
-  /** Pre-formatted Spanish text ("Te faltan 320 XP…"); null when rank is 1. */
-  gapText: string | null;
-}
-
-export interface WeeklyRanking {
-  entries: RankingEntry[];
-  total: number;
-  me: MyRankingPosition | null;
-}
-
 export const socialApi = {
-  getGlobalRanking: () => apiClient.get<WeeklyRanking>("/ranking/global"),
-
-  getFriendsRanking: () => apiClient.get<WeeklyRanking>("/ranking/friends"),
-
   getFriends: () => apiClient.get<Friend[]>("/friendships"),
 
   getReceivedRequests: () => apiClient.get<FriendRequest[]>("/friendships/requests"),

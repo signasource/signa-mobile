@@ -29,6 +29,7 @@ import {
   UserSearchResult,
 } from "@/api/social";
 import { notificationsApi } from "@/api/notifications";
+import { usersApi } from "@/api/users";
 import { formatXp, mutualLabel } from "@/features/social/people";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SegmentedControl, Segment } from "@/components/SegmentedControl";
@@ -40,7 +41,7 @@ import { FeedCard } from "@/features/social/components/FeedCard";
 import { EmptyNote, EmptyState } from "@/components/EmptyState";
 import { ConfirmSheet, ConfirmSpec } from "@/features/social/components/ConfirmSheet";
 import { Toast } from "@/features/social/components/Toast";
-import { RankingView } from "@/features/social/components/RankingView";
+import { RankingTab } from "@/features/social/screens/RankingTab";
 
 type SocialNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, "Social">,
@@ -125,7 +126,6 @@ export function SocialScreen({ navigation }: Props) {
 
   const [tab, setTab] = useState<Tab>("feed");
   const [section, setSection] = useState<Section>("amigos");
-  const [globalRank, setGlobalRank] = useState<number | null>(null);
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<UserSearchResult[]>([]);
@@ -134,6 +134,11 @@ export function SocialScreen({ navigation }: Props) {
   const [busy, setBusy] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<PendingConfirm | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [myUsername, setMyUsername] = useState<string | null>(null);
+
+  useEffect(() => {
+    usersApi.getMe().then(({ data }) => setMyUsername(data.username)).catch(() => {});
+  }, []);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchAbort = useRef<AbortController | null>(null);
@@ -443,8 +448,14 @@ export function SocialScreen({ navigation }: Props) {
   );
 
   const openProfile = useCallback(
-    (username: string) => navigation.navigate("PublicProfile", { username }),
-    [navigation]
+    (username: string) => {
+      if (myUsername && username === myUsername) {
+        navigation.navigate("Profile");
+      } else {
+        navigation.navigate("PublicProfile", { username });
+      }
+    },
+    [navigation, myUsername]
   );
 
   const friendStats = (friend: Friend): PersonStat[] => [
@@ -459,6 +470,7 @@ export function SocialScreen({ navigation }: Props) {
 
   const headerPaddingTop = insets.top + 14;
   const isFeed = tab === "feed";
+  const isRanking = tab === "ranking";
   const tabs: ReadonlyArray<Segment<Tab>> = [
     { key: "feed", label: "Feed" },
     { key: "amigos", label: "Amigos", badge: incoming.length },
@@ -479,12 +491,6 @@ export function SocialScreen({ navigation }: Props) {
             label: "Solicitudes",
             value: String(incoming.length),
             icon: "mail-open",
-          },
-          {
-            key: "rank",
-            label: "Ranking",
-            value: globalRank != null ? `#${globalRank}` : "—",
-            icon: "ribbon",
           },
         ]}
         right={
@@ -510,7 +516,9 @@ export function SocialScreen({ navigation }: Props) {
         onChange={setTab}
       />
 
-      {loading ? (
+      {isRanking ? (
+        <RankingTab onPressProfile={openProfile} />
+      ) : loading ? (
         <View style={styles.centered}>
           <ActivityIndicator color={colors.socialWine} />
         </View>
@@ -548,8 +556,6 @@ export function SocialScreen({ navigation }: Props) {
                 ))
               )}
             </View>
-          ) : tab === "ranking" ? (
-            <RankingView onPressUser={openProfile} onGlobalRank={setGlobalRank} />
           ) : (
             <View style={styles.friendsTab}>
               <View style={styles.search}>

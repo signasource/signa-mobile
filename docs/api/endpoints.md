@@ -67,8 +67,6 @@ Powers the Social tab (see [features/social.md](../features/social.md)).
 | `unblockUser(userId)` | `PATCH /friendships/unblock/{id}` | 200 | deletes the relation entirely |
 | `likeEvent(type, refId)` | `POST /friendships/events/{type}/{refId}/like` | 204 | idempotent; notifies the event's owner. Rejects your own activity and non-friends |
 | `unlikeEvent(type, refId)` | `DELETE /friendships/events/{type}/{refId}/like` | 204 | no-op if there was no like |
-| `getGlobalRanking()` | `GET /ranking/global` | `WeeklyRanking` | `{ entries: RankingEntry[], total, me }` — top 100 by weekly XP; `me = { rank, weeklyXp, delta, gapText }`; `delta` null = no previous data |
-| `getFriendsRanking()` | `GET /ranking/friends` | `WeeklyRanking` | same shape, only the caller's accepted friends |
 | `searchUsers(query, signal?)` | `GET /users/search?query=&limit=` | `UserSearchResult[]` | `query` is a **contains** match on username or display name, min 2 chars (shorter → 400), max 50 results. Each result carries `relation` and `mutualFriends` already resolved against the caller. Users who blocked the caller are filtered out. Accepts `AbortSignal` |
 
 ## `publicProfileApi` (`src/api/social.ts`) — mirrors `UserController.getByUsername`
@@ -131,6 +129,17 @@ block-renderer components `LessonScreen` uses — see [features/practice.md](../
 | `getSigns(signLanguageId, query?)` | `GET /signs?signLanguageId=&query=` | `Page<SignSummary>` | `SignSummary`: `{ id, meaning, description, handedness, animationUrl }`. `query` is a **contains**, case-insensitive match against `meaning` (`findBySignLanguageIdAndMeaningContainingIgnoreCase`), not exact. `animationUrl` here is the raw R2 **object key**, not a fetchable URL — don't render it directly. |
 
 > **GLB animation URLs** are no longer fetched from the backend. `getGlbUrl(meaning)` (`src/features/animations/glbUrl.ts`) builds the public R2 URL deterministically: `https://pub-f40a1de4d1fc46b0b6f07299847c66e0.r2.dev/lsa/{meaning}.glb`. `POST /signs/animations` is removed from the mobile client.
+
+## `rankingApi` (`src/api/ranking.ts`) — mirrors `RankingController.java`
+
+Both endpoints are authenticated. The backend computes ranks from `UserStats.weeklyXp` and snapshots them every Monday 00:00 ART via `WeeklyResetScheduler`.
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getGlobal()` | `GET /ranking/global` | `WeeklyRanking` | Top 100 users by `weeklyXp` this week + caller's position. `entries[].delta`: positions gained (positive) or lost (negative) vs last Monday; null until the first reset runs. `me.gapText`: pre-formatted Spanish string e.g. "Te faltan 320 XP para entrar al top 10". |
+| `getFriends()` | `GET /ranking/friends` | `WeeklyRanking` | Caller's accepted friends ranked by `weeklyXp`, plus the caller. Delta derived from each user's stored global previous rank re-ranked within the friends group. |
+
+`WeeklyRanking = { entries: RankingEntry[], total: number, me: MyRankingPosition }`.
 
 ## `health` (`src/api/health.ts`)
 
