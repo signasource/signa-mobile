@@ -489,6 +489,19 @@ export function ConfigurationScreen({ navigation, route }: Props) {
           <SectionHeader label="Cuenta" />
 
           <TouchableOpacity
+            style={[styles.settingRow, styles.borderBottom]}
+            onPress={() => navigation.navigate("InviteCode")}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="business-outline" size={20} color={colors.neutral600} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.settingLabel}>Tengo un código de organización</Text>
+              <Text style={styles.settingSubtitle}>Accedé a los cursos que pagó tu empresa</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.neutral600} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={styles.settingRow}
             onPress={() => setSheet("color")}
             activeOpacity={0.7}

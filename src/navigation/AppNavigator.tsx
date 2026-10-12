@@ -11,6 +11,8 @@ import { NotificationsScreen } from "@/features/social/screens/NotificationsScre
 import { PublicProfileScreen } from "@/features/social/screens/PublicProfileScreen";
 import { FriendAcceptedScreen } from "@/features/social/screens/FriendAcceptedScreen";
 import { AchievementCelebrationScreen } from "@/features/achievements/screens/AchievementCelebrationScreen";
+import { InviteCodeScreen } from "@/features/organizations/screens/InviteCodeScreen";
+import { OrganizationWelcomeScreen } from "@/features/organizations/screens/OrganizationWelcomeScreen";
 import { TabNavigator, TabParamList } from "./TabNavigator";
 import { colors, fonts } from "@/theme";
 import { useSettings } from "@/context/SettingsContext";
@@ -50,6 +52,12 @@ export type AppStackParamList = {
     rewardGems: number;
   };
   ConnectionTest: undefined;
+  InviteCode: undefined;
+  OrganizationWelcome: {
+    orgName: string;
+    courses: Array<{ id: string; name: string }>;
+    alreadyMember?: boolean;
+  };
 };
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -84,6 +92,12 @@ export function AppNavigator() {
         options={{ headerShown: false, presentation: "fullScreenModal", animation: "fade", gestureEnabled: false }}
       />
       <Stack.Screen name="ConnectionTest" component={ConnectionTestScreen} options={{ title: "Test de conexion" }} />
+      <Stack.Screen name="InviteCode" component={InviteCodeScreen} options={{ headerShown: false }} />
+      <Stack.Screen
+        name="OrganizationWelcome"
+        component={OrganizationWelcomeScreen}
+        options={{ headerShown: false, presentation: "fullScreenModal", animation: "fade", gestureEnabled: false }}
+      />
     </Stack.Navigator>
   );
 }

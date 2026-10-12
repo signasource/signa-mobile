@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NavigationContainer, NavigationContainerRef, NavigationState } from "@react-navigation/native";
 import { useAuth } from "@/context/AuthContext";
 import { AuthNavigator } from "./AuthNavigator";
@@ -11,6 +12,7 @@ import { FriendAcceptedModal } from "@/features/social/components/FriendAccepted
 import { AchievementCelebrationProvider, useAchievementCelebration } from "@/features/achievements/AchievementCelebrationContext";
 import { TourProvider } from "@/features/tour/TourContext";
 import { TourOverlay } from "@/features/tour/components/TourOverlay";
+import { organizationsApi } from "@/api/organizations";
 import { colors } from "@/theme";
 
 function getActiveRouteName(state: NavigationState | undefined): string {
@@ -89,6 +91,56 @@ function AchievementCelebrationConnected({
   return null;
 }
 
+function OrgWelcomeConnected({
+  isAuthenticated,
+  navigationRef,
+}: {
+  isAuthenticated: boolean;
+  navigationRef: React.RefObject<NavigationContainerRef<AppStackParamList> | null>;
+}) {
+  const checked = useRef(false);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      checked.current = false;
+      return;
+    }
+    if (checked.current) return;
+    checked.current = true;
+    checkOrgWelcome();
+  }, [isAuthenticated]);
+
+  async function checkOrgWelcome() {
+    try {
+      const response = await organizationsApi.getMyOrganization();
+      const org = response.data;
+
+      const key = `org_welcome_shown_${org.id}`;
+      const shown = await AsyncStorage.getItem(key);
+      if (shown) return;
+
+      await AsyncStorage.setItem(key, "true");
+
+      const waitAndNavigate = () => {
+        if (!navigationRef.current?.isReady()) {
+          setTimeout(waitAndNavigate, 100);
+          return;
+        }
+        navigationRef.current.navigate("OrganizationWelcome", {
+          orgName: org.name,
+          courses: org.courses,
+          alreadyMember: true,
+        });
+      };
+      setTimeout(waitAndNavigate, 500);
+    } catch {
+      // User has no org or API error — do nothing
+    }
+  }
+
+  return null;
+}
+
 export function RootNavigator() {
   const {
     isAuthenticated,
@@ -138,6 +190,7 @@ export function RootNavigator() {
           navigationRef={navigationRef}
         />
         <AchievementCelebrationConnected currentRouteName={currentRouteName} navigationRef={navigationRef} />
+        <OrgWelcomeConnected isAuthenticated={isAuthenticated} navigationRef={navigationRef} />
         <TourOverlay />
       </TourProvider>
       </AchievementCelebrationProvider>
