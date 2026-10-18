@@ -11,13 +11,13 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://161.35.105.45"
+        "EXPO_PUBLIC_API_URL": "https://api.signasource.app"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://161.35.105.45"
+        "EXPO_PUBLIC_API_URL": "https://api.signasource.app"
       }
     }
   },

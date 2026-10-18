@@ -21,7 +21,6 @@
     },
     "android": {
       "package": "com.signasource.signamobile",
-      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#1D283C"
       },
@@ -42,14 +41,6 @@
         }
       ],
       "expo-secure-store",
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "usesCleartextTraffic": true
-          }
-        }
-      ],
       "expo-asset",
       "expo-iap"
     ],
