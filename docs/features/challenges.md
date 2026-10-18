@@ -2,7 +2,7 @@
 
 > Responsibility: the first-steps set, the daily and the weekly challenges — how they unlock, progress, and pay gems.
 > Update when: a challenge, its criteria or reward, the unlock rule, the card, or `/challenges` changes.
-> Sources: src/features/challenges/, src/api/challenges.ts, src/screens/tabs/HomeTabScreen.tsx
+> Sources: src/features/challenges/, src/api/challenges.ts, src/screens/tabs/HomeTabScreen.tsx, src/utils/challengeErrors.ts
 
 **Real**, wired to `signa-api`. Endpoints → [../api/endpoints.md](../api/endpoints.md). Types → [../api/types.md](../api/types.md).
 Daily challenges are the app's **main source of gems** (design source: `Gamificación.xlsx`, sheet *Challenges*).
@@ -19,7 +19,10 @@ Daily challenges are the app's **main source of gems** (design source: `Gamifica
    progress; it just re-fetches on focus / pull-to-refresh.
 3. **Rewards are claimed.** A completed challenge shows a **Reclamar** button → `POST /challenges/{id}/claim`
    credits the reward server-side and returns the new gem balance (the header updates from it).
-   Claiming twice or before completing is a 400.
+   Claiming twice, before completing or after the period rolled over is a 400. On any claim
+   error the card shows Spanish copy (`mapChallengeClaimError`, `src/utils/challengeErrors.ts`;
+   never the raw English message) and re-fetches `/challenges`, so a stale row (e.g. a card left
+   open across midnight) goes away.
 4. **The day is Argentine** (`America/Argentina/Cordoba`): daily rows roll over at local midnight and the
    card shows "Se renuevan en N h". An unclaimed daily reward is gone after the rollover.
    Weekly rows run Monday–Sunday (same zone), roll over at Monday 00:00 (`weeklyResetsAt`, shown as
@@ -63,6 +66,7 @@ Criteria definitions:
 | API (`getChallenges`, `claim`) + types | `src/api/challenges.ts` |
 | Card (rows, Diarios/Semanales toggle, progress bar, reward pill, claim button, "se renuevan en") | `src/features/challenges/components/ChallengesCard.tsx` |
 | Fetch, claim, row navigation | `src/screens/tabs/HomeTabScreen.tsx` |
+| Claim error copy (server message → Spanish) | `src/utils/challengeErrors.ts` |
 
 - Tapping an unfinished row navigates: lessons / XP → the current lesson, camera → Práctica tab,
   friend → Social tab, streak → nothing.
