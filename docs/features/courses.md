@@ -18,7 +18,7 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
 `config` is the yaml's `config:` section, serialized to JSON with the same key casing (see
 [../api/types.md](../api/types.md) for the exact per-type shape).
 
-- `lessonContent.types.ts`: `LessonContent`, `LessonContentBlock`, the seven `BlockType`s and their
+- `lessonContent.types.ts`: `LessonContent`, `LessonContentBlock`, the nine `BlockType`s and their
   config interfaces, plus `parseBlockConfig<T>(block)` to `JSON.parse` a block's `config` string.
 - `screens/LessonScreen.tsx`: orchestrates the player — loads the lesson
   (`lessonsApi.getLesson`; it resolves `devLessons.ts` first, but **it does not read
@@ -26,7 +26,10 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   entering a lesson always shows the spinner) and the caller's lives
   (`shopApi.getMyInventory()`, always fresh), walks `blocks` in `order`, renders the matching block
   component, and reports every answer to `learningApi.recordBlockInteraction(blockId, isCorrect)`
-  (`isCorrect: null` for an `INFO` view). That same call is now also where the backend spends a
+  (`isCorrect: null` for an `INFO` view; `INTRODUCE_SIGN` reports nothing, it just advances).
+  Blocks whose `type` isn't in `RENDERABLE_BLOCKS` (e.g. `INVISIBLE_SIGNS`, which only seeds the
+  sign catalog) are dropped on load — they used to render `null` and leave a blank step with no
+  way forward. `signa-api` doesn't require `INTRODUCE_SIGN`/`INVISIBLE_SIGNS` to complete a lesson. That same call is now also where the backend spends a
   life server-side: `signa-api` PR #60 (`feature/rest-lives-errors` → `develop`, open as of
   2026-09-02) makes `CourseTrackingService.recordBlockInteraction` publish a `LifeLostEvent`
   whenever a non-`INFO` block is answered incorrectly, and `UserStatsEventListener` decrements

@@ -32,6 +32,29 @@ const ESPERA_MAX_SALIDA = 2500;
 /** Bloques informativos: nunca llaman a `onAnswer`, así que no entran en "Aciertos". */
 const NON_GRADED_BLOCKS: ReadonlySet<BlockType> = new Set<BlockType>(["INFO", "INTRODUCE_SIGN"]);
 
+/**
+ * Tipos que el reproductor sabe mostrar (un `Record` para que agregar un tipo a
+ * `BlockType` obligue a decidir acá). El backend también manda bloques que no
+ * son para el usuario, como INVISIBLE_SIGNS (solo puebla el catálogo de señas):
+ * renderizaban `null` y dejaban un paso en blanco sin botón para seguir. Se
+ * descartan al cargar; el backend no los exige para completar la lección.
+ */
+const RENDERABLE_BLOCKS: Record<BlockType, true> = {
+  INFO: true,
+  INTRODUCE_SIGN: true,
+  SELECT_MEANING: true,
+  SELECT_SIGN: true,
+  CONTEXT_RESPONSE: true,
+  MATCH: true,
+  VISUAL_RECOGNITION: true,
+  PERFORM_SIGN: true,
+  SPELL_NAME: true,
+};
+
+function isRenderable(block: LessonContentBlock): boolean {
+  return Object.prototype.hasOwnProperty.call(RENDERABLE_BLOCKS, block.type);
+}
+
 const STARTING_LIVES = 5;
 
 export function LessonScreen({ route, navigation }: Props) {
@@ -125,9 +148,15 @@ export function LessonScreen({ route, navigation }: Props) {
     }
   }
 
+  // Sorted once per lesson load; stable identity avoids downstream re-renders.
+  const blocks = useMemo(
+    () => (lesson ? lesson.blocks.filter(isRenderable).sort((a, b) => a.order - b.order) : []),
+    [lesson]
+  );
+
   function goToNextBlock() {
     if (!lesson) return;
-    if (blockIndex + 1 >= lesson.blocks.length) {
+    if (blockIndex + 1 >= blocks.length) {
       setCompleted(true);
     } else {
       setBlockIndex((prev) => prev + 1);
@@ -141,12 +170,6 @@ export function LessonScreen({ route, navigation }: Props) {
     }
     goToNextBlock();
   }
-
-  // Sorted once per lesson load; stable identity avoids downstream re-renders.
-  const blocks = useMemo(
-    () => (lesson ? [...lesson.blocks].sort((a, b) => a.order - b.order) : []),
-    [lesson]
-  );
 
   if (loading) {
     return (
