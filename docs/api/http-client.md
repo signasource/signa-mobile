@@ -2,7 +2,7 @@
 
 > Responsibility: `apiClient` behavior and environment configuration.
 > Update when: `client.ts` interceptors, refresh logic, casing, base URL, or env change.
-> Sources: src/api/client.ts, src/utils/caseConverter.ts, .env.example
+> Sources: src/api/client.ts, src/utils/caseConverter.ts, .env.example, .env.production, eas.json, app.json
 
 All communication with `signa-api` (Spring Boot) goes through `src/api/`. **Never call `axios` directly from a screen** — use the endpoint modules ([endpoints.md](./endpoints.md)); the central client resolves token, casing, and refresh.
 
@@ -23,6 +23,7 @@ Axios instance:
 ## Environment (`.env`)
 
 - `EXPO_PUBLIC_API_URL` — base URL **without `/api`**.
-  - Production/default: `http://161.35.105.45` (port 80, behind a proxy).
+  - Production/default: `https://api.signasource.app` (HTTPS via Cloudflare). Set in `.env.production` (release builds) and `eas.json` (`preview`/`production` profiles).
+  - Cleartext HTTP is **disabled** on Android (no `usesCleartextTraffic` in `app.json`), so release builds (EAS `preview`/`production`) can only reach `https://` URLs. Debug builds (`npx expo run:android`, EAS `development`) still allow cleartext via the prebuild template's `src/debug/AndroidManifest.xml`, so local `http://` backends keep working there.
   - Local dev per platform: Android emulator → `http://10.0.2.2:8080` (not `localhost`); iOS simulator → `http://localhost:8080`; physical device → local PC IP (e.g. `http://192.168.0.10:8080`).
 - `.env` is gitignored; copy from `.env.example`. `EXPO_PUBLIC_*` vars are embedded in the bundle at build time.
