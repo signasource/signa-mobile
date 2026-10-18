@@ -55,7 +55,7 @@ export type AppStackParamList = {
   InviteCode: undefined;
   OrganizationWelcome: {
     orgName: string;
-    courses: Array<{ id: string; name: string }>;
+    courses: { id: string; name: string }[];
     alreadyMember?: boolean;
   };
 };

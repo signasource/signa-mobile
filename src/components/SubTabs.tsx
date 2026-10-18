@@ -12,7 +12,7 @@ export interface SubTab<K extends string> {
 }
 
 interface SubTabsProps<K extends string> {
-  options: ReadonlyArray<SubTab<K>>;
+  options: readonly SubTab<K>[];
   value: K;
   onChange: (key: K) => void;
   style?: StyleProp<ViewStyle>;

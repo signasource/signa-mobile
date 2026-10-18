@@ -1,8 +1,7 @@
 import React from "react";
-import { View, ScrollView, StyleSheet, useWindowDimensions, ViewStyle } from "react-native";
+import { View, ScrollView, StyleSheet, useWindowDimensions, ViewStyle, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { Pressable } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Text } from "@/components/Text";
 import { Button } from "@/components/Button";

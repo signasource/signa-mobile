@@ -3,7 +3,7 @@ import { Modal, View, StyleSheet, Pressable, ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/Text";
 import { Button } from "@/components/Button";
-import { colors, fonts, fontSizes } from "@/theme";
+import { colors, fonts } from "@/theme";
 import { PendingFriendAccepted } from "@/context/FriendAcceptedContext";
 import Ovejas from "@assets/ilus/ovejas.svg";
 

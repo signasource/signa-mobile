@@ -41,7 +41,7 @@ interface Flow {
   effect?: AppliedEffect;
 }
 
-const TABS: ReadonlyArray<Segment<TabKey>> = [
+const TABS: readonly Segment<TabKey>[] = [
   { key: "vidas", label: "Vidas" },
   { key: "potenciadores", label: "Potenciadores" },
   { key: "especiales", label: "Especiales" },
@@ -122,7 +122,6 @@ function effectLabel(effect: AppliedEffect): string {
 }
 
 const LIVES_TYPES: ShopItemType[] = ["LIFE", "UNLIMITED_LIVES"];
-const BOOSTER_TYPES: ShopItemType[] = ["XP_MULTIPLIER", "STREAK_SHIELD"];
 
 interface SuccessOverlayProps {
   flow: Flow;

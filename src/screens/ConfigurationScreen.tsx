@@ -64,13 +64,13 @@ const HEADER_COLORS = [
   { name: "Chocolate", hex: "#6B4423" },
 ];
 
-const FONT_SIZES: Array<{ id: FontSizeId; label: string; chipSize: number }> = [
+const FONT_SIZES: { id: FontSizeId; label: string; chipSize: number }[] = [
   { id: "SMALL", label: "Chico", chipSize: 12 },
   { id: "MEDIUM", label: "Medio", chipSize: 13 },
   { id: "LARGE", label: "Grande", chipSize: 15 },
 ];
 
-const VISIBILITIES: Array<{ id: VisibilityId; label: string; desc: string }> = [
+const VISIBILITIES: { id: VisibilityId; label: string; desc: string }[] = [
   {
     id: "PUBLIC",
     label: "Pública",

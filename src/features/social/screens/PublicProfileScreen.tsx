@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   ScrollView,
@@ -25,7 +25,6 @@ import { EmptyState } from "@/components/EmptyState";
 import { NavIconButton } from "@/components/BackButton";
 import { isLightColor } from "@/utils/color";
 import {
-  PublicCourseProgress,
   PublicUserProfile,
   publicProfileApi,
   RelationStatus,
@@ -49,7 +48,7 @@ const ACH_CELL_WIDTH: DimensionValue = `${100 / ACH_COLS}%`;
 
 const COURSE_COLORS = [colors.courseTeal, colors.primary, colors.shopAmber, colors.gemsBlue];
 
-const SECTIONS: ReadonlyArray<Segment<Section>> = [
+const SECTIONS: readonly Segment<Section>[] = [
   { key: "general", label: "General" },
   { key: "cursos", label: "Cursos" },
   { key: "logros", label: "Logros" },
@@ -223,7 +222,7 @@ export function PublicProfileScreen({ route, navigation }: Props) {
   const lockedAch = profile?.achievements.filter((a) => !a.earned) ?? [];
   const achievementsShown = achFilter === "unlocked" ? earnedAch : lockedAch;
 
-  const achFilters: ReadonlyArray<SubTab<AchFilter>> = [
+  const achFilters: readonly SubTab<AchFilter>[] = [
     { key: "unlocked", label: "Conseguidos", count: earnedAch.length },
     { key: "locked", label: "Bloqueados", count: lockedAch.length },
   ];

@@ -133,7 +133,7 @@ export function IntroduceSignBlock({ config, onContinue }: IntroduceSignBlockPro
             {view === "report" && (
               <>
                 <Text style={styles.sheetTitle}>Reportar seña</Text>
-                <Text style={styles.sheetSubtitle}>¿Cuál es el problema con "{config.word}"?</Text>
+                <Text style={styles.sheetSubtitle}>¿Cuál es el problema con “{config.word}”?</Text>
 
                 <ScrollView style={styles.reasonList} showsVerticalScrollIndicator={false}>
                   {REASONS.map((r) => (

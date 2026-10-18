@@ -4,7 +4,7 @@ import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "@/navigation/AuthNavigator";
-import { colors, fonts, fontSizes } from "@/theme";
+import { colors, fonts } from "@/theme";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Welcome">;
 

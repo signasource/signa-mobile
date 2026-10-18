@@ -1,4 +1,4 @@
-﻿export const ONBOARDING_TOTAL_STEPS = 5;
+export const ONBOARDING_TOTAL_STEPS = 5;
 
 export type ExperienceLevel = "novice" | "some" | "fluent";
 export type DailyGoalMinutes = 5 | 10 | 15 | 20;

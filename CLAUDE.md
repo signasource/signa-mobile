@@ -84,7 +84,7 @@ npm start          # Expo dev server (a=Android, i=iOS, w=web)
 npm run android    # Android emulator/device
 npm run ios        # iOS simulator
 npm run web        # web (limited)
-npm run lint       # broken: eslint is not installed or configured (see docs/status.md)
+npm run lint       # expo lint (ESLint + eslint-config-expo); must stay at 0 errors
 npm run typecheck  # tsc --noEmit ← minimum check before considering a change done
 ```
 
