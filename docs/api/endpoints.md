@@ -113,7 +113,7 @@ Read-only: notifications are produced server-side by whatever triggers them.
 
 | Method | Path | Returns | Notes |
 |---|---|---|---|
-| `getChallenges()` | `GET /challenges` | `Challenges` | `firstSteps`, `firstStepsDone`, `daily` (empty until every first step is claimed) and `resetsAt`. Creates the user's rows for today on first call |
+| `getChallenges()` | `GET /challenges` | `Challenges` | `firstSteps`, `firstStepsDone`, `daily` and `weekly` (both empty until every first step is claimed), `resetsAt` (daily rollover) and `weeklyResetsAt` (Monday 00:00). Creates the user's rows for today and the week on first call |
 | `claim(id)` | `POST /challenges/{id}/claim` | `ChallengeClaim` | `id` is `Challenge.id` (the user's row). Credits the reward and returns the new gem balance. 400 if not completed or already claimed; 404 if it isn't the caller's |
 
 ## `learningApi` (`src/api/learning.ts`) — mirrors `CourseTrackingController.java`

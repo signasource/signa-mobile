@@ -1,6 +1,6 @@
-# Challenges (Primeros pasos + desafíos diarios)
+# Challenges (Primeros pasos + desafíos diarios y semanales)
 
-> Responsibility: the first-steps set and the daily challenges — how they unlock, progress, and pay gems.
+> Responsibility: the first-steps set, the daily and the weekly challenges — how they unlock, progress, and pay gems.
 > Update when: a challenge, its criteria or reward, the unlock rule, the card, or `/challenges` changes.
 > Sources: src/features/challenges/, src/api/challenges.ts, src/screens/tabs/HomeTabScreen.tsx
 
@@ -9,9 +9,10 @@ Daily challenges are the app's **main source of gems** (design source: `Gamifica
 
 ## How it works
 
-1. **Two sets, one card.** `GET /challenges` returns `firstSteps`, `firstStepsDone` and `daily`.
+1. **Three sets, one card.** `GET /challenges` returns `firstSteps`, `firstStepsDone`, `daily` and `weekly`.
    `ChallengesCard` (top of the Inicio scroll) shows **Primeros pasos** until every step is *claimed*;
-   from then on it shows **Desafíos del día**. `daily` comes back empty until `firstStepsDone`, so the
+   from then on it shows **Desafíos del día** with a *Diarios / Semanales* toggle that swaps in
+   **Desafíos de la semana**. `daily` and `weekly` come back empty until `firstStepsDone`, so the
    gate lives on the server.
 2. **Progress is server-side.** `signa-api` reports progress from the places the activity already
    happens (lesson completed, XP earned, camera answer, friend request, streak). The app never reports
@@ -21,6 +22,8 @@ Daily challenges are the app's **main source of gems** (design source: `Gamifica
    Claiming twice or before completing is a 400.
 4. **The day is Argentine** (`America/Argentina/Cordoba`): daily rows roll over at local midnight and the
    card shows "Se renuevan en N h". An unclaimed daily reward is gone after the rollover.
+   Weekly rows run Monday–Sunday (same zone), roll over at Monday 00:00 (`weeklyResetsAt`, shown as
+   "Se renuevan en N días") and likewise expire if unclaimed.
 
 ## Catalog (seeded in `signa-api` · `db/seed/challenges.sql`)
 
@@ -34,9 +37,14 @@ Daily challenges are the app's **main source of gems** (design source: `Gamifica
 | | Practicá con cámara | `CAMERA_PRACTICES` 5 | 40 gemas |
 | | Sesión perfecta | `PERFECT_LESSONS` 3 | XP x3 · 30 min |
 | | Experto del día | `EARN_XP` 500 | 60 gemas |
+| Semanales | Maratón de lecciones | `COMPLETE_LESSONS` 15 | 150 gemas |
+| | Semana con cámara | `CAMERA_PRACTICES` 30 | 120 gemas |
+| | Semana impecable | `PERFECT_LESSONS` 7 | 1 escudo de racha |
+| | Experto de la semana | `EARN_XP` 2500 | 200 gemas |
 
 The first-steps rewards are **not** in the spreadsheet (it only defines the daily ones): 20/20/30/30 was
-chosen so the set totals 100 gems. Weekly and course challenges from the sheet are not implemented.
+chosen so the set totals 100 gems. The weekly set isn't in the sheet either: targets are ~5x the daily
+ones and rewards ~3x (placeholder numbers, tune in the seed). Course challenges are not implemented.
 
 Criteria definitions:
 
@@ -53,7 +61,7 @@ Criteria definitions:
 | Piece | File |
 |---|---|
 | API (`getChallenges`, `claim`) + types | `src/api/challenges.ts` |
-| Card (rows, progress bar, reward pill, claim button, "se renuevan en") | `src/features/challenges/components/ChallengesCard.tsx` |
+| Card (rows, Diarios/Semanales toggle, progress bar, reward pill, claim button, "se renuevan en") | `src/features/challenges/components/ChallengesCard.tsx` |
 | Fetch, claim, row navigation | `src/screens/tabs/HomeTabScreen.tsx` |
 
 - Tapping an unfinished row navigates: lessons / XP → the current lesson, camera → Práctica tab,

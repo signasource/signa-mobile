@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
@@ -14,13 +14,22 @@ interface Props {
   onPress: (challenge: Challenge) => void;
 }
 
+type Tab = "daily" | "weekly";
+
 /**
- * "Primeros pasos" until every step is claimed, then today's daily challenges. The daily ones
- * are the app's main source of gems.
+ * "Primeros pasos" until every step is claimed, then today's daily challenges with a toggle for the
+ * week's. The daily ones are the app's main source of gems.
  */
 export function ChallengesCard({ challenges, claimingId, error, onClaim, onPress }: Props) {
+  const [tab, setTab] = useState<Tab>("daily");
   const showingFirstSteps = !challenges.firstStepsDone;
-  const items = showingFirstSteps ? challenges.firstSteps : challenges.daily;
+  const hasWeekly = !showingFirstSteps && challenges.weekly.length > 0;
+  const showingWeekly = hasWeekly && tab === "weekly";
+  const items = showingFirstSteps
+    ? challenges.firstSteps
+    : showingWeekly
+      ? challenges.weekly
+      : challenges.daily;
   if (items.length === 0) return null;
 
   const doneCount = items.filter((c) => c.rewardClaimed).length;
@@ -28,16 +37,29 @@ export function ChallengesCard({ challenges, claimingId, error, onClaim, onPress
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.title}>{showingFirstSteps ? "Primeros pasos" : "Desafíos del día"}</Text>
+        <Text style={styles.title}>
+          {showingFirstSteps ? "Primeros pasos" : showingWeekly ? "Desafíos de la semana" : "Desafíos del día"}
+        </Text>
         <Text style={styles.meta}>
-          {showingFirstSteps ? `${doneCount} / ${items.length}` : renewsIn(challenges.resetsAt)}
+          {showingFirstSteps
+            ? `${doneCount} / ${items.length}`
+            : renewsIn(showingWeekly ? challenges.weeklyResetsAt : challenges.resetsAt)}
         </Text>
       </View>
       <Text style={styles.subtitle}>
         {showingFirstSteps
           ? "Completalos para ganar gemas y desbloquear los desafíos diarios."
-          : "Completalos antes de que termine el día y ganá gemas."}
+          : showingWeekly
+            ? "Completalos antes de que termine la semana y ganá recompensas más grandes."
+            : "Completalos antes de que termine el día y ganá gemas."}
       </Text>
+
+      {hasWeekly ? (
+        <View style={styles.tabs}>
+          <TabButton label="Diarios" active={!showingWeekly} onPress={() => setTab("daily")} />
+          <TabButton label="Semanales" active={showingWeekly} onPress={() => setTab("weekly")} />
+        </View>
+      ) : null}
 
       <View style={styles.rows}>
         {items.map((challenge) => (
@@ -53,6 +75,26 @@ export function ChallengesCard({ challenges, claimingId, error, onClaim, onPress
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>
+  );
+}
+
+function TabButton({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      style={[styles.tab, active && styles.tabActive]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <Text style={[styles.tabText, active && styles.tabTextActive]}>{label}</Text>
+    </TouchableOpacity>
   );
 }
 
@@ -147,11 +189,14 @@ function rewardLabel(challenge: Challenge): {
   }
 }
 
-/** "Se renuevan en 5 h" / "en 40 min", rounded up so it never reads 0. */
+/** "Se renuevan en 2 días" / "en 5 h" / "en 40 min", rounded up so it never reads 0. */
 function renewsIn(resetsAt: string): string {
   const minutes = Math.max(1, Math.ceil((new Date(resetsAt).getTime() - Date.now()) / 60000));
   if (minutes < 60) return `Se renuevan en ${minutes} min`;
-  return `Se renuevan en ${Math.ceil(minutes / 60)} h`;
+  const hours = Math.ceil(minutes / 60);
+  if (hours <= 24) return `Se renuevan en ${hours} h`;
+  const days = Math.ceil(hours / 24);
+  return `Se renuevan en ${days} ${days === 1 ? "día" : "días"}`;
 }
 
 const styles = StyleSheet.create({
@@ -187,6 +232,30 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textMuted,
     marginTop: 4,
+  },
+  tabs: {
+    flexDirection: "row",
+    marginTop: 12,
+    padding: 3,
+    borderRadius: 999,
+    backgroundColor: colors.fill,
+  },
+  tab: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  tabActive: {
+    backgroundColor: colors.surface,
+  },
+  tabText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.textMuted,
+  },
+  tabTextActive: {
+    color: colors.text,
   },
   rows: {
     marginTop: 14,

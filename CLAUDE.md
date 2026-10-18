@@ -34,6 +34,10 @@ A new cross-cutting convention goes in this file (§ Rules).
 
 ## Rules
 
+**No known-broken checks**
+- Never let an error, warning or failing check pass unmentioned, even if it predates your change. Either fix it in the same PR or record it in [docs/status.md](./docs/status.md) (tech debt) so it stays pending; say which in your report.
+- If `npm run typecheck` fails with errors in files you didn't touch, first run `npm ci`: a stale `node_modules` (e.g. left over from another branch) produces false errors.
+
 **Language & types**
 - TypeScript strict. No `any` in public APIs (props, exported types, returns).
 - Import via the `@/` → `src/` alias (defined in `babel.config.js` + `tsconfig.json`). Never long relative paths.
@@ -80,7 +84,7 @@ npm start          # Expo dev server (a=Android, i=iOS, w=web)
 npm run android    # Android emulator/device
 npm run ios        # iOS simulator
 npm run web        # web (limited)
-npm run lint       # eslint (no rules configured yet)
+npm run lint       # broken: eslint is not installed or configured (see docs/status.md)
 npm run typecheck  # tsc --noEmit ← minimum check before considering a change done
 ```
 

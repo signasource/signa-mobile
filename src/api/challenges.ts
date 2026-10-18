@@ -31,14 +31,17 @@ export interface Challenge {
 }
 
 /**
- * Mirrors `ChallengesResponse`. `daily` stays empty until every first step has been claimed.
- * `resetsAt` is when today's daily challenges roll over (midnight in Argentina).
+ * Mirrors `ChallengesResponse`. `daily` and `weekly` stay empty until every first step has been
+ * claimed. `resetsAt` is when today's daily challenges roll over (midnight in Argentina);
+ * `weeklyResetsAt` is when the week's do (Monday 00:00 in Argentina).
  */
 export interface Challenges {
   firstSteps: Challenge[];
   firstStepsDone: boolean;
   daily: Challenge[];
   resetsAt: string;
+  weekly: Challenge[];
+  weeklyResetsAt: string;
 }
 
 /** Mirrors `ChallengeClaimResponse`. `gems` is the balance after the claim. */
