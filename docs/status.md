@@ -32,7 +32,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 
 - **Profile partly from JWT + local cache.** `GET /users/me` *does* exist and `usersApi.getMe()` calls it; what is still cached in AsyncStorage is the name captured at registration, used as a fallback before the profile loads.
 - **Password-reset token pasted by hand.** No deep linking; the user copies the token from the email. Email verification still exists on the backend (`verified` flag) but registration auto-logs in and the app surfaces no verify/resend UI.
-- **No ESLint/Prettier config.** `npm run lint` runs eslint without configured rules; the real check today is `npm run typecheck` (tsc strict).
+- **No ESLint/Prettier.** eslint is not a dependency and has no config, so `npm run lint` fails ("eslint no se reconoce"); the real check today is `npm run typecheck` (tsc strict). Fix = add `eslint` + a config, or drop the script.
 - **Legacy theme tokens** (`accent`, `morado`, `azulOscuro`, `headingSemiBold`, …) still used by `AppNavigator` and old screens; migrate to current tokens.
 - **Sent gifts have no UI.** Sending and receiving/claiming gifts work from the Store, but `GET /store/gifts/sent` has no client, so a sender cannot see the status (pending / claimed / expired) of what they sent.
 - **Gem packs are Android-only.** `useGemPurchase` only requests Google products; iOS would need App Store products, a StoreKit branch (`request.apple`) and App Store receipt verification on the backend. The section is simply not mounted off Android.
