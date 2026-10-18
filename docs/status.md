@@ -32,7 +32,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 
 - **Profile partly from JWT + local cache.** `GET /users/me` *does* exist and `usersApi.getMe()` calls it; what is still cached in AsyncStorage is the name captured at registration, used as a fallback before the profile loads.
 - **Password-reset token pasted by hand.** No deep linking; the user copies the token from the email. Email verification still exists on the backend (`verified` flag) but registration auto-logs in and the app surfaces no verify/resend UI.
-- **12 `react-hooks/exhaustive-deps` lint warnings** (`npm run lint` has 0 errors otherwise). Effects/memos in `AuthContext`, `AppNavigator`, `RootNavigator`, `ConfigurationScreen`, `ProfileScreen`, `GlbAnimationView`, `SignPip` and `PerformSignBlock` omit deps — mostly loader functions declared inline, so adding them as-is would re-run the effect on every render. Fix each one deliberately (wrap the function in `useCallback`, or move it inside the effect) rather than accepting the autofix suggestion.
+- ~~12 `react-hooks/exhaustive-deps` lint warnings.~~ Fixed: `npm run lint` is at 0 problems. Loaders became `useCallback` or moved inside their effect; values an effect must read without re-running (`cameraControls` in `GlbAnimationView`, the time drafts in `ConfigurationScreen`) go through a ref. Keep it at 0 — never silence the rule with a bare `eslint-disable`.
 - **`npm audit`: 55 vulnerabilities** (20 moderate, 34 high, 1 critical), mostly transitive via Expo / React Native tooling. Not reviewed; `npm audit fix --force` would bump major versions out of the SDK 54 range, so triage them per package.
 - **`unrs-resolver` postinstall blocked** by npm's `allowScripts` (dependency of `eslint-config-expo`'s import resolver). Lint works without it today; approve it with `npm install-scripts approve unrs-resolver` if import resolution ever breaks.
 - **No Prettier.** Formatting is not enforced; only ESLint (`eslint-config-expo`) and `tsc` run.
@@ -58,4 +58,4 @@ Per-feature detail is owned by each feature doc; this is the index.
 - Confirm real `courses` endpoints for the flat browse stub, or retire it in favor of the Inicio roadmap.
 - Decide the camera + ML runtime stack and migrate to a dev build.
 - Persist onboarding answers once there is a place to store them.
-- Clear the `exhaustive-deps` warnings, then (optional) add Prettier and run `npm run lint` in CI.
+- (Optional) Add Prettier and run `npm run lint` in CI.

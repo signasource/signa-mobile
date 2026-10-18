@@ -106,36 +106,37 @@ function OrgWelcomeConnected({
     }
     if (checked.current) return;
     checked.current = true;
-    checkOrgWelcome();
-  }, [isAuthenticated]);
 
-  async function checkOrgWelcome() {
-    try {
-      const response = await organizationsApi.getMyOrganization();
-      const org = response.data;
+    async function checkOrgWelcome() {
+      try {
+        const response = await organizationsApi.getMyOrganization();
+        const org = response.data;
 
-      const key = `org_welcome_shown_${org.id}`;
-      const shown = await AsyncStorage.getItem(key);
-      if (shown) return;
+        const key = `org_welcome_shown_${org.id}`;
+        const shown = await AsyncStorage.getItem(key);
+        if (shown) return;
 
-      await AsyncStorage.setItem(key, "true");
+        await AsyncStorage.setItem(key, "true");
 
-      const waitAndNavigate = () => {
-        if (!navigationRef.current?.isReady()) {
-          setTimeout(waitAndNavigate, 100);
-          return;
-        }
-        navigationRef.current.navigate("OrganizationWelcome", {
-          orgName: org.name,
-          courses: org.courses,
-          alreadyMember: true,
-        });
-      };
-      setTimeout(waitAndNavigate, 500);
-    } catch {
-      // User has no org or API error — do nothing
+        const waitAndNavigate = () => {
+          if (!navigationRef.current?.isReady()) {
+            setTimeout(waitAndNavigate, 100);
+            return;
+          }
+          navigationRef.current.navigate("OrganizationWelcome", {
+            orgName: org.name,
+            courses: org.courses,
+            alreadyMember: true,
+          });
+        };
+        setTimeout(waitAndNavigate, 500);
+      } catch {
+        // User has no org or API error — do nothing
+      }
     }
-  }
+
+    checkOrgWelcome();
+  }, [isAuthenticated, navigationRef]);
 
   return null;
 }

@@ -107,7 +107,7 @@ export function PerformSignBlock({ config, active, ultimo, xp, onAnswer, onConti
     if (!terminado || saliendo) return;
     pop.setValue(0);
     Animated.spring(pop, { toValue: 1, useNativeDriver: true, friction: 6, tension: 90 }).start();
-  }, [terminado, pop]);
+  }, [terminado, saliendo, pop]);
 
   const handleFrame = useCallback((f: LiveFrame) => {
     setFps(f.fps);
