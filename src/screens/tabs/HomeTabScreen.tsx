@@ -35,6 +35,7 @@ import { accentFor, progressFor } from "@/features/courses/roadmap";
 import { useTour } from "@/features/tour/TourContext";
 import { challengesApi, Challenge, Challenges } from "@/api/challenges";
 import { ChallengesCard } from "@/features/challenges/components/ChallengesCard";
+import { mapChallengeClaimError } from "@/utils/challengeErrors";
 
 type HomeNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, "Home">,
@@ -260,7 +261,13 @@ export function HomeTabScreen({ navigation }: Props) {
       const refreshed = await challengesApi.getChallenges();
       setChallenges(refreshed.data);
     } catch (err: any) {
-      setClaimError(err?.response?.data?.message ?? "No pudimos reclamar la recompensa.");
+      setClaimError(mapChallengeClaimError(err, "No pudimos reclamar la recompensa."));
+      // The card may be stale (e.g. open across midnight, still offering yesterday's
+      // expired reward): resync it so the failed row goes away.
+      challengesApi
+        .getChallenges()
+        .then((res) => setChallenges(res.data))
+        .catch(() => {});
     } finally {
       setClaimingId(null);
     }
