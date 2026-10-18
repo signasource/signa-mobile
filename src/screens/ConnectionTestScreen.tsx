@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "@/components/Text";
 import { colors, fonts, fontSizes } from "@/theme";
@@ -45,7 +45,7 @@ export function ConnectionTestScreen() {
 
       <Card style={styles.mt}>
         <Text style={styles.hint}>
-          Tip: si estas en un emulador de Android, "localhost" no apunta a tu PC. Usa 10.0.2.2 en el .env. En un
+          Tip: si estas en un emulador de Android, “localhost” no apunta a tu PC. Usa 10.0.2.2 en el .env. En un
           dispositivo fisico, usa la IP local de tu PC (misma red WiFi).
         </Text>
       </Card>

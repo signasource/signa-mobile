@@ -375,14 +375,14 @@ export function ProfileScreen({ navigation }: Props) {
   );
   const achievementDetail = achievements.find((a) => a.id === achievementDetailId) ?? null;
 
-  const sections: ReadonlyArray<Segment<Section>> = [
+  const sections: readonly Segment<Section>[] = [
     { key: "general", label: "General" },
     { key: "cursos", label: "Cursos" },
     { key: "inventario", label: "Inventario" },
     { key: "logros", label: "Logros" },
   ];
 
-  const achFilters: ReadonlyArray<SubTab<AchFilter>> = [
+  const achFilters: readonly SubTab<AchFilter>[] = [
     {
       key: "unlocked",
       label: "Conseguidos",

@@ -37,7 +37,7 @@ type PracticeTab = "ejercicios" | "señas" | "errores";
 /** Mirrors PracticeService.MISTAKE_REVIEW_XP_REWARD — the only practice mode that grants real XP. */
 const MISTAKE_REVIEW_XP_REWARD = 20;
 
-const TABS: ReadonlyArray<Segment<PracticeTab>> = [
+const TABS: readonly Segment<PracticeTab>[] = [
   { key: "ejercicios", label: "Ejercicios" },
   { key: "señas", label: "Señas" },
   { key: "errores", label: "Errores" },

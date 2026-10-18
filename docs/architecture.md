@@ -61,4 +61,7 @@ Versions live in `package.json` — not duplicated here.
 - `tsconfig.json` — extends `expo/tsconfig.base`, `strict: true`, alias `@/*`.
 - `metro.config.js` — Expo default config plus `react-native-svg-transformer`: `.svg` files are removed from `assetExts` and added to `sourceExts` so they import as React components (`import Icon from "@assets/icon.svg"`) instead of static image assets. Type declaration in `svg.d.ts` (project root, picked up by `tsconfig.json`'s `include`).
 - `.env` — `EXPO_PUBLIC_API_URL` (see [api/http-client.md](./api/http-client.md)).
-- No ESLint/Prettier config (see [status.md](./status.md)).
+- `eslint.config.js` — ESLint 9 flat config extending `eslint-config-expo/flat`; turns off
+  `import/no-named-as-default-member` (false positive on `axios.create` / `axios.isCancel`).
+  `require()` of binary assets is allowed only inside the `eslint-disable` block in
+  `features/ml/engine/assets.ts`. No Prettier (see [status.md](./status.md)).

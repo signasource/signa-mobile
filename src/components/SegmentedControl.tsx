@@ -13,7 +13,7 @@ export interface Segment<K extends string> {
 }
 
 interface SegmentedControlProps<K extends string> {
-  options: ReadonlyArray<Segment<K>>;
+  options: readonly Segment<K>[];
   value: K;
   onChange: (key: K) => void;
   style?: StyleProp<ViewStyle>;

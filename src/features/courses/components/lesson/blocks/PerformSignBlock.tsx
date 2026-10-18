@@ -16,7 +16,6 @@ import {
   ToggleTrackeo,
 } from "../recognizer/EstadoCamara";
 import { XpChip } from "../XpChip";
-import { FeedbackBar } from "../FeedbackBar";
 import { LessonButton } from "../LessonButton";
 
 interface PerformSignBlockProps {

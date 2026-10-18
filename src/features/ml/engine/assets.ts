@@ -43,6 +43,7 @@ import { buildRecognizerHtml, RecognizerConfig } from "./recognizerHtml";
  *
  * Los .task y los .tflite salen de signa-ml (scripts/export_*.py).
  */
+/* eslint-disable @typescript-eslint/no-require-imports -- Metro sólo empaqueta assets binarios vía require() */
 const FILES: Record<string, unknown> = {
   // Se copian como .js aunque el asset se llame .jsasset: esa extensión existe
   // sólo para que Metro los trate como archivos y no intente transformarlos.
@@ -70,6 +71,7 @@ const FILES: Record<string, unknown> = {
   "alfabeto.tflite": require("@assets/tflite/alfabeto.tflite"),
   "alfabeto.json": require("@assets/models/lsa-alphabet/manifest.json"),
 };
+/* eslint-enable @typescript-eslint/no-require-imports */
 
 let staging: Promise<string> | null = null;
 

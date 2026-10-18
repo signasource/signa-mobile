@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Keyboard,
   RefreshControl,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
@@ -53,7 +52,7 @@ type Props = BottomTabScreenProps<TabParamList, "Social"> & { navigation: Social
 type Tab = "feed" | "amigos" | "ranking";
 type Section = "amigos" | "solicitudes";
 
-const SECTION_TABS: ReadonlyArray<SubTab<Section>> = [
+const SECTION_TABS: readonly SubTab<Section>[] = [
   { key: "amigos", label: "Mis amigos", icon: "people" },
   { key: "solicitudes", label: "Solicitudes", icon: "mail-open" },
 ];
@@ -474,7 +473,7 @@ export function SocialScreen({ navigation }: Props) {
   const headerPaddingTop = insets.top + 14;
   const isFeed = tab === "feed";
   const isRanking = tab === "ranking";
-  const tabs: ReadonlyArray<Segment<Tab>> = [
+  const tabs: readonly Segment<Tab>[] = [
     { key: "feed", label: "Feed" },
     { key: "amigos", label: "Amigos", badge: incoming.length },
     { key: "ranking", label: "Ranking" },
