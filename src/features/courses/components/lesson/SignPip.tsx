@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, LayoutChangeEvent, PanResponder, Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
@@ -44,7 +44,7 @@ export function SignPip({ meaning, label, paused, onExpandedChange }: SignPipPro
 
   // La posición actual se espeja en un ref: PanResponder se crea una sola vez
   // y sus callbacks no verían el estado nuevo.
-  useMemo(() => {
+  useEffect(() => {
     const id = pos.addListener((v) => (value.current = v));
     return () => pos.removeListener(id);
   }, [pos]);
@@ -61,6 +61,37 @@ export function SignPip({ meaning, label, paused, onExpandedChange }: SignPipPro
       { x: right, y: bottom },
     ];
   }, [area]);
+
+  const anima = useCallback(
+    (hacia: number, alTerminar?: () => void) => {
+      Animated.spring(grow, {
+        toValue: hacia,
+        useNativeDriver: false,     // anima left/top/width/height, no transform
+        friction: 9,
+        tension: 80,
+      }).start(alTerminar);
+    },
+    [grow],
+  );
+
+  const agrandar = useCallback(() => {
+    setBig(true);
+    bigRef.current = true;
+    onExpandedChange?.(true);
+    anima(1);
+  }, [onExpandedChange, anima]);
+
+  /** Lleva el PiP a la esquina más próxima a su posición actual. */
+  const snapCercano = useCallback(() => {
+    const { x, y } = value.current;
+    let best = corners[0];
+    let bestD = Infinity;
+    for (const c of corners) {
+      const d = Math.hypot(c.x - x, c.y - y);
+      if (d < bestD) { bestD = d; best = c; }
+    }
+    Animated.spring(pos, { toValue: best, useNativeDriver: false, friction: 7, tension: 70 }).start();
+  }, [corners, pos]);
 
   const pan = useMemo(
     () =>
@@ -84,7 +115,7 @@ export function SignPip({ meaning, label, paused, onExpandedChange }: SignPipPro
           snapCercano();     // engancha en la esquina más cercana, como la demo
         },
       }),
-    [corners, pos, onExpandedChange],
+    [pos, agrandar, snapCercano],
   );
 
   // La caja se interpola entre miniatura y pantalla completa con `grow`, en vez
@@ -112,22 +143,6 @@ export function SignPip({ meaning, label, paused, onExpandedChange }: SignPipPro
     });
   }
 
-  function anima(hacia: number, alTerminar?: () => void) {
-    Animated.spring(grow, {
-      toValue: hacia,
-      useNativeDriver: false,     // anima left/top/width/height, no transform
-      friction: 9,
-      tension: 80,
-    }).start(alTerminar);
-  }
-
-  function agrandar() {
-    setBig(true);
-    bigRef.current = true;
-    onExpandedChange?.(true);
-    anima(1);
-  }
-
   function shrink() {
     setBig(false);
     bigRef.current = false;
@@ -135,18 +150,6 @@ export function SignPip({ meaning, label, paused, onExpandedChange }: SignPipPro
     // Al volver a la miniatura se reengancha en la esquina más cercana, así
     // queda donde el usuario la había dejado y sigue siendo arrastrable.
     anima(0, () => snapCercano());
-  }
-
-  /** Lleva el PiP a la esquina más próxima a su posición actual. */
-  function snapCercano() {
-    const { x, y } = value.current;
-    let best = corners[0];
-    let bestD = Infinity;
-    for (const c of corners) {
-      const d = Math.hypot(c.x - x, c.y - y);
-      if (d < bestD) { bestD = d; best = c; }
-    }
-    Animated.spring(pos, { toValue: best, useNativeDriver: false, friction: 7, tension: 70 }).start();
   }
 
   return (

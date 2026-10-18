@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   DimensionValue,
@@ -152,42 +152,12 @@ export function ConfigurationScreen({ navigation, route }: Props) {
   const hourScrollRef = useRef<ScrollView>(null);
   const minuteScrollRef = useRef<ScrollView>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // El scroll inicial del selector de hora lee los drafts por ref: si dependiera
+  // de ellos, cada cambio mientras el usuario arrastra lo volvería a posicionar.
+  const draftTime = useRef({ hour: draftHour, minute: draftMinute });
+  draftTime.current = { hour: draftHour, minute: draftMinute };
 
-  useEffect(() => {
-    loadData();
-    return () => {
-      if (toastTimer.current) clearTimeout(toastTimer.current);
-    };
-  }, []);
-
-  useEffect(() => {
-    const updated = route.params?.updatedProfile;
-    if (!updated) return;
-    setDisplayName(updated.displayName);
-    setLastName(updated.lastName);
-    setUsername(updated.username);
-    navigation.setParams({ updatedProfile: undefined });
-    showToast("Perfil actualizado");
-  }, [route.params?.updatedProfile]);
-
-  useEffect(() => {
-    if (!route.params?.passwordChanged) return;
-    navigation.setParams({ passwordChanged: undefined });
-    showToast("Contraseña actualizada");
-  }, [route.params?.passwordChanged]);
-
-  useEffect(() => {
-    if (sheet !== "time") return;
-    const hIdx = HOURS.indexOf(draftHour);
-    const mIdx = MINUTES.indexOf(draftMinute);
-    const t = setTimeout(() => {
-      hourScrollRef.current?.scrollTo({ y: hIdx * ITEM_H, animated: false });
-      minuteScrollRef.current?.scrollTo({ y: mIdx * ITEM_H, animated: false });
-    }, 60);
-    return () => clearTimeout(t);
-  }, [sheet]);
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setLoading(true);
     const [settingsRes, profileRes] = await Promise.allSettled([
       usersApi.getSettings(),
@@ -221,13 +191,47 @@ export function ConfigurationScreen({ navigation, route }: Props) {
     }
 
     setLoading(false);
-  }
+  }, [setFontSize]);
 
-  function showToast(text: string) {
+  const showToast = useCallback((text: string) => {
     setToast(text);
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(null), 2200);
-  }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+    return () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    };
+  }, [loadData]);
+
+  useEffect(() => {
+    const updated = route.params?.updatedProfile;
+    if (!updated) return;
+    setDisplayName(updated.displayName);
+    setLastName(updated.lastName);
+    setUsername(updated.username);
+    navigation.setParams({ updatedProfile: undefined });
+    showToast("Perfil actualizado");
+  }, [route.params?.updatedProfile, navigation, showToast]);
+
+  useEffect(() => {
+    if (!route.params?.passwordChanged) return;
+    navigation.setParams({ passwordChanged: undefined });
+    showToast("Contraseña actualizada");
+  }, [route.params?.passwordChanged, navigation, showToast]);
+
+  useEffect(() => {
+    if (sheet !== "time") return;
+    const hIdx = HOURS.indexOf(draftTime.current.hour);
+    const mIdx = MINUTES.indexOf(draftTime.current.minute);
+    const t = setTimeout(() => {
+      hourScrollRef.current?.scrollTo({ y: hIdx * ITEM_H, animated: false });
+      minuteScrollRef.current?.scrollTo({ y: mIdx * ITEM_H, animated: false });
+    }, 60);
+    return () => clearTimeout(t);
+  }, [sheet]);
 
   /** Picking a swatch applies it immediately and persists it — no confirm step. */
   function applyHeaderColor(hex: string) {

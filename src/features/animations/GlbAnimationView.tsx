@@ -99,9 +99,14 @@ export function GlbAnimationView({
   onError,
 }: GlbAnimationViewProps) {
   const webviewRef = useRef<WebView>(null);
-  // `cameraControls` NO entra en las dependencias: se cambia por
-  // injectJavaScript para no rehacer el HTML y volver a bajar el modelo.
-  const html = useMemo(() => buildHtml(url, autoRotate, cameraControls), [url, autoRotate]);
+  // `cameraControls` se lee por ref para que NO entre en las dependencias: se
+  // cambia por injectJavaScript para no rehacer el HTML y volver a bajar el modelo.
+  const cameraControlsRef = useRef(cameraControls);
+  cameraControlsRef.current = cameraControls;
+  const html = useMemo(
+    () => buildHtml(url, autoRotate, cameraControlsRef.current),
+    [url, autoRotate],
+  );
 
   useEffect(() => {
     webviewRef.current?.injectJavaScript(

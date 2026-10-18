@@ -67,7 +67,7 @@ export function AppNavigator() {
 
   useEffect(() => {
     loadFontSize();
-  }, []);
+  }, [loadFontSize]);
 
   return (
     <Stack.Navigator

@@ -218,54 +218,7 @@ export function ProfileScreen({ navigation }: Props) {
   const [infiniteQty, setInfiniteQty] = useState(0);
   const [lifeSecsLeft, setLifeSecsLeft] = useState(LIFE_REGEN_SECS);
 
-  useEffect(() => {
-    loadProfile();
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (firstFocus.current) {
-        firstFocus.current = false;
-        return;
-      }
-      usersApi.getMe().then((res) => {
-        setDisplayName(res.data.name);
-        setUsername(res.data.username);
-      }).catch(() => {});
-      usersApi.getSettings().then((res) => {
-        const color = res.data.profileHeaderColor;
-        setHeaderColor(color);
-      }).catch(() => {});
-      usersApi.getDailyGoal().then((res) => {
-        setMinutesToday(res.data.minutesToday);
-      }).catch(() => {});
-      // Las lecciones gastan vidas en el backend: sin esto el inventario queda con las de antes.
-      inventoryApi.getMyInventory().then((res) => {
-        setInventory(res.data);
-        setLivesCount(res.data.currentLives ?? MAX_LIVES);
-        setGemsCount(res.data.gems);
-      }).catch(() => {});
-    }, [])
-  );
-
-  // Life regeneration countdown
-  useEffect(() => {
-    if (livesCount >= MAX_LIVES || infiniteActive) return;
-    let secs = LIFE_REGEN_SECS;
-    setLifeSecsLeft(secs);
-    const tick = setInterval(() => {
-      secs -= 1;
-      if (secs <= 0) {
-        clearInterval(tick);
-        setLivesCount((c) => Math.min(MAX_LIVES, c + 1));
-      } else {
-        setLifeSecsLeft(secs);
-      }
-    }, 1000);
-    return () => clearInterval(tick);
-  }, [livesCount, infiniteActive]);
-
-  async function loadProfile(isRefresh = false) {
+  const loadProfile = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     const [profileRes, weekRes, goalRes, statsRes, invRes, unlockedRes, lockedRes, coursesRes, settingsRes] =
@@ -330,7 +283,54 @@ export function ProfileScreen({ navigation }: Props) {
 
     setLoading(false);
     setRefreshing(false);
-  }
+  }, [user?.name, todayIdx]);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (firstFocus.current) {
+        firstFocus.current = false;
+        return;
+      }
+      usersApi.getMe().then((res) => {
+        setDisplayName(res.data.name);
+        setUsername(res.data.username);
+      }).catch(() => {});
+      usersApi.getSettings().then((res) => {
+        const color = res.data.profileHeaderColor;
+        setHeaderColor(color);
+      }).catch(() => {});
+      usersApi.getDailyGoal().then((res) => {
+        setMinutesToday(res.data.minutesToday);
+      }).catch(() => {});
+      // Las lecciones gastan vidas en el backend: sin esto el inventario queda con las de antes.
+      inventoryApi.getMyInventory().then((res) => {
+        setInventory(res.data);
+        setLivesCount(res.data.currentLives ?? MAX_LIVES);
+        setGemsCount(res.data.gems);
+      }).catch(() => {});
+    }, [])
+  );
+
+  // Life regeneration countdown
+  useEffect(() => {
+    if (livesCount >= MAX_LIVES || infiniteActive) return;
+    let secs = LIFE_REGEN_SECS;
+    setLifeSecsLeft(secs);
+    const tick = setInterval(() => {
+      secs -= 1;
+      if (secs <= 0) {
+        clearInterval(tick);
+        setLivesCount((c) => Math.min(MAX_LIVES, c + 1));
+      } else {
+        setLifeSecsLeft(secs);
+      }
+    }, 1000);
+    return () => clearInterval(tick);
+  }, [livesCount, infiniteActive]);
 
   /** Picking a swatch applies it immediately and persists it — no confirm step. */
   async function applyHeaderColor(hex: string) {
