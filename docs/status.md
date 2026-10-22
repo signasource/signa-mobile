@@ -63,6 +63,6 @@ Per-feature detail is owned by each feature doc; this is the index.
 - ~~Leaderboard endpoint + the Social *Ranking* tile.~~ Done.
 - ~~Fix `CourseProgress` / `Achievement` client types.~~ Done.
 - Confirm real `courses` endpoints for the flat browse stub, or retire it in favor of the Inicio roadmap.
-- Decide the camera + ML runtime stack and migrate to a dev build.
+- ~~Decide the camera + ML runtime stack and migrate to a dev build.~~ Done: `expo-camera` + MediaPipe (WASM in a WebView worker) + TFLite, all on-device ([features/ml.md](./features/ml.md)); `expo-dev-client` with an EAS `development` profile.
 - Persist onboarding answers once there is a place to store them.
 - (Optional) Add Prettier and run `npm run lint` in CI.
