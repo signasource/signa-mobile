@@ -31,7 +31,10 @@ Per-feature detail is owned by each feature doc; this is the index.
 ## Cross-cutting tech debt
 
 - **Profile partly from JWT + local cache.** `GET /users/me` *does* exist and `usersApi.getMe()` calls it; what is still cached in AsyncStorage is the name captured at registration, used as a fallback before the profile loads.
-- **Password-reset token pasted by hand.** No deep linking; the user copies the token from the email. Email verification still exists on the backend (`verified` flag) but registration auto-logs in and the app surfaces no verify/resend UI.
+- **Password reset is barely usable.** The email link points at `${BASE_URL}/auth/reset-password?token=…` (`signa-api` `EmailService`), i.e. the API host and a `POST`-only endpoint, so tapping it opens an error page; the user has to dig the 36-char UUID out of the URL and paste it into `ResetPasswordScreen`. Planned fix: a 6-digit code instead of a link (hashed, 15 min TTL, max 5 attempts, `reset-password` takes `{ email, code, newPassword }`), see Next steps. Email verification still exists on the backend (`verified` flag) but registration auto-logs in and the app surfaces no verify/resend UI.
+- **Password-reset hardening** ([signa-api#97](https://github.com/signasource/signa-api/pull/97), pending merge): `/auth/forgot-password`, `/auth/reset-password` and `/auth/resend-verification-email` are rate-limited to 10 requests / 15 min per IP (429 `Too many requests`), and the reset email is sent `@Async` so the response no longer reveals whether an email is registered. The app has no Spanish mapping for the 429 yet: `mapAuthError` falls back to the screen's generic message — add `"Too many requests"` to `authErrors.ts` when doing the 6-digit code.
+- **signa-api: rate limits can be bypassed by spoofing `X-Forwarded-For`.** `RateLimitInterceptor.getClientIp` takes the first value of the header, which the client controls (Cloudflare and nginx append to it, they don't replace it). Applies to every Bucket4j limit, not just auth. Fix: key on `CF-Connecting-IP` (set by Cloudflare) and fall back to `getRemoteAddr()`.
+- **signa-api: residual timing difference in `forgotPassword`.** With the email async, an existing account still costs one token delete + insert that a missing one doesn't. Small next to the old SMTP wait; close it fully only if it shows up as measurable.
 - ~~12 `react-hooks/exhaustive-deps` lint warnings.~~ Fixed: `npm run lint` is at 0 problems. Loaders became `useCallback` or moved inside their effect; values an effect must read without re-running (`cameraControls` in `GlbAnimationView`, the time drafts in `ConfigurationScreen`) go through a ref. Keep it at 0 — never silence the rule with a bare `eslint-disable`.
 - **`npm audit`: 55 vulnerabilities** (20 moderate, 34 high, 1 critical), mostly transitive via Expo / React Native tooling. Not reviewed; `npm audit fix --force` would bump major versions out of the SDK 54 range, so triage them per package.
 - **`unrs-resolver` postinstall blocked** by npm's `allowScripts` (dependency of `eslint-config-expo`'s import resolver). Lint works without it today; approve it with `npm install-scripts approve unrs-resolver` if import resolution ever breaks.
@@ -56,7 +59,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 ## Next steps
 
 - ~~Merge signa-api#95 → signa-api#96 → signa-mobile#72.~~ Merged to `develop` (2026-10-18). Pending: device test of lesson 1, then release `develop` → `master` in both repos.
-- Deep linking for password reset.
+- Password reset with a 6-digit code instead of a link (backend + app, two PRs); App Links only if a link is still wanted later.
 - Play Console setup for gem packs (app + 4 in-app products + service account) and an end-to-end test with a license tester.
 - ~~Wire the Inicio roadmap lesson CTA to navigate into `LessonScreen`.~~ Done (`HomeTabScreen.navigateToLesson`).
 - ~~Leaderboard endpoint + the Social *Ranking* tile.~~ Done.
