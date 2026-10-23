@@ -83,9 +83,9 @@ function DeltaBadge({ delta }: { delta: number | null }) {
 
 // ─── Podium ──────────────────────────────────────────────────────────────────
 
-const RING = ["#FBBF24", "#86868B", "#DE7211"]; // gold · silver · bronze
+const RING = [colors.warning, colors.neutral600, colors.shopAmber]; // gold · silver · bronze
 const BAR_H = [40, 26, 18];
-const BAR_BG = ["#FEF3D6", "#F2F2F3", "#FBE4C8"];
+const BAR_BG = [colors.warningLight, colors.neutral100, colors.shopAmberLight];
 const PODIUM_ORDER = [1, 0, 2]; // 2nd · 1st · 3rd (visual arrangement)
 
 function Podium({ entries, onPressProfile }: { entries: RankingEntry[]; onPressProfile: (username: string) => void }) {
@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
   },
   scopeBtnActive: {
     backgroundColor: colors.surface,
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOpacity: 0.1,
     shadowRadius: 3,
     shadowOffset: { width: 0, height: 1 },

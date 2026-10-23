@@ -2,7 +2,7 @@ import React from "react";
 import { View, TouchableOpacity, StyleSheet, StyleProp, ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, alpha } from "@/theme";
 
 export interface Segment<K extends string> {
   key: K;
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.text,
   },
   badgeActive: {
-    backgroundColor: "rgba(255,255,255,0.22)",
+    backgroundColor: alpha(colors.onColor, 0.22),
   },
   badgeLabel: {
     fontFamily: fonts.bodyBold,

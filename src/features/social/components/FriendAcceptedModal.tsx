@@ -3,11 +3,11 @@ import { Modal, View, StyleSheet, Pressable, ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/Text";
 import { Button } from "@/components/Button";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, alpha } from "@/theme";
 import { PendingFriendAccepted } from "@/context/FriendAcceptedContext";
 import Ovejas from "@assets/ilus/ovejas.svg";
 
-const SKY_BLUE = "#D6EFFA";
+const SKY_BLUE = colors.skyLight;
 // Aspect ratio of the OVEJAS.svg viewBox (width 1072.5 / height 932.23)
 const OVEJAS_RATIO = 1072.5 / 932.23;
 
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: alpha(colors.black, 0.5),
     paddingHorizontal: 20,
   },
   card: {

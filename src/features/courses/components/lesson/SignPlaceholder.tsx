@@ -2,7 +2,7 @@ import React from "react";
 import { StyleSheet, View, ViewStyle } from "react-native";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, alpha } from "@/theme";
 import PajarosGrupoPequeno from "@assets/ilus/pajaros-grupo-pequeno.svg";
 
 type Tone = "neutral" | "wrong";
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 14,
     left: 14,
-    backgroundColor: "rgba(255,255,255,0.94)",
+    backgroundColor: alpha(colors.onColor, 0.94),
     borderRadius: 8,
     paddingVertical: 4,
     paddingHorizontal: 9,
@@ -97,15 +97,15 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "rgba(255,255,255,0.92)",
+    backgroundColor: alpha(colors.onColor, 0.92),
     alignItems: "center",
     justifyContent: "center",
   },
   iconCircleWrong: {
-    backgroundColor: "rgba(255,255,255,0.92)",
+    backgroundColor: alpha(colors.onColor, 0.92),
   },
   labelChip: {
-    backgroundColor: "rgba(255,255,255,0.92)",
+    backgroundColor: alpha(colors.onColor, 0.92),
     borderRadius: 7,
     paddingVertical: 4,
     paddingHorizontal: 9,
@@ -116,6 +116,6 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   labelTextWrong: {
-    color: "#B0503A",
+    color: colors.dangerText,
   },
 });

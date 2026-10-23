@@ -45,8 +45,8 @@ A new cross-cutting convention goes in this file (§ Rules).
 
 **Styling**
 - `StyleSheet.create()` at the end of the file. No styled-components / CSS-in-JS.
-- Never hardcode hex or font names — use `@/theme` tokens (`colors.*`, `fonts.*`, `fontSizes.*`).
-- There is no `white` token: `colors.surface` for white backgrounds, `colors.onDark` for text/icons on a colored fill. See [docs/design-system/colors.md](./docs/design-system/colors.md).
+- Never hardcode hex, `rgba()` or font names — use `@/theme` tokens (`colors.*`, `alpha(colors.x, a)`, `fonts.*`, `fontSizes.*`). `npm run lint` fails on hardcoded colors.
+- Colors are design decisions: never replace one with a "close" token. Map to a token with the exact same hex, or add one. White: `colors.surface` (background) / `colors.onColor` (foreground) / `colors.onDark` (warm off-white) are distinct. See [docs/design-system/colors.md](./docs/design-system/colors.md).
 
 **Components & screens**
 - Reuse existing primitives before creating new ones (generic `@/components/*` + auth `@/components/auth/*`). See [docs/design-system/components.md](./docs/design-system/components.md).

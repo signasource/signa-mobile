@@ -2,7 +2,7 @@ import React from "react";
 import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, alpha } from "@/theme";
 import type { GemOffer } from "../useGemPurchase";
 
 interface GemPackCardProps {
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
   },
   badge: {
     alignSelf: "flex-start",
-    backgroundColor: "rgba(255,255,255,0.22)",
+    backgroundColor: alpha(colors.onColor, 0.22),
     borderRadius: 999,
     paddingVertical: 4,
     paddingHorizontal: 10,
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryLight,
   },
   medallionFeatured: {
-    backgroundColor: "rgba(255,255,255,0.22)",
+    backgroundColor: alpha(colors.onColor, 0.22),
   },
   texts: {
     flex: 1,
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   metaFeatured: {
-    color: "rgba(251,246,242,0.8)",
+    color: alpha(colors.onDark, 0.8),
   },
   priceChip: {
     paddingVertical: 7,
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.fill,
   },
   priceChipFeatured: {
-    backgroundColor: "rgba(255,255,255,0.22)",
+    backgroundColor: alpha(colors.onColor, 0.22),
   },
   priceText: {
     fontFamily: fonts.bodyBold,

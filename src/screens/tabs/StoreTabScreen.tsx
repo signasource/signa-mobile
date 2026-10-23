@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from "@react-navigation/native";
 import { TabParamList } from "@/navigation/TabNavigator";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, alpha } from "@/theme";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SegmentedControl, Segment } from "@/components/SegmentedControl";
 import { EmptyState, EmptyNote } from "@/components/EmptyState";
@@ -527,7 +527,7 @@ export function StoreTabScreen() {
                   <View
                     style={[
                       styles.medallion,
-                      { backgroundColor: featured ? "rgba(255,255,255,0.22)" : TINT[item.itemType] },
+                      { backgroundColor: featured ? alpha(colors.onColor, 0.22) : TINT[item.itemType] },
                     ]}
                   >
                     <Ionicons
@@ -547,7 +547,7 @@ export function StoreTabScreen() {
                   <View
                     style={[
                       styles.priceChip,
-                      featured && { backgroundColor: "rgba(255,255,255,0.22)" },
+                      featured && { backgroundColor: alpha(colors.onColor, 0.22) },
                     ]}
                   >
                     <Ionicons
@@ -883,7 +883,7 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   cardMetaFeatured: {
-    color: "rgba(251,246,242,0.8)",
+    color: alpha(colors.onDark, 0.8),
   },
   priceChip: {
     flexDirection: "row",
@@ -911,7 +911,7 @@ const styles = StyleSheet.create({
     textAlign: "justify",
   },
   cardDescFeatured: {
-    color: "rgba(251,246,242,0.9)",
+    color: alpha(colors.onDark, 0.9),
   },
   rewardsRow: {
     marginTop: 14,
@@ -973,7 +973,7 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(36,26,22,0.55)",
+    backgroundColor: alpha(colors.text, 0.55),
     justifyContent: "flex-end",
   },
   sheet: {
@@ -1158,7 +1158,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "rgba(255,255,255,0.22)",
+    backgroundColor: alpha(colors.onColor, 0.22),
     borderRadius: 18,
     paddingVertical: 14,
     paddingHorizontal: 16,
@@ -1177,7 +1177,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 13,
-    backgroundColor: "rgba(255,255,255,0.25)",
+    backgroundColor: alpha(colors.onColor, 0.25),
     alignItems: "center",
     justifyContent: "center",
   },

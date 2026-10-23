@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Text } from "@/components/Text";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, alpha } from "@/theme";
 import { MatchConfig } from "@/features/courses/lessonContent.types";
 import { MultiGlbView } from "@/features/animations/MultiGlbView";
 import { getGlbUrl } from "@/features/animations/glbUrl";
@@ -279,8 +279,8 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   // Translucent tints: a solid state background would hide the avatar underneath.
-  signRowMatched: { backgroundColor: "rgba(220,239,224,0.72)", borderColor: colors.success },
-  signRowWrong: { backgroundColor: "rgba(246,207,195,0.55)", borderWidth: 2, borderColor: colors.danger },
+  signRowMatched: { backgroundColor: alpha(colors.matchSuccessTint, 0.72), borderColor: colors.success },
+  signRowWrong: { backgroundColor: alpha(colors.matchDangerTint, 0.55), borderWidth: 2, borderColor: colors.danger },
   signRowSelected: { borderWidth: 2, borderColor: colors.primary },
   tileMatched: { backgroundColor: colors.successLight, opacity: 0.6 },
   tileWrong: { backgroundColor: colors.dangerLight, borderColor: colors.danger },
@@ -288,5 +288,5 @@ const styles = StyleSheet.create({
   wordText: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.text },
   // Sin alignItems: el botón ocupa el ancho, como en el resto de los ejercicios.
   footer: { paddingHorizontal: 20, paddingVertical: 16 },
-  footerHint: { fontFamily: fonts.bodyRegular, fontSize: 13, color: "#B0A7A0", textAlign: "center" },
+  footerHint: { fontFamily: fonts.bodyRegular, fontSize: 13, color: colors.textFaint, textAlign: "center" },
 });

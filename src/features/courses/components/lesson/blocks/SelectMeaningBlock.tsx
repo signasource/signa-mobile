@@ -143,6 +143,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontFamily: fonts.bodyRegular,
     fontSize: 13,
-    color: "#B0A7A0",
+    color: colors.textFaint,
   },
 });

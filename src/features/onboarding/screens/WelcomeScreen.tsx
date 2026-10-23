@@ -4,7 +4,7 @@ import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "@/navigation/AuthNavigator";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, alpha } from "@/theme";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Welcome">;
 
@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
     width: 260,
     height: 260,
     borderRadius: 130,
-    backgroundColor: "rgba(255,255,255,0.09)",
+    backgroundColor: alpha(colors.onColor, 0.09),
   },
   blobBottom: {
     position: "absolute",
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: "rgba(0,0,0,0.06)",
+    backgroundColor: alpha(colors.black, 0.06),
   },
   content: {
     flex: 1,
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     height: 272,
     borderRadius: 136,
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.3)",
+    borderColor: alpha(colors.onColor, 0.3),
   },
   avatarCircle: {
     width: 260,
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 30 },
     shadowOpacity: 0.28,
     shadowRadius: 25,

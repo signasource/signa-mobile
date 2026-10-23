@@ -76,6 +76,40 @@ export const colors = {
   avatarAmberLight: "#FEF0DE",
   avatarBlueLight: "#E4F1FB",
   avatarGreenLight: "#E9F3EB",
+
+  // Pure white / black (foreground on saturated fills; shadows and scrims)
+  onColor: "#FFFFFF",
+  black: "#000000",
+
+  // Text tones of specific surfaces
+  textBody: "#3D332E",
+  textSecondary: "#6E625C",
+  textFaint: "#B0A7A0",
+  placeholder: "#D6CCC4",
+  separatorDot: "#C9BFB7",
+  neutral400: "#B8B8BD",
+
+  // Lesson blocks
+  fillSoft: "#F7F2EC",
+  dangerText: "#B0503A",
+  matchSuccessTint: "#DCEFE0",
+  matchDangerTint: "#F6CFC3",
+  youtubeRed: "#FF0000",
+
+  // Disabled destructive action (delete-account dialog)
+  dangerDisabled: "#F6D7CD",
+  dangerDisabledText: "#D9A697",
+
+  // Misc
+  skyLight: "#D6EFFA",
+  tourScrim: "#181020",
+  connectionOk: "#34D339",
 };
+
+/** `rgba()` of a `#RRGGBB` token at the given opacity, e.g. `alpha(colors.text, 0.55)`. */
+export function alpha(hex: string, opacity: number): string {
+  const ch = (i: number) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
+  return `rgba(${ch(0)},${ch(1)},${ch(2)},${opacity})`;
+}
 
 export type ColorKey = keyof typeof colors;

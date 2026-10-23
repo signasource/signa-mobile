@@ -12,13 +12,13 @@ import Svg, { Path } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
-import { colors, fonts, fontSizes } from "@/theme";
+import { colors, fonts, fontSizes, alpha } from "@/theme";
 import { useTour } from "../TourContext";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const OVERLAY = "rgba(24,16,32,0.74)";
-const WELCOME_OVERLAY = "rgba(24,16,32,0.6)";
+const OVERLAY = alpha(colors.tourScrim, 0.74);
+const WELCOME_OVERLAY = alpha(colors.tourScrim, 0.6);
 const TAB_BAR_H = 76;
 const TOTAL_COACH_STEPS = 6;
 
@@ -274,8 +274,8 @@ function CoachBubble({
           activeOpacity={0.86}
         >
           <Text style={styles.nextBtnText}>{isLast ? "Listo" : "Siguiente"}</Text>
-          {!isLast && <Ionicons name="arrow-forward" size={18} color="#fff" />}
-          {isLast && <Ionicons name="checkmark" size={18} color="#fff" />}
+          {!isLast && <Ionicons name="arrow-forward" size={18} color={colors.onColor} />}
+          {isLast && <Ionicons name="checkmark" size={18} color={colors.onColor} />}
         </TouchableOpacity>
       </View>
     </View>
@@ -385,7 +385,7 @@ function CoachMarkStep({
       {/* Skip button */}
       <TouchableOpacity style={styles.skipBtn} onPress={onSkip} activeOpacity={0.8}>
         <Text style={styles.skipText}>Saltear</Text>
-        <Ionicons name="close" size={15} color="#fff" />
+        <Ionicons name="close" size={15} color={colors.onColor} />
       </TouchableOpacity>
 
       {/* Lisa body image — rendered behind the bubble (comes before it in JSX) */}
@@ -515,12 +515,12 @@ const styles = StyleSheet.create({
   spotBorder: {
     position: "absolute",
     borderWidth: 2.5,
-    borderColor: "rgba(255,255,255,0.95)",
+    borderColor: alpha(colors.onColor, 0.95),
   },
   spotPulse: {
     position: "absolute",
     borderWidth: 2.5,
-    borderColor: "rgba(255,255,255,0.7)",
+    borderColor: alpha(colors.onColor, 0.7),
   },
 
   // Skip button
@@ -534,15 +534,15 @@ const styles = StyleSheet.create({
     height: 32,
     paddingHorizontal: 13,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.16)",
+    backgroundColor: alpha(colors.onColor, 0.16),
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
+    borderColor: alpha(colors.onColor, 0.3),
     zIndex: 10,
   },
   skipText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 13,
-    color: "#fff",
+    color: colors.onColor,
   },
 
   // Bubble positioning wrapper
@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
     top: -9,
     width: 18,
     height: 18,
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     transform: [{ rotate: "45deg" }],
     borderRadius: 4,
     zIndex: 1,
@@ -568,7 +568,7 @@ const styles = StyleSheet.create({
     bottom: -9,
     width: 18,
     height: 18,
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     transform: [{ rotate: "45deg" }],
     borderRadius: 4,
     zIndex: 1,
@@ -576,10 +576,10 @@ const styles = StyleSheet.create({
 
   // Coach mark bubble card
   bubble: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     borderRadius: 22,
     padding: 18,
-    shadowColor: "rgba(24,16,32,1)",
+    shadowColor: colors.tourScrim,
     shadowOffset: { width: 0, height: 16 },
     shadowOpacity: 0.3,
     shadowRadius: 36,
@@ -626,7 +626,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyRegular,
     fontSize: 14,
     lineHeight: 21,
-    color: "#6E625C",
+    color: colors.textSecondary,
     marginTop: 7,
   },
   infoBox: {
@@ -675,7 +675,7 @@ const styles = StyleSheet.create({
   nextBtnText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 15,
-    color: "#fff",
+    color: colors.onColor,
   },
 
   // Lisa body (tab bar coach mark steps, rendered behind bubble)
@@ -711,7 +711,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   welcomeCardContent: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     borderRadius: 28,
     paddingHorizontal: 22,
     paddingTop: 20,
@@ -738,7 +738,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyRegular,
     fontSize: 14.5,
     lineHeight: 22,
-    color: "#6E625C",
+    color: colors.textSecondary,
     textAlign: "center",
     marginTop: 10,
   },
@@ -777,7 +777,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   closingCard: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     borderRadius: 28,
     paddingHorizontal: 24,
     paddingTop: 22,
@@ -807,7 +807,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyRegular,
     fontSize: 14.5,
     lineHeight: 22,
-    color: "#6E625C",
+    color: colors.textSecondary,
     textAlign: "center",
     marginTop: 10,
   },

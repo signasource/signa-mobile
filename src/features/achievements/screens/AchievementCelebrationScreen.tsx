@@ -54,7 +54,7 @@ export function AchievementCelebrationScreen({ navigation, route }: Props) {
             <StreakMedal days={criteriaValue} size={72} animated />
           ) : (
             <View style={[styles.iconBadge, { backgroundColor: theme.background }]}>
-              <Ionicons name={theme.icon} size={34} color={colors.onDark} />
+              <Ionicons name={theme.icon} size={34} color={colors.onColor} />
             </View>
           )}
           <View style={styles.rewardInfo}>
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     fontSize: 34,
     lineHeight: 38,
     letterSpacing: -1.1,
-    color: colors.onDark,
+    color: colors.onColor,
     textAlign: "center",
   },
   subtitle: {

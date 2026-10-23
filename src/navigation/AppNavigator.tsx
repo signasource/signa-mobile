@@ -73,7 +73,7 @@ export function AppNavigator() {
     <Stack.Navigator
       screenOptions={{
         headerStyle: { backgroundColor: colors.text },
-        headerTintColor: colors.onDark,
+        headerTintColor: colors.onColor,
         headerTitleStyle: { fontFamily: fonts.bodySemiBold },
       }}
     >

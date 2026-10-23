@@ -3,7 +3,7 @@ import { Modal, View, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/Text";
 import { Button } from "@/components/Button";
-import { colors, fonts, fontSizes } from "@/theme";
+import { colors, fonts, fontSizes, alpha } from "@/theme";
 import Candado from "@assets/ilus/candado.svg";
 
 interface SessionExpiredModalProps {
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.45)",
+    backgroundColor: alpha(colors.black, 0.45),
   },
   card: {
     backgroundColor: colors.surface,

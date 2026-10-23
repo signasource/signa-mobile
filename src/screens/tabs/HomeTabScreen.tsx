@@ -15,7 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { BottomTabNavigationProp, BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import { CompositeNavigationProp, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { colors, fonts, fontSizes } from "@/theme";
+import { colors, fonts, fontSizes, alpha } from "@/theme";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { TabParamList } from "@/navigation/TabNavigator";
@@ -709,7 +709,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     maxWidth: "80%",
-    backgroundColor: "rgba(255,255,255,0.16)",
+    backgroundColor: alpha(colors.onColor, 0.16),
     borderRadius: 999,
     paddingVertical: 6,
     paddingHorizontal: 12,
@@ -746,7 +746,7 @@ const styles = StyleSheet.create({
   // Course selector sheet
   sheetBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(36,26,22,0.45)",
+    backgroundColor: alpha(colors.text, 0.45),
     justifyContent: "flex-end",
   },
   sheet: {
@@ -1022,7 +1022,7 @@ const styles = StyleSheet.create({
   // Modal (centered overlay)
   modalBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(36,26,22,0.45)",
+    backgroundColor: alpha(colors.text, 0.45),
     alignItems: "center",
     justifyContent: "center",
     padding: 24,

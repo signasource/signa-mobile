@@ -121,7 +121,7 @@ function ChallengeRow({
       disabled={completed}
     >
       <View style={[styles.check, completed && styles.checkDone]}>
-        {completed ? <Ionicons name="checkmark" size={14} color={colors.onDark} /> : null}
+        {completed ? <Ionicons name="checkmark" size={14} color={colors.onColor} /> : null}
       </View>
 
       <View style={styles.body}>
@@ -148,7 +148,7 @@ function ChallengeRow({
           activeOpacity={0.85}
         >
           {claiming ? (
-            <ActivityIndicator size="small" color={colors.onDark} />
+            <ActivityIndicator size="small" color={colors.onColor} />
           ) : (
             <Text style={styles.claimText}>Reclamar</Text>
           )}

@@ -4,7 +4,7 @@ import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "@/navigation/AuthNavigator";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, alpha } from "@/theme";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Intro">;
 
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
-    backgroundColor: "rgba(255,255,255,0.4)",
+    backgroundColor: alpha(colors.onColor, 0.4),
   },
   circleTopLeft: {
     position: "absolute",
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: "rgba(255,255,255,0.22)",
+    backgroundColor: alpha(colors.onColor, 0.22),
   },
   lisaPlaceholder: {
     position: "absolute",
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 9,
-    backgroundColor: "rgba(255,255,255,0.85)",
+    backgroundColor: alpha(colors.onColor, 0.85),
     paddingVertical: 8,
     paddingLeft: 8,
     paddingRight: 15,
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   badgeAvatarText: {
     fontFamily: fonts.displayBold,
     fontSize: 17,
-    color: colors.onDark,
+    color: colors.onColor,
   },
   badgeName: {
     fontFamily: fonts.bodyBold,
