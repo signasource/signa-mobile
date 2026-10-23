@@ -22,7 +22,6 @@ export const authApi = {
   forgotPassword: (payload: ForgotPasswordRequest) =>
     apiClient.post<void>("/auth/forgot-password", payload),
 
-  // El token va como query param, separado del body
-  resetPassword: (payload: ResetPasswordRequest, token: string) =>
-    apiClient.post<void>("/auth/reset-password", payload, { params: { token } }),
+  resetPassword: (payload: ResetPasswordRequest) =>
+    apiClient.post<void>("/auth/reset-password", payload),
 };

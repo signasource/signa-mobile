@@ -39,7 +39,7 @@ Onboarding + authentication screens. Default `initialRoute`: `Welcome`. `screenO
 | `Register` | — | `screens/auth/RegisterScreen` |
 | `ForgotPassword` | — | `screens/auth/ForgotPasswordScreen` |
 | `ForgotPasswordSent` | `{ email: string }` (required) | `screens/auth/ForgotPasswordSentScreen` |
-| `ResetPassword` | `{ token?: string }` | `screens/auth/ResetPasswordScreen` |
+| `ResetPassword` | `{ email: string }` (required) | `screens/auth/ResetPasswordScreen` |
 
 Onboarding progress bar: rendered as a **fixed overlay** (`OnboardingProgressOverlay`) outside the `Stack.Navigator`, so it stays still during transitions. `ONBOARDING_STEP` maps route → step (`Intro:1, DailyGoal:2, Experience:3, Motivation:4`); progress = `step / ONBOARDING_TOTAL_STEPS` (from `@/features/onboarding/types`). Routes outside the map show no bar.
 

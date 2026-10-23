@@ -53,7 +53,7 @@ export function ForgotPasswordScreen({ navigation }: Props) {
 
       <AuthHeading
         title="¿Olvidaste tu contraseña?"
-        subtitle="Ingresá tu email y te mandamos un enlace para crear una nueva."
+        subtitle="Ingresá tu email y te mandamos un código para crear una nueva."
         style={styles.textBlock}
       />
 
@@ -67,7 +67,7 @@ export function ForgotPasswordScreen({ navigation }: Props) {
           keyboardType="email-address"
           error={error || null}
         />
-        <PrimaryButton label="Enviar enlace" onPress={handleSubmit} loading={loading} />
+        <PrimaryButton label="Enviar código" onPress={handleSubmit} loading={loading} />
       </View>
 
       <AuthFooter

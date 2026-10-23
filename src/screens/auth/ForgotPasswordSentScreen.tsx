@@ -28,16 +28,16 @@ export function ForgotPasswordSentScreen({ navigation, route }: Props) {
       {/* Text */}
       <Text style={styles.heading}>Revisá tu correo</Text>
       <Text style={styles.body}>
-        Te enviamos un enlace a{" "}
+        Si hay una cuenta con{" "}
         <Text style={styles.emailHighlight}>{email}</Text>
-        {" "}para restablecer tu contraseña.
+        , te enviamos un código de 6 dígitos para restablecer tu contraseña. Vence en 15 minutos.
       </Text>
 
       {/* Actions */}
       <View style={styles.actions}>
         <PrimaryButton
-          label="Volver a iniciar sesión"
-          onPress={() => navigation.navigate("Login")}
+          label="Ingresar código"
+          onPress={() => navigation.navigate("ResetPassword", { email })}
           style={styles.btn}
         />
 
@@ -47,9 +47,9 @@ export function ForgotPasswordSentScreen({ navigation, route }: Props) {
             style={styles.resendLink}
             onPress={() => navigation.navigate("ForgotPassword")}
             accessibilityRole="link"
-            accessibilityLabel="Reenviar"
+            accessibilityLabel="Probar con otro correo"
           >
-            Reenviar
+            Probar con otro correo
           </Text>
         </Text>
       </View>
