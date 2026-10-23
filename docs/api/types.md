@@ -8,7 +8,7 @@
 - `LoginRequest { identifier, password }` — `identifier` is email or username.
 - `RegisterRequest { email, username, password, name, lastName }`.
 - `ForgotPasswordRequest { email }`.
-- `ResetPasswordRequest { newPassword }` — token passed separately (see [endpoints.md](./endpoints.md)).
+- `ResetPasswordRequest { email, code, newPassword }` — `code` is the 6-digit code from the email.
 - `ChangePasswordRequest { currentPassword, newPassword }`.
 - `ApiErrorResponse { message, status, timestamp }` — backend error shape; UI error messages come from `err?.response?.data?.message`.
 - `User { email, name? }` — `name` is best-effort local cache (see [session-persistence.md](./session-persistence.md)).
