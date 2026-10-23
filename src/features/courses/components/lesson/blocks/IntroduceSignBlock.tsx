@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, alpha } from "@/theme";
 import { IntroduceSignConfig } from "@/features/courses/lessonContent.types";
 import { SignAnimation } from "../SignAnimation";
 import { LessonButton } from "../LessonButton";
@@ -110,7 +110,7 @@ export function IntroduceSignBlock({ config, onContinue }: IntroduceSignBlockPro
 
                 <OptionRow
                   icon="logo-youtube"
-                  iconColor="#FF0000"
+                  iconColor={colors.youtubeRed}
                   label="Ver en YouTube"
                   onPress={() => {
                     Linking.openURL(youtubeUrl);
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   // Modal
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(36,26,22,0.55)",
+    backgroundColor: alpha(colors.text, 0.55),
     justifyContent: "flex-end",
   },
   sheet: {

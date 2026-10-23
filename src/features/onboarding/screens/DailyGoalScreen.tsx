@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   checkSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
-  checkMark: { color: colors.onDark, fontSize: 14, fontFamily: fonts.bodyBold },
+  checkMark: { color: colors.onColor, fontSize: 14, fontFamily: fonts.bodyBold },
   btn: {
     marginTop: 26,
     flexDirection: "row",

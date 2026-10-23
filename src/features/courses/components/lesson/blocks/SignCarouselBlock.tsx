@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { StyleSheet, TouchableOpacity, View, ViewStyle } from "react-native";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, alpha } from "@/theme";
 import { MultiGlbView } from "@/features/animations/MultiGlbView";
 import { getGlbUrl } from "@/features/animations/glbUrl";
 import { SignPlaceholder } from "../SignPlaceholder";
@@ -87,7 +87,7 @@ const animStyles = StyleSheet.create({
     top: 14,
     left: 14,
     zIndex: 1,
-    backgroundColor: "rgba(255,255,255,0.94)",
+    backgroundColor: alpha(colors.onColor, 0.94),
     borderRadius: 8,
     paddingVertical: 4,
     paddingHorizontal: 9,
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   stackLayerBack: { left: 26, right: 26, top: 20 },
-  stackLayerMid: { left: 13, right: 13, top: 10, backgroundColor: "#F7F2EC" },
+  stackLayerMid: { left: 13, right: 13, top: 10, backgroundColor: colors.fillSoft },
   stackFront: { position: "absolute", left: 0, right: 0, top: 0 },
   wrongMark: {
     position: "absolute",

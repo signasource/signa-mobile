@@ -3,7 +3,7 @@ import { View, StyleSheet, Modal, Pressable, TouchableOpacity, ActivityIndicator
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, alpha } from "@/theme";
 
 export interface ConfirmSpec {
   icon: keyof typeof Ionicons.glyphMap;
@@ -63,7 +63,7 @@ export function ConfirmSheet({ spec, busy = false, onConfirm, onClose }: Props) 
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(36,26,22,0.55)",
+    backgroundColor: alpha(colors.text, 0.55),
     justifyContent: "flex-end",
   },
   sheet: {

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, alpha } from "@/theme";
 import { VisualRecognitionConfig } from "@/features/courses/lessonContent.types";
 import { SignPlaceholder } from "../SignPlaceholder";
 import { MultiGlbView } from "@/features/animations/MultiGlbView";
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 12,
     left: 12,
-    backgroundColor: "rgba(255,255,255,0.94)",
+    backgroundColor: alpha(colors.onColor, 0.94),
     borderRadius: 8,
     paddingVertical: 4,
     paddingHorizontal: 9,
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(255,255,255,0.94)",
+    backgroundColor: alpha(colors.onColor, 0.94),
     borderRadius: 999,
     paddingVertical: 7,
     paddingHorizontal: 13,
@@ -225,6 +225,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 10,
   },
-  counterText: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: "#B0A7A0" },
+  counterText: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.textFaint },
   footer: { padding: 20, paddingTop: 12, gap: 12 },
 });

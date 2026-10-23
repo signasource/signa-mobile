@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyRegular,
     fontSize: 15,
     lineHeight: 23,
-    color: "#3D332E",
+    color: colors.textBody,
     textAlign: "justify",
   },
   citation: {

@@ -5,7 +5,7 @@ import { Animated, StyleSheet, TextInput, View } from "react-native";
 
 import { Text } from "@/components/Text";
 import { LiveSignRecognizer } from "@/features/ml";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, alpha } from "@/theme";
 import { LessonButton } from "../LessonButton";
 import { SignPip } from "../SignPip";
 import {
@@ -138,7 +138,7 @@ export function SpellNameBlock({ config, active, ultimo, xp, onAnswer, onContinu
             value={nombre}
             onChangeText={(t) => setNombre(limpiar(t, tope))}
             placeholder="NOMBRE"
-            placeholderTextColor="#D6CCC4"
+            placeholderTextColor={colors.placeholder}
             autoCapitalize="characters"
             autoCorrect={false}
             maxLength={tope}
@@ -333,11 +333,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "rgba(255,255,255,0.95)",
+    backgroundColor: alpha(colors.onColor, 0.95),
     borderRadius: 18,
     paddingVertical: 12,
     paddingHorizontal: 14,
-    shadowColor: "#241A16",
+    shadowColor: colors.text,
     shadowOpacity: 0.16,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 8 },

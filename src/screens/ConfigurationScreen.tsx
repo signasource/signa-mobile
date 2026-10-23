@@ -14,7 +14,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AppStackParamList } from "@/navigation/AppNavigator";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, headerColors, alpha } from "@/theme";
+import { isLightColor, luminance } from "@/utils/color";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { BackButton } from "@/components/BackButton";
 import { useAuth } from "@/context/AuthContext";
@@ -30,39 +31,6 @@ type VisibilityId = "PUBLIC" | "PRIVATE";
 const SWATCH_COLS = 6;
 const SWATCH_GAP = 10;
 const SWATCH_CELL_WIDTH: DimensionValue = `${100 / SWATCH_COLS}%`;
-
-const HEADER_COLORS = [
-  { name: "Blanco", hex: "#FFFFFF" },
-  { name: "Hueso", hex: "#F4F3F0" },
-  { name: "Niebla", hex: "#E9E9EB" },
-  { name: "Arena", hex: "#EDE3D2" },
-  { name: "Rosa pálido", hex: "#F7DFE4" },
-  { name: "Menta clara", hex: "#DCEFE4" },
-  { name: "Cielo claro", hex: "#DCE8F7" },
-  { name: "Lavanda", hex: "#E3DDF9" },
-  { name: "Acero", hex: "#5A6B87" },
-  { name: "Grafito", hex: "#3A3A3F" },
-  { name: "Negro", hex: "#111111" },
-  { name: "Ciruela", hex: "#8E3B76" },
-  { name: "Violeta", hex: "#7857FF" },
-  { name: "Índigo", hex: "#4B2ECC" },
-  { name: "Marino", hex: "#1B3A8C" },
-  { name: "Azul", hex: "#1E88E5" },
-  { name: "Petróleo", hex: "#175E6B" },
-  { name: "Turquesa", hex: "#17B7A6" },
-  { name: "Verde", hex: "#35A853" },
-  { name: "Bosque", hex: "#1F6B47" },
-  { name: "Oliva", hex: "#7A8B36" },
-  { name: "Amarillo", hex: "#FFC61A" },
-  { name: "Ámbar", hex: "#FB8B24" },
-  { name: "Coral", hex: "#F2603C" },
-  { name: "Ladrillo", hex: "#B4482B" },
-  { name: "Rojo", hex: "#E03B3B" },
-  { name: "Vino", hex: "#9B2242" },
-  { name: "Rosa", hex: "#E8548F" },
-  { name: "Fucsia", hex: "#C13BC9" },
-  { name: "Chocolate", hex: "#6B4423" },
-];
 
 const FONT_SIZES: { id: FontSizeId; label: string; chipSize: number }[] = [
   { id: "SMALL", label: "Chico", chipSize: 12 },
@@ -88,21 +56,6 @@ const MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, "
 const ITEM_H = 40;
 const WHEEL_PAD = ITEM_H * 2;
 
-function getLum(hex: string): number {
-  const p = (s: string) => parseInt(s, 16) / 255;
-  const lin = (c: number) =>
-    c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-  return (
-    0.2126 * lin(p(hex.slice(1, 3))) +
-    0.7152 * lin(p(hex.slice(3, 5))) +
-    0.0722 * lin(p(hex.slice(5, 7)))
-  );
-}
-
-function isLight(hex: string): boolean {
-  return getLum(hex) > 0.42;
-}
-
 function mixToward(hex: string, target: string, t: number): string {
   const ch = (h: string, i: number) => parseInt(h.slice(1 + i * 2, 3 + i * 2), 16);
   const out = [0, 1, 2].map((i) => Math.round(ch(hex, i) * (1 - t) + ch(target, i) * t));
@@ -112,8 +65,8 @@ function mixToward(hex: string, target: string, t: number): string {
 function fillAccent(hex: string): string {
   let out = hex;
   for (let t = 0; t <= 1; t += 0.05) {
-    out = mixToward(hex, "#241A16", t);
-    if (getLum(out) <= 0.175) break;
+    out = mixToward(hex, colors.text, t);
+    if (luminance(out) <= 0.175) break;
   }
   return out;
 }
@@ -126,7 +79,7 @@ export function ConfigurationScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(true);
 
   // Settings state
-  const [headerColor, setHeaderColor] = useState("#7857FF");
+  const [headerColor, setHeaderColor] = useState(colors.primary);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [dailyNotificationEnabled, setDailyNotificationEnabled] = useState(false);
@@ -272,14 +225,14 @@ export function ConfigurationScreen({ navigation, route }: Props) {
   }
 
   // ─── derived ──────────────────────────────────────────────────
-  const headerLight = isLight(headerColor);
+  const headerLight = isLightColor(headerColor);
   const onHeader = headerLight ? colors.neutral900 : colors.surface;
   const accent = fillAccent(headerColor);
   const accentSoft = accent + "1F";
 
   const currentVis = VISIBILITIES.find((v) => v.id === accountVisibility) ?? VISIBILITIES[0];
   const currentColorName =
-    HEADER_COLORS.find((c) => c.hex.toLowerCase() === headerColor.toLowerCase())?.name ??
+    headerColors.find((c) => c.hex.toLowerCase() === headerColor.toLowerCase())?.name ??
     headerColor;
   const fullName = [displayName, lastName].filter(Boolean).join(" ");
 
@@ -589,9 +542,9 @@ export function ConfigurationScreen({ navigation, route }: Props) {
               {sheet === "color" && (
                 <>
                   <View style={styles.colorGrid}>
-                    {HEADER_COLORS.map((c) => {
+                    {headerColors.map((c) => {
                       const selected = c.hex.toLowerCase() === headerColor.toLowerCase();
-                      const light = isLight(c.hex);
+                      const light = isLightColor(c.hex);
                       return (
                         <View key={c.hex} style={styles.colorCell}>
                           <TouchableOpacity
@@ -602,7 +555,7 @@ export function ConfigurationScreen({ navigation, route }: Props) {
                                 borderColor: selected
                                   ? colors.neutral900
                                   : light
-                                    ? "rgba(0,0,0,0.12)"
+                                    ? alpha(colors.black, 0.12)
                                     : "transparent",
                               },
                             ]}
@@ -839,7 +792,7 @@ export function ConfigurationScreen({ navigation, route }: Props) {
                         dialog === "delete"
                           ? deleteReady
                             ? colors.danger
-                            : "#F6D7CD"
+                            : colors.dangerDisabled
                           : colors.text,
                     },
                   ]}
@@ -860,7 +813,7 @@ export function ConfigurationScreen({ navigation, route }: Props) {
                           dialog === "delete"
                             ? deleteReady
                               ? colors.surface
-                              : "#D9A697"
+                              : colors.dangerDisabledText
                             : colors.onDark,
                       },
                     ]}
@@ -938,7 +891,7 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.12)",
+    borderColor: alpha(colors.black, 0.12),
     flexShrink: 0,
   },
 
@@ -964,7 +917,7 @@ const styles = StyleSheet.create({
   },
   fontItemSelected: {
     backgroundColor: colors.surface,
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.12,
     shadowRadius: 3,
@@ -987,7 +940,7 @@ const styles = StyleSheet.create({
     height: 27,
     borderRadius: 14,
     backgroundColor: colors.surface,
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.22,
     shadowRadius: 3,
@@ -1072,7 +1025,7 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.45)",
+    backgroundColor: alpha(colors.black, 0.45),
   },
   sheetCard: {
     backgroundColor: colors.surface,
@@ -1170,7 +1123,7 @@ const styles = StyleSheet.create({
   wheelItem: { height: ITEM_H, alignItems: "center", justifyContent: "center" },
   wheelText: { fontFamily: fonts.displayBold },
   wheelTextSelected: { fontSize: 26, color: colors.neutral900 },
-  wheelTextDim: { fontSize: 20, color: "#B8B8BD" },
+  wheelTextDim: { fontSize: 20, color: colors.neutral400 },
   wheelSep: {
     fontFamily: fonts.displayBold,
     fontSize: 24,

@@ -35,7 +35,7 @@ export function ConnectionTestScreen() {
       {result && (
         <Card style={styles.mt}>
           <View style={styles.row}>
-            <View style={[styles.dot, { backgroundColor: result.reachable ? colors.success : colors.danger }]} />
+            <View style={[styles.dot, { backgroundColor: result.reachable ? colors.connectionOk : colors.danger }]} />
             <Text style={styles.resultTitle}>{result.reachable ? "Backend alcanzable" : "Sin conexion"}</Text>
           </View>
           {result.status !== undefined && <Text style={styles.detail}>Status HTTP: {result.status}</Text>}

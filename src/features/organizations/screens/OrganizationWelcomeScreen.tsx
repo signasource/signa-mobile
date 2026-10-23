@@ -11,7 +11,7 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { CommonActions } from "@react-navigation/native";
 import { AppStackParamList } from "@/navigation/AppNavigator";
 import { Text } from "@/components/Text";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, alpha } from "@/theme";
 
 type Props = NativeStackScreenProps<AppStackParamList, "OrganizationWelcome">;
 
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 28,
-    backgroundColor: "rgba(255,255,255,0.18)",
+    backgroundColor: alpha(colors.onColor, 0.18),
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 28,
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   subheadline: {
     fontFamily: fonts.bodyRegular,
     fontSize: 15,
-    color: "rgba(255,255,255,0.75)",
+    color: alpha(colors.onColor, 0.75),
     textAlign: "center",
     lineHeight: 22,
     marginBottom: 28,
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    backgroundColor: alpha(colors.onColor, 0.12),
     borderRadius: 16,
     padding: 14,
   },
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
   moreText: {
     fontFamily: fonts.bodyRegular,
     fontSize: 13,
-    color: "rgba(255,255,255,0.6)",
+    color: alpha(colors.onColor, 0.6),
     textAlign: "center",
     paddingTop: 4,
   },

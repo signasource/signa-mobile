@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
     width: 3,
     height: 3,
     borderRadius: 2,
-    backgroundColor: "#C9BFB7",
+    backgroundColor: colors.separatorDot,
     flexShrink: 0,
   },
   lessonName: {

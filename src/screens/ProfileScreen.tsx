@@ -20,7 +20,7 @@ import { CompositeNavigationProp, useFocusEffect } from "@react-navigation/nativ
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { TabParamList } from "@/navigation/TabNavigator";
 import { AppStackParamList } from "@/navigation/AppNavigator";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, headerColors, alpha } from "@/theme";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SegmentedControl, Segment } from "@/components/SegmentedControl";
 import { SubTabs, SubTab } from "@/components/SubTabs";
@@ -65,39 +65,6 @@ const SWATCH_CELL_WIDTH: DimensionValue = `${100 / SWATCH_COLS}%`;
 const ACH_COLS = 3;
 const ACH_GUTTER = 14;
 const ACH_CELL_WIDTH: DimensionValue = `${100 / ACH_COLS}%`;
-
-const HEADER_COLORS = [
-  { name: "Blanco", hex: "#FFFFFF" },
-  { name: "Hueso", hex: "#F4F3F0" },
-  { name: "Niebla", hex: "#E9E9EB" },
-  { name: "Arena", hex: "#EDE3D2" },
-  { name: "Rosa pálido", hex: "#F7DFE4" },
-  { name: "Menta clara", hex: "#DCEFE4" },
-  { name: "Cielo claro", hex: "#DCE8F7" },
-  { name: "Lavanda", hex: "#E3DDF9" },
-  { name: "Acero", hex: "#5A6B87" },
-  { name: "Grafito", hex: "#3A3A3F" },
-  { name: "Negro", hex: "#111111" },
-  { name: "Ciruela", hex: "#8E3B76" },
-  { name: "Violeta", hex: "#7857FF" },
-  { name: "Índigo", hex: "#4B2ECC" },
-  { name: "Marino", hex: "#1B3A8C" },
-  { name: "Azul", hex: "#1E88E5" },
-  { name: "Petróleo", hex: "#175E6B" },
-  { name: "Turquesa", hex: "#17B7A6" },
-  { name: "Verde", hex: "#35A853" },
-  { name: "Bosque", hex: "#1F6B47" },
-  { name: "Oliva", hex: "#7A8B36" },
-  { name: "Amarillo", hex: "#FFC61A" },
-  { name: "Ámbar", hex: "#FB8B24" },
-  { name: "Coral", hex: "#F2603C" },
-  { name: "Ladrillo", hex: "#B4482B" },
-  { name: "Rojo", hex: "#E03B3B" },
-  { name: "Vino", hex: "#9B2242" },
-  { name: "Rosa", hex: "#E8548F" },
-  { name: "Fucsia", hex: "#C13BC9" },
-  { name: "Chocolate", hex: "#6B4423" },
-];
 
 const DEFAULT_INVENTORY: UserInventory = {
   gems: 0,
@@ -749,7 +716,7 @@ export function ProfileScreen({ navigation }: Props) {
               }}
               activeOpacity={canBuyLife ? 0.8 : 1}
             >
-              <Ionicons name="add-circle" size={15} color={canBuyLife ? colors.onDark : "#B8B8BD"} />
+              <Ionicons name="add-circle" size={15} color={canBuyLife ? colors.onDark : colors.neutral400} />
               <Text style={[styles.lifeBtnText, !canBuyLife && styles.lifeBtnTextDisabled]}>
                 Vida extra
               </Text>
@@ -759,7 +726,7 @@ export function ProfileScreen({ navigation }: Props) {
               onPress={() => { if (canUseInfinite) { setInfiniteActive(true); setInfiniteQty((q) => q - 1); } }}
               activeOpacity={canUseInfinite ? 0.8 : 1}
             >
-              <Ionicons name="infinite" size={16} color={canUseInfinite ? colors.neutral900 : "#B8B8BD"} />
+              <Ionicons name="infinite" size={16} color={canUseInfinite ? colors.neutral900 : colors.neutral400} />
               <Text style={[styles.infiniteBtnText, !canUseInfinite && styles.infiniteBtnTextDisabled]}>
                 Vidas infinitas
               </Text>
@@ -975,7 +942,7 @@ export function ProfileScreen({ navigation }: Props) {
         title="Color del encabezado"
       >
         <View style={styles.colorGrid}>
-          {HEADER_COLORS.map((c) => {
+          {headerColors.map((c) => {
             const selected = c.hex.toLowerCase() === headerColor.toLowerCase();
             const light = isLightColor(c.hex);
             return (
@@ -983,7 +950,7 @@ export function ProfileScreen({ navigation }: Props) {
                 <TouchableOpacity
                   style={[
                     styles.colorSwatch,
-                    { backgroundColor: c.hex, borderColor: selected ? colors.neutral900 : light ? "rgba(0,0,0,0.12)" : "transparent" },
+                    { backgroundColor: c.hex, borderColor: selected ? colors.neutral900 : light ? alpha(colors.black, 0.12) : "transparent" },
                   ]}
                   onPress={() => applyHeaderColor(c.hex)}
                   activeOpacity={0.8}
@@ -1489,7 +1456,7 @@ const styles = StyleSheet.create({
     color: colors.onDark,
   },
   lifeBtnTextDisabled: {
-    color: "#B8B8BD",
+    color: colors.neutral400,
   },
   infiniteBtn: {
     flex: 1,
@@ -1510,7 +1477,7 @@ const styles = StyleSheet.create({
     color: colors.neutral900,
   },
   infiniteBtnTextDisabled: {
-    color: "#B8B8BD",
+    color: colors.neutral400,
   },
   invRow: {
     flexDirection: "row",
@@ -1618,7 +1585,7 @@ const styles = StyleSheet.create({
     color: colors.successDark,
   },
   boosterActionTextDisabled: {
-    color: "#B8B8BD",
+    color: colors.neutral400,
   },
 
   // Achievements empty state
@@ -1665,7 +1632,7 @@ const styles = StyleSheet.create({
   // Modals / sheets
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    backgroundColor: alpha(colors.black, 0.45),
     justifyContent: "flex-end",
   },
   sheet: {

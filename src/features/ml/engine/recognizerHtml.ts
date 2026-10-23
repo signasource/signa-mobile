@@ -18,6 +18,8 @@
  *   - N frames consecutivos por encima del umbral para confirmar
  */
 
+import { alpha, colors } from "@/theme";
+
 export interface RecognizerConfig {
   /** Carpeta file:// donde están el wasm, los .task y el .tflite. */
   baseUrl: string;
@@ -80,12 +82,12 @@ export function buildRecognizerHtml(config: RecognizerConfig): string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <style>
-  html, body { margin: 0; height: 100%; background: #EBE3DB; overflow: hidden; }
+  html, body { margin: 0; height: 100%; background: ${colors.fillDark}; overflow: hidden; }
   #cam, #ovl { position: absolute; inset: 0; width: 100%; height: 100%; transform: scaleX(-1); }
   #cam { object-fit: cover; display: block; }
   #ovl { pointer-events: none; }
   #err { position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
-         padding: 24px; font: 500 14px/1.5 system-ui, sans-serif; color: #241A16; text-align: center; }
+         padding: 24px; font: 500 14px/1.5 system-ui, sans-serif; color: ${colors.text}; text-align: center; }
 </style>
 </head>
 <body>
@@ -300,7 +302,7 @@ try {
   // Sólo torso y brazos: las piernas no aportan a la seña y ensucian el cuadro.
   const POSE_LINKS = [[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24]];
   const POSE_POINTS = [11,12,13,14,15,16,23,24];
-  const ACENTO = { idle: '#7857FF' };
+  const ACENTO = { idle: '${colors.primary}' };
 
   const ovl = document.getElementById('ovl');
 
@@ -380,7 +382,7 @@ try {
 
     ctx.lineCap = 'round';
     const trazo = (links, pts, halo, ancho) => {
-      ctx.strokeStyle = halo ? 'rgba(255,255,255,.5)' : render.accent;
+      ctx.strokeStyle = halo ? '${alpha(colors.onColor, 0.5)}' : render.accent;
       ctx.lineWidth = ancho;
       links.forEach(([a, b]) => {
         if (!pts[a] || !pts[b]) return;
@@ -398,7 +400,7 @@ try {
       if (!render.pose[i]) return;
       const p = map(render.pose[i]);
       ctx.beginPath(); ctx.arc(p[0], p[1], 5, 0, 6.2832);
-      ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.fill();
+      ctx.fillStyle = '${alpha(colors.onColor, 0.85)}'; ctx.fill();
       ctx.beginPath(); ctx.arc(p[0], p[1], 3.4, 0, 6.2832);
       ctx.fillStyle = render.accent; ctx.fill();
     });
@@ -413,7 +415,7 @@ try {
         const p = map(p0);
         const r = i === 0 ? 5 : TIPS.includes(i) ? 4.2 : 3;
         ctx.beginPath(); ctx.arc(p[0], p[1], r + 1.5, 0, 6.2832);
-        ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fill();
+        ctx.fillStyle = '${alpha(colors.onColor, 0.9)}'; ctx.fill();
         ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, 6.2832);
         ctx.fillStyle = render.accent; ctx.fill();
       });

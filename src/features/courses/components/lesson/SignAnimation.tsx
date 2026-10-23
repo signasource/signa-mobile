@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { StyleSheet, View, ViewStyle } from "react-native";
 import { Text } from "@/components/Text";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, alpha } from "@/theme";
 import { GlbAnimationView } from "@/features/animations/GlbAnimationView";
 import { getGlbUrl } from "@/features/animations/glbUrl";
 import { SignPlaceholder } from "./SignPlaceholder";
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     top: 14,
     left: 14,
     zIndex: 1,
-    backgroundColor: "rgba(255,255,255,0.94)",
+    backgroundColor: alpha(colors.onColor, 0.94),
     borderRadius: 8,
     paddingVertical: 4,
     paddingHorizontal: 9,

@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
-import { colors, fonts, fontSizes } from "@/theme";
+import { colors, fonts, fontSizes, alpha } from "@/theme";
 
 export interface SectionFeature {
   icon: keyof typeof Ionicons.glyphMap;
@@ -105,7 +105,7 @@ export function SectionWelcomeModal({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(24,16,32,0.5)",
+    backgroundColor: alpha(colors.tourScrim, 0.5),
     justifyContent: "flex-end",
   },
   sheet: {
@@ -125,21 +125,21 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 1.1,
     textTransform: "uppercase",
-    color: "rgba(255,255,255,0.85)",
+    color: alpha(colors.onColor, 0.85),
   },
   headerTitle: {
     fontFamily: fonts.displayExtraBold,
     fontSize: 28,
     lineHeight: 34,
     letterSpacing: -0.8,
-    color: "#fff",
+    color: colors.onColor,
     marginTop: 6,
   },
   headerSubtitle: {
     fontFamily: fonts.bodyRegular,
     fontSize: 14,
     lineHeight: 20,
-    color: "rgba(255,255,255,0.85)",
+    color: alpha(colors.onColor, 0.85),
     marginTop: 6,
   },
   scroll: {
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
   primaryText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: fontSizes.md,
-    color: "#fff",
+    color: colors.onColor,
   },
   secondaryBtn: {
     height: 46,

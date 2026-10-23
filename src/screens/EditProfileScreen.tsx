@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   primaryBtnText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 16,
-    color: "#FFFFFF",
+    color: colors.onColor,
   },
   cancelBtn: {
     alignItems: "center",

@@ -12,7 +12,7 @@ import Ovejas from "@assets/ilus/ovejas.svg";
 
 type Props = NativeStackScreenProps<AppStackParamList, "FriendAccepted">;
 
-const SKY_BLUE = "#D6EFFA";
+const SKY_BLUE = colors.skyLight;
 const OVEJAS_RATIO = 1072.5 / 932.23;
 
 export function FriendAcceptedScreen({ navigation, route }: Props) {

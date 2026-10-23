@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Animated, LayoutChangeEvent, PanResponder, Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, alpha } from "@/theme";
 import { SignAnimation } from "./SignAnimation";
 
 const PIP_W = 104;
@@ -192,8 +192,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: colors.fill,
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.9)",
-    shadowColor: "#241A16",
+    borderColor: alpha(colors.onColor, 0.9),
+    shadowColor: colors.text,
     shadowOpacity: 0.28,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 10 },
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: "rgba(255,255,255,0.94)",
+    backgroundColor: alpha(colors.onColor, 0.94),
     alignItems: "center",
     justifyContent: "center",
   },
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     left: 7,
     right: 7,
     bottom: 7,
-    backgroundColor: "rgba(36,26,22,0.72)",
+    backgroundColor: alpha(colors.text, 0.72),
     borderRadius: 8,
     paddingVertical: 4,
     paddingHorizontal: 6,
