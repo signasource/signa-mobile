@@ -76,16 +76,6 @@ export const colors = {
   avatarAmberLight: "#FEF0DE",
   avatarBlueLight: "#E4F1FB",
   avatarGreenLight: "#E9F3EB",
-
-  // Legacy aliases kept for existing app screens
-  accent: "#7857FF",
-  white: "#FFFFFF",
-  azulOscuro: "#241A16",
-  blanco: "#FAF6F2",
-  morado: "#7857FF",
-  verde: "#34D339",
-  amarillo: "#FBBF24",
-  rosado: "#7857FF",
 };
 
 export type ColorKey = keyof typeof colors;

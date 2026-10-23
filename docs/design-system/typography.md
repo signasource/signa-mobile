@@ -22,7 +22,7 @@ opt-in per style rather than a blanket default.
 
 - **Bricolage Grotesque** (display/titles): `fonts.displaySemiBold`, `fonts.displayBold`, `fonts.displayExtraBold`.
 - **Figtree** (body, labels, buttons): `fonts.bodyRegular`, `fonts.bodyMedium`, `fonts.bodySemiBold`, `fonts.bodyBold`.
-- Legacy aliases (`headingRegular/Medium/SemiBold` → Figtree; `headingBold` → Bricolage Bold): existing code only.
+- The old `heading*` aliases were removed (2026-10-23): `headingBold` → `fonts.displayBold`, `headingSemiBold` → `fonts.bodySemiBold`.
 
 ## Sizes (`fontSizes`)
 

@@ -72,9 +72,9 @@ export function AppNavigator() {
   return (
     <Stack.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: colors.azulOscuro },
-        headerTintColor: colors.white,
-        headerTitleStyle: { fontFamily: fonts.headingSemiBold },
+        headerStyle: { backgroundColor: colors.text },
+        headerTintColor: colors.onDark,
+        headerTitleStyle: { fontFamily: fonts.bodySemiBold },
       }}
     >
       <Stack.Screen name="Tabs" component={TabNavigator} options={{ headerShown: false }} />

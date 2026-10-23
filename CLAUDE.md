@@ -46,7 +46,7 @@ A new cross-cutting convention goes in this file (§ Rules).
 **Styling**
 - `StyleSheet.create()` at the end of the file. No styled-components / CSS-in-JS.
 - Never hardcode hex or font names — use `@/theme` tokens (`colors.*`, `fonts.*`, `fontSizes.*`).
-- Do not use legacy tokens (`accent`, `morado`, `azulOscuro`, `headingSemiBold`, …) in new screens. See [docs/design-system/colors.md](./docs/design-system/colors.md).
+- There is no `white` token: `colors.surface` for white backgrounds, `colors.onDark` for text/icons on a colored fill. See [docs/design-system/colors.md](./docs/design-system/colors.md).
 
 **Components & screens**
 - Reuse existing primitives before creating new ones (generic `@/components/*` + auth `@/components/auth/*`). See [docs/design-system/components.md](./docs/design-system/components.md).
