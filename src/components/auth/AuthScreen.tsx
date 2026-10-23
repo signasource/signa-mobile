@@ -1,12 +1,6 @@
 import React from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  ViewStyle,
-  StyleProp,
-} from "react-native";
+import { StyleSheet, ViewStyle, StyleProp } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BackButton } from "@/components/BackButton";
 import { colors } from "@/theme";
@@ -23,29 +17,29 @@ interface AuthScreenProps {
  * Shell común de las pantallas de auth: teclado + scroll + botón de volver,
  * respetando el área segura (notch / status bar / home indicator). Antes este
  * bloque estaba copiado textualmente en cada pantalla, con paddings fijos que
- * no contemplaban dispositivos con notch.
+ * no contemplaban dispositivos con notch. `KeyboardAwareScrollView` además
+ * desplaza automáticamente el campo enfocado por encima del teclado en
+ * ambas plataformas (antes Android no tenía ningún manejo de teclado acá).
  */
 export function AuthScreen({ children, onBack, canGoBack = true, contentStyle }: AuthScreenProps) {
   const insets = useSafeAreaInsets();
 
   return (
-    <KeyboardAvoidingView
+    <KeyboardAwareScrollView
       style={styles.flex}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      contentContainerStyle={[
+        styles.container,
+        { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 },
+        contentStyle,
+      ]}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      enableOnAndroid
+      extraScrollHeight={20}
     >
-      <ScrollView
-        contentContainerStyle={[
-          styles.container,
-          { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 },
-          contentStyle,
-        ]}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        {onBack ? <BackButton onPress={onBack} visible={canGoBack} /> : null}
-        {children}
-      </ScrollView>
-    </KeyboardAvoidingView>
+      {onBack ? <BackButton onPress={onBack} visible={canGoBack} /> : null}
+      {children}
+    </KeyboardAwareScrollView>
   );
 }
 

@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { StyleSheet, TextInput, TextInputProps, View } from "react-native";
 import { Text } from "@/components/Text";
 import { colors, fonts, fontSizes } from "@/theme";
@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyRegular,
     fontSize: fontSizes.md,
     color: colors.text,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
   },
   inputError: {
     borderColor: colors.danger,

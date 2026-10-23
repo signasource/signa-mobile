@@ -1,8 +1,9 @@
-﻿import React from "react";
+import React from "react";
 import { StyleSheet, View, ViewStyle } from "react-native";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, alpha } from "@/theme";
+import PajarosGrupoPequeno from "@assets/ilus/pajaros-grupo-pequeno.svg";
 
 type Tone = "neutral" | "wrong";
 
@@ -12,6 +13,8 @@ interface SignPlaceholderProps {
   tone?: Tone;
   icon?: keyof typeof Ionicons.glyphMap;
   badge?: string;
+  /** Muestra la ilustración de "animación preparándose" en vez del botón de play + label. */
+  preparing?: boolean;
   style?: ViewStyle;
 }
 
@@ -21,7 +24,15 @@ interface SignPlaceholderProps {
  * así que el bloque de seña se representa con esta tarjeta rayada + label,
  * igual que en el diseño.
  */
-export function SignPlaceholder({ label, height = 320, tone = "neutral", icon = "play", badge, style }: SignPlaceholderProps) {
+export function SignPlaceholder({
+  label,
+  height = 320,
+  tone = "neutral",
+  icon = "play",
+  badge,
+  preparing,
+  style,
+}: SignPlaceholderProps) {
   const wrong = tone === "wrong";
 
   return (
@@ -31,12 +42,23 @@ export function SignPlaceholder({ label, height = 320, tone = "neutral", icon = 
           <Text style={styles.badgeText}>{badge}</Text>
         </View>
       )}
-      <View style={[styles.iconCircle, wrong && styles.iconCircleWrong]}>
-        <Ionicons name={icon} size={icon === "play" ? 24 : 23} color={colors.text} style={icon === "play" ? { marginLeft: 3 } : undefined} />
-      </View>
-      <View style={styles.labelChip}>
-        <Text style={[styles.labelText, wrong && styles.labelTextWrong]}>{label}</Text>
-      </View>
+      {preparing ? (
+        <>
+          <PajarosGrupoPequeno width={130} height={65} />
+          <View style={styles.labelChip}>
+            <Text style={styles.labelText}>La animación se está preparando</Text>
+          </View>
+        </>
+      ) : (
+        <>
+          <View style={[styles.iconCircle, wrong && styles.iconCircleWrong]}>
+            <Ionicons name={icon} size={icon === "play" ? 24 : 23} color={colors.text} style={icon === "play" ? { marginLeft: 3 } : undefined} />
+          </View>
+          <View style={styles.labelChip}>
+            <Text style={[styles.labelText, wrong && styles.labelTextWrong]}>{label}</Text>
+          </View>
+        </>
+      )}
     </View>
   );
 }
@@ -61,7 +83,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 14,
     left: 14,
-    backgroundColor: "rgba(255,255,255,0.94)",
+    backgroundColor: alpha(colors.onColor, 0.94),
     borderRadius: 8,
     paddingVertical: 4,
     paddingHorizontal: 9,
@@ -75,15 +97,15 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "rgba(255,255,255,0.92)",
+    backgroundColor: alpha(colors.onColor, 0.92),
     alignItems: "center",
     justifyContent: "center",
   },
   iconCircleWrong: {
-    backgroundColor: "rgba(255,255,255,0.92)",
+    backgroundColor: alpha(colors.onColor, 0.92),
   },
   labelChip: {
-    backgroundColor: "rgba(255,255,255,0.92)",
+    backgroundColor: alpha(colors.onColor, 0.92),
     borderRadius: 7,
     paddingVertical: 4,
     paddingHorizontal: 9,
@@ -94,6 +116,6 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   labelTextWrong: {
-    color: "#B0503A",
+    color: colors.dangerText,
   },
 });

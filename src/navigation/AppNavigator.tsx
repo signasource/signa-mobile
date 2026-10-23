@@ -3,24 +3,61 @@ import { NavigatorScreenParams } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ChangePasswordScreen } from "@/screens/ChangePasswordScreen";
 import { ConfigurationScreen } from "@/screens/ConfigurationScreen";
+import { EditProfileScreen } from "@/screens/EditProfileScreen";
 import { ConnectionTestScreen } from "@/screens/ConnectionTestScreen";
 import { LessonScreen } from "@/features/courses/screens/LessonScreen";
-import { SignRecognitionScreen } from "@/features/ml/screens/SignRecognitionScreen";
+import { PracticeSessionScreen } from "@/features/practice/screens/PracticeSessionScreen";
 import { NotificationsScreen } from "@/features/social/screens/NotificationsScreen";
 import { PublicProfileScreen } from "@/features/social/screens/PublicProfileScreen";
+import { FriendAcceptedScreen } from "@/features/social/screens/FriendAcceptedScreen";
+import { AchievementCelebrationScreen } from "@/features/achievements/screens/AchievementCelebrationScreen";
+import { InviteCodeScreen } from "@/features/organizations/screens/InviteCodeScreen";
+import { OrganizationWelcomeScreen } from "@/features/organizations/screens/OrganizationWelcomeScreen";
 import { TabNavigator, TabParamList } from "./TabNavigator";
 import { colors, fonts } from "@/theme";
 import { useSettings } from "@/context/SettingsContext";
+import { BlockType } from "@/features/courses/lessonContent.types";
+
+export type PracticeSessionParams =
+  | { mode: "type"; blockType: BlockType; title: string }
+  | { mode: "sign"; meaning: string }
+  | { mode: "mistakes" };
 
 export type AppStackParamList = {
   Tabs: NavigatorScreenParams<TabParamList> | undefined;
   ChangePassword: undefined;
-  Configuration: undefined;
+  Configuration:
+    | {
+        updatedProfile?: { displayName: string; lastName: string; username: string };
+        passwordChanged?: boolean;
+      }
+    | undefined;
+  EditProfile: { displayName: string; lastName: string; username: string };
   Lesson: { lessonId: string; unitLabel?: string; signsCount?: number };
   Notifications: undefined;
+  PracticeSession: { mode: PracticeSessionParams };
   PublicProfile: { username: string };
-  SignRecognition: undefined;
+  FriendAccepted: {
+    friendId: string;
+    friendName: string;
+    friendUsername: string;
+    friendStreak: number;
+  };
+  AchievementCelebration: {
+    achievementId: string;
+    criteriaType: string;
+    criteriaValue: number;
+    title: string;
+    rewardStreakShields: number;
+    rewardGems: number;
+  };
   ConnectionTest: undefined;
+  InviteCode: undefined;
+  OrganizationWelcome: {
+    orgName: string;
+    courses: { id: string; name: string }[];
+    alreadyMember?: boolean;
+  };
 };
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -30,24 +67,37 @@ export function AppNavigator() {
 
   useEffect(() => {
     loadFontSize();
-  }, []);
+  }, [loadFontSize]);
 
   return (
     <Stack.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: colors.azulOscuro },
-        headerTintColor: colors.white,
-        headerTitleStyle: { fontFamily: fonts.headingSemiBold },
+        headerStyle: { backgroundColor: colors.text },
+        headerTintColor: colors.onColor,
+        headerTitleStyle: { fontFamily: fonts.bodySemiBold },
       }}
     >
       <Stack.Screen name="Tabs" component={TabNavigator} options={{ headerShown: false }} />
-      <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} options={{ title: "Cambiar contrasena" }} />
+      <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Configuration" component={ConfigurationScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Lesson" component={LessonScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="PracticeSession" component={PracticeSessionScreen} options={{ headerShown: false }} />
       <Stack.Screen name="PublicProfile" component={PublicProfileScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="SignRecognition" component={SignRecognitionScreen} options={{ title: "Practicar" }} />
+      <Stack.Screen name="FriendAccepted" component={FriendAcceptedScreen} options={{ headerShown: false }} />
+      <Stack.Screen
+        name="AchievementCelebration"
+        component={AchievementCelebrationScreen}
+        options={{ headerShown: false, presentation: "fullScreenModal", animation: "fade", gestureEnabled: false }}
+      />
       <Stack.Screen name="ConnectionTest" component={ConnectionTestScreen} options={{ title: "Test de conexion" }} />
+      <Stack.Screen name="InviteCode" component={InviteCodeScreen} options={{ headerShown: false }} />
+      <Stack.Screen
+        name="OrganizationWelcome"
+        component={OrganizationWelcomeScreen}
+        options={{ headerShown: false, presentation: "fullScreenModal", animation: "fade", gestureEnabled: false }}
+      />
     </Stack.Navigator>
   );
 }

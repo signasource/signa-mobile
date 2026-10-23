@@ -14,29 +14,35 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.signasource.signamobile"
+      "bundleIdentifier": "com.signasource.signamobile",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Signa usa la cámara para reconocer las señas que hacés durante los ejercicios. El video se procesa para evaluar la seña y no se guarda."
+      }
     },
     "android": {
       "package": "com.signasource.signamobile",
-      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#1D283C"
-      }
+      },
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
     },
     "web": {
       "bundler": "metro"
     },
     "plugins": [
       "expo-font",
-      "expo-secure-store",
       [
-        "expo-build-properties",
+        "expo-camera",
         {
-          "android": {
-            "usesCleartextTraffic": true
-          }
+          "cameraPermission": "Signa usa la cámara para reconocer las señas que hacés durante los ejercicios.",
+          "recordAudioAndroid": false
         }
-      ]
+      ],
+      "expo-secure-store",
+      "expo-asset",
+      "expo-iap"
     ],
     "extra": {
       "eas": {

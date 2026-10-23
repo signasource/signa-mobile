@@ -1,16 +1,19 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
-  ScrollView,
   TextInput,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomTabNavigationProp, BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import { CompositeNavigationProp, useFocusEffect } from "@react-navigation/native";
+import { useTour } from "@/features/tour/TourContext";
+import { SectionWelcomeModal } from "@/features/tour/components/SectionWelcomeModal";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
@@ -26,6 +29,7 @@ import {
   UserSearchResult,
 } from "@/api/social";
 import { notificationsApi } from "@/api/notifications";
+import { usersApi } from "@/api/users";
 import { formatXp, mutualLabel } from "@/features/social/people";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SegmentedControl, Segment } from "@/components/SegmentedControl";
@@ -37,6 +41,7 @@ import { FeedCard } from "@/features/social/components/FeedCard";
 import { EmptyNote, EmptyState } from "@/components/EmptyState";
 import { ConfirmSheet, ConfirmSpec } from "@/features/social/components/ConfirmSheet";
 import { Toast } from "@/features/social/components/Toast";
+import { RankingTab } from "@/features/social/screens/RankingTab";
 
 type SocialNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, "Social">,
@@ -44,10 +49,10 @@ type SocialNavigation = CompositeNavigationProp<
 >;
 type Props = BottomTabScreenProps<TabParamList, "Social"> & { navigation: SocialNavigation };
 
-type Tab = "feed" | "amigos";
+type Tab = "feed" | "amigos" | "ranking";
 type Section = "amigos" | "solicitudes";
 
-const SECTION_TABS: ReadonlyArray<SubTab<Section>> = [
+const SECTION_TABS: readonly SubTab<Section>[] = [
   { key: "amigos", label: "Mis amigos", icon: "people" },
   { key: "solicitudes", label: "Solicitudes", icon: "mail-open" },
 ];
@@ -102,8 +107,16 @@ function searchSub(result: UserSearchResult): string {
 
 export function SocialScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const { socialModalVisible, dismissSocialModal, showSectionModal } = useTour();
+
+  useFocusEffect(
+    useCallback(() => {
+      showSectionModal("social");
+    }, [showSectionModal]),
+  );
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [events, setEvents] = useState<FriendEvent[]>([]);
@@ -122,9 +135,15 @@ export function SocialScreen({ navigation }: Props) {
   const [busy, setBusy] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<PendingConfirm | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [myUsername, setMyUsername] = useState<string | null>(null);
+
+  useEffect(() => {
+    usersApi.getMe().then(({ data }) => setMyUsername(data.username)).catch(() => {});
+  }, []);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchAbort = useRef<AbortController | null>(null);
+  const searchInputRef = useRef<TextInput>(null);
 
   const notify = useCallback((message: string) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -132,8 +151,9 @@ export function SocialScreen({ navigation }: Props) {
     toastTimer.current = setTimeout(() => setToast(null), 2800);
   }, []);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (isRefresh = false) => {
     setError(null);
+    if (isRefresh) setRefreshing(true);
     try {
       const [eventsRes, friendsRes, incomingRes, outgoingRes, unreadRes] = await Promise.all([
         socialApi.getEvents(),
@@ -151,6 +171,7 @@ export function SocialScreen({ navigation }: Props) {
       setError(err?.response?.data?.message ?? "No pudimos cargar tu actividad social.");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
@@ -259,7 +280,7 @@ export function SocialScreen({ navigation }: Props) {
   );
 
   const acceptRequest = useCallback(
-    (userId: string) =>
+    (userId: string, name: string, username: string) =>
       run(
         `${userId}:accept`,
         async () => {
@@ -268,10 +289,17 @@ export function SocialScreen({ navigation }: Props) {
           patchRelation(userId, "FRIEND");
           const { data } = await socialApi.getFriends();
           setFriends(data);
+          const accepted = data.find((f) => f.id === userId);
+          navigation.navigate("FriendAccepted", {
+            friendId: userId,
+            friendName: name,
+            friendUsername: username,
+            friendStreak: accepted?.currentStreak ?? 0,
+          });
         },
         "No pudimos aceptar la solicitud."
       ),
-    [run, patchRelation, notify]
+    [run, patchRelation, navigation]
   );
 
   const rejectRequest = useCallback(
@@ -374,7 +402,7 @@ export function SocialScreen({ navigation }: Props) {
         icon: "checkmark",
         label: "Aceptar",
         ...ROW_ACTION_STYLE.accept,
-        onPress: () => acceptRequest(userId),
+        onPress: () => acceptRequest(userId, name, username),
       };
       const reject: RowActionSpec = {
         key: `${userId}:reject`,
@@ -422,8 +450,14 @@ export function SocialScreen({ navigation }: Props) {
   );
 
   const openProfile = useCallback(
-    (username: string) => navigation.navigate("PublicProfile", { username }),
-    [navigation]
+    (username: string) => {
+      if (myUsername && username === myUsername) {
+        navigation.navigate("Profile");
+      } else {
+        navigation.navigate("PublicProfile", { username });
+      }
+    },
+    [navigation, myUsername]
   );
 
   const friendStats = (friend: Friend): PersonStat[] => [
@@ -438,9 +472,11 @@ export function SocialScreen({ navigation }: Props) {
 
   const headerPaddingTop = insets.top + 14;
   const isFeed = tab === "feed";
-  const tabs: ReadonlyArray<Segment<Tab>> = [
+  const isRanking = tab === "ranking";
+  const tabs: readonly Segment<Tab>[] = [
     { key: "feed", label: "Feed" },
     { key: "amigos", label: "Amigos", badge: incoming.length },
+    { key: "ranking", label: "Ranking" },
   ];
 
   return (
@@ -482,29 +518,40 @@ export function SocialScreen({ navigation }: Props) {
         onChange={setTab}
       />
 
-      {loading ? (
+      {isRanking ? (
+        <RankingTab onPressProfile={openProfile} />
+      ) : loading ? (
         <View style={styles.centered}>
           <ActivityIndicator color={colors.socialWine} />
         </View>
       ) : error ? (
         <View style={styles.centered}>
-          <EmptyState icon="cloud-offline-outline" title="No pudimos cargar" description={error} />
-          <TouchableOpacity style={styles.retry} onPress={load}>
+          <EmptyState title="No pudimos cargar" description={error} />
+          <TouchableOpacity style={styles.retry} onPress={() => load()}>
             <Text style={styles.retryLabel}>Reintentar</Text>
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView
+        <KeyboardAwareScrollView
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          enableOnAndroid
+          extraScrollHeight={20}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => load(true)}
+              tintColor={colors.socialWine}
+              colors={[colors.socialWine]}
+            />
+          }
         >
           {isFeed ? (
             <View style={styles.feed}>
               <Text style={styles.sectionLabel}>ACTIVIDAD RECIENTE</Text>
               {events.length === 0 ? (
                 <EmptyState
-                  icon="pulse-outline"
                   title="Todavía no hay actividad"
                   description="Cuando tus amigos completen lecciones o desbloqueen logros, lo vas a ver acá."
                 />
@@ -524,6 +571,7 @@ export function SocialScreen({ navigation }: Props) {
               <View style={styles.search}>
                 <Ionicons name="search" size={17} color={colors.textMuted} />
                 <TextInput
+                  ref={searchInputRef}
                   style={styles.searchInput}
                   value={query}
                   onChangeText={setQuery}
@@ -578,7 +626,6 @@ export function SocialScreen({ navigation }: Props) {
                     results.length === 0 &&
                     trimmedQuery.length >= MIN_QUERY_LENGTH && (
                       <EmptyState
-                        icon="search"
                         title="Sin resultados"
                         description="Probá con el nombre completo o el usuario exacto."
                       />
@@ -599,7 +646,6 @@ export function SocialScreen({ navigation }: Props) {
                   {section === "amigos" ? (
                     friends.length === 0 ? (
                       <EmptyState
-                        icon="people-outline"
                         title="Todavía no tenés amigos"
                         description="Buscá a alguien por su usuario y mandale una solicitud."
                       />
@@ -678,7 +724,7 @@ export function SocialScreen({ navigation }: Props) {
               )}
             </View>
           )}
-        </ScrollView>
+        </KeyboardAwareScrollView>
       )}
 
       <Toast message={toast} bottom={16} />
@@ -688,6 +734,38 @@ export function SocialScreen({ navigation }: Props) {
         busy={confirm !== null && busy === `${confirm.id}:${confirm.kind}`}
         onConfirm={runConfirm}
         onClose={() => setConfirm(null)}
+      />
+
+      <SectionWelcomeModal
+        visible={socialModalVisible}
+        title="Social"
+        subtitle="Seguí a tus amigos y mirá en qué andan."
+        headerColor={colors.socialWine}
+        headerKicker="Social"
+        features={[
+          {
+            icon: "search",
+            label: "Buscar por usuario",
+            description: "Encontrá a quien conocés y mandale una solicitud",
+          },
+          {
+            icon: "people",
+            label: "Feed de amigos",
+            description: "Mirá su actividad y recordá que no estás sola",
+          },
+        ]}
+        primaryLabel="Buscar amigos"
+        secondaryLabel="Más tarde"
+        onPrimary={() => {
+          dismissSocialModal();
+          setTab("amigos");
+          setSection("amigos");
+          // Let the tab switch render before focusing so the input is visible.
+          setTimeout(() => {
+            searchInputRef.current?.focus();
+          }, 350);
+        }}
+        onSecondary={dismissSocialModal}
       />
     </View>
   );

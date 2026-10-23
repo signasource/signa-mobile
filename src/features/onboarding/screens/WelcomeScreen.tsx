@@ -4,7 +4,7 @@ import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "@/navigation/AuthNavigator";
-import { colors, fonts, fontSizes } from "@/theme";
+import { colors, fonts, alpha } from "@/theme";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Welcome">;
 
@@ -29,8 +29,11 @@ export function WelcomeScreen({ navigation }: Props) {
         <View style={styles.avatarContainer}>
           <View style={styles.pulseRing} />
           <View style={styles.avatarCircle}>
-            {/* Placeholder de Lisa */}
-            <Text style={styles.lisaPlaceholderText}>Lisa</Text>
+            <Image
+              source={require("@assets/images/lisa-waving.png")}
+              style={styles.lisaImage}
+              resizeMode="contain"
+            />
           </View>
         </View>
 
@@ -72,7 +75,7 @@ const styles = StyleSheet.create({
     width: 260,
     height: 260,
     borderRadius: 130,
-    backgroundColor: "rgba(255,255,255,0.09)",
+    backgroundColor: alpha(colors.onColor, 0.09),
   },
   blobBottom: {
     position: "absolute",
@@ -81,7 +84,7 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: "rgba(0,0,0,0.06)",
+    backgroundColor: alpha(colors.black, 0.06),
   },
   content: {
     flex: 1,
@@ -114,7 +117,7 @@ const styles = StyleSheet.create({
     height: 272,
     borderRadius: 136,
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.3)",
+    borderColor: alpha(colors.onColor, 0.3),
   },
   avatarCircle: {
     width: 260,
@@ -124,18 +127,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 30 },
     shadowOpacity: 0.28,
     shadowRadius: 25,
     elevation: 12,
   },
-  lisaPlaceholderText: {
-    fontFamily: fonts.displaySemiBold,
-    fontSize: 34,
-    color: colors.onPrimary,
-    opacity: 0.85,
-  },
+  // El PNG es cuadrado y la figura esta anclada abajo: el corte de la cadera cae
+  // en la tangente inferior del circulo, donde la curva lo tapa, en vez de quedar
+  // flotando como un tajo horizontal a media altura.
+  lisaImage: { width: "100%", height: "100%" },
   headline: {
     fontFamily: fonts.displaySemiBold,
     fontSize: 40,

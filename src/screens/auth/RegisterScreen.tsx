@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { Text } from "@/components/Text";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";

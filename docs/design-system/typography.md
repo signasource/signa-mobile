@@ -9,16 +9,20 @@ Import: `import { fonts, fontSizes } from "@/theme"`.
 ## The `Text` wrapper
 
 Always render copy through `@/components/Text`, never React Native's `Text`. It applies the
-accessibility font scale from `SettingsContext` **and a base `textAlign: "justify"`**, so body copy
-is justified app-wide. That only affects lines that actually wrap — single-line labels look the
-same — and any style setting its own `textAlign` still wins, because the local style comes after
-the base one in the style array.
+accessibility font scale from `SettingsContext`; it does **not** set a default `textAlign`.
+
+Long-form body/paragraph styles opt into `textAlign: "justify"` themselves — e.g. `InfoBlock`'s
+`paragraph`/`citation` styles, `MythDeck`'s `faceBody`, `IntroScreen`'s `body`, `StoreTabScreen`'s
+`cardDesc`. Titles, labels, buttons, short or centered messages, and narrow-column text (list rows,
+notification rows, achievement rows) stay left as authored — RN's Android justification can clip
+glyphs at the right edge on narrow columns or short lines, which reads as missing letters, so it's
+opt-in per style rather than a blanket default.
 
 ## Families
 
 - **Bricolage Grotesque** (display/titles): `fonts.displaySemiBold`, `fonts.displayBold`, `fonts.displayExtraBold`.
 - **Figtree** (body, labels, buttons): `fonts.bodyRegular`, `fonts.bodyMedium`, `fonts.bodySemiBold`, `fonts.bodyBold`.
-- Legacy aliases (`headingRegular/Medium/SemiBold` → Figtree; `headingBold` → Bricolage Bold): existing code only.
+- The old `heading*` aliases were removed (2026-10-23): `headingBold` → `fonts.displayBold`, `headingSemiBold` → `fonts.bodySemiBold`.
 
 ## Sizes (`fontSizes`)
 

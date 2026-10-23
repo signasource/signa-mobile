@@ -26,13 +26,17 @@ If reality already diverged from a doc, **the code wins**: fix the doc first (re
 | Change an auth screen flow | [docs/authentication/screens.md](./docs/authentication/screens.md) |
 | Change a validation rule | [docs/authentication/validation.md](./docs/authentication/validation.md) |
 | Add/change a color, font, size, or UI primitive | [docs/design-system/colors.md](./docs/design-system/colors.md) |
-| Advance a feature or flip stub↔real | the feature's doc under [docs/features/](./docs/features/) ([onboarding](./docs/features/onboarding.md) · [courses](./docs/features/courses.md) · [social](./docs/features/social.md) · [ml](./docs/features/ml.md)) + [docs/status.md](./docs/status.md) |
+| Advance a feature or flip stub↔real | the feature's doc under [docs/features/](./docs/features/) ([onboarding](./docs/features/onboarding.md) · [courses](./docs/features/courses.md) · [store](./docs/features/store.md) · [challenges](./docs/features/challenges.md) · [social](./docs/features/social.md) · [ml](./docs/features/ml.md) · [achievements](./docs/features/achievements.md)) + [docs/status.md](./docs/status.md) |
 | Change folder structure, alias, or app startup | [docs/architecture.md](./docs/architecture.md) |
 | Add/resolve tech debt | [docs/status.md](./docs/status.md) |
 
 A new cross-cutting convention goes in this file (§ Rules).
 
 ## Rules
+
+**No known-broken checks**
+- Never let an error, warning or failing check pass unmentioned, even if it predates your change. Either fix it in the same PR or record it in [docs/status.md](./docs/status.md) (tech debt) so it stays pending; say which in your report.
+- If `npm run typecheck` fails with errors in files you didn't touch, first run `npm ci`: a stale `node_modules` (e.g. left over from another branch) produces false errors.
 
 **Language & types**
 - TypeScript strict. No `any` in public APIs (props, exported types, returns).
@@ -41,8 +45,8 @@ A new cross-cutting convention goes in this file (§ Rules).
 
 **Styling**
 - `StyleSheet.create()` at the end of the file. No styled-components / CSS-in-JS.
-- Never hardcode hex or font names — use `@/theme` tokens (`colors.*`, `fonts.*`, `fontSizes.*`).
-- Do not use legacy tokens (`accent`, `morado`, `azulOscuro`, `headingSemiBold`, …) in new screens. See [docs/design-system/colors.md](./docs/design-system/colors.md).
+- Never hardcode hex, `rgba()` or font names — use `@/theme` tokens (`colors.*`, `alpha(colors.x, a)`, `fonts.*`, `fontSizes.*`). `npm run lint` fails on hardcoded colors.
+- Colors are design decisions: never replace one with a "close" token. Map to a token with the exact same hex, or add one. White: `colors.surface` (background) / `colors.onColor` (foreground) / `colors.onDark` (warm off-white) are distinct. See [docs/design-system/colors.md](./docs/design-system/colors.md).
 
 **Components & screens**
 - Reuse existing primitives before creating new ones (generic `@/components/*` + auth `@/components/auth/*`). See [docs/design-system/components.md](./docs/design-system/components.md).
@@ -80,7 +84,7 @@ npm start          # Expo dev server (a=Android, i=iOS, w=web)
 npm run android    # Android emulator/device
 npm run ios        # iOS simulator
 npm run web        # web (limited)
-npm run lint       # eslint (no rules configured yet)
+npm run lint       # expo lint (ESLint + eslint-config-expo); must stay at 0 errors
 npm run typecheck  # tsc --noEmit ← minimum check before considering a change done
 ```
 

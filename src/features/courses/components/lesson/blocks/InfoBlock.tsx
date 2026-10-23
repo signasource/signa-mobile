@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
@@ -93,7 +93,8 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyRegular,
     fontSize: 15,
     lineHeight: 23,
-    color: "#3D332E",
+    color: colors.textBody,
+    textAlign: "justify",
   },
   citation: {
     marginTop: 4,
@@ -105,6 +106,7 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     lineHeight: 18,
     color: colors.textMuted,
+    textAlign: "justify",
   },
   link: {
     fontFamily: fonts.bodySemiBold,

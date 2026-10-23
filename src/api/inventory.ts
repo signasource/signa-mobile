@@ -1,13 +1,8 @@
-import { apiClient } from "./client";
+import { shopApi, type ShopInventory } from "./shop";
 
-export interface UserInventory {
-  gems: number;
-  streakShields: number;
-  lives: number;
-  xpMultiplier: number;
-  totalSignsLearned: number;
-}
+/** Alias of `ShopInventory` (mirrors `UserInventoryResponse`); defined once in `shop.ts`. */
+export type UserInventory = ShopInventory;
 
 export const inventoryApi = {
-  getMyInventory: () => apiClient.get<UserInventory>("/inventories/me"),
+  getMyInventory: shopApi.getMyInventory,
 };

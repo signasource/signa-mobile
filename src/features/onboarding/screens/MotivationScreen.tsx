@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   checkSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
-  checkMark: { color: colors.white, fontSize: 14, fontFamily: fonts.bodyBold },
+  checkMark: { color: colors.onColor, fontSize: 14, fontFamily: fonts.bodyBold },
   errorText: {
     marginTop: 12,
     fontFamily: fonts.bodySemiBold,

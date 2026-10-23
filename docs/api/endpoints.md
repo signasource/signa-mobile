@@ -2,7 +2,7 @@
 
 > Responsibility: catalog of API endpoints exposed through `src/api/`.
 > Update when: an endpoint is added, changed, or removed, or a stub becomes real.
-> Sources: src/api/auth.ts, src/api/users.ts, src/api/health.ts, src/api/shop.ts, src/api/signs.ts, src/api/social.ts, src/api/notifications.ts, src/features/courses/api.ts
+> Sources: src/api/auth.ts, src/api/users.ts, src/api/health.ts, src/api/shop.ts, src/api/gemPurchases.ts, src/api/signs.ts, src/api/social.ts, src/api/notifications.ts, src/features/courses/api.ts
 
 Types → [types.md](./types.md). Client behavior → [http-client.md](./http-client.md).
 
@@ -13,8 +13,8 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 | `register(RegisterRequest)` | `POST /auth/register` | `AuthResponse` | 201 with `{ accessToken, refreshToken }`. **Auto-logs in.** Backend sends a verification email (`verified` flag) but it is **not required** to use the app; the mobile app exposes no verify/resend UI. |
 | `login(LoginRequest)` | `POST /auth/login` | `AuthResponse` | `{ accessToken, refreshToken }` |
 | `refresh(refreshToken)` | `POST /auth/refresh` | `AuthResponse` | also used by the interceptor |
-| `forgotPassword(ForgotPasswordRequest)` | `POST /auth/forgot-password` | `void` | |
-| `resetPassword(ResetPasswordRequest, token)` | `POST /auth/reset-password?token=` | `void` | `token` is a **query param**, separate from the body |
+| `forgotPassword(ForgotPasswordRequest)` | `POST /auth/forgot-password` | `void` | Always 200, whether or not the email exists. Emails a **6-digit code** valid for 15 min; a new request replaces the pending code. Rate-limited (10 / 15 min per IP, 429) |
+| `resetPassword(ResetPasswordRequest)` | `POST /auth/reset-password` | `void` | Body `{ email, code, newPassword }`. Wrong, expired or exhausted code (5 failed attempts discard it) and unknown email all answer **400 `Invalid or expired code`**. Revokes the user's refresh tokens. Rate-limited (10 / 15 min per IP, 429) |
 
 ## `usersApi` (`src/api/users.ts`) — mirrors `UserController.java`
 
@@ -22,30 +22,46 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 |---|---|---|---|
 | `changePassword(ChangePasswordRequest)` | `PUT /users/password` | `AuthResponse` | returns **new tokens** |
 | `checkUsernameAvailability(username, signal?)` | `GET /users/username-availability?username=` | `{ available: boolean }` | **public**; accepts `AbortSignal` |
-| `getMe()` | `GET /users/me` | `UserProfile` | `{ name, username }` |
+| `getMe()` | `GET /users/me` | `UserProfile` | `{ name, lastName, username }` |
+| `updateProfile({ username, name, lastName })` | `PATCH /users/me` | `void` (204) | persists username, name and last name; name/lastName optional server-side. 409 if username taken |
 | `getWeeklyXp()` | `GET /users/me/weekly-xp` | `WeeklyXpEntry[]` | `[{ date, xpEarned }]` Mon–today; zeros for inactive days |
-| `getDailyGoal()` | `GET /users/daily-goal` | `{ dailyGoalMinutes }` | |
+| `getDailyGoal()` | `GET /users/daily-goal` | `{ dailyGoalMinutes, minutesToday }` | `minutesToday` comes from `UserDailyActivity` (today's row, Argentina date, `America/Argentina/Cordoba`) |
 | `updateDailyGoal(minutes)` | `PATCH /users/daily-goal` | `void` | body: `{ daily_goal_minutes }` (snake_case via interceptor) |
+| `recordActivity(minutes)` | `POST /users/me/activity` | `void` (204) | body: `{ minutes }`, server clamps `1..5` per call; upserts today's `UserDailyActivity` row. Called by `useActivityTracker()` (`src/hooks/useActivityTracker.ts`), used from `LessonScreen` — tracks foreground time only, flushed every ~60s and on unmount |
 | `getSettings()` | `GET /users/settings` | `UserSettings` | returns full settings; front-end uses `profileHeaderColor` |
 | `updateSettings(payload)` | `PATCH /users/settings` | `UserSettings` | partial patch; all fields optional |
 
-> `usersApi.getStats()` (`GET /users/me/stats`) and `recordActivity()` (`POST /users/me/activity`) have **no counterpart in `UserController.java`** — they 404. Pre-existing, used by Inicio and Perfil; see [status.md](../status.md).
+> `usersApi.getStats()` (`GET /users/me/stats`) exists in `UserController.java`.
 
 ## `inventoryApi` (`src/api/inventory.ts`)
 
 | Method | Path | Returns | Notes |
 |---|---|---|---|
-| `getMyInventory()` | `GET /inventories/me` | `UserInventory` | gems, streakShields, lives, xpMultiplier, totalSignsLearned |
+| `getMyInventory()` | `GET /inventories/me` | `UserInventory` | alias of `ShopInventory`; delegates to `shopApi.getMyInventory()` |
 
 ## `shopApi` (`src/api/shop.ts`) — mirrors `ShopItemController`/`PurchaseController`
 
 | Method | Path | Returns | Notes |
 |---|---|---|---|
 | `getItems()` | `GET /store/items` | `ShopItem[]` | full catalog; screen groups client-side by `itemType` into tabs (Vidas / Potenciadores / Especiales) |
-| `getMyInventory()` | `GET /inventories/me` | `ShopInventory` | full inventory shape (gems, `livesMode`, `currentLives`, streak shields, XP multiplier/unlimited-lives status) — **not** the narrower `UserInventory` from `inventoryApi` |
+| `getMyInventory()` | `GET /inventories/me` | `ShopInventory` | full inventory shape (gems, `livesMode`, `currentLives`, streak shields, XP multiplier/unlimited-lives status, `learnedSignsCount`) |
 | `purchase(shopItemId)` | `POST /store/purchases` | `PurchaseResult` | `{ shopItemId }`; response includes `effect` (resolved reward, notably for `MYSTERY_CHEST`) and the refreshed `inventory` |
 
-The Store screen only supports buying for yourself: the "regalar a un amigo" flow (`POST /store/gifts`) is not wired into the UI. Friends *are* listable now (`socialApi.getFriends()`), so this is a UI gap, not an API one.
+| `sendGift(shopItemId, recipientUserId, message?)` | `POST /store/gifts` | `Gift` (201) | debits the sender's gems; recipient must be a friend and not the sender (400 otherwise), `message` max 500 chars. Returns no inventory — refetch it |
+
+| `getReceivedGifts(status?)` | `GET /store/gifts/received?status=` | `Gift[]` | newest first; a stale `PENDING` is returned as `EXPIRED` but still matches the `PENDING` filter, so filter client-side too |
+| `claimGift(giftId)` | `POST /store/gifts/{id}/claim` | `GiftClaimResult` | `{ gift, effect, inventory }`; 404 not yours, 409 already claimed, 400 expired |
+
+`GET /store/gifts/sent` exists on the backend but has no client or UI yet — see [../status.md](../status.md).
+
+## `gemPurchasesApi` (`src/api/gemPurchases.ts`) — mirrors `GemPurchaseController`
+
+Real-money gem packs through Google Play Billing. Flow and edge cases → [features/store.md](../features/store.md).
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getPacks()` | `GET /store/gem-packs` | `GemPack[]` | active packs ordered by `sortOrder`; `productId` is the Play in-app product id. **No price** — the app reads it from Play (`displayPrice`) |
+| `redeem(productId, purchaseToken)` | `POST /store/gem-purchases` | `GemPurchaseResult` | 201. Backend verifies the token with the Google Play Developer API and credits gems **once per token**: same token + same user again → 201 with `alreadyGranted: true`; same token + another user, or a token Play reports as already consumed → 409; pending/cancelled payment → 400; unknown `productId` → 404. Rate-limited (30/min per IP). Call `finishTransaction` only after this succeeds |
 
 ## `socialApi` (`src/api/social.ts`) — mirrors `FriendshipController.java` + `UserController.searchUsers`
 
@@ -89,13 +105,25 @@ Read-only: notifications are produced server-side by whatever triggers them.
 
 | Method | Path | Returns | Notes |
 |---|---|---|---|
-| `getAchievements(unlocked)` | `GET /achievements?unlocked=` | `Achievement[]` | pass `true` or `false` |
+| `getAchievements(unlocked)` | `GET /achievements?unlocked=&active=true` | `Achievement[]` (= `PublicAchievement`) | pass `true` or `false`; always asks for `active=true` so achievements nothing can earn yet stay hidden |
+| `getUnseen()` | `GET /achievements/unseen` | `Achievement[]` | earned achievements whose celebration wasn't shown yet, oldest first |
+| `markSeen(id)` | `POST /achievements/{id}/seen` | 204 | idempotent; 404 if the user hasn't earned it |
+
+## `challengesApi` (`src/api/challenges.ts`)
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getChallenges()` | `GET /challenges` | `Challenges` | `firstSteps`, `firstStepsDone`, `daily` and `weekly` (both empty until every first step is claimed), `resetsAt` (daily rollover) and `weeklyResetsAt` (Monday 00:00). Creates the user's rows for today and the week on first call |
+| `claim(id)` | `POST /challenges/{id}/claim` | `ChallengeClaim` | `id` is `Challenge.id` (the user's row). Credits the reward and returns the new gem balance. 400 if not completed or already claimed; 404 if it isn't the caller's |
 
 ## `learningApi` (`src/api/learning.ts`) — mirrors `CourseTrackingController.java`
 
 | Method | Path | Returns | Notes |
 |---|---|---|---|
-| `getProgress()` | `GET /learning/tracking/progress` | `CourseProgress[]` | per-course progress, unit info, signs learned |
+| `getProgress()` | `GET /learning/tracking/progress` | `PublicCourseProgress[]` | per-course progress of **active enrollments** (`courseName`, `completedLessons`, `totalLessons`, `progressPercentage`, `signsLearned`, `currentTopic`); no `courseId`/icon/color. Feeds the profile's Cursos tab and the Home selector |
+| `joinCourse(courseId)` | `POST /learning/tracking/courses/{courseId}/join` | `void` | idempotent self-enrolment in a **free** course by course id (403 if not free). Called by `HomeTabScreen` for free catalog courses the user isn't enrolled in |
+| `getEnrollments()` | `GET /learning/tracking/enrollments` | `EnrollmentSummary[]` | active enrollments (dropped/expired filtered server-side); `isCurrent` marks the selected course; `organizationName` / `accessExpiresAt` set for organization-granted access |
+| `setCurrentCourse(courseId)` | `PATCH /learning/tracking/current-course` | `void` | persists the selected course on the user; 404 if not actively enrolled |
 | `enroll(courseVersionId)` | `POST /learning/tracking/courses/{courseVersionId}/enroll` | `void` | not yet called from any screen |
 | `recordBlockInteraction(lessonBlockId, isCorrect)` | `POST /learning/tracking/blocks/{lessonBlockId}/interactions` | `void` | `isCorrect` is `null` for an `INFO` block view, `true`/`false` for an evaluable block attempt. Called from `LessonScreen` per block interaction (see [features/courses.md](../features/courses.md)); XP/lesson/topic/course completion is awarded server-side on the **first correct** attempt per block, so it's safe to call once per attempt (including repeated wrong taps inside `MATCH`/`VISUAL_RECOGNITION`) |
 
@@ -105,12 +133,40 @@ Read-only: notifications are produced server-side by whatever triggers them.
 |---|---|---|---|
 | `getLesson(lessonId)` | `GET /lessons/{id}` | `LessonContent` | full block content for the lesson player. Each block's `config` is a **raw JSON string** (not camelCased by the client interceptor) — parse with `parseBlockConfig` from `features/courses/lessonContent.types.ts`; see [types.md](./types.md) |
 
+## `practiceApi` (`src/api/practice.ts`) — mirrors `PracticeController.java`
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getSummary()` | `GET /practice/summary` | `PracticeSummary` | `{ signsLearnedCount, exercisesDoneCount }` for the tab header — `signsLearnedCount` is the same `UserStats.learnedSignsCount` used elsewhere, `exercisesDoneCount` counts `PracticeAttempt` rows |
+| `getExercisesByType(type, limit?)` | `GET /practice/exercises?type=&limit=` | `LessonContentBlock[]` | random blocks of that type from lessons in the user's enrolled courses. `type` rejects `INFO`/`INTRODUCE_SIGN`/`INVISIBLE_SIGNS` (400) — those aren't practicable exercise types |
+| `getLearnedSigns(limit?)` | `GET /practice/signs?limit=` | `LearnedSign[]` | `{ sign }[]`, deduped, from `UserLearnedSign` — signs the user actually learned, not the full catalog. No animation URL (see below) |
+| `getExercisesForSign(meaning, limit?)` | `GET /practice/signs/{meaning}/exercises?limit=` | `LessonContentBlock[]` | blocks (from enrolled courses) whose extracted sign(s) include `meaning`, via the same `BlockSignExtractor` the backend uses for roadmap `signsLearned` |
+| `getMistakes(limit?)` | `GET /practice/mistakes?limit=` | `PracticeMistake[]` | `{ lessonBlockId, type, misses }[]` — a block appears only if its most recent attempt (lesson **or** practice) was wrong |
+| `getMistakeExercises(limit?)` | `GET /practice/mistakes/exercises?limit=` | `LessonContentBlock[]` | same block set as `getMistakes`, full content, for playing the review session |
+| `recordAttempt(lessonBlockId, isCorrect)` | `POST /practice/attempts` `{ lessonBlockId, isCorrect }` | `void` | **Not** `learningApi.recordBlockInteraction`: grants no XP, costs no lives, doesn't touch lesson/topic/course progress — only feeds `getMistakes`. Called from `PracticeSessionScreen` per answered block |
+| `completeMistakeReview()` | `POST /practice/mistakes/complete` | `{ xpEarned }` | The one practice call that grants real XP: a flat bonus published as an `XpEarnedEvent` server-side. Called once, from `PracticeSessionScreen`, only when a `mode: "mistakes"` batch reaches its last block |
+
+`PracticeSessionScreen` (`features/practice/screens/`) plays the returned blocks with the same
+block-renderer components `LessonScreen` uses — see [features/practice.md](../features/practice.md).
+
 ## `signsApi` (`src/api/signs.ts`) — mirrors `SignController.java`
 
 | Method | Path | Returns | Notes |
 |---|---|---|---|
 | `getSigns(signLanguageId, query?)` | `GET /signs?signLanguageId=&query=` | `Page<SignSummary>` | `SignSummary`: `{ id, meaning, description, handedness, animationUrl }`. `query` is a **contains**, case-insensitive match against `meaning` (`findBySignLanguageIdAndMeaningContainingIgnoreCase`), not exact. `animationUrl` here is the raw R2 **object key**, not a fetchable URL — don't render it directly. |
-| `getSignAnimations(meanings)` | `POST /signs/animations` `{ meanings }` | `Record<meaning, url>` | Batched, exact-meaning lookup of **presigned** animation URLs (mirrors `SignController.getSignAnimations`/`SignService.getSignAnimations`). Meanings with no matching sign, or no animation uploaded, are simply absent from the response. Used by `preloadLessonAnimations` (see [features/courses.md](../features/courses.md)) to fetch every animation a lesson needs in one request. |
+
+> **GLB animation URLs** are no longer fetched from the backend. `getGlbUrl(meaning)` (`src/features/animations/glbUrl.ts`) builds the public R2 URL deterministically: `https://pub-f40a1de4d1fc46b0b6f07299847c66e0.r2.dev/lsa/{meaning}.glb`. `POST /signs/animations` is removed from the mobile client.
+
+## `rankingApi` (`src/api/ranking.ts`) — mirrors `RankingController.java`
+
+Both endpoints are authenticated. The backend computes ranks from `UserStats.weeklyXp` and snapshots them every Monday 00:00 ART via `WeeklyResetScheduler`.
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getGlobal()` | `GET /ranking/global` | `WeeklyRanking` | Top 100 users by `weeklyXp` this week + caller's position. `entries[].delta`: positions gained (positive) or lost (negative) vs last Monday; null until the first reset runs. `me.gapText`: pre-formatted Spanish string e.g. "Te faltan 320 XP para entrar al top 10". |
+| `getFriends()` | `GET /ranking/friends` | `WeeklyRanking` | Caller's accepted friends ranked by `weeklyXp`, plus the caller. Delta derived from each user's stored global previous rank re-ranked within the friends group. |
+
+`WeeklyRanking = { entries: RankingEntry[], total: number, me: MyRankingPosition }`.
 
 ## `health` (`src/api/health.ts`)
 

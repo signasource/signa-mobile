@@ -15,6 +15,7 @@ Endpoints → [../api/endpoints.md](../api/endpoints.md). Routes → [../navigat
 | Social | `Tabs → Social` | `features/social/screens/SocialScreen.tsx` |
 | Notificaciones | `Notifications` (app stack) | `features/social/screens/NotificationsScreen.tsx` |
 | Perfil de otra persona | `PublicProfile` (app stack) | `features/social/screens/PublicProfileScreen.tsx` |
+| Solicitud aceptada (yo acepto) | `FriendAccepted` (app stack) | `features/social/screens/FriendAcceptedScreen.tsx` |
 
 There is no `screens/tabs/SocialTabScreen.tsx` any more — `TabNavigator` mounts `SocialScreen`
 directly, like `LessonScreen` in `features/courses`.
@@ -78,8 +79,11 @@ Destructive actions (*dejar de ser amigos*, *bloquear*) go through `ConfirmSheet
 Every action shows a spinner on its own button (`busyAction` is keyed `"<userId>:<action>"`).
 
 Toasts are for what the UI cannot show on its own: sending, cancelling or rejecting a request,
-unblocking, and any failure. **Liking and accepting a request stay silent** — the filled heart and
-the row moving into the friends list already say it happened.
+unblocking, and any failure. **Liking a request stays silent** — the filled heart is the feedback.
+
+**Accepting a request** navigates to `FriendAccepted` (sky-blue celebration screen with the sheep
+illustration). From there the user can tap "Ver su perfil" → `PublicProfile` or "Volver a
+notificaciones" → `navigation.goBack()`.
 
 State after an action is patched locally rather than refetching everything; accepting a request is
 the exception — it refetches `GET /friendships` because the new friend's stats are only known
@@ -119,8 +123,7 @@ shows identity plus the friendship action over an "esta cuenta es privada" state
 a 404, so someone found through search can still be added.
 
 Courses and achievements are typed against the **real** backend shapes (`PublicCourseProgress`,
-`PublicAchievement`), not the mismatched `CourseProgress` / `Achievement` types in
-`src/api/learning.ts` and `src/api/achievements.ts` — see [../status.md](../status.md). Course
+`PublicAchievement`), the same shapes `learningApi` and `achievementsApi` now return. Course
 colours are derived from list position since the backend sends none.
 
 ## Shared helpers — `features/social/people.ts`
@@ -129,13 +132,43 @@ colours are derived from list position since the backend sends none.
 `initialsOf()`, `relativeTime()`, `formatXp()`, `eventVisual()`, `eventSentence()`,
 `notificationVisual()`, `mutualLabel()`.
 
+## FriendAcceptedScreen
+
+Full-screen celebration shown after accepting an incoming request. Sky-blue background (`#C2E8F5`)
+with the sheep illustration (`assets/ilus/ovejas.svg`), the new friend's avatar card (name +
+handle + streak), a primary "Ver su perfil" button, and a "Volver a notificaciones" back link.
+
+## FriendAcceptedModal (when someone accepts MY request)
+
+Overlay modal rendered by `FriendAcceptedProvider` (in `RootNavigator`) when a new
+`FRIEND_REQUEST_ACCEPTED` notification is detected. Suppressed while the user is in the `Lesson`
+screen. Offers "Mandarle un regalo" (→ Store tab) and "Ver su perfil" (→ PublicProfile). Polling
+interval: 30 s + AppState foreground resume.
+
 ## Components — `features/social/components/`
 
-`Avatar`, `PersonRow` (+ `RowAction`), `FeedCard`, `ConfirmSheet`, `Toast`.
+`Avatar`, `PersonRow` (+ `RowAction`), `FeedCard`, `ConfirmSheet`, `Toast`, `FriendAcceptedModal`.
+`EmptyState` / `EmptyNote` now live in `@/components/EmptyState` (the local file only re-exports them);
+the header comes from `@/components/ScreenHeader`.
+
+## Ranking tab — `RankingTab.tsx`
+
+Third tab in the Social `SegmentedControl`. Self-contained component that:
+- Fetches `GET /ranking/global` and `GET /ranking/friends` in parallel (plus `GET /users/me` for the user's own name/initials), all at mount time.
+- Shows a **scope toggle** (Global · Mis amigos) backed by local state; no re-fetch on switch.
+- **Countdown** banner ("Se reinicia el lunes a las 00:00") with a live 1-second timer based on device local time (users are assumed to be in ART).
+- **Podium** card: top 3 in 2nd–1st–3rd visual order, avatar rings in gold/silver/bronze, bar heights proportional to rank.
+- **List rows** for positions 4+: rank number, avatar initials, name, `@handle`, streak flame, delta badge (↑/↓/–), weekly XP.
+- **Sticky me bar** at the bottom (outside the `ScrollView`): wine-tinted background, user's rank, initials, gap-to-next text, delta, weekly XP.
+
+Delta (position change since last Monday) comes from the backend's `delta` field on each entry and on `me`. It is null until the first weekly reset runs.
+
+## Components — `features/social/components/`
+
+`Avatar`, `PersonRow` (+ `RowAction`), `FeedCard`, `ConfirmSheet`, `Toast`, `FriendAcceptedModal`.
 `EmptyState` / `EmptyNote` now live in `@/components/EmptyState` (the local file only re-exports them);
 the header comes from `@/components/ScreenHeader`.
 
 ## Not implemented
 
-- **Ranking / leaderboard.** Deferred; no backend support exists.
 - **Like counts.** Intentionally dropped — the button is on/off only.

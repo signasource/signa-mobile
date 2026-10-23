@@ -11,9 +11,15 @@ All navigation uses `@react-navigation/native-stack`. Three navigators.
 App decision point. Consumes `useAuth()`:
 - `isLoading` (hydrating session from secure-store) → loader.
 - `isAuthenticated` → `AppNavigator`.
-- otherwise → `AuthNavigator`.
+- otherwise → `AuthNavigator` (`initialRoute={authInitialRoute}`).
 
 Switching between auth and app is **not** done by navigating; mutate the session in `AuthContext` (see [authentication/auth-context.md](./authentication/auth-context.md)).
+
+`RootNavigator` also always renders `SessionExpiredModal` (`@/components/SessionExpiredModal`) alongside the active navigator, `visible={sessionExpired}`. Because `expireSession()` keeps `user` set, `isAuthenticated` stays true while the modal is up, so the app screen the user was on stays mounted underneath it instead of instantly swapping to the auth stack. See [authentication/auth-context.md](./authentication/auth-context.md).
+
+`FriendAcceptedProvider` (`@/context/FriendAcceptedContext`) wraps the whole navigator tree and polls `GET /notifications` every 30 s (and on foreground resume) for new `FRIEND_REQUEST_ACCEPTED` notifications. When one is detected it exposes a `pending` object; `FriendAcceptedModalConnected` renders the friend-accepted modal overlay, suppressed while the current route is `Lesson`. A `NavigationContainerRef` created in `RootNavigator` is used to deep-navigate from the modal (gift → Store tab; profile → `PublicProfile`).
+
+`TourProvider` (`@/features/tour/TourContext`) wraps the authenticated session and manages the post-login welcome tour and per-tab section modals (the first-steps checklist is now a server-side challenge set, see [features/challenges.md](./features/challenges.md)). `TourOverlay` (rendered outside `NavigationContainer` as a React Native `Modal`) renders the tour itself. See [features/onboarding.md](./features/onboarding.md#post-login-tour-srcfeaturestour).
 
 ## AuthNavigator (`src/navigation/AuthNavigator.tsx`)
 
@@ -33,23 +39,27 @@ Onboarding + authentication screens. Default `initialRoute`: `Welcome`. `screenO
 | `Register` | — | `screens/auth/RegisterScreen` |
 | `ForgotPassword` | — | `screens/auth/ForgotPasswordScreen` |
 | `ForgotPasswordSent` | `{ email: string }` (required) | `screens/auth/ForgotPasswordSentScreen` |
-| `ResetPassword` | `{ token?: string }` | `screens/auth/ResetPasswordScreen` |
+| `ResetPassword` | `{ email: string }` (required) | `screens/auth/ResetPasswordScreen` |
 
 Onboarding progress bar: rendered as a **fixed overlay** (`OnboardingProgressOverlay`) outside the `Stack.Navigator`, so it stays still during transitions. `ONBOARDING_STEP` maps route → step (`Intro:1, DailyGoal:2, Experience:3, Motivation:4`); progress = `step / ONBOARDING_TOTAL_STEPS` (from `@/features/onboarding/types`). Routes outside the map show no bar.
 
 ## AppNavigator (`src/navigation/AppNavigator.tsx`)
 
-Post-login screens with tab navigation. `screenOptions` use a dark header: `headerStyle.backgroundColor = colors.azulOscuro`, `headerTintColor = colors.white`, `headerTitleStyle.fontFamily = fonts.headingSemiBold` (legacy tokens; existing code).
+Post-login screens with tab navigation. `screenOptions` use a dark header: `headerStyle.backgroundColor = colors.text`, `headerTintColor = colors.onDark`, `headerTitleStyle.fontFamily = fonts.bodySemiBold`.
 
 `AppStackParamList`:
 
 | Route | Params | Header title | Screen |
 |---|---|---|---|
-| `Tabs` | `NavigatorScreenParams<TabParamList>` (optional) — lets a caller deep-link into a tab, e.g. `navigation.navigate("Tabs", { screen: "Store" })` | (no header) | `navigation/TabNavigator` |
-| `ChangePassword` | — | "Cambiar contrasena" | `screens/ChangePasswordScreen` |
-| `Lesson` | `{ lessonId: string; unitLabel?: string }` | (no header, screen renders its own) | `features/courses/screens/LessonScreen` |
+| `ChangePassword` | — | (no header, screen renders its own back button) | `screens/ChangePasswordScreen` |
+| `Configuration` | `{ updatedProfile?: {...}, passwordChanged?: boolean }` (set by `EditProfile`/`ChangePassword` on save, via "pass params back") | (no header) | `screens/ConfigurationScreen` |
+| `EditProfile` | `{ displayName: string; lastName: string; username: string }` | (no header, screen renders its own back button) | `screens/EditProfileScreen` |
+| `Lesson` | `{ lessonId: string; unitLabel?: string; signsCount?: number }` | (no header, screen renders its own) | `features/courses/screens/LessonScreen` |
 | `Notifications` | — | (no header, screen renders its own) | `features/social/screens/NotificationsScreen` |
+| `PracticeSession` | `{ mode: PracticeSessionParams }` — `PracticeSessionParams` is `{ mode: "type"; blockType: BlockType; title: string } \| { mode: "sign"; meaning: string } \| { mode: "mistakes" }` | (no header, screen renders its own) | `features/practice/screens/PracticeSessionScreen` |
 | `PublicProfile` | `{ username: string }` | (no header, screen renders its own) | `features/social/screens/PublicProfileScreen` |
+| `FriendAccepted` | `{ friendId, friendName, friendUsername, friendStreak: number }` | (no header, sky-blue celebration screen) | `features/social/screens/FriendAcceptedScreen` |
+| `AchievementCelebration` | `{ achievementId, criteriaType, criteriaValue, title, rewardStreakShields, rewardGems }` | (no header, full-screen modal, fade, no swipe-back; colour and animation per achievement group) | `features/achievements/screens/AchievementCelebrationScreen` |
 | `SignRecognition` | — | "Practicar" | `features/ml/screens/SignRecognitionScreen` |
 | `ConnectionTest` | — | "Test de conexion" | `screens/ConnectionTestScreen` |
 
@@ -69,7 +79,7 @@ Bottom tab navigation with five tabs. Uses `@react-navigation/bottom-tabs`. Tab 
 | `Social` | people/people-outline | `features/social/screens/SocialScreen` |
 | `Profile` | person/person-outline | `screens/ProfileScreen` |
 
-Practice is still a placeholder. Home (Inicio lesson roadmap — see [features/courses.md](./features/courses.md#inicio-home-roadmap-screen)), Store, Social (see [features/social.md](./features/social.md)) and Profile have full implementations.
+Practice, Home (Inicio lesson roadmap — see [features/courses.md](./features/courses.md#inicio-home-roadmap-screen)), Store, Social (see [features/social.md](./features/social.md)) and Profile have full implementations. Practice's session player is a separate `AppStackParamList` route, `PracticeSession` — see [features/practice.md](./features/practice.md).
 
 Social is the one tab whose screen does **not** live under `screens/tabs/`: it is mounted straight from `features/social/`, like `LessonScreen`.
 

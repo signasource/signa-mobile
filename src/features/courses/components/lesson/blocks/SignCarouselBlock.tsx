@@ -1,10 +1,10 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { StyleSheet, TouchableOpacity, View, ViewStyle } from "react-native";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, alpha } from "@/theme";
 import { MultiGlbView } from "@/features/animations/MultiGlbView";
-import { getCachedAnimationUrl } from "@/features/courses/animationPreload";
+import { getGlbUrl } from "@/features/animations/glbUrl";
 import { SignPlaceholder } from "../SignPlaceholder";
 import { XpChip } from "../XpChip";
 import { FeedbackBar } from "../FeedbackBar";
@@ -38,12 +38,9 @@ interface CarouselAnimationProps {
  * Switching options is a JS injection — zero WebView reload on swipe.
  */
 function CarouselAnimation({ options, activeIndex, tone, paused, style }: CarouselAnimationProps) {
-  // Resolved once on mount from the pre-warm cache.
-  const urls = useRef(options.map((m) => getCachedAnimationUrl(m) ?? ""));
   const [failed, setFailed] = useState(false);
   const wrong = tone === "wrong";
-  const activeUrl = urls.current[activeIndex];
-  const anyUrl = urls.current.some(Boolean);
+  const urls = useMemo(() => options.map(getGlbUrl), [options]);
 
   return (
     <View style={[animStyles.container, wrong && animStyles.containerWrong, style]}>
@@ -53,24 +50,19 @@ function CarouselAnimation({ options, activeIndex, tone, paused, style }: Carous
         </Text>
       </View>
 
-      {anyUrl && !failed ? (
+      {!failed ? (
         <MultiGlbView
-          urls={urls.current}
+          urls={urls}
           activeIndex={activeIndex}
           paused={paused}
           onError={() => setFailed(true)}
         />
-      ) : null}
-
-      {/* Overlay placeholder when the active slot has no URL yet. */}
-      {(!activeUrl || failed) && (
-        <View style={StyleSheet.absoluteFillObject}>
-          <SignPlaceholder
-            label={`avatar 3D · seña ${activeIndex + 1}`}
-            height={330}
-            tone={tone}
-          />
-        </View>
+      ) : (
+        <SignPlaceholder
+          label={`avatar 3D · seña ${activeIndex + 1}`}
+          height={330}
+          tone={tone}
+        />
       )}
     </View>
   );
@@ -95,7 +87,7 @@ const animStyles = StyleSheet.create({
     top: 14,
     left: 14,
     zIndex: 1,
-    backgroundColor: "rgba(255,255,255,0.94)",
+    backgroundColor: alpha(colors.onColor, 0.94),
     borderRadius: 8,
     paddingVertical: 4,
     paddingHorizontal: 9,
@@ -288,7 +280,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   stackLayerBack: { left: 26, right: 26, top: 20 },
-  stackLayerMid: { left: 13, right: 13, top: 10, backgroundColor: "#F7F2EC" },
+  stackLayerMid: { left: 13, right: 13, top: 10, backgroundColor: colors.fillSoft },
   stackFront: { position: "absolute", left: 0, right: 0, top: 0 },
   wrongMark: {
     position: "absolute",

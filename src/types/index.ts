@@ -46,9 +46,10 @@ export interface ForgotPasswordRequest {
   email: string;
 }
 
-// ResetPasswordRequest.java - confirmado: solo trae la nueva contrasena
-// (el token va aparte, como @RequestParam en el controller).
+// ResetPasswordRequest.java - confirmado: email + codigo de 6 digitos del mail + nueva contrasena.
 export interface ResetPasswordRequest {
+  email: string;
+  code: string;
   newPassword: string;
 }
 

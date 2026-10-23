@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { AppState, AppStateStatus } from "react-native";
 import { authApi } from "@/api/auth";
 import { usersApi } from "@/api/users";
@@ -12,24 +12,105 @@ interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  /** true cuando la sesión se cerró sola (inactividad / refresh fallido), a diferencia de un logout manual */
+  sessionExpired: boolean;
   login: (payload: LoginRequest) => Promise<void>;
   register: (payload: RegisterRequest) => Promise<void>;
   changePassword: (payload: ChangePasswordRequest) => Promise<void>;
   logout: () => Promise<void>;
+  /** El usuario eligió "Iniciar sesión" en el aviso de sesión expirada */
+  resumeExpiredSession: () => void;
+  /** El usuario eligió "Salir" en el aviso de sesión expirada */
+  dismissExpiredSession: () => void;
+  /** Ruta inicial del stack de auth: "Login" si se venía de una sesión expirada, "Welcome" si no */
+  authInitialRoute: "Login" | "Welcome";
   error: string | null;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+async function buildUserFromToken(accessToken: string): Promise<User> {
+  const email = extractEmailFromToken(accessToken);
+  const cachedName = await profileCache.getName(email);
+  return { email, name: cachedName ?? undefined };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [authInitialRoute, setAuthInitialRoute] = useState<"Login" | "Welcome">("Welcome");
   const appState = useRef<AppStateStatus>(AppState.currentState);
 
   useEffect(() => {
+    /**
+     * La sesión se cerró sola (token vencido sin refresh posible). A diferencia de logout(),
+     * mantiene `user` para que la pantalla actual siga montada detrás del aviso de sesión
+     * expirada, en vez de saltar directo a la pantalla de auth y mostrar estados vacíos
+     * (p. ej. "No tenés amigos" en Social) mientras se desmonta.
+     */
+    async function expireSession() {
+      await tokenStorage.clear();
+      setSessionExpired(true);
+    }
+
+    async function checkSession() {
+      const token = await tokenStorage.getAccessToken();
+      const refreshToken = await tokenStorage.getRefreshToken();
+
+      if (!token || !refreshToken) {
+        setUser(null);
+        return;
+      }
+
+      if (!isTokenExpired(token)) return;
+
+      try {
+        const { data } = await authApi.refresh(refreshToken);
+        await tokenStorage.setTokens(data.accessToken, data.refreshToken);
+        setUser(await buildUserFromToken(data.accessToken));
+      } catch {
+        await expireSession();
+      }
+    }
+
+    async function restoreSession() {
+      const token = await tokenStorage.getAccessToken();
+      const refreshToken = await tokenStorage.getRefreshToken();
+
+      if (!token || !refreshToken) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        if (isTokenExpired(token)) {
+          const { data } = await authApi.refresh(refreshToken);
+          await tokenStorage.setTokens(data.accessToken, data.refreshToken);
+          setUser(await buildUserFromToken(data.accessToken));
+        } else {
+          setUser(await buildUserFromToken(token));
+        }
+      } catch {
+        await tokenStorage.clear();
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    async function handleAppStateChange(nextState: AppStateStatus) {
+      const wasBackground =
+        appState.current === "background" || appState.current === "inactive";
+      appState.current = nextState;
+
+      if (nextState === "active" && wasBackground) {
+        await checkSession();
+      }
+    }
+
     // Registrar callback para cuando el interceptor de 401 no puede refrescar
-    setOnRefreshFailure(() => setUser(null));
+    setOnRefreshFailure(() => expireSession());
 
     restoreSession();
 
@@ -38,68 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.remove();
   }, []);
 
-  async function handleAppStateChange(nextState: AppStateStatus) {
-    const wasBackground =
-      appState.current === "background" || appState.current === "inactive";
-    appState.current = nextState;
-
-    if (nextState === "active" && wasBackground) {
-      await checkSession();
-    }
-  }
-
-  async function buildUserFromToken(accessToken: string): Promise<User> {
-    const email = extractEmailFromToken(accessToken);
-    const cachedName = await profileCache.getName(email);
-    return { email, name: cachedName ?? undefined };
-  }
-
-  async function checkSession() {
-    const token = await tokenStorage.getAccessToken();
-    const refreshToken = await tokenStorage.getRefreshToken();
-
-    if (!token || !refreshToken) {
-      setUser(null);
-      return;
-    }
-
-    if (!isTokenExpired(token)) return;
-
-    try {
-      const { data } = await authApi.refresh(refreshToken);
-      await tokenStorage.setTokens(data.accessToken, data.refreshToken);
-      setUser(await buildUserFromToken(data.accessToken));
-    } catch {
-      await tokenStorage.clear();
-      setUser(null);
-    }
-  }
-
-  async function restoreSession() {
-    const token = await tokenStorage.getAccessToken();
-    const refreshToken = await tokenStorage.getRefreshToken();
-
-    if (!token || !refreshToken) {
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      if (isTokenExpired(token)) {
-        const { data } = await authApi.refresh(refreshToken);
-        await tokenStorage.setTokens(data.accessToken, data.refreshToken);
-        setUser(await buildUserFromToken(data.accessToken));
-      } else {
-        setUser(await buildUserFromToken(token));
-      }
-    } catch {
-      await tokenStorage.clear();
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  async function login(payload: LoginRequest) {
+  const login = useCallback(async (payload: LoginRequest) => {
     setError(null);
     try {
       const { data } = await authApi.login(payload);
@@ -109,9 +129,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setError(err?.response?.data?.message ?? "No se pudo iniciar sesion");
       throw err;
     }
-  }
+  }, []);
 
-  async function register(payload: RegisterRequest) {
+  const register = useCallback(async (payload: RegisterRequest) => {
     setError(null);
     try {
       const { data } = await authApi.register(payload);
@@ -122,9 +142,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setError(err?.response?.data?.message ?? "No se pudo registrar el usuario");
       throw err;
     }
-  }
+  }, []);
 
-  async function changePassword(payload: ChangePasswordRequest) {
+  const changePassword = useCallback(async (payload: ChangePasswordRequest) => {
     setError(null);
     try {
       const { data } = await usersApi.changePassword(payload);
@@ -134,25 +154,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setError(err?.response?.data?.message ?? "No se pudo cambiar la contrasena");
       throw err;
     }
-  }
+  }, []);
 
-  async function logout() {
+  const logout = useCallback(async () => {
     await tokenStorage.clear();
     setUser(null);
-  }
+  }, []);
+
+  const resumeExpiredSession = useCallback(() => {
+    setAuthInitialRoute("Login");
+    setSessionExpired(false);
+    setUser(null);
+  }, []);
+
+  const dismissExpiredSession = useCallback(() => {
+    setAuthInitialRoute("Welcome");
+    setSessionExpired(false);
+    setUser(null);
+  }, []);
 
   const value = useMemo(
     () => ({
       user,
       isLoading,
       isAuthenticated: !!user,
+      sessionExpired,
       login,
       register,
       changePassword,
       logout,
+      resumeExpiredSession,
+      dismissExpiredSession,
+      authInitialRoute,
       error,
     }),
-    [user, isLoading, error]
+    [
+      user,
+      isLoading,
+      sessionExpired,
+      login,
+      register,
+      changePassword,
+      logout,
+      resumeExpiredSession,
+      dismissExpiredSession,
+      authInitialRoute,
+      error,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

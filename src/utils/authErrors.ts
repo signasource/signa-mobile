@@ -8,6 +8,7 @@ const AUTH_ERROR_MAP: Record<string, string> = {
 
   // Password flows
   "Invalid or expired token": "El enlace expiró o no es válido. Pedí uno nuevo",
+  "Invalid or expired code": "El código no es válido o venció. Pedí uno nuevo",
   "New password must be different from current password":
     "La nueva contraseña debe ser distinta a la actual",
   "Current password is incorrect": "La contraseña actual es incorrecta",
@@ -15,6 +16,7 @@ const AUTH_ERROR_MAP: Record<string, string> = {
     "La contraseña debe tener entre 8 y 72 caracteres",
 
   // Genérico
+  "Too many requests": "Hiciste demasiados intentos. Esperá unos minutos y volvé a probar",
   "Internal server error": "Ocurrió un error inesperado. Intentá de nuevo",
 };
 

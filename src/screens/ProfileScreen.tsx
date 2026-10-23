@@ -6,10 +6,12 @@ import {
   StyleSheet,
   ActivityIndicator,
   Pressable,
+  RefreshControl,
   DimensionValue,
   StyleProp,
   ViewStyle,
 } from "react-native";
+import PictureIllustration from "@assets/ilus/picture.svg";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,7 +20,7 @@ import { CompositeNavigationProp, useFocusEffect } from "@react-navigation/nativ
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { TabParamList } from "@/navigation/TabNavigator";
 import { AppStackParamList } from "@/navigation/AppNavigator";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, headerColors, alpha } from "@/theme";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SegmentedControl, Segment } from "@/components/SegmentedControl";
 import { SubTabs, SubTab } from "@/components/SubTabs";
@@ -29,7 +31,10 @@ import { useAuth } from "@/context/AuthContext";
 import { usersApi, WeeklyXpEntry, UserStats } from "@/api/users";
 import { inventoryApi, UserInventory } from "@/api/inventory";
 import { achievementsApi, Achievement } from "@/api/achievements";
-import { learningApi, CourseProgress } from "@/api/learning";
+import { StreakMedal } from "@/features/achievements/components/StreakMedal";
+import { isStreakAchievement } from "@/features/achievements/streakTier";
+import { learningApi } from "@/api/learning";
+import type { PublicCourseProgress } from "@/api/social";
 
 type ProfileNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, "Profile">,
@@ -61,45 +66,18 @@ const ACH_COLS = 3;
 const ACH_GUTTER = 14;
 const ACH_CELL_WIDTH: DimensionValue = `${100 / ACH_COLS}%`;
 
-const HEADER_COLORS = [
-  { name: "Blanco", hex: "#FFFFFF" },
-  { name: "Hueso", hex: "#F4F3F0" },
-  { name: "Niebla", hex: "#E9E9EB" },
-  { name: "Arena", hex: "#EDE3D2" },
-  { name: "Rosa pálido", hex: "#F7DFE4" },
-  { name: "Menta clara", hex: "#DCEFE4" },
-  { name: "Cielo claro", hex: "#DCE8F7" },
-  { name: "Lavanda", hex: "#E3DDF9" },
-  { name: "Acero", hex: "#5A6B87" },
-  { name: "Grafito", hex: "#3A3A3F" },
-  { name: "Negro", hex: "#111111" },
-  { name: "Ciruela", hex: "#8E3B76" },
-  { name: "Violeta", hex: "#7857FF" },
-  { name: "Índigo", hex: "#4B2ECC" },
-  { name: "Marino", hex: "#1B3A8C" },
-  { name: "Azul", hex: "#1E88E5" },
-  { name: "Petróleo", hex: "#175E6B" },
-  { name: "Turquesa", hex: "#17B7A6" },
-  { name: "Verde", hex: "#35A853" },
-  { name: "Bosque", hex: "#1F6B47" },
-  { name: "Oliva", hex: "#7A8B36" },
-  { name: "Amarillo", hex: "#FFC61A" },
-  { name: "Ámbar", hex: "#FB8B24" },
-  { name: "Coral", hex: "#F2603C" },
-  { name: "Ladrillo", hex: "#B4482B" },
-  { name: "Rojo", hex: "#E03B3B" },
-  { name: "Vino", hex: "#9B2242" },
-  { name: "Rosa", hex: "#E8548F" },
-  { name: "Fucsia", hex: "#C13BC9" },
-  { name: "Chocolate", hex: "#6B4423" },
-];
-
 const DEFAULT_INVENTORY: UserInventory = {
   gems: 0,
   streakShields: 0,
-  lives: MAX_LIVES,
-  xpMultiplier: 1,
-  totalSignsLearned: 0,
+  livesMode: "LIMITED",
+  currentLives: MAX_LIVES,
+  nextLifeAt: null,
+  effectiveXpMultiplier: 1,
+  xpMultiplierExpiresAt: null,
+  xpMultiplierActive: false,
+  unlimitedLivesExpiresAt: null,
+  unlimitedLivesActive: false,
+  learnedSignsCount: 0,
 };
 
 
@@ -178,12 +156,13 @@ export function ProfileScreen({ navigation }: Props) {
   const [headerColorOpen, setHeaderColorOpen] = useState(false);
   const [goalOpen, setGoalOpen] = useState(false);
   const [goalDraft, setGoalDraft] = useState(15);
-  const [achievementDetailId, setAchievementDetailId] = useState<number | null>(null);
+  const [achievementDetailId, setAchievementDetailId] = useState<string | null>(null);
   const [achFilter, setAchFilter] = useState<AchFilter>("unlocked");
   const [selectedDayIndex, setSelectedDayIndex] = useState(todayIdx);
 
   // Data state (populated from API, with fallback defaults shown below)
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
 
@@ -192,13 +171,13 @@ export function ProfileScreen({ navigation }: Props) {
   const [dailyGoalMinutes, setDailyGoalMinutes] = useState(15);
   const [inventory, setInventory] = useState<UserInventory>(DEFAULT_INVENTORY);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
-  const [courses, setCourses] = useState<CourseProgress[]>([]);
+  const [courses, setCourses] = useState<PublicCourseProgress[]>([]);
   const [savingGoal, setSavingGoal] = useState(false);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [minutesToday, setMinutesToday] = useState(0);
 
   // Local inventory actions (optimistic)
-  const [livesCount, setLivesCount] = useState(DEFAULT_INVENTORY.lives);
+  const [livesCount, setLivesCount] = useState<number>(DEFAULT_INVENTORY.currentLives ?? MAX_LIVES);
   const [gemsCount, setGemsCount] = useState(DEFAULT_INVENTORY.gems);
   const [xpBoostActive, setXpBoostActive] = useState(false);
   const [infiniteActive, setInfiniteActive] = useState(false);
@@ -206,42 +185,9 @@ export function ProfileScreen({ navigation }: Props) {
   const [infiniteQty, setInfiniteQty] = useState(0);
   const [lifeSecsLeft, setLifeSecsLeft] = useState(LIFE_REGEN_SECS);
 
-  useEffect(() => {
-    loadProfile();
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (firstFocus.current) {
-        firstFocus.current = false;
-        return;
-      }
-      usersApi.getSettings().then((res) => {
-        const color = res.data.profileHeaderColor;
-        setHeaderColor(color);
-      }).catch(() => {});
-    }, [])
-  );
-
-  // Life regeneration countdown
-  useEffect(() => {
-    if (livesCount >= MAX_LIVES || infiniteActive) return;
-    let secs = LIFE_REGEN_SECS;
-    setLifeSecsLeft(secs);
-    const tick = setInterval(() => {
-      secs -= 1;
-      if (secs <= 0) {
-        clearInterval(tick);
-        setLivesCount((c) => Math.min(MAX_LIVES, c + 1));
-      } else {
-        setLifeSecsLeft(secs);
-      }
-    }, 1000);
-    return () => clearInterval(tick);
-  }, [livesCount, infiniteActive]);
-
-  async function loadProfile() {
-    setLoading(true);
+  const loadProfile = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
     const [profileRes, weekRes, goalRes, statsRes, invRes, unlockedRes, lockedRes, coursesRes, settingsRes] =
       await Promise.allSettled([
         usersApi.getMe(),
@@ -282,7 +228,7 @@ export function ProfileScreen({ navigation }: Props) {
     if (invRes.status === "fulfilled") {
       const inv = invRes.value.data;
       setInventory(inv);
-      setLivesCount(inv.lives);
+      setLivesCount(inv.currentLives ?? MAX_LIVES);
       setGemsCount(inv.gems);
       // xpBoostQty e infiniteQty no tienen campo en la API todavía; quedan en 0
     }
@@ -303,7 +249,55 @@ export function ProfileScreen({ navigation }: Props) {
     }
 
     setLoading(false);
-  }
+    setRefreshing(false);
+  }, [user?.name, todayIdx]);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (firstFocus.current) {
+        firstFocus.current = false;
+        return;
+      }
+      usersApi.getMe().then((res) => {
+        setDisplayName(res.data.name);
+        setUsername(res.data.username);
+      }).catch(() => {});
+      usersApi.getSettings().then((res) => {
+        const color = res.data.profileHeaderColor;
+        setHeaderColor(color);
+      }).catch(() => {});
+      usersApi.getDailyGoal().then((res) => {
+        setMinutesToday(res.data.minutesToday);
+      }).catch(() => {});
+      // Las lecciones gastan vidas en el backend: sin esto el inventario queda con las de antes.
+      inventoryApi.getMyInventory().then((res) => {
+        setInventory(res.data);
+        setLivesCount(res.data.currentLives ?? MAX_LIVES);
+        setGemsCount(res.data.gems);
+      }).catch(() => {});
+    }, [])
+  );
+
+  // Life regeneration countdown
+  useEffect(() => {
+    if (livesCount >= MAX_LIVES || infiniteActive) return;
+    let secs = LIFE_REGEN_SECS;
+    setLifeSecsLeft(secs);
+    const tick = setInterval(() => {
+      secs -= 1;
+      if (secs <= 0) {
+        clearInterval(tick);
+        setLivesCount((c) => Math.min(MAX_LIVES, c + 1));
+      } else {
+        setLifeSecsLeft(secs);
+      }
+    }, 1000);
+    return () => clearInterval(tick);
+  }, [livesCount, infiniteActive]);
 
   /** Picking a swatch applies it immediately and persists it — no confirm step. */
   async function applyHeaderColor(hex: string) {
@@ -340,33 +334,31 @@ export function ProfileScreen({ navigation }: Props) {
   const selectedDayName = selectedDayIndex === todayIdx ? "Hoy" : selectedDay.name;
 
   const sortedAchievements = [
-    ...achievements.filter((a) => a.unlocked).sort((a, b) => ((a.earnedAt ?? "") < (b.earnedAt ?? "") ? 1 : -1)),
-    ...achievements.filter((a) => !a.unlocked),
+    ...achievements.filter((a) => a.earned).sort((a, b) => ((a.earnedAt ?? "") < (b.earnedAt ?? "") ? 1 : -1)),
+    ...achievements.filter((a) => !a.earned),
   ];
   const achievementsShown = sortedAchievements.filter((a) =>
-    achFilter === "unlocked" ? a.unlocked : !a.unlocked
+    achFilter === "unlocked" ? a.earned : !a.earned
   );
   const achievementDetail = achievements.find((a) => a.id === achievementDetailId) ?? null;
 
-  const sections: ReadonlyArray<Segment<Section>> = [
+  const sections: readonly Segment<Section>[] = [
     { key: "general", label: "General" },
     { key: "cursos", label: "Cursos" },
     { key: "inventario", label: "Inventario" },
     { key: "logros", label: "Logros" },
   ];
 
-  const achFilters: ReadonlyArray<SubTab<AchFilter>> = [
+  const achFilters: readonly SubTab<AchFilter>[] = [
     {
       key: "unlocked",
       label: "Conseguidos",
-      icon: "checkmark-circle",
-      count: achievements.filter((a) => a.unlocked).length,
+      count: achievements.filter((a) => a.earned).length,
     },
     {
       key: "locked",
       label: "Bloqueados",
-      icon: "lock-closed",
-      count: achievements.filter((a) => !a.unlocked).length,
+      count: achievements.filter((a) => !a.earned).length,
     },
   ];
 
@@ -435,7 +427,7 @@ export function ProfileScreen({ navigation }: Props) {
         <View style={styles.statsGrid}>
           {[
             { icon: "flash", color: colors.warning, value: (userStats?.totalXp ?? 0).toLocaleString("es-AR"), label: "XP total" },
-            { icon: "hand-left", color: colors.courseTeal, value: String(inventory.totalSignsLearned ?? 0), label: "Señas aprendidas" },
+            { icon: "hand-left", color: colors.courseTeal, value: String(inventory.learnedSignsCount ?? 0), label: "Señas aprendidas" },
           ].map((s) => (
             <View key={s.label} style={styles.statCard}>
               <View style={[styles.statChip, { backgroundColor: s.color + "1F" }]}>
@@ -556,7 +548,6 @@ export function ProfileScreen({ navigation }: Props) {
         <View style={styles.section}>
           <SectionTitle icon="school" label="Cursos" />
           <EmptyState
-            icon="school-outline"
             title="Sin cursos todavía"
             description="Cuando empieces un curso va a aparecer acá tu progreso."
           />
@@ -567,21 +558,22 @@ export function ProfileScreen({ navigation }: Props) {
       <View style={styles.section}>
         <SectionTitle icon="school" label="Cursos" />
         {courses.map((c) => {
-          const courseColor = c.color;
+          const courseColor = colors.primary;
+          const unit = c.currentTopic;
           return (
-            <View key={c.courseId} style={styles.courseCard}>
+            <View key={c.courseName} style={styles.courseCard}>
               <View style={styles.courseCardTop}>
                 <View style={[styles.courseChip, { backgroundColor: courseColor + "1F" }]}>
-                  <Ionicons name={c.icon as any} size={22} color={courseColor} />
+                  <Ionicons name="school" size={22} color={courseColor} />
                 </View>
                 <View style={styles.courseInfo}>
                   <Text style={styles.courseName}>{c.courseName}</Text>
                   <Text style={styles.courseLessons}>
-                    {c.lessonsCompleted} de {c.totalLessons} lecciones
+                    {c.completedLessons} de {c.totalLessons} lecciones
                   </Text>
                 </View>
                 <Text style={[styles.coursePct, { color: courseColor }]}>
-                  {c.progressPercent}%
+                  {c.progressPercentage}%
                 </Text>
               </View>
 
@@ -589,35 +581,33 @@ export function ProfileScreen({ navigation }: Props) {
                 <View
                   style={[
                     styles.courseFill,
-                    { width: `${c.progressPercent}%` as any, backgroundColor: courseColor },
+                    { width: `${c.progressPercentage}%` as any, backgroundColor: courseColor },
                   ]}
                 />
               </View>
 
-              <View style={styles.courseUnit}>
-                <View style={styles.courseUnitHeader}>
-                  <Text style={styles.courseUnitLabel}>{c.currentUnit}</Text>
-                  <Text style={styles.courseUnitPct}>{c.unitProgressPercent}% de la unidad</Text>
+              {unit && (
+                <View style={styles.courseUnit}>
+                  <View style={styles.courseUnitHeader}>
+                    <Text style={styles.courseUnitLabel}>{unit.title}</Text>
+                    <Text style={styles.courseUnitPct}>{unit.progressPercentage}% de la unidad</Text>
+                  </View>
+                  <View style={styles.courseUnitTrack}>
+                    <View
+                      style={[
+                        styles.courseUnitFill,
+                        { width: `${unit.progressPercentage}%` as any, backgroundColor: courseColor },
+                      ]}
+                    />
+                  </View>
                 </View>
-                <View style={styles.courseUnitTrack}>
-                  <View
-                    style={[
-                      styles.courseUnitFill,
-                      { width: `${c.unitProgressPercent}%` as any, backgroundColor: courseColor },
-                    ]}
-                  />
-                </View>
-              </View>
+              )}
 
               <View style={styles.courseFooter}>
                 <View style={styles.courseMeta}>
                   <View style={styles.courseMetaItem}>
                     <Ionicons name="hand-left" size={14} color={colors.courseTeal} />
                     <Text style={styles.courseMetaText}>{c.signsLearned} señas</Text>
-                  </View>
-                  <View style={styles.courseMetaItem}>
-                    <Ionicons name="time-outline" size={14} color={colors.neutral600} />
-                    <Text style={styles.courseMetaText}>{c.lastPractice}</Text>
                   </View>
                 </View>
                 <TouchableOpacity
@@ -726,7 +716,7 @@ export function ProfileScreen({ navigation }: Props) {
               }}
               activeOpacity={canBuyLife ? 0.8 : 1}
             >
-              <Ionicons name="add-circle" size={15} color={canBuyLife ? colors.onDark : "#B8B8BD"} />
+              <Ionicons name="add-circle" size={15} color={canBuyLife ? colors.onDark : colors.neutral400} />
               <Text style={[styles.lifeBtnText, !canBuyLife && styles.lifeBtnTextDisabled]}>
                 Vida extra
               </Text>
@@ -736,7 +726,7 @@ export function ProfileScreen({ navigation }: Props) {
               onPress={() => { if (canUseInfinite) { setInfiniteActive(true); setInfiniteQty((q) => q - 1); } }}
               activeOpacity={canUseInfinite ? 0.8 : 1}
             >
-              <Ionicons name="infinite" size={16} color={canUseInfinite ? colors.neutral900 : "#B8B8BD"} />
+              <Ionicons name="infinite" size={16} color={canUseInfinite ? colors.neutral900 : colors.neutral400} />
               <Text style={[styles.infiniteBtnText, !canUseInfinite && styles.infiniteBtnTextDisabled]}>
                 Vidas infinitas
               </Text>
@@ -820,15 +810,12 @@ export function ProfileScreen({ navigation }: Props) {
 
         {/* Grid */}
         {achievementsShown.length === 0 ? (
-          <EmptyState
-            icon="trophy-outline"
-            title={achFilter === "unlocked" ? "Sin logros conseguidos" : "Sin logros bloqueados"}
-            description={
-              achFilter === "unlocked"
-                ? "Completá lecciones y mantené tu racha para desbloquear logros."
-                : "¡Ya desbloqueaste todos los logros disponibles!"
-            }
-          />
+          <View style={styles.achEmpty}>
+            <PictureIllustration width={178} height={119} />
+            <Text style={styles.achEmptyText}>
+              {achFilter === "unlocked" ? "Mostrá tus logros acá" : "¡Ya desbloqueaste todos los logros!"}
+            </Text>
+          </View>
         ) : (
         <View style={styles.achGrid}>
           {achievementsShown.map((a) => (
@@ -838,20 +825,19 @@ export function ProfileScreen({ navigation }: Props) {
               onPress={() => setAchievementDetailId(a.id)}
               activeOpacity={0.7}
             >
-              <View style={[styles.achBadge, { backgroundColor: a.unlocked ? a.color + "22" : colors.neutral100 }]}>
-                <Ionicons
-                  name={a.icon as any}
-                  size={28}
-                  color={a.unlocked ? a.color : "#B8B8BD"}
-                />
-                {!a.unlocked && (
-                  <View style={styles.achLock}>
-                    <Ionicons name="lock-closed" size={11} color={colors.neutral600} />
-                  </View>
+              <View style={styles.achBadge}>
+                {a.earned && isStreakAchievement(a) ? (
+                  <StreakMedal days={a.criteriaValue} size={64} />
+                ) : (
+                  <Ionicons
+                    name={a.earned ? "trophy" : "lock-closed-outline"}
+                    size={28}
+                    color={a.earned ? colors.warning : colors.roadmapLockedIcon}
+                  />
                 )}
               </View>
-              <Text style={[styles.achName, !a.unlocked && { color: colors.neutral600 }]} numberOfLines={2}>
-                {a.name}
+              <Text style={[styles.achName, !a.earned && { color: colors.neutral600 }]} numberOfLines={2}>
+                {a.title}
               </Text>
             </TouchableOpacity>
           ))}
@@ -928,7 +914,19 @@ export function ProfileScreen({ navigation }: Props) {
         <>
           {renderHeader()}
           <SegmentedControl options={sections} value={activeSection} onChange={setActiveSection} />
-          <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => loadProfile(true)}
+                tintColor={colors.primary}
+                colors={[colors.primary]}
+              />
+            }
+          >
             {activeSection === "general" && renderGeneral()}
             {activeSection === "cursos" && renderCursos()}
             {activeSection === "inventario" && renderInventario()}
@@ -944,7 +942,7 @@ export function ProfileScreen({ navigation }: Props) {
         title="Color del encabezado"
       >
         <View style={styles.colorGrid}>
-          {HEADER_COLORS.map((c) => {
+          {headerColors.map((c) => {
             const selected = c.hex.toLowerCase() === headerColor.toLowerCase();
             const light = isLightColor(c.hex);
             return (
@@ -952,7 +950,7 @@ export function ProfileScreen({ navigation }: Props) {
                 <TouchableOpacity
                   style={[
                     styles.colorSwatch,
-                    { backgroundColor: c.hex, borderColor: selected ? colors.neutral900 : light ? "rgba(0,0,0,0.12)" : "transparent" },
+                    { backgroundColor: c.hex, borderColor: selected ? colors.neutral900 : light ? alpha(colors.black, 0.12) : "transparent" },
                   ]}
                   onPress={() => applyHeaderColor(c.hex)}
                   activeOpacity={0.8}
@@ -1014,25 +1012,29 @@ export function ProfileScreen({ navigation }: Props) {
                 </TouchableOpacity>
               </View>
               <View style={styles.achDetailBody}>
-                <View style={[styles.achDetailBadge, { backgroundColor: achievementDetail.unlocked ? achievementDetail.color + "22" : colors.neutral100 }]}>
-                  <Ionicons
-                    name={achievementDetail.icon as any}
-                    size={38}
-                    color={achievementDetail.unlocked ? achievementDetail.color : "#B8B8BD"}
-                  />
+                <View style={styles.achDetailBadge}>
+                  {achievementDetail.earned && isStreakAchievement(achievementDetail) ? (
+                    <StreakMedal days={achievementDetail.criteriaValue} size={84} animated />
+                  ) : (
+                    <Ionicons
+                      name={achievementDetail.earned ? "trophy" : "lock-closed-outline"}
+                      size={38}
+                      color={achievementDetail.earned ? colors.warning : colors.roadmapLockedIcon}
+                    />
+                  )}
                 </View>
-                <Text style={styles.achDetailName}>{achievementDetail.name}</Text>
+                <Text style={styles.achDetailName}>{achievementDetail.title}</Text>
                 <Text style={styles.achDetailDesc}>{achievementDetail.description}</Text>
-                {!achievementDetail.unlocked && achievementDetail.progress && (
+                {!achievementDetail.earned && (
                   <View style={styles.progressPill}>
-                    <Text style={styles.progressPillText}>{achievementDetail.progress}</Text>
+                    <Text style={styles.progressPillText}>Meta: {achievementDetail.criteriaValue}</Text>
                   </View>
                 )}
-                {achievementDetail.unlocked && achievementDetail.earnedLabel && (
+                {achievementDetail.earned && achievementDetail.earnedAt && (
                   <View style={styles.achEarnedRow}>
                     <Ionicons name="checkmark-circle" size={16} color={colors.success} />
                     <Text style={styles.achEarnedText}>
-                      Desbloqueado {achievementDetail.earnedLabel}
+                      Desbloqueado el {new Date(achievementDetail.earnedAt).toLocaleDateString("es-AR")}
                     </Text>
                   </View>
                 )}
@@ -1454,7 +1456,7 @@ const styles = StyleSheet.create({
     color: colors.onDark,
   },
   lifeBtnTextDisabled: {
-    color: "#B8B8BD",
+    color: colors.neutral400,
   },
   infiniteBtn: {
     flex: 1,
@@ -1475,7 +1477,7 @@ const styles = StyleSheet.create({
     color: colors.neutral900,
   },
   infiniteBtnTextDisabled: {
-    color: "#B8B8BD",
+    color: colors.neutral400,
   },
   invRow: {
     flexDirection: "row",
@@ -1583,7 +1585,20 @@ const styles = StyleSheet.create({
     color: colors.successDark,
   },
   boosterActionTextDisabled: {
-    color: "#B8B8BD",
+    color: colors.neutral400,
+  },
+
+  // Achievements empty state
+  achEmpty: {
+    alignItems: "center",
+    paddingVertical: 50,
+    gap: 38,
+  },
+  achEmptyText: {
+    fontFamily: fonts.displayBold,
+    fontSize: 16,
+    color: colors.neutral900,
+    textAlign: "center",
   },
 
   // Achievements — three responsive columns that span the full width.
@@ -1603,21 +1618,6 @@ const styles = StyleSheet.create({
   achBadge: {
     width: 64,
     height: 64,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-  },
-  achLock: {
-    position: "absolute",
-    right: 0,
-    bottom: 0,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.neutral200,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1632,7 +1632,7 @@ const styles = StyleSheet.create({
   // Modals / sheets
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    backgroundColor: alpha(colors.black, 0.45),
     justifyContent: "flex-end",
   },
   sheet: {
@@ -1744,7 +1744,6 @@ const styles = StyleSheet.create({
   achDetailBadge: {
     width: 84,
     height: 84,
-    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
   },

@@ -9,12 +9,6 @@ export const fonts = {
   bodyMedium: "Figtree_500Medium",
   bodySemiBold: "Figtree_600SemiBold",
   bodyBold: "Figtree_700Bold",
-
-  // Legacy aliases for existing app screens
-  headingRegular: "Figtree_400Regular",
-  headingMedium: "Figtree_500Medium",
-  headingSemiBold: "Figtree_600SemiBold",
-  headingBold: "BricolageGrotesque_700Bold",
 };
 
 export const fontSizes = {

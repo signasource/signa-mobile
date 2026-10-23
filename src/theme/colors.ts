@@ -29,9 +29,21 @@ export const colors = {
 
   // Gamification / profile palette
   streakOrange: "#FB8B24",
+  streakCelebration: "#FDA55A",
+
+  // Achievement celebration backgrounds (one per achievement group)
+  celebrationLessons: "#9B86FF",
+  celebrationCourses: "#5FC4BB",
+  celebrationXp: "#F6BC4B",
+  celebrationWeeklyXp: "#7FA6FF",
+  celebrationFriends: "#E27FA9",
+  celebrationGifts: "#F59BC4",
+  celebrationShop: "#F29A4F",
+  celebrationGeneric: "#9B86FF",
   gemsBlue: "#29B6E8",
   gemsBlueDark: "#1B84AB",
   courseTeal: "#2FA8A0",
+  courseTealLight: "#E4F1EC",
   livesRed: "#E03B3B",
   infinitePink: "#E86AA6",
   successDark: "#2E7D45",
@@ -65,15 +77,39 @@ export const colors = {
   avatarBlueLight: "#E4F1FB",
   avatarGreenLight: "#E9F3EB",
 
-  // Legacy aliases kept for existing app screens
-  accent: "#7857FF",
-  white: "#FFFFFF",
-  azulOscuro: "#241A16",
-  blanco: "#FAF6F2",
-  morado: "#7857FF",
-  verde: "#34D339",
-  amarillo: "#FBBF24",
-  rosado: "#7857FF",
+  // Pure white / black (foreground on saturated fills; shadows and scrims)
+  onColor: "#FFFFFF",
+  black: "#000000",
+
+  // Text tones of specific surfaces
+  textBody: "#3D332E",
+  textSecondary: "#6E625C",
+  textFaint: "#B0A7A0",
+  placeholder: "#D6CCC4",
+  separatorDot: "#C9BFB7",
+  neutral400: "#B8B8BD",
+
+  // Lesson blocks
+  fillSoft: "#F7F2EC",
+  dangerText: "#B0503A",
+  matchSuccessTint: "#DCEFE0",
+  matchDangerTint: "#F6CFC3",
+  youtubeRed: "#FF0000",
+
+  // Disabled destructive action (delete-account dialog)
+  dangerDisabled: "#F6D7CD",
+  dangerDisabledText: "#D9A697",
+
+  // Misc
+  skyLight: "#D6EFFA",
+  tourScrim: "#181020",
+  connectionOk: "#34D339",
 };
+
+/** `rgba()` of a `#RRGGBB` token at the given opacity, e.g. `alpha(colors.text, 0.55)`. */
+export function alpha(hex: string, opacity: number): string {
+  const ch = (i: number) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
+  return `rgba(${ch(0)},${ch(1)},${ch(2)},${opacity})`;
+}
 
 export type ColorKey = keyof typeof colors;

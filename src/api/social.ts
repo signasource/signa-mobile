@@ -98,7 +98,7 @@ export const socialApi = {
     apiClient.get<UserSearchResult[]>("/users/search", { params: { query }, signal }),
 };
 
-/** Mirrors `CourseProgressResponse`. Distinct from `CourseProgress` in `api/learning.ts`. */
+/** Mirrors `CourseProgressResponse`; also what `learningApi.getProgress()` returns. */
 export interface PublicCourseProgress {
   courseName: string;
   status: "ENROLLED" | "COMPLETED" | "DROPPED";
@@ -126,6 +126,10 @@ export interface PublicAchievement {
   active: boolean;
   earned: boolean;
   earnedAt: string | null;
+  /** Streak shields credited the moment the achievement is earned. */
+  rewardStreakShields: number;
+  /** Gems credited the moment the achievement is earned. */
+  rewardGems: number;
 }
 
 export interface PublicUserStats {
@@ -133,6 +137,7 @@ export interface PublicUserStats {
   longestStreak: number;
   totalXp: number;
   weeklyXp: number;
+  weeklyRank: number;
   learnedSignsCount: number;
 }
 

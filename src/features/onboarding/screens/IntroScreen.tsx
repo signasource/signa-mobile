@@ -1,10 +1,10 @@
 import React from "react";
-import { View, Pressable, ScrollView, StyleSheet, StatusBar } from "react-native";
+import { View, Image, Pressable, ScrollView, StyleSheet, StatusBar } from "react-native";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "@/navigation/AuthNavigator";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, alpha } from "@/theme";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Intro">;
 
@@ -27,8 +27,11 @@ export function IntroScreen({ navigation }: Props) {
           <View style={styles.circleTopRight} />
           <View style={styles.circleTopLeft} />
           <View style={styles.lisaPlaceholder}>
-            {/* Placeholder de Lisa */}
-            <Text style={styles.lisaPlaceholderText}>Lisa</Text>
+            <Image
+              source={require("@assets/images/lisa-arms-crossed.png")}
+              style={styles.lisaImage}
+              resizeMode="contain"
+            />
           </View>
           {/* Name badge */}
           <View style={styles.badge}>
@@ -102,7 +105,7 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
-    backgroundColor: "rgba(255,255,255,0.4)",
+    backgroundColor: alpha(colors.onColor, 0.4),
   },
   circleTopLeft: {
     position: "absolute",
@@ -111,7 +114,7 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: "rgba(255,255,255,0.22)",
+    backgroundColor: alpha(colors.onColor, 0.22),
   },
   lisaPlaceholder: {
     position: "absolute",
@@ -122,12 +125,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  lisaPlaceholderText: {
-    fontFamily: fonts.displaySemiBold,
-    fontSize: 40,
-    color: colors.white,
-    opacity: 0.8,
-  },
+  // `contain` sobre el alto de la card: la figura queda centrada y el recorte
+  // llega hasta la cadera, asi que la esquina inferior izquierda queda libre
+  // para el badge.
+  lisaImage: { width: "100%", height: "100%" },
   badge: {
     position: "absolute",
     left: 16,
@@ -135,7 +136,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 9,
-    backgroundColor: "rgba(255,255,255,0.85)",
+    backgroundColor: alpha(colors.onColor, 0.85),
     paddingVertical: 8,
     paddingLeft: 8,
     paddingRight: 15,
@@ -157,7 +158,7 @@ const styles = StyleSheet.create({
   badgeAvatarText: {
     fontFamily: fonts.displayBold,
     fontSize: 17,
-    color: colors.white,
+    color: colors.onColor,
   },
   badgeName: {
     fontFamily: fonts.bodyBold,
@@ -195,6 +196,7 @@ const styles = StyleSheet.create({
     fontSize: 15.5,
     lineHeight: 24,
     color: colors.textMuted,
+    textAlign: "justify",
   },
   bodySpacing: {
     marginTop: 12,

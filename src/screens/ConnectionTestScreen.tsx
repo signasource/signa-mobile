@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "@/components/Text";
 import { colors, fonts, fontSizes } from "@/theme";
@@ -35,7 +35,7 @@ export function ConnectionTestScreen() {
       {result && (
         <Card style={styles.mt}>
           <View style={styles.row}>
-            <View style={[styles.dot, { backgroundColor: result.reachable ? colors.verde : colors.danger }]} />
+            <View style={[styles.dot, { backgroundColor: result.reachable ? colors.connectionOk : colors.danger }]} />
             <Text style={styles.resultTitle}>{result.reachable ? "Backend alcanzable" : "Sin conexion"}</Text>
           </View>
           {result.status !== undefined && <Text style={styles.detail}>Status HTTP: {result.status}</Text>}
@@ -45,7 +45,7 @@ export function ConnectionTestScreen() {
 
       <Card style={styles.mt}>
         <Text style={styles.hint}>
-          Tip: si estas en un emulador de Android, "localhost" no apunta a tu PC. Usa 10.0.2.2 en el .env. En un
+          Tip: si estas en un emulador de Android, “localhost” no apunta a tu PC. Usa 10.0.2.2 en el .env. En un
           dispositivo fisico, usa la IP local de tu PC (misma red WiFi).
         </Text>
       </Card>
@@ -55,13 +55,13 @@ export function ConnectionTestScreen() {
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, backgroundColor: colors.background, padding: 24, paddingTop: 64 },
-  title: { fontFamily: fonts.headingBold, fontSize: fontSizes.xl, color: colors.text },
+  title: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.text },
   subtitle: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textMuted, marginTop: 16 },
   url: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.md, color: colors.primary, marginTop: 4 },
   mt: { marginTop: 16 },
   row: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
   dot: { width: 10, height: 10, borderRadius: 5, marginRight: 8 },
-  resultTitle: { fontFamily: fonts.headingSemiBold, fontSize: fontSizes.md, color: colors.text },
+  resultTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.md, color: colors.text },
   detail: { fontFamily: fonts.bodyRegular, fontSize: fontSizes.sm, color: colors.textMuted, marginTop: 2 },
   hint: { fontFamily: fonts.bodyRegular, fontSize: fontSizes.xs, color: colors.textMuted },
 });

@@ -7,6 +7,7 @@ import {
   Modal,
   Pressable,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -14,13 +15,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { BottomTabNavigationProp, BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import { CompositeNavigationProp, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { colors, fonts, fontSizes } from "@/theme";
+import { colors, fonts, fontSizes, alpha } from "@/theme";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { TabParamList } from "@/navigation/TabNavigator";
 import { AppStackParamList } from "@/navigation/AppNavigator";
 import { usersApi } from "@/api/users";
 import { inventoryApi } from "@/api/inventory";
+import { learningApi, EnrollmentSummary } from "@/api/learning";
+import type { PublicCourseProgress } from "@/api/social";
 import {
   coursesApi,
   CourseRoadmap,
@@ -29,6 +32,10 @@ import {
   RoadmapTopic,
 } from "@/features/courses/api";
 import { accentFor, progressFor } from "@/features/courses/roadmap";
+import { useTour } from "@/features/tour/TourContext";
+import { challengesApi, Challenge, Challenges } from "@/api/challenges";
+import { ChallengesCard } from "@/features/challenges/components/ChallengesCard";
+import { mapChallengeClaimError } from "@/utils/challengeErrors";
 
 type HomeNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, "Home">,
@@ -53,17 +60,81 @@ function ctaFor(state: RoadmapLessonState): {
   }
 }
 
-async function fetchRoadmap(): Promise<CourseRoadmap> {
-  const { data: languages } = await coursesApi.getSignLanguages();
-  const lsa = languages.find((l) => l.code === "LSA") ?? languages[0];
-  if (!lsa) throw new Error("No hay lenguas de señas disponibles.");
+interface HomeData {
+  roadmap: CourseRoadmap;
+  enrollments: EnrollmentSummary[];
+  lessonCounts: PublicCourseProgress[];
+}
 
-  const { data: catalog } = await coursesApi.getCatalog(lsa.id);
-  const course = catalog.content[0];
-  if (!course) throw new Error("Todavía no hay cursos disponibles.");
+async function fetchEnrollmentData() {
+  const [enrollments, lessonCounts] = await Promise.all([
+    learningApi.getEnrollments().then((r) => r.data).catch(() => [] as EnrollmentSummary[]),
+    learningApi.getProgress().then((r) => r.data).catch(() => [] as PublicCourseProgress[]),
+  ]);
+  return { enrollments, lessonCounts };
+}
 
-  const { data: roadmap } = await coursesApi.getRoadmap(course.id);
-  return roadmap;
+// Free courses are joined once per app session; enrolment is what makes a course show up in
+// the selector and in the profile's "Cursos" progress.
+let freeCoursesJoined = false;
+
+/** Enrolls the user in the free catalog courses they're missing. Returns true if any was joined. */
+async function joinMissingFreeCourses(enrollments: EnrollmentSummary[]): Promise<boolean> {
+  if (freeCoursesJoined) return false;
+  try {
+    const { data: languages } = await coursesApi.getSignLanguages();
+    const lsa = languages.find((l) => l.code === "LSA") ?? languages[0];
+    if (!lsa) return false;
+    const { data: catalog } = await coursesApi.getCatalog(lsa.id);
+    const enrolledIds = new Set(enrollments.map((e) => e.courseId));
+    const missing = catalog.content.filter((c) => c.isFree && !enrolledIds.has(c.id));
+    await Promise.all(missing.map((c) => learningApi.joinCourse(c.id)));
+    freeCoursesJoined = true;
+    return missing.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Loads the roadmap of the user's current course (the server persists the selection). Falls back
+ * to the first catalog course if enrolment isn't available.
+ */
+async function fetchHomeData(): Promise<HomeData> {
+  let { enrollments, lessonCounts } = await fetchEnrollmentData();
+  if (await joinMissingFreeCourses(enrollments)) {
+    ({ enrollments, lessonCounts } = await fetchEnrollmentData());
+  }
+
+  const enrolled = enrollments.find((e) => e.isCurrent) ?? enrollments[0];
+  let courseId = enrolled?.courseId;
+
+  if (!courseId) {
+    const { data: languages } = await coursesApi.getSignLanguages();
+    const lsa = languages.find((l) => l.code === "LSA") ?? languages[0];
+    if (!lsa) throw new Error("No hay lenguas de señas disponibles.");
+
+    const { data: catalog } = await coursesApi.getCatalog(lsa.id);
+    courseId = catalog.content[0]?.id;
+    if (!courseId) throw new Error("Todavía no hay cursos disponibles.");
+  }
+
+  const { data: roadmap } = await coursesApi.getRoadmap(courseId);
+  return { roadmap, enrollments, lessonCounts };
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+function courseSubtitle(course: EnrollmentSummary, counts: PublicCourseProgress[]): string {
+  const owner = course.organizationName ?? "Tu curso personal";
+  const progress = counts.find((c) => c.courseName === course.courseName);
+  return progress ? `${owner} · ${progress.completedLessons} de ${progress.totalLessons}` : owner;
 }
 
 function findCurrentLessonId(topics: RoadmapTopic[]): string | null {
@@ -84,15 +155,28 @@ export function HomeTabScreen({ navigation }: Props) {
   const [gems, setGems] = useState(0);
   const [xp, setXp] = useState(0);
   const [roadmap, setRoadmap] = useState<CourseRoadmap | null>(null);
+  const [enrollments, setEnrollments] = useState<EnrollmentSummary[]>([]);
+  const [lessonCounts, setLessonCounts] = useState<PublicCourseProgress[]>([]);
+  const [selectorOpen, setSelectorOpen] = useState(false);
+  const [switching, setSwitching] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openLesson, setOpenLesson] = useState<{
     lesson: RoadmapLesson;
     unitLabel: string;
   } | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const [challenges, setChallenges] = useState<Challenges | null>(null);
+  const [claimingId, setClaimingId] = useState<string | null>(null);
+  const [claimError, setClaimError] = useState<string | null>(null);
+
+  // The welcome tour spotlights elements of this screen: the card would shift them.
+  const { tourVisible } = useTour();
+
+  const load = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
     setError(null);
     Promise.all([usersApi.getStats(), inventoryApi.getMyInventory()])
       .then(([stats, inventory]) => {
@@ -101,12 +185,20 @@ export function HomeTabScreen({ navigation }: Props) {
         setGems(inventory.data.gems);
       })
       .catch(() => {});
+    challengesApi
+      .getChallenges()
+      .then((res) => setChallenges(res.data))
+      .catch(() => {});
     try {
-      setRoadmap(await fetchRoadmap());
+      const { roadmap: rm, enrollments: enr, lessonCounts: counts } = await fetchHomeData();
+      setRoadmap(rm);
+      setEnrollments(enr);
+      setLessonCounts(counts);
     } catch (err: any) {
       setError(err?.response?.data?.message ?? err?.message ?? "No pudimos cargar tu curso.");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
@@ -115,9 +207,70 @@ export function HomeTabScreen({ navigation }: Props) {
   const currentLessonId = roadmap ? findCurrentLessonId(roadmap.topics) : null;
   const cta = openLesson ? ctaFor(openLesson.lesson.state) : null;
 
+  const currentCourse = enrollments.find((e) => e.isCurrent) ?? enrollments[0] ?? null;
+
+  async function selectCourse(course: EnrollmentSummary) {
+    if (course.courseId === currentCourse?.courseId) {
+      setSelectorOpen(false);
+      return;
+    }
+    setSwitching(true);
+    try {
+      await learningApi.setCurrentCourse(course.courseId);
+      setSelectorOpen(false);
+      await load();
+    } catch (err: any) {
+      setSelectorOpen(false);
+      setError(err?.response?.data?.message ?? "No pudimos cambiar de curso.");
+    } finally {
+      setSwitching(false);
+    }
+  }
+
   function navigateToLesson(lesson: RoadmapLesson, unitLabel: string) {
     setOpenLesson(null);
     navigation.navigate("Lesson", { lessonId: lesson.id, unitLabel, signsCount: lesson.signsCount });
+  }
+
+  function handleChallengePress(challenge: Challenge) {
+    switch (challenge.criteriaType) {
+      case "CAMERA_PRACTICES":
+        navigation.navigate("Tabs", { screen: "Practice" });
+        break;
+      case "FRIEND_REQUESTS_SENT":
+        navigation.navigate("Tabs", { screen: "Social" });
+        break;
+      case "STREAK_DAYS":
+        // No-op: the streak is earned naturally.
+        break;
+      default: {
+        const lessons = roadmap?.topics.flatMap((t) => t.lessons) ?? [];
+        const lesson = lessons.find((l) => l.id === currentLessonId);
+        const topic = roadmap?.topics.find((t) => t.lessons.some((l) => l.id === currentLessonId));
+        if (lesson && topic) navigateToLesson(lesson, topic.title);
+      }
+    }
+  }
+
+  async function handleClaim(challenge: Challenge) {
+    setClaimError(null);
+    setClaimingId(challenge.id);
+    try {
+      const { data } = await challengesApi.claim(challenge.id);
+      setGems(data.gems);
+      const refreshed = await challengesApi.getChallenges();
+      setChallenges(refreshed.data);
+    } catch (err: any) {
+      setClaimError(mapChallengeClaimError(err, "No pudimos reclamar la recompensa."));
+      // The card may be stale (e.g. open across midnight, still offering yesterday's
+      // expired reward): resync it so the failed row goes away.
+      challengesApi
+        .getChallenges()
+        .then((res) => setChallenges(res.data))
+        .catch(() => {});
+    } finally {
+      setClaimingId(null);
+    }
   }
 
   return (
@@ -128,6 +281,21 @@ export function HomeTabScreen({ navigation }: Props) {
         description="Seguí la ruta lección por lección y sumá señas todos los días."
         paddingTop={insets.top + 14}
         tone={colors.primary}
+        top={
+          currentCourse ? (
+            <TouchableOpacity
+              style={styles.courseChip}
+              onPress={() => setSelectorOpen(true)}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="briefcase" size={14} color={colors.onDark} />
+              <Text style={styles.courseChipText} numberOfLines={1}>
+                {currentCourse.courseName}
+              </Text>
+              <Ionicons name="chevron-down" size={14} color={colors.onDark} />
+            </TouchableOpacity>
+          ) : null
+        }
         stats={[
           { key: "streak", label: "Racha", value: String(streak), icon: "flame" },
           { key: "gems", label: "Gemas", value: gems.toLocaleString("es-AR"), icon: "diamond" },
@@ -142,8 +310,8 @@ export function HomeTabScreen({ navigation }: Props) {
         </View>
       ) : error ? (
         <View style={styles.centerFill}>
-          <EmptyState icon="cloud-offline-outline" title="No pudimos cargar tu curso" description={error} />
-          <TouchableOpacity style={styles.retryButton} onPress={load} activeOpacity={0.85}>
+          <EmptyState title="No pudimos cargar tu curso" description={error} />
+          <TouchableOpacity style={styles.retryButton} onPress={() => load()} activeOpacity={0.85}>
             <Text style={styles.retryButtonText}>Reintentar</Text>
           </TouchableOpacity>
         </View>
@@ -152,7 +320,39 @@ export function HomeTabScreen({ navigation }: Props) {
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => load(true)}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
         >
+          {challenges && !tourVisible && (
+            <ChallengesCard
+              challenges={challenges}
+              claimingId={claimingId}
+              error={claimError}
+              onClaim={handleClaim}
+              onPress={handleChallengePress}
+            />
+          )}
+          {currentCourse?.organizationName && (
+            <View style={styles.orgBanner}>
+              <Ionicons name="business" size={20} color={colors.primary} />
+              <View style={styles.orgBannerText}>
+                <Text style={styles.orgBannerTitle} numberOfLines={1}>
+                  Curso de {currentCourse.organizationName}
+                </Text>
+                {!!currentCourse.accessExpiresAt && (
+                  <Text style={styles.orgBannerSub}>
+                    Acceso incluido hasta el {formatDate(currentCourse.accessExpiresAt)}
+                  </Text>
+                )}
+              </View>
+            </View>
+          )}
           {roadmap?.topics.map((topic) => (
             <TopicSection
               key={topic.id}
@@ -164,13 +364,74 @@ export function HomeTabScreen({ navigation }: Props) {
           ))}
           {roadmap && roadmap.topics.length === 0 && (
             <EmptyState
-              icon="book-outline"
               title="Todavía no hay contenido"
               description="Cuando este curso tenga lecciones, las vas a ver acá."
             />
           )}
         </ScrollView>
       )}
+
+      {/* ── Course selector (bottom sheet) ── */}
+      <Modal
+        visible={selectorOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSelectorOpen(false)}
+        statusBarTranslucent
+      >
+        <Pressable style={styles.sheetBackdrop} onPress={() => setSelectorOpen(false)}>
+          <Pressable
+            style={[styles.sheet, { paddingBottom: insets.bottom + 20 }]}
+            onPress={() => {}}
+          >
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>Elegí tu curso</Text>
+            <Text style={styles.sheetSubtitle}>
+              Tu progreso se guarda por separado en cada curso.
+            </Text>
+            {enrollments.map((course) => {
+              const selected = course.courseId === currentCourse?.courseId;
+              const isOrg = !!course.organizationName;
+              return (
+                <TouchableOpacity
+                  key={course.courseId}
+                  style={[styles.courseOption, selected && styles.courseOptionSelected]}
+                  onPress={() => selectCourse(course)}
+                  disabled={switching}
+                  activeOpacity={0.85}
+                >
+                  <View
+                    style={[
+                      styles.courseOptionIcon,
+                      { backgroundColor: isOrg ? colors.success : colors.primary },
+                    ]}
+                  >
+                    <Ionicons
+                      name={isOrg ? "medkit" : "hand-left"}
+                      size={22}
+                      color={colors.onDark}
+                    />
+                  </View>
+                  <View style={styles.courseOptionText}>
+                    <Text style={styles.courseOptionName} numberOfLines={1}>
+                      {course.courseName}
+                    </Text>
+                    <Text style={styles.courseOptionSub} numberOfLines={1}>
+                      {courseSubtitle(course, lessonCounts)}
+                    </Text>
+                  </View>
+                  {selected &&
+                    (switching ? (
+                      <ActivityIndicator color={colors.primary} />
+                    ) : (
+                      <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                    ))}
+                </TouchableOpacity>
+              );
+            })}
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* ── Lesson info modal (centered) ── */}
       <Modal
@@ -441,6 +702,116 @@ const styles = StyleSheet.create({
     color: colors.onDark,
   },
 
+  // Course selector chip (header) and organization banner
+  courseChip: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    maxWidth: "80%",
+    backgroundColor: alpha(colors.onColor, 0.16),
+    borderRadius: 999,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+  },
+  courseChipText: {
+    flexShrink: 1,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.onDark,
+  },
+  orgBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: colors.primaryLight,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 20,
+  },
+  orgBannerText: { flex: 1, minWidth: 0 },
+  orgBannerTitle: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+    color: colors.text,
+  },
+  orgBannerSub: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+
+  // Course selector sheet
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: alpha(colors.text, 0.45),
+    justifyContent: "flex-end",
+  },
+  sheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    gap: 10,
+  },
+  sheetHandle: {
+    alignSelf: "center",
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.roadmapLockedBorder,
+    marginBottom: 10,
+  },
+  sheetTitle: {
+    fontFamily: fonts.displayExtraBold,
+    fontSize: fontSizes.lg,
+    color: colors.text,
+    textAlign: "center",
+  },
+  sheetSubtitle: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 13,
+    color: colors.textMuted,
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  courseOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: colors.fill,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: "transparent",
+    padding: 12,
+  },
+  courseOptionSelected: {
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.primary,
+  },
+  courseOptionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  courseOptionText: { flex: 1, minWidth: 0 },
+  courseOptionName: {
+    fontFamily: fonts.displayExtraBold,
+    fontSize: 16,
+    color: colors.text,
+  },
+  courseOptionSub: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 12.5,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+
   // Timeline
   scroll: { flex: 1 },
   scrollContent: {
@@ -651,7 +1022,7 @@ const styles = StyleSheet.create({
   // Modal (centered overlay)
   modalBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(36,26,22,0.45)",
+    backgroundColor: alpha(colors.text, 0.45),
     alignItems: "center",
     justifyContent: "center",
     padding: 24,

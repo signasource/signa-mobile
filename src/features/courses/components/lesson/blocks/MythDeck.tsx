@@ -291,6 +291,7 @@ const styles = StyleSheet.create({
     fontSize: 14.5,
     lineHeight: 21,
     color: colors.textMuted,
+    textAlign: "justify",
   },
   faceBodyReality: {
     fontFamily: fonts.bodyMedium,

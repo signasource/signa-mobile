@@ -1,0 +1,86 @@
+{
+  "tensors": [
+    {
+      "name": "lstm/kernel",
+      "shape": [
+        258,
+        256
+      ]
+    },
+    {
+      "name": "lstm/recurrent_kernel",
+      "shape": [
+        64,
+        256
+      ]
+    },
+    {
+      "name": "lstm/bias",
+      "shape": [
+        256
+      ]
+    },
+    {
+      "name": "lstm_1/kernel",
+      "shape": [
+        64,
+        256
+      ]
+    },
+    {
+      "name": "lstm_1/recurrent_kernel",
+      "shape": [
+        64,
+        256
+      ]
+    },
+    {
+      "name": "lstm_1/bias",
+      "shape": [
+        256
+      ]
+    },
+    {
+      "name": "dense/kernel",
+      "shape": [
+        64,
+        64
+      ]
+    },
+    {
+      "name": "dense/bias",
+      "shape": [
+        64
+      ]
+    },
+    {
+      "name": "dense_1/kernel",
+      "shape": [
+        64,
+        5
+      ]
+    },
+    {
+      "name": "dense_1/bias",
+      "shape": [
+        5
+      ]
+    }
+  ],
+  "labels": [
+    "hermano",
+    "reposo",
+    "amigo",
+    "papa",
+    "mama"
+  ],
+  "sequenceLength": 30,
+  "featureDim": 258,
+  "thresholds": {
+    "hermano": 0.78,
+    "amigo": 0.86,
+    "papa": 0.41,
+    "mama": 0.61
+  },
+  "poseIgnored": true
+}

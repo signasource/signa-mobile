@@ -50,7 +50,9 @@ function flushQueue(error?: unknown) {
 }
 
 /**
- * Interceptor de 401: intenta refrescar el access token una vez.
+ * Interceptor de 401/403: intenta refrescar el access token una vez.
+ * El backend responde 403 (en vez de 401) para algunos casos de token
+ * expirado/inválido, así que ambos códigos disparan el mismo flujo.
  * Requests concurrentes que lleguen mientras se está refrescando esperan en
  * `pendingQueue` y reintentan con el nuevo token sin disparar otro refresh.
  */
@@ -58,8 +60,9 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const status = error.response?.status;
 
-    if (error.response?.status !== 401 || !originalRequest || originalRequest._retry) {
+    if ((status !== 401 && status !== 403) || !originalRequest || originalRequest._retry) {
       return Promise.reject(error);
     }
 

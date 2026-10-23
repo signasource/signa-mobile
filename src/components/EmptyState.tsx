@@ -1,23 +1,20 @@
 import React from "react";
 import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
+import { EmptyStateArt } from "@/components/EmptyStateArt";
 
 interface Props {
-  icon: keyof typeof Ionicons.glyphMap;
   title: string;
   description: string;
   style?: StyleProp<ViewStyle>;
 }
 
 /** The single empty-state style used across the app ("Todavía no hay actividad"). */
-export function EmptyState({ icon, title, description, style }: Props) {
+export function EmptyState({ title, description, style }: Props) {
   return (
     <View style={[styles.container, style]}>
-      <View style={styles.iconBox}>
-        <Ionicons name={icon} size={24} color={colors.textMuted} />
-      </View>
+      <EmptyStateArt style={styles.art} />
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.description}>{description}</Text>
     </View>
@@ -39,14 +36,8 @@ const styles = StyleSheet.create({
     paddingVertical: 30,
     paddingHorizontal: 20,
   },
-  iconBox: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    backgroundColor: colors.fill,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
+  art: {
+    marginBottom: 8,
   },
   title: {
     fontFamily: fonts.displayBold,

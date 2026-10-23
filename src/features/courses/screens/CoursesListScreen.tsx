@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, View } from "react-native";
 import { Text } from "@/components/Text";
 import { colors, fonts, fontSizes } from "@/theme";
@@ -55,10 +55,10 @@ export function CoursesListScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background, padding: 24, paddingTop: 64 },
-  title: { fontFamily: fonts.headingBold, fontSize: fontSizes.xl, color: colors.text, marginBottom: 20 },
-  errorTitle: { fontFamily: fonts.headingSemiBold, fontSize: fontSizes.md, color: colors.text, marginBottom: 6 },
+  title: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.text, marginBottom: 20 },
+  errorTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.md, color: colors.text, marginBottom: 6 },
   errorDetail: { fontFamily: fonts.bodyRegular, fontSize: fontSizes.sm, color: colors.textMuted },
   courseCard: { marginBottom: 12 },
-  courseTitle: { fontFamily: fonts.headingSemiBold, fontSize: fontSizes.md, color: colors.primary },
+  courseTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.md, color: colors.primary },
   courseMeta: { fontFamily: fonts.bodyRegular, fontSize: fontSizes.sm, color: colors.textMuted, marginTop: 4 },
 });

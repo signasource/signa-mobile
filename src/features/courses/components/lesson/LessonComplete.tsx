@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "@/theme";
 import { NavIconButton } from "@/components/BackButton";
 import { LessonButton } from "./LessonButton";
+import ManoLeccionFinalizada from "@assets/ilus/mano-leccion-finalizada.svg";
 
 interface LessonCompleteProps {
   lessonName: string;
@@ -62,8 +63,8 @@ export function LessonComplete({
       </View>
 
       <View style={styles.body}>
-        <View style={styles.trophy}>
-          <Ionicons name="trophy" size={52} color={colors.primary} />
+        <View style={styles.illustration}>
+          <ManoLeccionFinalizada width={190} height={190} />
         </View>
         <Text style={styles.title}>¡Lección completada!</Text>
         <Text style={styles.subtitle}>
@@ -73,7 +74,10 @@ export function LessonComplete({
         {stats.length > 0 && (
           <View style={styles.statsRow}>
             {stats.map((stat) => (
-              <View key={stat.key} style={styles.statCard}>
+              <View
+                key={stat.key}
+                style={[styles.statCard, stats.length > 1 ? styles.statCardFlex : styles.statCardSingle]}
+              >
                 <Ionicons name={stat.icon} size={22} color={stat.color} />
                 <Text style={styles.statValue}>{stat.value}</Text>
                 <Text style={styles.statLabel}>{stat.label}</Text>
@@ -95,14 +99,10 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   topRow: { paddingHorizontal: 20, alignItems: "flex-end" },
   body: { flex: 1, paddingHorizontal: 24, alignItems: "center", gap: 14 },
-  trophy: {
-    width: 108,
-    height: 108,
-    borderRadius: 32,
-    backgroundColor: colors.primaryLight,
+  illustration: {
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 20,
+    marginTop: 4,
   },
   title: {
     fontFamily: fonts.displayBold,
@@ -119,9 +119,8 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: "center",
   },
-  statsRow: { flexDirection: "row", gap: 10, width: "100%", marginTop: 8 },
+  statsRow: { flexDirection: "row", gap: 10, width: "100%", marginTop: 8, justifyContent: "center" },
   statCard: {
-    flex: 1,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
@@ -142,5 +141,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: "center",
   },
+  statCardFlex: { flex: 1 },
+  statCardSingle: { width: 160 },
   footer: { padding: 20, gap: 10 },
 });

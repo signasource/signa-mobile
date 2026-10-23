@@ -2,7 +2,7 @@ import React from "react";
 import { View, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
-import { colors, fonts, fontSizes } from "@/theme";
+import { colors, fonts, fontSizes, alpha } from "@/theme";
 import { isLightColor } from "@/utils/color";
 
 /** One metric inside the header strip: uppercase label on top, icon + value below. */
@@ -24,6 +24,8 @@ interface ScreenHeaderProps {
   stats?: HeaderStat[];
   left?: React.ReactNode;
   right?: React.ReactNode;
+  /** Rendered above the title row (e.g. a course selector chip). */
+  top?: React.ReactNode;
   children?: React.ReactNode;
   /**
    * Drops the shared minimum height so the header hugs its content. Used by
@@ -49,13 +51,14 @@ export function ScreenHeader({
   stats,
   left,
   right,
+  top,
   children,
   compact = false,
 }: ScreenHeaderProps) {
   const light = isLightColor(tone);
   const fg = light ? colors.neutral900 : colors.onDark;
-  const tint = light ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.16)";
-  const bubble = light ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.09)";
+  const tint = light ? alpha(colors.black, 0.06) : alpha(colors.onColor, 0.16);
+  const bubble = light ? alpha(colors.black, 0.04) : alpha(colors.onColor, 0.09);
 
   return (
     <View
@@ -68,6 +71,8 @@ export function ScreenHeader({
       ]}
     >
       <View style={[styles.bubble, { backgroundColor: bubble }]} />
+
+      {top}
 
       <View style={styles.row}>
         {left}

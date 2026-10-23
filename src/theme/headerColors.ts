@@ -1,0 +1,36 @@
+/**
+ * Colors a user can pick for their profile header (Perfil and Configuración).
+ * The chosen `hex` is stored on the backend, so never change an existing value.
+ */
+export const headerColors = [
+  { name: "Blanco", hex: "#FFFFFF" },
+  { name: "Hueso", hex: "#F4F3F0" },
+  { name: "Niebla", hex: "#E9E9EB" },
+  { name: "Arena", hex: "#EDE3D2" },
+  { name: "Rosa pálido", hex: "#F7DFE4" },
+  { name: "Menta clara", hex: "#DCEFE4" },
+  { name: "Cielo claro", hex: "#DCE8F7" },
+  { name: "Lavanda", hex: "#E3DDF9" },
+  { name: "Acero", hex: "#5A6B87" },
+  { name: "Grafito", hex: "#3A3A3F" },
+  { name: "Negro", hex: "#111111" },
+  { name: "Ciruela", hex: "#8E3B76" },
+  { name: "Violeta", hex: "#7857FF" },
+  { name: "Índigo", hex: "#4B2ECC" },
+  { name: "Marino", hex: "#1B3A8C" },
+  { name: "Azul", hex: "#1E88E5" },
+  { name: "Petróleo", hex: "#175E6B" },
+  { name: "Turquesa", hex: "#17B7A6" },
+  { name: "Verde", hex: "#35A853" },
+  { name: "Bosque", hex: "#1F6B47" },
+  { name: "Oliva", hex: "#7A8B36" },
+  { name: "Amarillo", hex: "#FFC61A" },
+  { name: "Ámbar", hex: "#FB8B24" },
+  { name: "Coral", hex: "#F2603C" },
+  { name: "Ladrillo", hex: "#B4482B" },
+  { name: "Rojo", hex: "#E03B3B" },
+  { name: "Vino", hex: "#9B2242" },
+  { name: "Rosa", hex: "#E8548F" },
+  { name: "Fucsia", hex: "#C13BC9" },
+  { name: "Chocolate", hex: "#6B4423" },
+];
