@@ -1,6 +1,6 @@
 # Colors
 
-> Responsibility: color tokens (current and legacy).
+> Responsibility: color tokens.
 > Update when: a color token is added, changed, or removed.
 > Sources: src/theme/colors.ts
 
@@ -109,6 +109,11 @@ The profile / stats screens use a pure-gray palette rather than the warm-toned o
 > Module colors (wine, amber, violet) no longer tint selectors or CTAs: those are always
 > `colors.text` / `colors.neutral100`. Module colors survive in headers, medallions and accents.
 
-## Legacy tokens (do NOT use in new screens)
+## White and foreground on color
 
-`accent`, `white`, `azulOscuro`, `blanco`, `morado`, `verde`, `amarillo`, `rosado`. Kept only for old screens (and `AppNavigator` uses `azulOscuro`/`white` in its header). New design → current tokens above.
+There is no `white` token. Use `colors.surface` for a white **background** (cards, inputs) and
+`colors.onDark` for **foreground** (text, icons, spinners, translucent rings) over a saturated or
+dark fill — primary, success, celebration backgrounds, the dark `AppNavigator` header.
+
+The old aliases (`accent`, `white`, `azulOscuro`, `blanco`, `morado`, `verde`, `amarillo`,
+`rosado`) were removed from `colors.ts` on 2026-10-23; using one is now a type error.

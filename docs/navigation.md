@@ -45,7 +45,7 @@ Onboarding progress bar: rendered as a **fixed overlay** (`OnboardingProgressOve
 
 ## AppNavigator (`src/navigation/AppNavigator.tsx`)
 
-Post-login screens with tab navigation. `screenOptions` use a dark header: `headerStyle.backgroundColor = colors.azulOscuro`, `headerTintColor = colors.white`, `headerTitleStyle.fontFamily = fonts.headingSemiBold` (legacy tokens; existing code).
+Post-login screens with tab navigation. `screenOptions` use a dark header: `headerStyle.backgroundColor = colors.text`, `headerTintColor = colors.onDark`, `headerTitleStyle.fontFamily = fonts.bodySemiBold`.
 
 `AppStackParamList`:
 

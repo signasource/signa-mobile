@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   badgeAvatarText: {
     fontFamily: fonts.displayBold,
     fontSize: 17,
-    color: colors.white,
+    color: colors.onDark,
   },
   badgeName: {
     fontFamily: fonts.bodyBold,

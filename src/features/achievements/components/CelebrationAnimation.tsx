@@ -46,7 +46,7 @@ function MockAnimation({ icon }: { icon: CelebrationTheme["icon"] }) {
         return <Animated.View key={size} style={[styles.ring, { width: size, height: size, borderRadius: size / 2, opacity, transform: [{ scale }] }]} />;
       })}
       <Animated.View style={[styles.core, { transform: [{ scale: iconScale }] }]}>
-        <Ionicons name={icon} size={72} color={colors.white} />
+        <Ionicons name={icon} size={72} color={colors.onDark} />
       </Animated.View>
     </View>
   );
@@ -55,13 +55,13 @@ function MockAnimation({ icon }: { icon: CelebrationTheme["icon"] }) {
 const styles = StyleSheet.create({
   lottie: { height: "100%", maxHeight: 360 },
   mock: { width: 280, height: 280, alignItems: "center", justifyContent: "center" },
-  ring: { position: "absolute", backgroundColor: colors.white },
+  ring: { position: "absolute", backgroundColor: colors.onDark },
   core: {
     width: 128,
     height: 128,
     borderRadius: 64,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.white + "47",
+    backgroundColor: colors.onDark + "47",
   },
 });
