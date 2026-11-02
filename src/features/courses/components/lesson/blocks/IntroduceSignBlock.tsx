@@ -152,18 +152,19 @@ export function IntroduceSignBlock({ config, onContinue }: IntroduceSignBlockPro
                       )}
                     </TouchableOpacity>
                   ))}
-
-                  <TextInput
-                    style={styles.descInput}
-                    placeholder="Descripción adicional (opcional)"
-                    placeholderTextColor={colors.textMuted}
-                    value={description}
-                    onChangeText={setDescription}
-                    multiline
-                    maxLength={300}
-                    textAlignVertical="top"
-                  />
                 </ScrollView>
+
+                <Text style={styles.commentLabel}>Comentario (opcional)</Text>
+                <TextInput
+                  style={styles.descInput}
+                  placeholder="Contanos más sobre el problema…"
+                  placeholderTextColor={colors.textMuted}
+                  value={description}
+                  onChangeText={setDescription}
+                  multiline
+                  maxLength={300}
+                  textAlignVertical="top"
+                />
 
                 {reportError && <Text style={styles.errorText}>{reportError}</Text>}
 
@@ -325,8 +326,14 @@ const styles = StyleSheet.create({
 
   // Report view
   reasonList: {
-    maxHeight: 320,
+    maxHeight: 240,
     marginBottom: 8,
+  },
+  commentLabel: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.text,
+    marginTop: 6,
   },
   reasonRow: {
     flexDirection: "row",
@@ -351,7 +358,7 @@ const styles = StyleSheet.create({
     color: colors.primaryDark,
   },
   descInput: {
-    marginTop: 10,
+    marginTop: 8,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 12,
