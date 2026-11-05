@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import {
@@ -17,9 +17,12 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider } from "@/context/AuthContext";
 import { SettingsProvider } from "@/context/SettingsContext";
 import { RootNavigator } from "@/navigation/RootNavigator";
+import { initTelemetry } from "@/telemetry/telemetry";
 import { colors } from "@/theme";
 
 export default function App() {
+  useEffect(() => initTelemetry(), []);
+
   const [fontsLoaded] = useFonts({
     Figtree_400Regular,
     Figtree_500Medium,

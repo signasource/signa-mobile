@@ -63,6 +63,10 @@ apiClient.interceptors.response.use(
     const status = error.response?.status;
 
     if ((status !== 401 && status !== 403) || !originalRequest || originalRequest._retry) {
+      // Record the failure for the usage dashboard (4xx/5xx that we don't transparently retry).
+      if (status && status >= 400) {
+        void import("@/telemetry/telemetry").then((t) => t.trackApiError(status)).catch(() => {});
+      }
       return Promise.reject(error);
     }
 

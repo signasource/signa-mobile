@@ -185,3 +185,7 @@ Real endpoints that power the Inicio (Home) lesson roadmap:
 Inicio load chain: `getSignLanguages()` → pick LSA → `getCatalog(lsa.id)` → first course → `getRoadmap(course.id)`. Header stats (streak/gems/XP) come from `usersApi.getStats()` + `inventoryApi.getMyInventory()`.
 
 Still **STUB** on the same file (used only by `CoursesListScreen`): `list()` / `getById()` / `getLesson()` — tentative flat-content paths, not confirmed. See [features/courses.md](../features/courses.md).
+
+## Telemetry (`src/telemetry/telemetry.ts`)
+
+Fire-and-forget client telemetry for the admin usage dashboard, **not** routed through `apiClient` (no auth, no 401-refresh, snake_case on the wire): batches events and `POST`s them to `/telemetry/events` (public, 202 always), flushing every 30 s and when the app backgrounds. Emits `animation_load` (GLB load latency + ok/error, from `GlbAnimationView`), `api_error` (4xx/5xx, from the `apiClient` error interceptor), plus `screen_load`/`client_error` helpers. `initTelemetry()` runs once in `App.tsx`. The backend bounds all tag cardinality.

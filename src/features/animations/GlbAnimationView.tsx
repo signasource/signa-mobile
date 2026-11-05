@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import { StyleSheet, ViewStyle } from "react-native";
 import { WebView, WebViewMessageEvent } from "react-native-webview";
+import { trackAnimationLoad } from "@/telemetry/telemetry";
 import { colors } from "@/theme";
 
 interface GlbAnimationViewProps {
@@ -108,6 +109,20 @@ export function GlbAnimationView({
     [url, autoRotate],
   );
 
+  // Animation load latency: start the clock when the model (re)loads, report once on its outcome.
+  const loadStartRef = useRef(Date.now());
+  const reportedRef = useRef(false);
+  useEffect(() => {
+    loadStartRef.current = Date.now();
+    reportedRef.current = false;
+  }, [html]);
+
+  function reportLoad(success: boolean) {
+    if (reportedRef.current) return;
+    reportedRef.current = true;
+    trackAnimationLoad(success, Date.now() - loadStartRef.current);
+  }
+
   useEffect(() => {
     webviewRef.current?.injectJavaScript(
       `(function(){var m=document.getElementById('mv');` +
@@ -119,8 +134,10 @@ export function GlbAnimationView({
     try {
       const msg = JSON.parse(event.nativeEvent.data);
       if (msg.type === "loaded") {
+        reportLoad(true);
         onLoaded?.(Array.isArray(msg.clips) ? msg.clips : []);
       } else if (msg.type === "error") {
+        reportLoad(false);
         onError?.(msg.message);
       }
     } catch {
@@ -152,8 +169,14 @@ export function GlbAnimationView({
       originWhitelist={["*"]}
       source={{ html, baseUrl: "https://localhost" }}
       onMessage={handleMessage}
-      onError={(e) => onError?.(e.nativeEvent.description || "Error del WebView.")}
-      onRenderProcessGone={() => onError?.("El visor 3D se quedo sin memoria.")}
+      onError={(e) => {
+        reportLoad(false);
+        onError?.(e.nativeEvent.description || "Error del WebView.");
+      }}
+      onRenderProcessGone={() => {
+        reportLoad(false);
+        onError?.("El visor 3D se quedo sin memoria.");
+      }}
       javaScriptEnabled
       domStorageEnabled
       allowsInlineMediaPlayback
