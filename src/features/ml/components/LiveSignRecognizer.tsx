@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, View, ViewStyle } from "react-native";
 import { WebView, WebViewMessageEvent } from "react-native-webview";
 import { Text } from "@/components/Text";
+import { trackConfidence, trackFps, trackInference } from "@/telemetry/telemetry";
 import { colors, fonts } from "@/theme";
 import { stageRecognizerAssets, stageRecognizerPage } from "../engine/assets";
 import type { RecognizerMessage } from "../engine/recognizerHtml";
@@ -80,6 +81,8 @@ export function LiveSignRecognizer({
   // padre reescribiría el HTML y reiniciaría la cámara.
   const cbs = useRef({ onFrame, onConfirmed, onError, onReady });
   cbs.current = { onFrame, onConfirmed, onError, onReady };
+  // Frames are hot (tens per second); sample inference latency for telemetry at most every 5 s.
+  const lastInferAt = useRef(0);
 
   useEffect(() => {
     let alive = true;
@@ -146,9 +149,17 @@ export function LiveSignRecognizer({
         setReady(true);
         cbs.current.onReady?.({ delegate: msg.delegate });
         break;
-      case "frame":
+      case "frame": {
         cbs.current.onFrame?.(msg);
+        const now = Date.now();
+        if (now - lastInferAt.current >= 5000) {
+          lastInferAt.current = now;
+          trackInference(msg.inferMs);
+          trackConfidence(msg.confidence * 100);
+          trackFps(msg.fps);
+        }
         break;
+      }
       case "confirmed":
         cbs.current.onConfirmed?.(msg.sign, msg.confidence);
         break;

@@ -12,7 +12,14 @@ import { API_URL } from "@/api/client";
  */
 type WireEvent = {
   platform: string;
-  type: "animation_load" | "screen_load" | "client_error" | "api_error";
+  type:
+    | "animation_load"
+    | "screen_load"
+    | "client_error"
+    | "api_error"
+    | "ml_inference"
+    | "ml_confidence"
+    | "ml_fps";
   name?: string;
   value_ms?: number;
   status?: "ok" | "error";
@@ -78,6 +85,21 @@ export function trackApiError(status: number): void {
 /** A client-side error, bucketed to a bounded category by the backend. */
 export function trackClientError(category = "unknown"): void {
   enqueue({ type: "client_error", name: category, status: "error" });
+}
+
+/** On-device sign-recognition inference latency per frame, in ms (callers throttle; frames are hot). */
+export function trackInference(valueMs: number): void {
+  enqueue({ type: "ml_inference", value_ms: Math.max(0, Math.round(valueMs)) });
+}
+
+/** Model confidence of a recognition sample, as a percentage 0–100 (callers throttle). */
+export function trackConfidence(confidencePct: number): void {
+  enqueue({ type: "ml_confidence", value_ms: Math.max(0, Math.round(confidencePct)) });
+}
+
+/** Camera frame rate during live recognition, in FPS (callers throttle). */
+export function trackFps(fps: number): void {
+  enqueue({ type: "ml_fps", value_ms: Math.max(0, Math.round(fps)) });
 }
 
 /** Flushes pending telemetry when the app goes to the background. Idempotent. */
