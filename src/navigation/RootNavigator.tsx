@@ -3,6 +3,7 @@ import { ActivityIndicator, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NavigationContainer, NavigationContainerRef, NavigationState } from "@react-navigation/native";
 import { useAuth } from "@/context/AuthContext";
+import { useSessionTracker } from "@/hooks/useSessionTracker";
 import { AuthNavigator } from "./AuthNavigator";
 import { AppNavigator, AppStackParamList } from "./AppNavigator";
 import { SessionExpiredModal } from "@/components/SessionExpiredModal";
@@ -154,6 +155,9 @@ export function RootNavigator() {
 
   const navigationRef = useRef<NavigationContainerRef<AppStackParamList>>(null);
   const [currentRouteName, setCurrentRouteName] = useState("");
+
+  // App-usage session telemetry (foreground stretches while signed in) → "sesiones por usuario".
+  useSessionTracker(isAuthenticated);
 
   if (isLoading) {
     return (
