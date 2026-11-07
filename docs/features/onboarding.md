@@ -9,7 +9,7 @@
 Status: **real**. Module under `src/features/onboarding/` (`screens/`, `types.ts`, `storage.ts`).
 
 - **6 screens**: `Welcome`, `Intro`, `DailyGoal`, `Experience`, `Motivation`, `Achievement`. Registered in `AuthNavigator` (pre-login).
-- `Welcome` shows the **real app icon** (`@assets/images/icon.png`, the same file `app.json` ships as the launcher icon (1024×1024 PNG; Android adaptive icon = `adaptive-icon.png` foreground, transparent, hand inside the 66% safe zone, over `#F6F6F6`)) in the top-left corner next to the "Signa" wordmark.
+- `Welcome` shows the **real app icon** (`@assets/images/icon.png`, the same file `app.json` ships as the launcher icon (1024×1024 PNG; Android adaptive icon = `adaptive-icon.png` foreground, transparent, hand inside the 66% safe zone, over `#F7F7F7`)) in the top-left corner next to the "Signa" wordmark.
 - `types.ts`: `OnboardingData`, `ExperienceLevel`, `DailyGoalMinutes`, `MotivationReason`, `ONBOARDING_TOTAL_STEPS` (used by the progress bar).
 - `storage.ts`: persists the onboarding-completed flag in AsyncStorage.
 - Progress bar is a fixed overlay of `AuthNavigator` (`Intro`→1 … `Motivation`→4). See [../navigation.md](../navigation.md).
