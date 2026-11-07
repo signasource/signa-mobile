@@ -62,6 +62,34 @@ Packs are seeded by the backend with their ARS price (`gems_pack_120` · `gems_p
 `gems_pack_850` (featured "Más elegido") · `gems_pack_2000`); changing a price or adding a pack is a
 backend change, no app release.
 
+### Verified in production (2026-11-07)
+
+Tested end to end with real money against `https://api.signasource.app`: a 120-gem pack was bought
+from the app, the checkout opened in the in-app browser, the gems were credited **once** (one `PAID`
+order, no double credit) and, after refunding the payment from Mercado Pago, the webhook moved the
+order to `REFUNDED` and took the 120 gems back (the balance never goes below 0).
+
+Verified: pack list with ARS prices · order creation · checkout · return to the app · credit ·
+webhook signature (`x-signature`) and delivery (200) · unknown-order notification acknowledged with
+200 · refund reversal.
+
+Not verified yet: the `pending` path (a payment that stays in process, e.g. cash) and abandoning the
+checkout, plus iOS (the flow is platform-independent but only Android was run).
+
+Pitfalls found while setting it up:
+
+- `MERCADO_PAGO_ACCESS_TOKEN` must be the **Access Token** (`APP_USR-…`) of the production
+  credentials, not the Public Key. With the Public Key every call answers `403
+  PA_UNAUTHORIZED_RESULT_FROM_POLICIES`, which looks like a blocked account but is not. Check it with
+  `GET https://api.mercadopago.com/users/me` (must be 200).
+- `external_reference` only admits letters, digits, `-` and `_` (max 64). Gem orders use `gems_<id>`;
+  `gems:<id>` was rejected with `400 … does not match pattern`.
+- The panel's "Simular notificación" sends a made-up order id; the API acknowledges it with 200.
+- Each Mercado Pago application has its own webhook secret: if the application changes, update
+  `MERCADO_PAGO_WEBHOOK_SECRET` too.
+- The app needs `EXPO_PUBLIC_API_URL=https://api.signasource.app` in its `.env` (restart Metro with
+  `npx expo start -c` after changing it).
+
 ### Native requirements
 
 - `expo-web-browser` (config plugin in `app.json`) and `scheme: "signa"`, both native: rebuild the dev
