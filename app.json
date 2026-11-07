@@ -5,7 +5,7 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "icon": "./assets/images/icon.jpg",
+    "icon": "./assets/images/icon.png",
     "splash": {
       "backgroundColor": "#1D283C"
     },
@@ -22,7 +22,8 @@
     "android": {
       "package": "com.signasource.signamobile",
       "adaptiveIcon": {
-        "backgroundColor": "#1D283C"
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#F6F6F6"
       },
       "permissions": [
         "android.permission.CAMERA"

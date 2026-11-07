@@ -21,7 +21,7 @@ export function WelcomeScreen({ navigation }: Props) {
       <View style={[styles.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}>
         {/* Logo */}
         <View style={styles.logoRow}>
-          <Image source={require("@assets/images/icon.jpg")} style={styles.logoIcon} />
+          <Image source={require("@assets/images/icon.png")} style={styles.logoIcon} />
           <Text style={styles.logoText}>Signa</Text>
         </View>
 
