@@ -3,8 +3,7 @@ import { StyleSheet, TouchableOpacity, View, ViewStyle } from "react-native";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts, alpha } from "@/theme";
-import { MultiGlbView } from "@/features/animations/MultiGlbView";
-import { getGlbUrl } from "@/features/animations/glbUrl";
+import { MultiSignView } from "@/features/animations/MultiSignView";
 import { SignPlaceholder } from "../SignPlaceholder";
 import { XpChip } from "../XpChip";
 import { FeedbackBar } from "../FeedbackBar";
@@ -40,7 +39,6 @@ interface CarouselAnimationProps {
 function CarouselAnimation({ options, activeIndex, tone, paused, style }: CarouselAnimationProps) {
   const [failed, setFailed] = useState(false);
   const wrong = tone === "wrong";
-  const urls = useMemo(() => options.map(getGlbUrl), [options]);
 
   return (
     <View style={[animStyles.container, wrong && animStyles.containerWrong, style]}>
@@ -51,8 +49,8 @@ function CarouselAnimation({ options, activeIndex, tone, paused, style }: Carous
       </View>
 
       {!failed ? (
-        <MultiGlbView
-          urls={urls}
+        <MultiSignView
+          meanings={options}
           activeIndex={activeIndex}
           paused={paused}
           onError={() => setFailed(true)}
