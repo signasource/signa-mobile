@@ -4,7 +4,9 @@ import {
   ForgotPasswordRequest,
   LoginRequest,
   RegisterRequest,
+  ResendVerificationEmailRequest,
   ResetPasswordRequest,
+  VerifyEmailRequest,
 } from "@/types";
 
 /**
@@ -24,4 +26,10 @@ export const authApi = {
 
   resetPassword: (payload: ResetPasswordRequest) =>
     apiClient.post<void>("/auth/reset-password", payload),
+
+  verifyEmail: (payload: VerifyEmailRequest) =>
+    apiClient.post<void>("/auth/verify-email", payload),
+
+  resendVerificationEmail: (payload: ResendVerificationEmailRequest) =>
+    apiClient.post<void>("/auth/resend-verification-email", payload),
 };

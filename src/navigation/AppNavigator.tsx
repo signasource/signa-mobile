@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { NavigatorScreenParams } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ChangePasswordScreen } from "@/screens/ChangePasswordScreen";
+import { VerifyEmailScreen } from "@/screens/VerifyEmailScreen";
 import { ConfigurationScreen } from "@/screens/ConfigurationScreen";
 import { EditProfileScreen } from "@/screens/EditProfileScreen";
 import { ConnectionTestScreen } from "@/screens/ConnectionTestScreen";
@@ -26,6 +27,7 @@ export type PracticeSessionParams =
 export type AppStackParamList = {
   Tabs: NavigatorScreenParams<TabParamList> | undefined;
   ChangePassword: undefined;
+  VerifyEmail: undefined;
   Configuration:
     | {
         updatedProfile?: { displayName: string; lastName: string; username: string };
@@ -79,6 +81,7 @@ export function AppNavigator() {
     >
       <Stack.Screen name="Tabs" component={TabNavigator} options={{ headerShown: false }} />
       <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Configuration" component={ConfigurationScreen} options={{ headerShown: false }} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Lesson" component={LessonScreen} options={{ headerShown: false }} />

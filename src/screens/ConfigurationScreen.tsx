@@ -95,6 +95,8 @@ export function ConfigurationScreen({ navigation, route }: Props) {
   const [displayName, setDisplayName] = useState("");
   const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
+  // null = todavía no se sabe (o el perfil no lo informó): no se ofrece verificar.
+  const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
 
   // UI overlays
   const [sheet, setSheet] = useState<Sheet>(null);
@@ -141,6 +143,7 @@ export function ConfigurationScreen({ navigation, route }: Props) {
       setDisplayName(p.name);
       setLastName(p.lastName ?? "");
       setUsername(p.username);
+      setEmailVerified(p.verified ?? null);
     }
 
     setLoading(false);
@@ -158,6 +161,16 @@ export function ConfigurationScreen({ navigation, route }: Props) {
       if (toastTimer.current) clearTimeout(toastTimer.current);
     };
   }, [loadData]);
+
+  // Al volver de "Verificar cuenta" se actualiza el estado sin recargar toda la pantalla.
+  useEffect(() => {
+    return navigation.addListener("focus", () => {
+      usersApi
+        .getMe()
+        .then(({ data }) => setEmailVerified(data.verified ?? null))
+        .catch(() => {});
+    });
+  }, [navigation]);
 
   useEffect(() => {
     const updated = route.params?.updatedProfile;
@@ -480,6 +493,18 @@ export function ConfigurationScreen({ navigation, route }: Props) {
             <Text style={styles.settingValue}>{fullName}</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.neutral600} />
           </TouchableOpacity>
+
+          {emailVerified === false ? (
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={() => navigation.navigate("VerifyEmail")}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="mail-unread-outline" size={20} color={colors.neutral600} />
+              <Text style={[styles.settingLabel, { flex: 1 }]}>Verificar cuenta</Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.neutral600} />
+            </TouchableOpacity>
+          ) : null}
 
           <TouchableOpacity
             style={styles.settingRow}
