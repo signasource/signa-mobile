@@ -3,8 +3,7 @@ import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Text } from "@/components/Text";
 import { colors, fonts, alpha } from "@/theme";
 import { MatchConfig } from "@/features/courses/lessonContent.types";
-import { MultiGlbView } from "@/features/animations/MultiGlbView";
-import { getGlbUrl } from "@/features/animations/glbUrl";
+import { MultiSignView } from "@/features/animations/MultiSignView";
 import { XpChip } from "../XpChip";
 import { LessonButton } from "../LessonButton";
 import Check from "@assets/ilus/check.svg";
@@ -56,7 +55,6 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const wordOrder = useMemo(() => shuffled(conceptos), [clave]);
 
-  const signUrls = useMemo(() => signOrder.map(getGlbUrl), [signOrder]);
   const [modelsFailed, setModelsFailed] = useState(false);
 
   const [matched, setMatched] = useState<Set<string>>(new Set());
@@ -198,8 +196,8 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
         <View style={styles.grid}>
           <View style={[styles.column, { height: columnHeight }]}>
             {!modelsFailed && (
-              <MultiGlbView
-                urls={signUrls}
+              <MultiSignView
+                meanings={signOrder}
                 activeIndex={0}
                 layout="rows"
                 rowHeight={ROW_HEIGHT}

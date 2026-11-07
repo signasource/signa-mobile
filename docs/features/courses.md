@@ -73,9 +73,11 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   `SelectSignBlock`, `ContextResponseBlock` and `SelectSignBlock` share `SignCarouselBlock`,
   `MatchBlock`, `VisualRecognitionBlock`). `IntroduceSignBlock` presents a new sign with its
   full-height `SignAnimation` and a "La practico" button — no answer required, `xpReward` is
-  ignored. `SelectMeaningBlock` and `SignCarouselBlock` (so `SelectSignBlock`/`ContextResponseBlock`)
-  render the sign via `SignAnimation`; `MatchBlock`/`VisualRecognitionBlock` still use static
-  cards/swatches (they show many signs at once, not one at a time). Answer-option buttons across
+  ignored. `SelectMeaningBlock` renders its single sign via `SignAnimation`; the multi-option blocks
+  (`SignCarouselBlock` — so `SelectSignBlock`/`ContextResponseBlock` —, `MatchBlock`,
+  `VisualRecognitionBlock`) render their signs through `MultiSignView` (a carousel shows one at a
+  time, a match grid shows all at once). Both paths resolve `.glb`/`.mp4` per sign. Answer-option
+  buttons across
   `SelectMeaningBlock`/`VisualRecognitionBlock`/`MatchBlock` share the same idle look — flat
   `colors.fill` background, no border — and the same `check.svg`/`denied.svg` icons for the
   correct/wrong states (no shared `OptionButton` component yet, each block still owns its own
@@ -99,9 +101,11 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   `{meaning}.glb` and `{meaning}.mp4` in parallel (on RN, `fetch` uses native networking, so no
   browser CORS). `.glb` wins when both exist (the common case); when only `.mp4` is present it also
   `HEAD`s `{meaning}_lateral.mp4` so `SignAnimation` knows whether to offer the lateral toggle.
-  Returns a discriminated `{ kind: "loading" | "glb" | "video" | "missing" }`. Only the single-sign
-  renderer (`SignAnimation`) supports video; the multi-model carousels (`MultiGlbView`) are still
-  GLB-only — see [../status.md](../status.md). `extractLessonSignNames(lesson)`
+  Returns a discriminated `{ kind: "loading" | "glb" | "video" | "missing" }`. `resolveSignMedia`
+  is the shared promise; `useSignMediaList(meanings)` resolves a whole list at once for the
+  multi-option blocks. Both single-sign (`SignAnimation`) and multi-option
+  (`MultiSignView`) renderers handle video; only `SignAnimation` exposes the lateral toggle (see
+  [../status.md](../status.md)). `extractLessonSignNames(lesson)`
   (in `lessonContent.types.ts`) returns the *taught* meanings (correct answers only, no
   distractors) for display in the lesson-detail modal chips.
 - `blocks/PerformSignBlock.tsx` (`PERFORM_SIGN`): the only block whose answer comes from the real
@@ -139,6 +143,14 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   muted, `CONTAIN`), fetched natively straight from R2 — no WebView. Same contract as
   `GlbAnimationView` (`url`, `paused`, `onLoaded` via `onReadyForDisplay`, `onError`) so
   `SignAnimation` swaps them transparently, and reports the same `trackAnimationLoad` telemetry.
+- `features/animations/MultiSignView.tsx`: the mixed-media variant of `MultiGlbView` used by the
+  multi-option blocks (`SignCarouselBlock`, `MatchBlock`, `VisualRecognitionBlock`). Resolves each
+  slot's media with `useSignMediaList(meanings)`, feeds the `.glb` slots to one `MultiGlbView`
+  (blank `""` slot for the video ones) and overlays native `SignVideoView`s on the `.mp4` slots —
+  `stack` layout shows only the active slot's video, `rows` positions one per row at
+  `index * (rowHeight + rowGap)`. Native players carry no WebGL contexts, so stacking several does
+  not risk the OOM that forced the one-WebView design for GLBs. Shows the plain `colors.fill` box
+  while the `HEAD` resolution is in flight.
 
 To advance: once `signa-api` #60 merges, consider trusting the server as the sole source of truth for `lives` (e.g. refetch
 `shopApi.getMyInventory()` after each wrong answer, or surface the fire-and-forget interaction

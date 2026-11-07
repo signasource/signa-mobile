@@ -1,12 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts, alpha } from "@/theme";
 import { VisualRecognitionConfig } from "@/features/courses/lessonContent.types";
 import { SignPlaceholder } from "../SignPlaceholder";
-import { MultiGlbView } from "@/features/animations/MultiGlbView";
-import { getGlbUrl } from "@/features/animations/glbUrl";
+import { MultiSignView } from "@/features/animations/MultiSignView";
 import { XpChip } from "../XpChip";
 import { FeedbackBar } from "../FeedbackBar";
 import { LessonButton } from "../LessonButton";
@@ -36,9 +35,8 @@ export function VisualRecognitionBlock({ config, xp, onAnswer, onContinue }: Vis
 
   const done = marked.size === total;
 
-  // The sequence plays one sign at a time inside a single WebView; `seqIndex`
-  // advances on a timer and `replayKey` restarts it from the first sign.
-  const seqUrls = useMemo(() => config.sign_sequence.map(getGlbUrl), [config.sign_sequence]);
+  // The sequence plays one sign at a time; `seqIndex` advances on a timer and
+  // `replayKey` restarts it from the first sign.
   const [seqIndex, setSeqIndex] = useState(0);
   const [replayKey, setReplayKey] = useState(0);
   const [seqFailed, setSeqFailed] = useState(false);
@@ -80,9 +78,9 @@ export function VisualRecognitionBlock({ config, xp, onAnswer, onContinue }: Vis
           <SignPlaceholder label={`secuencia · ${total} señas`} height={SEQUENCE_HEIGHT} />
         ) : (
           <View style={styles.sequence}>
-            <MultiGlbView
+            <MultiSignView
               key={replayKey}
-              urls={seqUrls}
+              meanings={config.sign_sequence}
               activeIndex={seqIndex}
               onError={() => setSeqFailed(true)}
             />
