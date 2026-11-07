@@ -23,7 +23,7 @@
       "package": "com.signasource.signamobile",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#F6F6F6"
+        "backgroundColor": "#F7F7F7"
       },
       "permissions": [
         "android.permission.CAMERA"
