@@ -16,6 +16,7 @@ import {
 } from "@/components/auth";
 import { isPasswordValid, isValidEmail } from "@/utils/validation";
 import { mapAuthError } from "@/utils/authErrors";
+import { pendingReset } from "@/utils/pendingReset";
 import { colors, fonts } from "@/theme";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "ResetPassword">;
@@ -64,6 +65,7 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
     setErrors({});
     try {
       await authApi.resetPassword({ email: email.trim(), code, newPassword });
+      await pendingReset.clear();
     } catch (err: unknown) {
       setErrors({ general: mapAuthError(err, "No se pudo restablecer la contraseña") });
       setLoading(false);
@@ -89,6 +91,7 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
     setErrors({});
     try {
       await authApi.forgotPassword({ email: email.trim() });
+      await pendingReset.save(email.trim());
       setCode("");
       setResent(true);
     } catch (err: unknown) {
