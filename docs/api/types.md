@@ -22,6 +22,9 @@
 - `GemPack { id, productId, gems, price, currency, sortOrder }` — mirrors `GemPackResponse`. A gem bundle sold through Mercado Pago; `productId` is a stable pack code and `price` is in `currency` (ARS).
 - `GemCheckout { orderId, checkoutUrl }` — mirrors `GemCheckoutResponse`. `checkoutUrl` is the Mercado Pago Checkout Pro page to open.
 - `GemOrder { id, status, gems, inventory }` — mirrors `GemOrderResponse`. `status` is `GemOrderStatus` (`PENDING | PAID | REFUNDED`); `inventory` is the wallet after the sync.
+- `CourseCheckout { orderId, checkoutUrl }` — mirrors `CourseCheckoutResponse`. The Mercado Pago page to open for a one-time paid-course purchase.
+- `CourseOrder { id, status, courseId, owned }` — mirrors `CourseOrderResponse`. `status` is `CourseOrderStatus` (`PENDING | PAID | REFUNDED`); `owned` is `true` once permanent access was granted.
+- `CourseSummary { id, name, description?, coverUrl?, isFree, price, owned, signLanguageCode }` — mirrors `CourseSummaryResponse`. `price` is the one-time ARS price (null for free courses); `owned` means the caller already has active access.
 - `RelationStatus` — `NONE | FRIEND | INCOMING | OUTGOING | BLOCKED | BLOCKED_BY`, from the **caller's** point of view: `OUTGOING` means "I sent it", `BLOCKED` means "I blocked them". `BLOCKED_BY` exists on the backend enum but never reaches the client — search filters those users out. A `REJECTED` friendship maps to `NONE`, so the request can be sent again.
 - `FriendEventType` — `ACHIEVEMENT | SIGN_LEARNED`.
 - `Friend { id, username, name, acceptedAt, currentStreak, totalXp, learnedSignsCount }` — mirrors `FriendResponse`. The three stats come from the friend's `UserStats` and are **0** when that row doesn't exist yet.

@@ -2,7 +2,7 @@
 
 > Responsibility: catalog of API endpoints exposed through `src/api/`.
 > Update when: an endpoint is added, changed, or removed, or a stub becomes real.
-> Sources: src/api/auth.ts, src/api/users.ts, src/api/health.ts, src/api/shop.ts, src/api/gemOrders.ts, src/api/signs.ts, src/api/social.ts, src/api/notifications.ts, src/features/courses/api.ts
+> Sources: src/api/auth.ts, src/api/users.ts, src/api/health.ts, src/api/shop.ts, src/api/gemOrders.ts, src/api/courseOrders.ts, src/api/signs.ts, src/api/social.ts, src/api/notifications.ts, src/features/courses/api.ts
 
 Types → [types.md](./types.md). Client behavior → [http-client.md](./http-client.md).
 
@@ -66,6 +66,17 @@ Real-money gem packs through Mercado Pago Checkout Pro. Flow and edge cases → 
 | `syncOrder(orderId)` | `POST /store/gem-orders/{id}/sync` | `GemOrder` | Server re-reads the order from Mercado Pago and credits the gems **once** if it was approved with the expected amount (`status: "PAID"`); otherwise `PENDING`. Only the caller's own orders (404 otherwise). Rate-limited |
 
 The payment is also credited by the Mercado Pago webhook, so a missed `syncOrder` never loses a payment.
+
+## `courseOrdersApi` (`src/api/courseOrders.ts`) — mirrors `CourseOrderController`
+
+One-time purchase of **permanent** access to a paid course through Mercado Pago, same mechanics as gem orders. Flow → [features/store.md](../features/store.md) / [features/courses.md](../features/courses.md).
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `createOrder(courseId)` | `POST /store/course-orders` | `CourseCheckout` | 201. Creates a `PENDING` order with the course price frozen (`external_reference = course_<id>`) and a Mercado Pago order; `checkoutUrl` is what the app opens. Free course / no price / already owned → 400; unknown course → 404 |
+| `syncOrder(orderId)` | `POST /store/course-orders/{id}/sync` | `CourseOrder` | Server re-reads the order from Mercado Pago and grants a permanent enrolment **once** if approved with the expected amount (`status: "PAID"`, `owned: true`); otherwise `PENDING`. Only the caller's own orders (404 otherwise) |
+
+Granting is also done by the Mercado Pago webhook, so a missed `syncOrder` never loses access.
 
 ## `socialApi` (`src/api/social.ts`) — mirrors `FriendshipController.java` + `UserController.searchUsers`
 
@@ -183,7 +194,7 @@ Real endpoints that power the Inicio (Home) lesson roadmap:
 | Method | Path | Returns | Notes |
 |---|---|---|---|
 | `getSignLanguages()` | `GET /sign-languages` | `SignLanguage[]` | `{ id, code, name, countryCode }`; LSA has `code: "LSA"`. Used to resolve the `signLanguageId` the catalog needs. |
-| `getCatalog(signLanguageId)` | `GET /courses?signLanguageId=` | `Page<CourseSummary>` | Spring page; the screen uses `content[0]` (first course). `signLanguageId` is a **query param** (stays camelCase — the client snake_cases only bodies). |
+| `getCatalog(signLanguageId)` | `GET /courses?signLanguageId=` | `Page<CourseSummary>` | Spring page. `CourseSummary` carries `isFree`, `price` (ARS, null for free) and `owned` (user has active access). Drives the home selector's buyable courses and the profile catalog sheet. `signLanguageId` is a **query param** (stays camelCase — the client snake_cases only bodies). |
 | `getRoadmap(courseId)` | `GET /learning/tracking/courses/{courseId}/roadmap` | `CourseRoadmap` | Per-user roadmap of the course's published version: `topics[]` (each with `title`, optional `subtitle`) each with ordered `lessons[]` carrying `blockCount`, `xpTotal`, `signsCount`, `signsLearned` and `state` (`COMPLETED` / `IN_PROGRESS` / `AVAILABLE` / `LOCKED`). `signsLearned: string[]` lists the sign meanings taught by each lesson, computed by `BlockSignExtractor` on the backend — used by `HomeTabScreen` to show sign chips in the lesson-detail modal without an extra request. |
 
 Inicio load chain: `getSignLanguages()` → pick LSA → `getCatalog(lsa.id)` → first course → `getRoadmap(course.id)`. Header stats (streak/gems/XP) come from `usersApi.getStats()` + `inventoryApi.getMyInventory()`.

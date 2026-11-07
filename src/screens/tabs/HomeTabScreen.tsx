@@ -27,11 +27,14 @@ import type { PublicCourseProgress } from "@/api/social";
 import {
   coursesApi,
   CourseRoadmap,
+  CourseSummary,
   RoadmapLesson,
   RoadmapLessonState,
   RoadmapTopic,
 } from "@/features/courses/api";
 import { accentFor, progressFor } from "@/features/courses/roadmap";
+import { useCoursePurchase } from "@/features/store/useCoursePurchase";
+import { PaidCourseRow } from "@/features/store/PaidCourseRow";
 import { useTour } from "@/features/tour/TourContext";
 import { challengesApi, Challenge, Challenges } from "@/api/challenges";
 import { ChallengesCard } from "@/features/challenges/components/ChallengesCard";
@@ -64,6 +67,20 @@ interface HomeData {
   roadmap: CourseRoadmap;
   enrollments: EnrollmentSummary[];
   lessonCounts: PublicCourseProgress[];
+  catalog: CourseSummary[];
+}
+
+/** Catalog of the user's sign language (LSA), used to show buyable paid courses. Never throws. */
+async function fetchCatalog(): Promise<CourseSummary[]> {
+  try {
+    const { data: languages } = await coursesApi.getSignLanguages();
+    const lsa = languages.find((l) => l.code === "LSA") ?? languages[0];
+    if (!lsa) return [];
+    const { data: catalog } = await coursesApi.getCatalog(lsa.id);
+    return catalog.content;
+  } catch {
+    return [];
+  }
 }
 
 async function fetchEnrollmentData() {
@@ -106,21 +123,14 @@ async function fetchHomeData(): Promise<HomeData> {
     ({ enrollments, lessonCounts } = await fetchEnrollmentData());
   }
 
+  const catalog = await fetchCatalog();
+
   const enrolled = enrollments.find((e) => e.isCurrent) ?? enrollments[0];
-  let courseId = enrolled?.courseId;
-
-  if (!courseId) {
-    const { data: languages } = await coursesApi.getSignLanguages();
-    const lsa = languages.find((l) => l.code === "LSA") ?? languages[0];
-    if (!lsa) throw new Error("No hay lenguas de señas disponibles.");
-
-    const { data: catalog } = await coursesApi.getCatalog(lsa.id);
-    courseId = catalog.content[0]?.id;
-    if (!courseId) throw new Error("Todavía no hay cursos disponibles.");
-  }
+  let courseId = enrolled?.courseId ?? catalog.find((c) => c.owned)?.id ?? catalog[0]?.id;
+  if (!courseId) throw new Error("Todavía no hay cursos disponibles.");
 
   const { data: roadmap } = await coursesApi.getRoadmap(courseId);
-  return { roadmap, enrollments, lessonCounts };
+  return { roadmap, enrollments, lessonCounts, catalog };
 }
 
 function formatDate(iso: string): string {
@@ -157,6 +167,7 @@ export function HomeTabScreen({ navigation }: Props) {
   const [roadmap, setRoadmap] = useState<CourseRoadmap | null>(null);
   const [enrollments, setEnrollments] = useState<EnrollmentSummary[]>([]);
   const [lessonCounts, setLessonCounts] = useState<PublicCourseProgress[]>([]);
+  const [catalog, setCatalog] = useState<CourseSummary[]>([]);
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -190,10 +201,16 @@ export function HomeTabScreen({ navigation }: Props) {
       .then((res) => setChallenges(res.data))
       .catch(() => {});
     try {
-      const { roadmap: rm, enrollments: enr, lessonCounts: counts } = await fetchHomeData();
+      const {
+        roadmap: rm,
+        enrollments: enr,
+        lessonCounts: counts,
+        catalog: cat,
+      } = await fetchHomeData();
       setRoadmap(rm);
       setEnrollments(enr);
       setLessonCounts(counts);
+      setCatalog(cat);
     } catch (err: any) {
       setError(err?.response?.data?.message ?? err?.message ?? "No pudimos cargar tu curso.");
     } finally {
@@ -203,6 +220,17 @@ export function HomeTabScreen({ navigation }: Props) {
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  const coursePurchase = useCoursePurchase({
+    onPurchased: async () => {
+      // The new enrollment now grants access: reload so it shows as an owned, selectable course.
+      freeCoursesJoined = false;
+      await load();
+    },
+  });
+  const purchasableCourses = catalog.filter((c) => !c.owned && !c.isFree);
+  const purchaseBusy =
+    coursePurchase.status === "buying" || coursePurchase.status === "checking";
 
   const currentLessonId = roadmap ? findCurrentLessonId(roadmap.topics) : null;
   const cta = openLesson ? ctaFor(openLesson.lesson.state) : null;
@@ -429,6 +457,29 @@ export function HomeTabScreen({ navigation }: Props) {
                 </TouchableOpacity>
               );
             })}
+
+            {purchasableCourses.length > 0 && (
+              <>
+                <Text style={styles.sheetSectionLabel}>Más cursos</Text>
+                {purchasableCourses.map((course) => (
+                  <PaidCourseRow
+                    key={course.id}
+                    course={course}
+                    buying={coursePurchase.buyingCourseId === course.id}
+                    disabled={purchaseBusy}
+                    onBuy={coursePurchase.buy}
+                  />
+                ))}
+              </>
+            )}
+            {!!coursePurchase.error && (
+              <Text style={styles.sheetError}>{coursePurchase.error}</Text>
+            )}
+            {coursePurchase.status === "pending" && (
+              <Text style={styles.sheetSubtitle}>
+                Tu pago se está confirmando. El curso va a aparecer en unos minutos.
+              </Text>
+            )}
           </Pressable>
         </Pressable>
       </Modal>
@@ -777,6 +828,22 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: "center",
     marginBottom: 8,
+  },
+  sheetSectionLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
+    color: colors.textMuted,
+    marginTop: 8,
+    marginBottom: 2,
+  },
+  sheetError: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 13,
+    color: colors.danger,
+    textAlign: "center",
+    marginTop: 4,
   },
   courseOption: {
     flexDirection: "row",

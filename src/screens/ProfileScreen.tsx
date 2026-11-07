@@ -35,6 +35,7 @@ import { StreakMedal } from "@/features/achievements/components/StreakMedal";
 import { isStreakAchievement } from "@/features/achievements/streakTier";
 import { learningApi } from "@/api/learning";
 import type { PublicCourseProgress } from "@/api/social";
+import { CourseCatalogSheet } from "@/features/store/CourseCatalogSheet";
 
 type ProfileNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, "Profile">,
@@ -172,6 +173,7 @@ export function ProfileScreen({ navigation }: Props) {
   const [inventory, setInventory] = useState<UserInventory>(DEFAULT_INVENTORY);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [courses, setCourses] = useState<PublicCourseProgress[]>([]);
+  const [catalogOpen, setCatalogOpen] = useState(false);
   const [savingGoal, setSavingGoal] = useState(false);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [minutesToday, setMinutesToday] = useState(0);
@@ -551,6 +553,14 @@ export function ProfileScreen({ navigation }: Props) {
             title="Sin cursos todavía"
             description="Cuando empieces un curso va a aparecer acá tu progreso."
           />
+          <TouchableOpacity
+            style={styles.moreCoursesBtn}
+            activeOpacity={0.7}
+            onPress={() => setCatalogOpen(true)}
+          >
+            <Ionicons name="add-circle-outline" size={16} color={colors.neutral900} />
+            <Text style={styles.moreCoursesText}>Ver más cursos</Text>
+          </TouchableOpacity>
         </View>
       );
     }
@@ -621,7 +631,11 @@ export function ProfileScreen({ navigation }: Props) {
             </View>
           );
         })}
-        <TouchableOpacity style={styles.moreCoursesBtn} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.moreCoursesBtn}
+          activeOpacity={0.7}
+          onPress={() => setCatalogOpen(true)}
+        >
           <Ionicons name="add-circle-outline" size={16} color={colors.neutral900} />
           <Text style={styles.moreCoursesText}>Ver más cursos</Text>
         </TouchableOpacity>
@@ -1043,6 +1057,12 @@ export function ProfileScreen({ navigation }: Props) {
           </Pressable>
         </View>
       )}
+
+      <CourseCatalogSheet
+        visible={catalogOpen}
+        onClose={() => setCatalogOpen(false)}
+        onPurchased={() => loadProfile()}
+      />
     </View>
   );
 }

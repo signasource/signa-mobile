@@ -16,6 +16,10 @@ export interface CourseSummary {
   description?: string;
   coverUrl?: string;
   isFree: boolean;
+  /** Precio del pago único (ARS) para cursos pagos; null para los gratuitos. */
+  price: number | null;
+  /** `true` si el usuario ya tiene acceso (gratis unido, comprado o por organización). */
+  owned: boolean;
   signLanguageCode: string;
 }
 

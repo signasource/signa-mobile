@@ -2,7 +2,11 @@
 
 > Responsibility: the Store tab — gem-priced catalog and the real-money gem packs bought through Mercado Pago.
 > Update when: a store tab, purchase flow, gem pack, gift flow, or its backing endpoint changes.
-> Sources: src/screens/tabs/StoreTabScreen.tsx, src/features/store/, src/api/shop.ts, src/api/gemOrders.ts, app.json
+> Sources: src/screens/tabs/StoreTabScreen.tsx, src/features/store/, src/api/shop.ts, src/api/gemOrders.ts, src/api/courseOrders.ts, app.json
+>
+> Note: the same Mercado Pago pattern (`useGemPurchase`) is reused by `useCoursePurchase` to buy
+> permanent access to paid courses (`/store/course-orders`), surfaced in the Home course selector
+> and Profile → Cursos, not in this tab. See [courses.md](./courses.md).
 
 **Real**, wired end to end to `signa-api`. Endpoints → [../api/endpoints.md](../api/endpoints.md).
 Types → [../api/types.md](../api/types.md).

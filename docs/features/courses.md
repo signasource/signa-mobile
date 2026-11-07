@@ -2,7 +2,7 @@
 
 > Responsibility: courses module scope and state.
 > Update when: course screens/types change, or the backend content API changes.
-> Sources: src/features/courses/, src/api/lessons.ts, src/api/learning.ts, src/api/signs.ts, src/screens/tabs/HomeTabScreen.tsx
+> Sources: src/features/courses/, src/api/lessons.ts, src/api/learning.ts, src/api/courseOrders.ts, src/api/signs.ts, src/screens/tabs/HomeTabScreen.tsx, src/features/store/useCoursePurchase.ts, src/features/store/CourseCatalogSheet.tsx, src/features/store/PaidCourseRow.tsx
 
 Status: **mixed**. The **Inicio (Home) roadmap** is wired to real `signa-api` content, and the
 lesson player (`LessonScreen`) is real and wired to `signa-api`. Flat course/lesson browsing
@@ -61,9 +61,12 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   (correct/incorrect banner — icon is the `check.svg`/`denied.svg` spot illustration, not an
   Ionicon), `LessonButton`, `SignPlaceholder` (fallback when a model fails to load or a meaning has
   no animation; also used in a `preparing` mode — `pajaros-grupo-pequeno.svg` illustration +
-  "La animación se está preparando" — while the GLB is still loading), `SignAnimation` (derives the
-  GLB URL deterministically via `getGlbUrl(meaning)`, renders `GlbAnimationView`, and overlays
-  `SignPlaceholder preparing` until the model's `onLoaded` fires or `SignPlaceholder` on `onError`),
+  "La animación se está preparando" — while the GLB is still loading), `SignAnimation` (resolves the
+  sign's asset in R2 via `useSignMedia(meaning)` — a `.glb` renders through `GlbAnimationView`, a
+  `.mp4` through `SignVideoView`; overlays `SignPlaceholder preparing` until the source's `onLoaded`
+  fires, or `SignPlaceholder` on `onError`/no asset. When the sign is a video **and** a lateral take
+  exists, it shows a "Ver lateral"/"Ver de frente" pill that swaps between `{meaning}.mp4` and
+  `{meaning}_lateral.mp4`),
   `NoLivesOverlay`, `LessonComplete` (its three tiles — XP, aciertos, señas nuevas — are filtered to
   the ones actually **earned**, `> 0`; the row disappears when none is), and `blocks/` with one
   component per `BlockType` (`InfoBlock`, `IntroduceSignBlock`, `SelectMeaningBlock`,
@@ -86,11 +89,19 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   content behind the top one (not empty placeholders), so nothing pops in mid-swipe; on each face
   the title and body are centred vertically under the MITO/VERDAD badge. The "Continuar" button stays available for
   anyone who wants to skip ahead.
-- **GLB URL construction** (`src/features/animations/glbUrl.ts`): `getGlbUrl(meaning)` builds the
-  public R2 URL deterministically — `https://pub-f40a1de4d1fc46b0b6f07299847c66e0.r2.dev/lsa/{meaning}.glb`.
-  No backend round-trip; no presigned URLs; no cache layer in JS. The WebView engine handles HTTP
-  caching natively (browser cache, shared across all WebView instances in the process). File names
-  are the lowercase meaning, URL-encoded by `encodeURIComponent`. `extractLessonSignNames(lesson)`
+- **Media URL construction** (`src/features/animations/glbUrl.ts`): `getGlbUrl(meaning)`,
+  `getMp4Url(meaning)` and `getLateralMp4Url(meaning)` build public R2 URLs deterministically —
+  `https://pub-f40a1de4d1fc46b0b6f07299847c66e0.r2.dev/lsa/{meaning}.glb` / `.mp4` /
+  `_lateral.mp4`. No backend round-trip; no presigned URLs; no cache layer in JS. The WebView/native
+  player handle HTTP caching. File names are the lowercase meaning, URL-encoded by
+  `encodeURIComponent`.
+- **Media resolution** (`src/features/animations/useSignMedia.ts`): `useSignMedia(meaning)` `HEAD`s
+  `{meaning}.glb` and `{meaning}.mp4` in parallel (on RN, `fetch` uses native networking, so no
+  browser CORS). `.glb` wins when both exist (the common case); when only `.mp4` is present it also
+  `HEAD`s `{meaning}_lateral.mp4` so `SignAnimation` knows whether to offer the lateral toggle.
+  Returns a discriminated `{ kind: "loading" | "glb" | "video" | "missing" }`. Only the single-sign
+  renderer (`SignAnimation`) supports video; the multi-model carousels (`MultiGlbView`) are still
+  GLB-only — see [../status.md](../status.md). `extractLessonSignNames(lesson)`
   (in `lessonContent.types.ts`) returns the *taught* meanings (correct answers only, no
   distractors) for display in the lesson-detail modal chips.
 - `blocks/PerformSignBlock.tsx` (`PERFORM_SIGN`): the only block whose answer comes from the real
@@ -124,6 +135,10 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   `onRenderProcessGone` by calling the same `onError` callback the caller already uses to fall back
   to `SignPlaceholder` — without it, an Android WebView renderer crash (e.g. from a low-memory
   device) took the whole host app process down with it instead of just that one card.
+- `features/animations/SignVideoView.tsx`: renders a `.mp4` with `expo-av`'s `Video` (looping,
+  muted, `CONTAIN`), fetched natively straight from R2 — no WebView. Same contract as
+  `GlbAnimationView` (`url`, `paused`, `onLoaded` via `onReadyForDisplay`, `onError`) so
+  `SignAnimation` swaps them transparently, and reports the same `trackAnimationLoad` telemetry.
 
 To advance: once `signa-api` #60 merges, consider trusting the server as the sole source of truth for `lives` (e.g. refetch
 `shopApi.getMyInventory()` after each wrong answer, or surface the fire-and-forget interaction
@@ -190,3 +205,20 @@ error) instead of the local optimistic decrement, to remove the drift risk on a 
 To advance: confirm `CourseSummaryResponse`/`CourseDetailResponse` against `api.ts` + `types.ts`,
 then either retire `CoursesListScreen` in favor of the Inicio roadmap, or navigate it → a
 lesson-path screen → `Lesson` with a real `lessonId`.
+
+## Buying a paid course — real
+
+The base course is free (auto-joined); every other catalog course is paid and bought **once** for
+permanent access, via Mercado Pago, mirroring the gem flow. `CourseSummary` now carries `price`
+(ARS, null for free) and `owned` (user has active access).
+
+- `useCoursePurchase({ onPurchased })` (`src/features/store/`): `buy(course)` → `POST
+  /store/course-orders` → opens the checkout with `WebBrowser.openAuthSessionAsync(url,
+  "signa://store")` → on return, `POST /store/course-orders/{id}/sync` (retried ~4×) grants access
+  and fires `onPurchased`. Access is never granted client-side; the webhook also grants it.
+- `PaidCourseRow` — a buyable course row (price + "Comprar"). Used by both entry points.
+- **Home selector** (`HomeTabScreen`, "Elegí tu curso" sheet): lists owned enrollments (switch
+  current course) plus a "Más cursos" section of buyable paid courses; buying reloads the home data
+  so the course becomes owned/selectable.
+- **Profile → Cursos** ("Ver más cursos"): opens `CourseCatalogSheet`, which lists owned courses
+  and buyable ones; a purchase refetches the profile progress.
