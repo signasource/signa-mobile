@@ -3,20 +3,25 @@ import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-nat
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
 import { colors, fonts, alpha } from "@/theme";
-import type { GemOffer } from "../useGemPurchase";
+import type { GemPack } from "@/api/gemOrders";
 
 interface GemPackCardProps {
-  offer: GemOffer;
+  pack: GemPack;
   /** Highlighted "most chosen" pack. */
   featured?: boolean;
   disabled?: boolean;
   busy?: boolean;
-  onBuy: (offer: GemOffer) => void;
+  onBuy: (pack: GemPack) => void;
 }
 
-/** One gem pack: gems on the left, localized Google Play price on the right. */
-export function GemPackCard({ offer, featured = false, disabled = false, busy = false, onBuy }: GemPackCardProps) {
-  const { pack, product } = offer;
+/** Price as the buyer reads it, e.g. `$ 3.300`. */
+function formatPrice({ price, currency }: GemPack): string {
+  const amount = price.toLocaleString("es-AR");
+  return currency === "ARS" ? `$ ${amount}` : `${amount} ${currency}`;
+}
+
+/** One gem pack: gems on the left, price in pesos on the right. */
+export function GemPackCard({ pack, featured = false, disabled = false, busy = false, onBuy }: GemPackCardProps) {
   return (
     <View style={[styles.card, featured ? styles.cardFeatured : styles.cardPlain]}>
       {featured && (
@@ -32,18 +37,18 @@ export function GemPackCard({ offer, featured = false, disabled = false, busy = 
           <Text style={[styles.title, featured && styles.titleFeatured]}>
             {pack.gems.toLocaleString("es-AR")} gemas
           </Text>
-          <Text style={[styles.meta, featured && styles.metaFeatured]}>Pago único · Google Play</Text>
+          <Text style={[styles.meta, featured && styles.metaFeatured]}>Pago único · Mercado Pago</Text>
         </View>
         <View style={[styles.priceChip, featured && styles.priceChipFeatured]}>
           <Text style={[styles.priceText, featured && styles.priceTextFeatured]}>
-            {product.displayPrice}
+            {formatPrice(pack)}
           </Text>
         </View>
       </View>
 
       <TouchableOpacity
         style={[styles.buyButton, featured && styles.buyButtonFeatured, disabled && styles.buyButtonDisabled]}
-        onPress={() => onBuy(offer)}
+        onPress={() => onBuy(pack)}
         disabled={disabled || busy}
         activeOpacity={0.86}
       >

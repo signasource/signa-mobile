@@ -2,7 +2,7 @@
 
 > Responsibility: DTOs mirrored 1:1 from `signa-api` records.
 > Update when: a backend DTO changes or a request/response type is added.
-> Sources: src/types/index.ts, src/api/social.ts, src/api/notifications.ts, src/api/shop.ts, src/api/gemPurchases.ts
+> Sources: src/types/index.ts, src/api/social.ts, src/api/notifications.ts, src/api/shop.ts, src/api/gemOrders.ts
 
 - `AuthResponse { accessToken, refreshToken }` — **carries no user data**.
 - `LoginRequest { identifier, password }` — `identifier` is email or username.
@@ -19,9 +19,9 @@
 - `PurchaseResult { id, item, gemsSpent, purchasedAt, effect, inventory }` — mirrors `PurchaseResponse`.
 - `Gift { id, item, senderId, senderUsername, recipientId, recipientUsername, message, status, sentAt, claimedAt, expiresAt }` — mirrors `GiftResponse`. `status` is `PENDING | CLAIMED | EXPIRED` (already `EXPIRED` once a pending gift passes `expiresAt`).
 - `GiftClaimResult { gift, effect, inventory }` — mirrors `GiftClaimResponse`; `effect` is an `AppliedEffect`, `inventory` the refreshed `ShopInventory`.
-- `GemPack { id, productId, gems, sortOrder }` — mirrors `GemPackResponse`. A gem bundle sold through Google Play; `productId` is the Play in-app product id. Carries no price.
-- `GemPurchaseResult { id, productId, gemsGranted, orderId, purchasedAt, alreadyGranted, inventory }` — mirrors `GemPurchaseResponse`. `alreadyGranted` is `true` when the token had been credited before (idempotent replay); `inventory` is the refreshed `ShopInventory`.
-- `GemOffer { pack: GemPack, product: Product }` (`src/features/store/useGemPurchase.ts`) — client-only pairing of a pack with its `expo-iap` product (localized `displayPrice`).
+- `GemPack { id, productId, gems, price, currency, sortOrder }` — mirrors `GemPackResponse`. A gem bundle sold through Mercado Pago; `productId` is a stable pack code and `price` is in `currency` (ARS).
+- `GemCheckout { orderId, checkoutUrl }` — mirrors `GemCheckoutResponse`. `checkoutUrl` is the Mercado Pago Checkout Pro page to open.
+- `GemOrder { id, status, gems, inventory }` — mirrors `GemOrderResponse`. `status` is `GemOrderStatus` (`PENDING | PAID | REFUNDED`); `inventory` is the wallet after the sync.
 - `RelationStatus` — `NONE | FRIEND | INCOMING | OUTGOING | BLOCKED | BLOCKED_BY`, from the **caller's** point of view: `OUTGOING` means "I sent it", `BLOCKED` means "I blocked them". `BLOCKED_BY` exists on the backend enum but never reaches the client — search filters those users out. A `REJECTED` friendship maps to `NONE`, so the request can be sent again.
 - `FriendEventType` — `ACHIEVEMENT | SIGN_LEARNED`.
 - `Friend { id, username, name, acceptedAt, currentStreak, totalXp, learnedSignsCount }` — mirrors `FriendResponse`. The three stats come from the friend's `UserStats` and are **0** when that row doesn't exist yet.

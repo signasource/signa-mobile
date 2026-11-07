@@ -1,8 +1,8 @@
 # Store (Tienda)
 
-> Responsibility: the Store tab — gem-priced catalog and the real-money gem packs bought through Google Play.
+> Responsibility: the Store tab — gem-priced catalog and the real-money gem packs bought through Mercado Pago.
 > Update when: a store tab, purchase flow, gem pack, gift flow, or its backing endpoint changes.
-> Sources: src/screens/tabs/StoreTabScreen.tsx, src/features/store/, src/api/shop.ts, src/api/gemPurchases.ts, app.json
+> Sources: src/screens/tabs/StoreTabScreen.tsx, src/features/store/, src/api/shop.ts, src/api/gemOrders.ts, app.json
 
 **Real**, wired end to end to `signa-api`. Endpoints → [../api/endpoints.md](../api/endpoints.md).
 Types → [../api/types.md](../api/types.md).
@@ -29,58 +29,47 @@ gems. Gems only enter the economy through the signup bonus (100), the mystery ch
 sheet's **"Conseguir gemas"** button calls `goToGemPacks()`: closes the sheet, switches to the
 *Especiales* tab and scrolls the list to the top, where the packs live.
 
-## Gem packs with real money (Google Play Billing)
+## Gem packs with real money (Mercado Pago Checkout Pro)
 
-Android only. The `GemPacksSection` component (`src/features/store/components/`) is mounted only
-when `Platform.OS === "android"`; elsewhere the tab shows an `EmptyNote` explaining that packs are
-bought from the Android app. The section owns the whole Play connection through the
-`useGemPurchase` hook (`src/features/store/useGemPurchase.ts`, built on `expo-iap`'s `useIAP`);
-the screen only receives `onCredited(result)` and updates its inventory + shows
-`GemsSuccessOverlay`.
+All platforms. The `GemPacksSection` component (`src/features/store/components/`) owns the purchase
+through the `useGemPurchase` hook (`src/features/store/useGemPurchase.ts`); the screen only receives
+`onCredited(order)` and updates its inventory + shows `GemsSuccessOverlay`. The price shown is the
+pack's `price` in ARS from the backend (`$ 3.300`).
 
 Flow:
 
-1. On connect: `gemPurchasesApi.getPacks()` → `fetchProducts({ skus, type: "in-app" })` →
-   `getAvailablePurchases()`. Packs are paired with their Play product (`GemOffer`) and sorted by
-   `sortOrder`; a pack whose product Play doesn't return is hidden. The price shown is Play's
-   `displayPrice` (localized) — **the app never knows or sets prices**.
-2. `buy(offer)` → `requestPurchase({ request: { google: { skus } }, type: "in-app" })` → Play sheet.
-3. `onPurchaseSuccess(purchase)` → `gemPurchasesApi.redeem(productId, purchaseToken)`. The backend
-   verifies the token with the Google Play Developer API and credits the gems **exactly once** per
-   token. Only after that reply does the app call `finishTransaction({ purchase, isConsumable: true })`,
-   which consumes the product so it can be bought again.
-4. `onCredited(result)` → the screen sets `inventory = result.inventory` and opens
-   `GemsSuccessOverlay` ("¡Sumaste N gemas!"; "ya estaban acreditadas" when `alreadyGranted`).
+1. On mount: `gemOrdersApi.getPacks()`, sorted by `sortOrder`.
+2. `buy(pack)` → `gemOrdersApi.createOrder(pack.id)` → `WebBrowser.openAuthSessionAsync(checkoutUrl,
+   "signa://store")` (Custom Tab / in-app browser). Mercado Pago sends the buyer back to the API's
+   public return page, which deep-links to `signa://store`, closing the browser.
+3. Whether the browser returned or the user closed it, the hook calls `gemOrdersApi.syncOrder(orderId)`
+   (up to 4 times, 2.5 s apart, since approval can take seconds). The backend re-reads the order from
+   Mercado Pago and credits the gems **exactly once** (it also credits from the webhook).
+4. `status: "PAID"` → `onCredited(order)`: the screen sets `inventory = order.inventory` and opens
+   `GemsSuccessOverlay` ("¡Sumaste N gemas!").
 
 Edge cases:
 
-- **Pending payment** (`purchaseState === "pending"`, e.g. cash at a kiosk): status `pending`, an
-  inline note says the gems arrive when Google confirms. Nothing is sent to the backend.
-- **User cancelled** (`ErrorCode.UserCancelled`): silent reset to `idle`.
-- **Crash / kill between paying and crediting**: unconsumed purchases come back from
-  `getAvailablePurchases()` on the next mount and go through the same redeem + finish path. The
-  backend answers `alreadyGranted: true` if it had already credited, so nothing is double-counted.
-  A `Set` of submitted tokens prevents the restore pass from re-sending a token in flight.
-- **Backend rejects** (400 pending/cancelled, 404 unknown pack, 409 token used by another account or
-  consumed without credit): inline error note from `err.response.data.message`; the purchase is
-  **not** consumed, so it is retried on the next mount.
-- Other tabs (Home, Profile) refetch `/inventories/me` on focus, so they pick up the new balance
-  without any shared state.
+- **Payment still in process** (cash, bank transfer, review): after the attempts the hook sets
+  `pending` and an inline note says the gems arrive when Mercado Pago approves. The webhook credits
+  them later; Home/Profile refetch `/inventories/me` on focus.
+- **User abandons checkout**: `sync` returns `PENDING`, so the same `pending` note shows; no gems move.
+- **Crash / kill mid-payment**: nothing to recover client-side; the webhook credits the order.
+- **Backend error** (pack without price 400, unknown pack 404, Mercado Pago down): inline error note
+  from `err.response.data.message`.
 
-Packs are seeded by the backend (`gems_pack_120` · `gems_pack_300` · `gems_pack_850` (featured
-"Más elegido") · `gems_pack_2000`); adding one is a backend + Play Console change, no app release.
+Packs are seeded by the backend with their ARS price (`gems_pack_120` · `gems_pack_300` ·
+`gems_pack_850` (featured "Más elegido") · `gems_pack_2000`); changing a price or adding a pack is a
+backend change, no app release.
 
 ### Native requirements
 
-- `expo-iap` (config plugin in `app.json`, adds `com.android.vending.BILLING`) + `expo-dev-client`.
-  **Expo Go cannot run this screen's Android branch** — use `npx expo run:android` or an EAS
-  `development` build.
-- Play Billing only returns products for a package that exists in Play Console with the in-app
-  products **created and active**, and only to a build signed like the uploaded one (internal
-  testing track is enough). Test accounts go under *License testing*. Without that setup the
-  section shows "no disponibles" (products list empty).
-- The backend needs a Play service account (`GOOGLE_PLAY_CREDENTIALS_JSON`); see `signa-api`'s
-  `CLAUDE.md` §4.
+- `expo-web-browser` (config plugin in `app.json`) and `scheme: "signa"`, both native: rebuild the dev
+  client (`npx expo run:android` / EAS `development` build) after pulling this change. Expo Go does not
+  register the `signa://` scheme.
+- The backend needs `MERCADO_PAGO_ACCESS_TOKEN`, the `order` webhook registered in the Mercado Pago
+  panel (`POST /payments/mercado-pago/webhook`) with `MERCADO_PAGO_WEBHOOK_SECRET`, and a public
+  https `BASE_URL`; see `signa-api`'s `CLAUDE.md`.
 
 ## Gifting
 
