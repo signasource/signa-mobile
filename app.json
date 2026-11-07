@@ -2,6 +2,7 @@
   "expo": {
     "name": "Signa",
     "slug": "signa-mobile",
+    "scheme": "signa",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -43,7 +44,7 @@
       ],
       "expo-secure-store",
       "expo-asset",
-      "expo-iap"
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {

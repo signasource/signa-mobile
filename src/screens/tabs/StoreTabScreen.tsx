@@ -8,7 +8,6 @@ import {
   Modal,
   Pressable,
   SafeAreaView,
-  Platform,
 } from "react-native";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,10 +17,10 @@ import { TabParamList } from "@/navigation/TabNavigator";
 import { colors, fonts, alpha } from "@/theme";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SegmentedControl, Segment } from "@/components/SegmentedControl";
-import { EmptyState, EmptyNote } from "@/components/EmptyState";
+import { EmptyState } from "@/components/EmptyState";
 import { shopApi, ShopItem, ShopItemType, ShopInventory, AppliedEffect, GiftClaimResult } from "@/api/shop";
 import type { Friend } from "@/api/social";
-import { GemPurchaseResult } from "@/api/gemPurchases";
+import { GemOrder } from "@/api/gemOrders";
 import { GemPacksSection } from "@/features/store/components/GemPacksSection";
 import { GiftSheet } from "@/features/store/components/GiftSheet";
 import { ReceivedGiftsSection } from "@/features/store/components/ReceivedGiftsSection";
@@ -52,9 +51,6 @@ const TAB_TYPES: Record<TabKey, ShopItemType[]> = {
   potenciadores: ["XP_MULTIPLIER", "STREAK_SHIELD"],
   especiales: ["MYSTERY_CHEST"],
 };
-
-/** Google Play Billing only exists on Android; elsewhere the packs section explains that. */
-const GEM_PACKS_SUPPORTED = Platform.OS === "android";
 
 const ICON: Record<ShopItemType, keyof typeof Ionicons.glyphMap> = {
   LIFE: "heart",
@@ -296,7 +292,7 @@ function GiftDoneOverlay({ done, gems, insets, onClose }: GiftDoneOverlayProps) 
 }
 
 interface GemsSuccessOverlayProps {
-  result: GemPurchaseResult;
+  result: GemOrder;
   insets: { top: number; bottom: number };
   onClose: () => void;
 }
@@ -320,9 +316,7 @@ function GemsSuccessOverlay({ result, insets, onClose }: GemsSuccessOverlayProps
         </View>
 
         <Text style={styles.fullTitle}>
-          {result.alreadyGranted
-            ? "Esas gemas ya estaban acreditadas"
-            : `¡Sumaste ${result.gemsGranted.toLocaleString("es-AR")} gemas!`}
+          {`¡Sumaste ${result.gems.toLocaleString("es-AR")} gemas!`}
         </Text>
         <Text style={styles.fullSub}>Ya podés gastarlas en vidas, escudos y potenciadores.</Text>
 
@@ -340,7 +334,7 @@ function GemsSuccessOverlay({ result, insets, onClose }: GemsSuccessOverlayProps
           </View>
           <View style={styles.purchaseCardGems}>
             <Ionicons name="diamond" size={14} color={colors.onDark} />
-            <Text style={styles.purchaseCardGemCount}>+{result.gemsGranted}</Text>
+            <Text style={styles.purchaseCardGemCount}>+{result.gems}</Text>
           </View>
         </View>
       </ScrollView>
@@ -368,7 +362,7 @@ export function StoreTabScreen() {
   const [purchasing, setPurchasing] = useState(false);
   const [giftItem, setGiftItem] = useState<ShopItem | null>(null);
   const [giftDone, setGiftDone] = useState<GiftDone | null>(null);
-  const [gemsCredited, setGemsCredited] = useState<GemPurchaseResult | null>(null);
+  const [gemsCredited, setGemsCredited] = useState<GemOrder | null>(null);
   const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const listRef = useRef<ScrollView>(null);
 
@@ -417,7 +411,7 @@ export function StoreTabScreen() {
     listRef.current?.scrollTo({ y: 0, animated: true });
   }
 
-  const onGemsCredited = useCallback((result: GemPurchaseResult) => {
+  const onGemsCredited = useCallback((result: GemOrder) => {
     setInventory(result.inventory);
     setGemsCredited(result);
   }, []);
@@ -510,12 +504,7 @@ export function StoreTabScreen() {
               setGiftDone({ kind: "claimed", result });
             }}
           />
-          {tab === "especiales" &&
-            (GEM_PACKS_SUPPORTED ? (
-              <GemPacksSection onCredited={onGemsCredited} />
-            ) : (
-              <EmptyNote>Los packs de gemas se compran desde la app de Android, a través de Google Play.</EmptyNote>
-            ))}
+          {tab === "especiales" && <GemPacksSection onCredited={onGemsCredited} />}
           {visibleItems.map((item) => {
             const featured = item.itemType === "UNLIMITED_LIVES";
             return (

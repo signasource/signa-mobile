@@ -3,47 +3,47 @@ import { View, StyleSheet, ActivityIndicator } from "react-native";
 import { Text } from "@/components/Text";
 import { EmptyNote } from "@/components/EmptyState";
 import { colors, fonts } from "@/theme";
-import { GemPurchaseResult } from "@/api/gemPurchases";
+import { GemOrder } from "@/api/gemOrders";
 import { useGemPurchase } from "../useGemPurchase";
 import { GemPackCard } from "./GemPackCard";
 
 interface GemPacksSectionProps {
   /** Fired after the backend credited the gems; the parent refreshes its inventory from it. */
-  onCredited: (result: GemPurchaseResult) => void;
+  onCredited: (order: GemOrder) => void;
 }
 
 /** Product id of the pack highlighted as "Más elegido". */
 const FEATURED_PRODUCT_ID = "gems_pack_850";
 
 /**
- * "Packs de gemas" block of the Store's Especiales tab. Owns the Google Play connection; the
- * parent only learns about credited purchases. Mount on Android only.
+ * "Packs de gemas" block of the Store's Especiales tab. Owns the Mercado Pago checkout; the
+ * parent only learns about credited purchases.
  */
 export function GemPacksSection({ onCredited }: GemPacksSectionProps) {
-  const { status, error, offers, buy, reset } = useGemPurchase({ onCredited });
-  const busy = status === "buying" || status === "redeeming";
+  const { status, error, packs, buy, reset } = useGemPurchase({ onCredited });
+  const busy = status === "buying" || status === "checking";
 
   return (
     <View style={styles.section}>
       <Text style={styles.sectionLabel}>Packs de gemas</Text>
       <Text style={styles.sectionHint}>
-        Se pagan una sola vez a través de Google Play y se acreditan al instante.
+        Se pagan una sola vez con Mercado Pago (tarjeta, dinero en cuenta y más) y se acreditan al confirmarse el pago.
       </Text>
 
       {status === "loading" ? (
         <View style={styles.center}>
           <ActivityIndicator color={colors.gemsBlueDark} />
         </View>
-      ) : offers.length === 0 ? (
+      ) : packs.length === 0 ? (
         <EmptyNote>
           Los packs de gemas no están disponibles en este momento. Probá de nuevo más tarde.
         </EmptyNote>
       ) : (
-        offers.map((offer) => (
+        packs.map((pack) => (
           <GemPackCard
-            key={offer.pack.id}
-            offer={offer}
-            featured={offer.pack.productId === FEATURED_PRODUCT_ID}
+            key={pack.id}
+            pack={pack}
+            featured={pack.productId === FEATURED_PRODUCT_ID}
             busy={busy}
             onBuy={buy}
           />
@@ -53,7 +53,7 @@ export function GemPacksSection({ onCredited }: GemPacksSectionProps) {
       {status === "pending" && (
         <View style={styles.note}>
           <Text style={styles.noteText}>
-            Tu pago quedó pendiente. Las gemas se acreditan solas cuando Google lo confirme.
+            Tu pago todavía no se confirmó. Las gemas se acreditan solas cuando Mercado Pago lo apruebe.
           </Text>
           <Text style={styles.noteAction} onPress={reset}>
             Entendido

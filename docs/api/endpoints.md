@@ -2,7 +2,7 @@
 
 > Responsibility: catalog of API endpoints exposed through `src/api/`.
 > Update when: an endpoint is added, changed, or removed, or a stub becomes real.
-> Sources: src/api/auth.ts, src/api/users.ts, src/api/health.ts, src/api/shop.ts, src/api/gemPurchases.ts, src/api/signs.ts, src/api/social.ts, src/api/notifications.ts, src/features/courses/api.ts
+> Sources: src/api/auth.ts, src/api/users.ts, src/api/health.ts, src/api/shop.ts, src/api/gemOrders.ts, src/api/signs.ts, src/api/social.ts, src/api/notifications.ts, src/features/courses/api.ts
 
 Types → [types.md](./types.md). Client behavior → [http-client.md](./http-client.md).
 
@@ -55,14 +55,17 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 
 `GET /store/gifts/sent` exists on the backend but has no client or UI yet — see [../status.md](../status.md).
 
-## `gemPurchasesApi` (`src/api/gemPurchases.ts`) — mirrors `GemPurchaseController`
+## `gemOrdersApi` (`src/api/gemOrders.ts`) — mirrors `GemOrderController`
 
-Real-money gem packs through Google Play Billing. Flow and edge cases → [features/store.md](../features/store.md).
+Real-money gem packs through Mercado Pago Checkout Pro. Flow and edge cases → [features/store.md](../features/store.md).
 
 | Method | Path | Returns | Notes |
 |---|---|---|---|
-| `getPacks()` | `GET /store/gem-packs` | `GemPack[]` | active packs ordered by `sortOrder`; `productId` is the Play in-app product id. **No price** — the app reads it from Play (`displayPrice`) |
-| `redeem(productId, purchaseToken)` | `POST /store/gem-purchases` | `GemPurchaseResult` | 201. Backend verifies the token with the Google Play Developer API and credits gems **once per token**: same token + same user again → 201 with `alreadyGranted: true`; same token + another user, or a token Play reports as already consumed → 409; pending/cancelled payment → 400; unknown `productId` → 404. Rate-limited (30/min per IP). Call `finishTransaction` only after this succeeds |
+| `getPacks()` | `GET /store/gem-packs` | `GemPack[]` | active packs ordered by `sortOrder`; `price` is in `currency` (ARS), owned by the backend |
+| `createOrder(packId)` | `POST /store/gem-orders` | `GemCheckout` | 201. Creates a `PENDING` order with gems and price frozen, and a Mercado Pago order; `checkoutUrl` is what the app opens. Pack without price → 400; unknown/inactive pack → 404. Rate-limited (30/min per IP) |
+| `syncOrder(orderId)` | `POST /store/gem-orders/{id}/sync` | `GemOrder` | Server re-reads the order from Mercado Pago and credits the gems **once** if it was approved with the expected amount (`status: "PAID"`); otherwise `PENDING`. Only the caller's own orders (404 otherwise). Rate-limited |
+
+The payment is also credited by the Mercado Pago webhook, so a missed `syncOrder` never loses a payment.
 
 ## `socialApi` (`src/api/social.ts`) — mirrors `FriendshipController.java` + `UserController.searchUsers`
 
