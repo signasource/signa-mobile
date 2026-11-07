@@ -2,7 +2,7 @@
 
 > Responsibility: per-screen auth flows.
 > Update when: an auth screen's flow changes or a screen is added/removed.
-> Sources: src/screens/auth/, src/screens/ChangePasswordScreen.tsx
+> Sources: src/screens/auth/, src/screens/ChangePasswordScreen.tsx, src/utils/pendingReset.ts, src/navigation/AuthNavigator.tsx
 
 All auth screens mount inside `AuthScreen` and use `@/components/auth` primitives (see [../design-system/components.md](../design-system/components.md)). Routes/params → [../navigation.md](../navigation.md).
 
@@ -13,6 +13,7 @@ All auth screens mount inside `AuthScreen` and use `@/components/auth` primitive
 | `ForgotPasswordScreen` | validate email → `authApi.forgotPassword` → navigate to `ForgotPasswordSent` |
 | `ForgotPasswordSentScreen` | informational (no form): "Ingresar código" → `ResetPassword` with the email; "Probar con otro correo" → back to `ForgotPassword` |
 | `ResetPasswordScreen` | email (prefilled from params, editable) + 6-digit code (`number-pad`, `maxLength={6}`, non-digits stripped, `oneTimeCode` autofill) + new password/confirm (`isPasswordValid`) → `authApi.resetPassword({ email, code, newPassword })` → auto-login via `useAuth().login`; if that login fails, navigate to `Login`. "Reenviar código" calls `authApi.forgotPassword` again and clears the code field (a new code replaces the old one on the backend) |
+| *Resume after leaving the app* | Sending a code (`ForgotPassword` or "Reenviar código") saves `{ email, expiresAt: +15 min }` via `@/utils/pendingReset` (AsyncStorage); a successful reset clears it. `AuthNavigator` reads it on mount: if a non-expired entry exists and the initial route is `Welcome`, the stack opens directly on `ResetPassword` with that email, so the user can check their mail, the OS can kill Signa, and coming back lands on the code screen. Expired/corrupt entries are discarded |
 | `ChangePasswordScreen` (post-login) | `changePassword` from context; rotates tokens |
 
 Error/loading conventions:

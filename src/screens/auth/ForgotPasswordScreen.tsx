@@ -13,6 +13,7 @@ import {
 } from "@/components/auth";
 import { isValidEmail } from "@/utils/validation";
 import { mapAuthError } from "@/utils/authErrors";
+import { pendingReset } from "@/utils/pendingReset";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "ForgotPassword">;
 
@@ -39,6 +40,7 @@ export function ForgotPasswordScreen({ navigation }: Props) {
     setError("");
     try {
       await authApi.forgotPassword({ email: email.trim() });
+      await pendingReset.save(email.trim());
       navigation.navigate("ForgotPasswordSent", { email: email.trim() });
     } catch (err: unknown) {
       setError(mapAuthError(err, "No se pudo enviar el correo"));
