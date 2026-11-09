@@ -54,7 +54,14 @@ export function useCoursePurchase({ onPurchased }: Options) {
       setStatus("buying");
       try {
         const { data } = await courseOrdersApi.createOrder(course.id);
-        await WebBrowser.openAuthSessionAsync(data.checkoutUrl, RETURN_URL);
+        const result = await WebBrowser.openAuthSessionAsync(data.checkoutUrl, RETURN_URL);
+        // The API's return page hands back `signa://store?pago=approved|rejected|pending`, which
+        // closes the browser on its own. A rejected payment needs no polling: say so right away.
+        if (result.type === "success" && /[?&]pago=rejected/.test(result.url)) {
+          setError("Mercado Pago rechazó el pago. No se cobró nada: probá con otro medio de pago.");
+          setStatus("error");
+          return;
+        }
         // Whether the browser returned or was closed, the user may have paid: ask the server.
         await checkOrder(data.orderId);
       } catch (err: any) {
