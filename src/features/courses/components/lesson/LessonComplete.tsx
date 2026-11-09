@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "@/theme";
@@ -16,6 +16,8 @@ interface LessonCompleteProps {
   signsLearned: number;
   onClose: () => void;
   onRestart: () => void;
+  /** Paid course to suggest below the stats (only when a unit was just closed). */
+  suggestion?: { name: string; onOpen: () => void };
 }
 
 export function LessonComplete({
@@ -27,6 +29,7 @@ export function LessonComplete({
   signsLearned,
   onClose,
   onRestart,
+  suggestion,
 }: LessonCompleteProps) {
   // Only what the user actually earned is worth a card; zeroes read as failure.
   const stats = [
@@ -84,6 +87,24 @@ export function LessonComplete({
               </View>
             ))}
           </View>
+        )}
+
+        {suggestion && (
+          <TouchableOpacity style={styles.suggestion} onPress={suggestion.onOpen} activeOpacity={0.85}>
+            <View style={styles.suggestionIcon}>
+              <Ionicons name="school" size={20} color={colors.onDark} />
+            </View>
+            <View style={styles.suggestionText}>
+              <Text style={styles.suggestionKicker}>SEGUÍ APRENDIENDO</Text>
+              <Text style={styles.suggestionName} numberOfLines={1}>
+                {suggestion.name}
+              </Text>
+            </View>
+            <View style={styles.suggestionCta}>
+              <Text style={styles.suggestionCtaText}>Ver</Text>
+              <Ionicons name="chevron-forward" size={15} color={colors.text} />
+            </View>
+          </TouchableOpacity>
         )}
       </View>
 
@@ -144,4 +165,41 @@ const styles = StyleSheet.create({
   statCardFlex: { flex: 1 },
   statCardSingle: { width: 160 },
   footer: { padding: 20, gap: 10 },
+  suggestion: {
+    alignSelf: "stretch",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: colors.fill,
+    borderRadius: 18,
+    padding: 12,
+    marginTop: 8,
+  },
+  suggestionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: colors.courseIndigo,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  suggestionText: { flex: 1, minWidth: 0 },
+  suggestionKicker: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    letterSpacing: 1.1,
+    color: colors.textMuted,
+  },
+  suggestionName: { fontFamily: fonts.displayExtraBold, fontSize: 16, color: colors.text, marginTop: 2 },
+  suggestionCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingLeft: 14,
+    paddingRight: 10,
+  },
+  suggestionCtaText: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.text },
 });

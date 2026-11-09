@@ -14,12 +14,15 @@ import { formatPrice } from "@/features/courses/price";
 export function PaidCourseRow({
   course,
   onOpen,
+  dashed,
 }: {
   course: CourseSummary;
   onOpen: (course: CourseSummary) => void;
+  /** Dashed outline = "not yours yet" (Profile → Cursos). */
+  dashed?: boolean;
 }) {
   return (
-    <TouchableOpacity style={styles.row} onPress={() => onOpen(course)} activeOpacity={0.85}>
+    <TouchableOpacity style={[styles.row, dashed && styles.rowDashed]} onPress={() => onOpen(course)} activeOpacity={0.85}>
       <View style={styles.icon}>
         <Ionicons name="school" size={22} color={colors.onDark} />
       </View>
@@ -47,6 +50,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.fill,
     borderRadius: 18,
     padding: 12,
+  },
+  rowDashed: {
+    backgroundColor: "transparent",
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    borderColor: colors.roadmapLockedBorder,
   },
   icon: {
     width: 48,

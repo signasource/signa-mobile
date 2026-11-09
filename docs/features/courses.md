@@ -242,10 +242,15 @@ The buy button never says "Comprar": every entry point shows **"Ver"** and opens
   "signa://store")` → on return, `POST /store/course-orders/{id}/sync` (retried ~4×) grants access
   and fires `onPurchased`. Access is never granted client-side; the webhook also grants it.
 - `PaidCourseRow` — a paid course row (price + "Ver"). Used by every entry point below.
-- **Entry points**: Home selector ("Más cursos" in the "Elegí tu curso" sheet), Profile → Cursos
-  ("Ver más cursos" → `CourseCatalogSheet`), and the Store's **Cursos** tab (`CoursesSection`).
-  The Home/Profile/Store screens refetch on focus, so a bought course shows up as owned when the
-  sheet closes.
-- Designed but **not built yet** (see [../status.md](../status.md)): the "+N cursos" chip in the
-  Inicio header, the "¿Y después?" card at the end of the roadmap, the suggestion on the
-  unit-complete screen, and the dashed "Para sumar" cards in Profile → Cursos.
+- **Entry points** (all open the sheet, all show "Ver"):
+  - Home: the "Elegí tu curso" selector ("Más cursos"); an outlined **"+N cursos"** chip next to the
+    course chip in the header; and, when the current course is free, a **"¿Y después?"** card
+    under the roadmap (after a "FIN DE …" divider) listing the buyable courses.
+  - Lesson complete: when the lesson just closed the **last pending lesson of a unit** of the free
+    course (never a replay, never every lesson), `HomeTabScreen` passes `suggestedCourse` in the
+    `Lesson` params and `LessonComplete` shows a "Seguí aprendiendo" card below the stats; it
+    `replace`s the screen with `CourseDetail` so the lesson isn't left underneath.
+  - Profile → Cursos: a **"Para sumar"** block with dashed `PaidCourseRow`s (`dashed`) — it replaced
+    the old "Ver más cursos" button and `CourseCatalogSheet` (deleted).
+  - Store → **Cursos** tab (`CoursesSection`).
+  Home/Profile/Store refetch on focus, so a bought course shows up as owned when the sheet closes.

@@ -34,7 +34,13 @@ export type AppStackParamList = {
       }
     | undefined;
   EditProfile: { displayName: string; lastName: string; username: string };
-  Lesson: { lessonId: string; unitLabel?: string; signsCount?: number };
+  Lesson: {
+    lessonId: string;
+    unitLabel?: string;
+    signsCount?: number;
+    /** Paid course to suggest on the completion screen (set when this lesson closes a unit). */
+    suggestedCourse?: { id: string; name: string };
+  };
   CourseDetail: { courseId: string };
   Notifications: undefined;
   PracticeSession: { mode: PracticeSessionParams };

@@ -73,7 +73,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 - ~~Wire the Inicio roadmap lesson CTA to navigate into `LessonScreen`.~~ Done (`HomeTabScreen.navigateToLesson`).
 - ~~Leaderboard endpoint + the Social *Ranking* tile.~~ Done.
 - ~~Fix `CourseProgress` / `Achievement` client types.~~ Done.
-- Course purchase entry points still to build from `Compra de cursos.dc.html`: "+N cursos" chip in the Inicio header, "¿Y después?" card at the end of the roadmap, suggestion on the unit-complete screen, dashed "Para sumar" cards in Profile → Cursos. The sheet also lacks 3D/video availability and a per-course tone (the backend has neither).
+- The course sheet lacks 3D/video availability and a per-course tone (the backend has neither).
 - Confirm real `courses` endpoints for the flat browse stub, or retire it in favor of the Inicio roadmap.
 - ~~Decide the camera + ML runtime stack and migrate to a dev build.~~ Done: `expo-camera` + MediaPipe (WASM in a WebView worker) + TFLite, all on-device ([features/ml.md](./features/ml.md)); `expo-dev-client` with an EAS `development` profile.
 - Persist onboarding answers once there is a place to store them.

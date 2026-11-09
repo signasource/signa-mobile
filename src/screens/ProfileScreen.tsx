@@ -35,7 +35,9 @@ import { StreakMedal } from "@/features/achievements/components/StreakMedal";
 import { isStreakAchievement } from "@/features/achievements/streakTier";
 import { learningApi } from "@/api/learning";
 import type { PublicCourseProgress } from "@/api/social";
-import { CourseCatalogSheet } from "@/features/store/CourseCatalogSheet";
+import { PaidCourseRow } from "@/features/store/PaidCourseRow";
+import { fetchCatalog } from "@/features/courses/catalog";
+import type { CourseSummary } from "@/features/courses/api";
 
 type ProfileNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, "Profile">,
@@ -173,7 +175,7 @@ export function ProfileScreen({ navigation }: Props) {
   const [inventory, setInventory] = useState<UserInventory>(DEFAULT_INVENTORY);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [courses, setCourses] = useState<PublicCourseProgress[]>([]);
-  const [catalogOpen, setCatalogOpen] = useState(false);
+  const [buyableCourses, setBuyableCourses] = useState<CourseSummary[]>([]);
   const [savingGoal, setSavingGoal] = useState(false);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [minutesToday, setMinutesToday] = useState(0);
@@ -257,6 +259,19 @@ export function ProfileScreen({ navigation }: Props) {
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
+
+  // Paid courses still to get; refetched on focus so a course bought meanwhile disappears.
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      fetchCatalog().then((catalog) => {
+        if (active) setBuyableCourses(catalog.filter((c) => !c.owned && !c.isFree));
+      });
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -553,14 +568,7 @@ export function ProfileScreen({ navigation }: Props) {
             title="Sin cursos todavía"
             description="Cuando empieces un curso va a aparecer acá tu progreso."
           />
-          <TouchableOpacity
-            style={styles.moreCoursesBtn}
-            activeOpacity={0.7}
-            onPress={() => setCatalogOpen(true)}
-          >
-            <Ionicons name="add-circle-outline" size={16} color={colors.neutral900} />
-            <Text style={styles.moreCoursesText}>Ver más cursos</Text>
-          </TouchableOpacity>
+          {renderBuyableCourses()}
         </View>
       );
     }
@@ -631,15 +639,29 @@ export function ProfileScreen({ navigation }: Props) {
             </View>
           );
         })}
-        <TouchableOpacity
-          style={styles.moreCoursesBtn}
-          activeOpacity={0.7}
-          onPress={() => setCatalogOpen(true)}
-        >
-          <Ionicons name="add-circle-outline" size={16} color={colors.neutral900} />
-          <Text style={styles.moreCoursesText}>Ver más cursos</Text>
-        </TouchableOpacity>
+        {renderBuyableCourses()}
       </View>
+    );
+  }
+
+  /** "Para sumar": paid courses not owned yet, with a dashed outline; each opens its sheet. */
+  function renderBuyableCourses() {
+    if (buyableCourses.length === 0) return null;
+    return (
+      <>
+        <View style={styles.buyableHeader}>
+          <Text style={styles.buyableLabel}>PARA SUMAR</Text>
+          <Text style={styles.buyableHint}>Pago único</Text>
+        </View>
+        {buyableCourses.map((course) => (
+          <PaidCourseRow
+            key={course.id}
+            course={course}
+            dashed
+            onOpen={(c) => navigation.navigate("CourseDetail", { courseId: c.id })}
+          />
+        ))}
+      </>
     );
   }
 
@@ -1057,11 +1079,6 @@ export function ProfileScreen({ navigation }: Props) {
           </Pressable>
         </View>
       )}
-
-      <CourseCatalogSheet
-        visible={catalogOpen}
-        onClose={() => setCatalogOpen(false)}
-      />
     </View>
   );
 }
@@ -1399,21 +1416,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.onDark,
   },
-  moreCoursesBtn: {
+  buyableHeader: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    backgroundColor: colors.neutral100,
-    borderRadius: 14,
-    padding: 14,
-    marginTop: 2,
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    marginTop: 8,
   },
-  moreCoursesText: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 13,
-    color: colors.neutral900,
+  buyableLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    letterSpacing: 1.1,
+    color: colors.textMuted,
   },
+  buyableHint: { fontFamily: fonts.bodyRegular, fontSize: 12, color: colors.textMuted },
 
   // Inventory
   invCard: {

@@ -58,7 +58,7 @@ function isRenderable(block: LessonContentBlock): boolean {
 const STARTING_LIVES = 5;
 
 export function LessonScreen({ route, navigation }: Props) {
-  const { lessonId, unitLabel, signsCount } = route.params;
+  const { lessonId, unitLabel, signsCount, suggestedCourse } = route.params;
   const insets = useSafeAreaInsets();
 
   useActivityTracker();
@@ -204,6 +204,14 @@ export function LessonScreen({ route, navigation }: Props) {
           signsLearned={signsCount ?? 0}
           onClose={volver}
           onRestart={resetProgress}
+          suggestion={
+            suggestedCourse
+              ? {
+                  name: suggestedCourse.name,
+                  onOpen: () => navigation.replace("CourseDetail", { courseId: suggestedCourse.id }),
+                }
+              : undefined
+          }
         />
       </View>
     );
