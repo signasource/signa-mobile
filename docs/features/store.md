@@ -6,7 +6,8 @@
 >
 > Note: the same Mercado Pago pattern (`useGemPurchase`) is reused by `useCoursePurchase` to buy
 > permanent access to paid courses (`/store/course-orders`), surfaced in the Home course selector
-> and Profile → Cursos, not in this tab. See [courses.md](./courses.md).
+> and Profile → Cursos, and also in this tab's **Cursos** section (`components/CoursesSection`:
+> paid, not-owned courses, "no usan gemas"; each opens the course sheet). See [courses.md](./courses.md).
 
 **Real**, wired end to end to `signa-api`. Endpoints → [../api/endpoints.md](../api/endpoints.md).
 Types → [../api/types.md](../api/types.md).

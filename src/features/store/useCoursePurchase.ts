@@ -48,7 +48,7 @@ export function useCoursePurchase({ onPurchased }: Options) {
   }, []);
 
   const buy = useCallback(
-    async (course: CourseSummary) => {
+    async (course: Pick<CourseSummary, "id">) => {
       setError(null);
       setBuyingCourseId(course.id);
       setStatus("buying");

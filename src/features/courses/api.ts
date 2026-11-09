@@ -23,6 +23,35 @@ export interface CourseSummary {
   signLanguageCode: string;
 }
 
+/** Ficha pública de un curso (`GET /courses/{id}`), calculada del contenido publicado. */
+export interface CourseDetail {
+  id: string;
+  name: string;
+  description?: string;
+  isFree: boolean;
+  price: number | null;
+  owned: boolean;
+  unitCount: number;
+  lessonCount: number;
+  /** Señas distintas que enseña el curso. */
+  signCount: number;
+  /** Algún ejercicio usa reconocimiento con cámara. */
+  hasCameraPractice: boolean;
+  /** Tipos de ejercicio distintos (`BlockType`, sin `INFO` ni `INTRODUCE_SIGN`). */
+  exerciseTypes: string[];
+  /** Significado de la primera seña que enseña, o null si no enseña ninguna. */
+  sampleSign: string | null;
+  topics: CourseDetailTopic[];
+}
+
+export interface CourseDetailTopic {
+  id: string;
+  title: string;
+  subtitle?: string;
+  order: number;
+  lessons: { name: string; signs: string[] }[];
+}
+
 /** Página de Spring Data — sólo consumimos `content`. */
 export interface Page<T> {
   content: T[];
@@ -82,6 +111,9 @@ export const coursesApi = {
   /** Catálogo de cursos de una lengua de señas. */
   getCatalog: (signLanguageId: string) =>
     apiClient.get<Page<CourseSummary>>("/courses", { params: { signLanguageId } }),
+
+  /** Ficha del curso (también para quien todavía no lo tiene). */
+  getDetail: (courseId: string) => apiClient.get<CourseDetail>(`/courses/${courseId}`),
 
   /** Recorrido personalizado del curso: temas con sus lecciones y estado por lección. */
   getRoadmap: (courseId: string) =>

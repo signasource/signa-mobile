@@ -12,6 +12,7 @@ Reuse a primitive before creating a new one. Tokens → [colors.md](./colors.md)
 |---|---|---|
 | `Button` | `label, onPress, variant?("primary"\|"secondary"), loading?, disabled?, style?` | generic CTA (outside auth): black primary / neutral secondary |
 | `ScreenHeader` | `title, description?, paddingTop, tone, stats?, left?, right?, top?, children?, compact?` | **the** colored hero header of every top-level screen |
+| `PaidCourseRow` (`@/features/store`) | `course, onOpen` | row of a paid, not-owned course: price + "Ver" → opens `CourseDetail`; `dashed` = outlined "not yours yet" variant (Profile) |
 | `SegmentedControl` | `options(Segment[]), value, onChange, style?` | primary selector (full width, black active) |
 | `SubTabs` | `options(SubTab[]), value, onChange, style?` | secondary selector (outlined pills + icon) |
 | `EmptyState` / `EmptyNote` | `title, description` / `children` | the single empty-state style; illustration is a random pick from `EmptyStateArt`'s spiderweb pool (`@assets/ilus/spiderweb.svg`, `mano-con-spiderweb-1/2.svg`, `mano-con-spiderweb-negra.svg`) |
