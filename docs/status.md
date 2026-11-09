@@ -18,6 +18,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 | User profile | partial | [api/session-persistence.md](./api/session-persistence.md) |
 | Store / Tienda (gem catalog, buy for self, **gem packs with real money via Mercado Pago Checkout Pro**) | real, **verified in production 2026-11-07** (purchase, credit and refund with real money); needs a build with the `signa://` scheme and signa-api with Mercado Pago configured | [features/store.md](./features/store.md) |
 | Inicio (Home) roadmap screen | real (topics/lessons + per-lesson state from `signa-api`) | [features/courses.md](./features/courses.md#inicio-home-roadmap-screen) |
+| Paid-course sheet + purchase flow (`CourseDetailScreen`) | real; needs `signa-api` with the extended `GET /courses/{id}` | [features/courses.md](./features/courses.md#buying-a-paid-course--real) |
 | Lesson player (`LessonScreen`) | real, wired to `signa-api` | [features/courses.md](./features/courses.md#lesson-player--real) |
 | Social (feed + likes, amigos, solicitudes, búsqueda, ranking semanal) | real | [features/social.md](./features/social.md) |
 | Notifications inbox | real | [features/social.md](./features/social.md#notificationsscreen) |
@@ -72,6 +73,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 - ~~Wire the Inicio roadmap lesson CTA to navigate into `LessonScreen`.~~ Done (`HomeTabScreen.navigateToLesson`).
 - ~~Leaderboard endpoint + the Social *Ranking* tile.~~ Done.
 - ~~Fix `CourseProgress` / `Achievement` client types.~~ Done.
+- Course purchase entry points still to build from `Compra de cursos.dc.html`: "+N cursos" chip in the Inicio header, "¿Y después?" card at the end of the roadmap, suggestion on the unit-complete screen, dashed "Para sumar" cards in Profile → Cursos. The sheet also lacks 3D/video availability and a per-course tone (the backend has neither).
 - Confirm real `courses` endpoints for the flat browse stub, or retire it in favor of the Inicio roadmap.
 - ~~Decide the camera + ML runtime stack and migrate to a dev build.~~ Done: `expo-camera` + MediaPipe (WASM in a WebView worker) + TFLite, all on-device ([features/ml.md](./features/ml.md)); `expo-dev-client` with an EAS `development` profile.
 - Persist onboarding answers once there is a place to store them.

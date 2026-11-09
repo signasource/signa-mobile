@@ -33,7 +33,6 @@ import {
   RoadmapTopic,
 } from "@/features/courses/api";
 import { accentFor, progressFor } from "@/features/courses/roadmap";
-import { useCoursePurchase } from "@/features/store/useCoursePurchase";
 import { PaidCourseRow } from "@/features/store/PaidCourseRow";
 import { useTour } from "@/features/tour/TourContext";
 import { challengesApi, Challenge, Challenges } from "@/api/challenges";
@@ -221,16 +220,12 @@ export function HomeTabScreen({ navigation }: Props) {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const coursePurchase = useCoursePurchase({
-    onPurchased: async () => {
-      // The new enrollment now grants access: reload so it shows as an owned, selectable course.
-      freeCoursesJoined = false;
-      await load();
-    },
-  });
   const purchasableCourses = catalog.filter((c) => !c.owned && !c.isFree);
-  const purchaseBusy =
-    coursePurchase.status === "buying" || coursePurchase.status === "checking";
+
+  function openCourseSheet(course: CourseSummary) {
+    setSelectorOpen(false);
+    navigation.navigate("CourseDetail", { courseId: course.id });
+  }
 
   const currentLessonId = roadmap ? findCurrentLessonId(roadmap.topics) : null;
   const cta = openLesson ? ctaFor(openLesson.lesson.state) : null;
@@ -462,23 +457,9 @@ export function HomeTabScreen({ navigation }: Props) {
               <>
                 <Text style={styles.sheetSectionLabel}>Más cursos</Text>
                 {purchasableCourses.map((course) => (
-                  <PaidCourseRow
-                    key={course.id}
-                    course={course}
-                    buying={coursePurchase.buyingCourseId === course.id}
-                    disabled={purchaseBusy}
-                    onBuy={coursePurchase.buy}
-                  />
+                  <PaidCourseRow key={course.id} course={course} onOpen={openCourseSheet} />
                 ))}
               </>
-            )}
-            {!!coursePurchase.error && (
-              <Text style={styles.sheetError}>{coursePurchase.error}</Text>
-            )}
-            {coursePurchase.status === "pending" && (
-              <Text style={styles.sheetSubtitle}>
-                Tu pago se está confirmando. El curso va a aparecer en unos minutos.
-              </Text>
             )}
           </Pressable>
         </Pressable>
@@ -837,13 +818,6 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 8,
     marginBottom: 2,
-  },
-  sheetError: {
-    fontFamily: fonts.bodyRegular,
-    fontSize: 13,
-    color: colors.danger,
-    textAlign: "center",
-    marginTop: 4,
   },
   courseOption: {
     flexDirection: "row",

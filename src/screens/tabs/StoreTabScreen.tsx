@@ -21,6 +21,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { shopApi, ShopItem, ShopItemType, ShopInventory, AppliedEffect, GiftClaimResult } from "@/api/shop";
 import type { Friend } from "@/api/social";
 import { GemOrder } from "@/api/gemOrders";
+import { CoursesSection } from "@/features/store/components/CoursesSection";
 import { GemPacksSection } from "@/features/store/components/GemPacksSection";
 import { GiftSheet } from "@/features/store/components/GiftSheet";
 import { ReceivedGiftsSection } from "@/features/store/components/ReceivedGiftsSection";
@@ -31,7 +32,7 @@ import ManoConGlobo from "@assets/ilus/mano-con-globo.svg";
 import { useTour } from "@/features/tour/TourContext";
 import { SectionWelcomeModal } from "@/features/tour/components/SectionWelcomeModal";
 
-type TabKey = "vidas" | "potenciadores" | "especiales";
+type TabKey = "vidas" | "potenciadores" | "especiales" | "cursos";
 type FlowStep = "confirm" | "insufficient" | "opening" | "success";
 
 interface Flow {
@@ -42,14 +43,16 @@ interface Flow {
 
 const TABS: readonly Segment<TabKey>[] = [
   { key: "vidas", label: "Vidas" },
-  { key: "potenciadores", label: "Potenciadores" },
+  { key: "potenciadores", label: "Potenciad." },
   { key: "especiales", label: "Especiales" },
+  { key: "cursos", label: "Cursos" },
 ];
 
 const TAB_TYPES: Record<TabKey, ShopItemType[]> = {
   vidas: ["LIFE", "UNLIMITED_LIVES"],
   potenciadores: ["XP_MULTIPLIER", "STREAK_SHIELD"],
   especiales: ["MYSTERY_CHEST"],
+  cursos: [],
 };
 
 const ICON: Record<ShopItemType, keyof typeof Ionicons.glyphMap> = {
@@ -498,12 +501,14 @@ export function StoreTabScreen() {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
         >
-          <ReceivedGiftsSection
-            onClaimed={(result) => {
-              setInventory(result.inventory);
-              setGiftDone({ kind: "claimed", result });
-            }}
-          />
+          {tab !== "cursos" && (
+            <ReceivedGiftsSection
+              onClaimed={(result) => {
+                setInventory(result.inventory);
+                setGiftDone({ kind: "claimed", result });
+              }}
+            />
+          )}
           {tab === "especiales" && <GemPacksSection onCredited={onGemsCredited} />}
           {visibleItems.map((item) => {
             const featured = item.itemType === "UNLIMITED_LIVES";
@@ -593,7 +598,8 @@ export function StoreTabScreen() {
               </View>
             );
           })}
-          {visibleItems.length === 0 && (
+          {tab === "cursos" && <CoursesSection />}
+          {tab !== "cursos" && visibleItems.length === 0 && (
             <EmptyState
               title="Sin ítems por ahora"
               description="No hay ítems disponibles en esta categoría."

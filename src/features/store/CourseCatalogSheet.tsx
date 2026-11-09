@@ -1,41 +1,30 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { View, Modal, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { AppStackParamList } from "@/navigation/AppNavigator";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
 import { colors, fonts, fontSizes, alpha } from "@/theme";
-import { coursesApi, CourseSummary } from "@/features/courses/api";
-import { useCoursePurchase } from "@/features/store/useCoursePurchase";
+import { CourseSummary } from "@/features/courses/api";
+import { fetchCatalog } from "@/features/courses/catalog";
 import { PaidCourseRow } from "@/features/store/PaidCourseRow";
-
-/** Catalog of the user's sign language (LSA). Never throws. */
-async function fetchCatalog(): Promise<CourseSummary[]> {
-  try {
-    const { data: languages } = await coursesApi.getSignLanguages();
-    const lsa = languages.find((l) => l.code === "LSA") ?? languages[0];
-    if (!lsa) return [];
-    const { data: catalog } = await coursesApi.getCatalog(lsa.id);
-    return catalog.content;
-  } catch {
-    return [];
-  }
-}
 
 /**
  * Bottom sheet listing every course of the catalog: the ones the user already has and the paid
- * ones they can buy with Mercado Pago. Opened from the profile's "Ver más cursos".
+ * ones they can open ("Ver") to read the course sheet and buy it. Opened from the profile's
+ * "Ver más cursos".
  */
 export function CourseCatalogSheet({
   visible,
   onClose,
-  onPurchased,
 }: {
   visible: boolean;
   onClose: () => void;
-  /** Called after a successful purchase so the caller can refresh its course list. */
-  onPurchased: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const [catalog, setCatalog] = useState<CourseSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -49,13 +38,10 @@ export function CourseCatalogSheet({
     if (visible) reload();
   }, [visible, reload]);
 
-  const purchase = useCoursePurchase({
-    onPurchased: async () => {
-      await reload();
-      onPurchased();
-    },
-  });
-  const busy = purchase.status === "buying" || purchase.status === "checking";
+  function openCourse(course: CourseSummary) {
+    onClose();
+    navigation.navigate("CourseDetail", { courseId: course.id });
+  }
 
   const owned = catalog.filter((c) => c.owned);
   const purchasable = catalog.filter((c) => !c.owned && !c.isFree);
@@ -94,23 +80,11 @@ export function CourseCatalogSheet({
 
               {purchasable.length > 0 && <Text style={styles.sectionLabel}>Para comprar</Text>}
               {purchasable.map((course) => (
-                <PaidCourseRow
-                  key={course.id}
-                  course={course}
-                  buying={purchase.buyingCourseId === course.id}
-                  disabled={busy}
-                  onBuy={purchase.buy}
-                />
+                <PaidCourseRow key={course.id} course={course} onOpen={openCourse} />
               ))}
 
               {purchasable.length === 0 && owned.length > 0 && (
                 <Text style={styles.subtitle}>Ya tenés todos los cursos disponibles.</Text>
-              )}
-              {!!purchase.error && <Text style={styles.error}>{purchase.error}</Text>}
-              {purchase.status === "pending" && (
-                <Text style={styles.subtitle}>
-                  Tu pago se está confirmando. El curso va a aparecer en unos minutos.
-                </Text>
               )}
             </>
           )}
@@ -187,12 +161,5 @@ const styles = StyleSheet.create({
     fontFamily: fonts.displayExtraBold,
     fontSize: 16,
     color: colors.text,
-  },
-  error: {
-    fontFamily: fonts.bodyRegular,
-    fontSize: 13,
-    color: colors.danger,
-    textAlign: "center",
-    marginTop: 4,
   },
 });

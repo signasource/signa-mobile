@@ -6,6 +6,7 @@ import { ConfigurationScreen } from "@/screens/ConfigurationScreen";
 import { EditProfileScreen } from "@/screens/EditProfileScreen";
 import { ConnectionTestScreen } from "@/screens/ConnectionTestScreen";
 import { LessonScreen } from "@/features/courses/screens/LessonScreen";
+import { CourseDetailScreen } from "@/features/courses/screens/CourseDetailScreen";
 import { PracticeSessionScreen } from "@/features/practice/screens/PracticeSessionScreen";
 import { NotificationsScreen } from "@/features/social/screens/NotificationsScreen";
 import { PublicProfileScreen } from "@/features/social/screens/PublicProfileScreen";
@@ -34,6 +35,7 @@ export type AppStackParamList = {
     | undefined;
   EditProfile: { displayName: string; lastName: string; username: string };
   Lesson: { lessonId: string; unitLabel?: string; signsCount?: number };
+  CourseDetail: { courseId: string };
   Notifications: undefined;
   PracticeSession: { mode: PracticeSessionParams };
   PublicProfile: { username: string };
@@ -82,6 +84,7 @@ export function AppNavigator() {
       <Stack.Screen name="Configuration" component={ConfigurationScreen} options={{ headerShown: false }} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Lesson" component={LessonScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="CourseDetail" component={CourseDetailScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="PracticeSession" component={PracticeSessionScreen} options={{ headerShown: false }} />
       <Stack.Screen name="PublicProfile" component={PublicProfileScreen} options={{ headerShown: false }} />

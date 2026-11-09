@@ -1,5 +1,5 @@
 import React from "react";
-import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
@@ -7,24 +7,21 @@ import { CourseSummary } from "@/features/courses/api";
 import { formatPrice } from "@/features/courses/price";
 
 /**
- * A paid course the user doesn't own yet: shows its price and a "Comprar" button that starts the
- * Mercado Pago checkout. Used in the home course selector and the profile course catalog.
+ * A paid course the user doesn't own yet: shows its price and a "Ver" button that opens the
+ * course sheet (`CourseDetail`), where the purchase is confirmed. Used in the home course
+ * selector and the profile course catalog.
  */
 export function PaidCourseRow({
   course,
-  buying,
-  disabled,
-  onBuy,
+  onOpen,
 }: {
   course: CourseSummary;
-  buying: boolean;
-  disabled: boolean;
-  onBuy: (course: CourseSummary) => void;
+  onOpen: (course: CourseSummary) => void;
 }) {
   return (
-    <View style={styles.row}>
+    <TouchableOpacity style={styles.row} onPress={() => onOpen(course)} activeOpacity={0.85}>
       <View style={styles.icon}>
-        <Ionicons name="lock-closed" size={20} color={colors.onDark} />
+        <Ionicons name="school" size={22} color={colors.onDark} />
       </View>
       <View style={styles.text}>
         <Text style={styles.name} numberOfLines={1}>
@@ -34,19 +31,11 @@ export function PaidCourseRow({
           {course.price != null ? `Pago único · ${formatPrice(course.price)}` : "Curso pago"}
         </Text>
       </View>
-      <TouchableOpacity
-        style={[styles.buyBtn, disabled && styles.buyBtnDisabled]}
-        onPress={() => onBuy(course)}
-        disabled={disabled}
-        activeOpacity={0.85}
-      >
-        {buying ? (
-          <ActivityIndicator color={colors.onDark} size="small" />
-        ) : (
-          <Text style={styles.buyBtnText}>Comprar</Text>
-        )}
-      </TouchableOpacity>
-    </View>
+      <View style={styles.cta}>
+        <Text style={styles.ctaText}>Ver</Text>
+        <Ionicons name="chevron-forward" size={15} color={colors.text} />
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -57,8 +46,6 @@ const styles = StyleSheet.create({
     gap: 12,
     backgroundColor: colors.fill,
     borderRadius: 18,
-    borderWidth: 2,
-    borderColor: "transparent",
     padding: 12,
   },
   icon: {
@@ -67,7 +54,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.textMuted,
+    backgroundColor: colors.courseIndigo,
   },
   text: { flex: 1, minWidth: 0 },
   name: {
@@ -81,19 +68,19 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 2,
   },
-  buyBtn: {
-    minWidth: 92,
+  cta: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.text,
+    gap: 2,
+    backgroundColor: colors.surface,
     borderRadius: 12,
     paddingVertical: 10,
-    paddingHorizontal: 14,
+    paddingLeft: 14,
+    paddingRight: 10,
   },
-  buyBtnDisabled: { opacity: 0.6 },
-  buyBtnText: {
+  ctaText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 14,
-    color: colors.onDark,
+    color: colors.text,
   },
 });

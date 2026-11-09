@@ -54,6 +54,7 @@ Post-login screens with tab navigation. `screenOptions` use a dark header: `head
 | `ChangePassword` | — | (no header, screen renders its own back button) | `screens/ChangePasswordScreen` |
 | `Configuration` | `{ updatedProfile?: {...}, passwordChanged?: boolean }` (set by `EditProfile`/`ChangePassword` on save, via "pass params back") | (no header) | `screens/ConfigurationScreen` |
 | `EditProfile` | `{ displayName: string; lastName: string; username: string }` | (no header, screen renders its own back button) | `screens/EditProfileScreen` |
+| `CourseDetail` | `{ courseId: string }` | (no header, screen renders its own) | `features/courses/screens/CourseDetailScreen` — paid-course sheet + whole purchase flow |
 | `Lesson` | `{ lessonId: string; unitLabel?: string; signsCount?: number }` | (no header, screen renders its own) | `features/courses/screens/LessonScreen` |
 | `Notifications` | — | (no header, screen renders its own) | `features/social/screens/NotificationsScreen` |
 | `PracticeSession` | `{ mode: PracticeSessionParams }` — `PracticeSessionParams` is `{ mode: "type"; blockType: BlockType; title: string } \| { mode: "sign"; meaning: string } \| { mode: "mistakes" }` | (no header, screen renders its own) | `features/practice/screens/PracticeSessionScreen` |

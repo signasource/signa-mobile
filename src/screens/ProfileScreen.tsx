@@ -1061,7 +1061,6 @@ export function ProfileScreen({ navigation }: Props) {
       <CourseCatalogSheet
         visible={catalogOpen}
         onClose={() => setCatalogOpen(false)}
-        onPurchased={() => loadProfile()}
       />
     </View>
   );
