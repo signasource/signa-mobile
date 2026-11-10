@@ -35,7 +35,7 @@ export interface InfoConfig {
 
 export interface IntroduceSignConfig {
   meaning: string;
-  word: string;
+  word?: string;
   video_url?: string;
 }
 
@@ -84,7 +84,7 @@ export interface PerformSignConfig {
 export interface VisualRecognitionConfig {
   sign_sequence: string[];
   options: string[];
-  keep_order: boolean;
+  keep_order?: boolean;
 }
 
 export type BlockConfigFor<T extends BlockType> = T extends "INFO"

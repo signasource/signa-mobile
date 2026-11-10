@@ -42,9 +42,10 @@ export function IntroduceSignBlock({ config, onContinue }: IntroduceSignBlockPro
   const [loading, setLoading] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
 
+  const label = config.word ?? config.meaning;
   const youtubeUrl =
     config.video_url ??
-    `https://www.youtube.com/results?search_query=${encodeURIComponent(`seña LSA ${config.word}`)}`;
+    `https://www.youtube.com/results?search_query=${encodeURIComponent(`seña LSA ${label}`)}`;
 
   function closeModal() {
     if (loading) return;
@@ -91,8 +92,8 @@ export function IntroduceSignBlock({ config, onContinue }: IntroduceSignBlockPro
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.word}>{config.word}</Text>
-        <SignAnimation meaning={config.meaning} label={config.word} badge="animación LSA" height={340} />
+        <Text style={styles.word}>{label}</Text>
+        <SignAnimation meaning={config.meaning} label={label} badge="animación LSA" height={340} />
       </View>
 
       <View style={styles.footer}>
@@ -133,7 +134,7 @@ export function IntroduceSignBlock({ config, onContinue }: IntroduceSignBlockPro
             {view === "report" && (
               <>
                 <Text style={styles.sheetTitle}>Reportar seña</Text>
-                <Text style={styles.sheetSubtitle}>¿Cuál es el problema con “{config.word}”?</Text>
+                <Text style={styles.sheetSubtitle}>¿Cuál es el problema con “{label}”?</Text>
 
                 <ScrollView style={styles.reasonList} showsVerticalScrollIndicator={false}>
                   {REASONS.map((r) => (
