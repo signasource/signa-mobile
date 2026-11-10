@@ -62,6 +62,7 @@ Post-login screens with tab navigation. `screenOptions` use a dark header: `head
 | `PracticeSession` | `{ mode: PracticeSessionParams }` — `PracticeSessionParams` is `{ mode: "type"; blockType: BlockType; title: string } \| { mode: "sign"; meaning: string } \| { mode: "mistakes" }` | (no header, screen renders its own) | `features/practice/screens/PracticeSessionScreen` |
 | `PublicProfile` | `{ username: string }` | (no header, screen renders its own) | `features/social/screens/PublicProfileScreen` |
 | `FriendAccepted` | `{ friendId, friendName, friendUsername, friendStreak: number }` | (no header, sky-blue celebration screen) | `features/social/screens/FriendAcceptedScreen` |
+| `StreakDay` | `{ streak: number }` | (no header, full-screen modal, fade, no swipe-back; streak fire on `streakCelebration`) — shown by `RootNavigator` (`AchievementCelebrationConnected`) the first time each day the streak grows, before any achievement | `features/achievements/screens/StreakDayScreen` |
 | `AchievementCelebration` | `{ achievementId, criteriaType, criteriaValue, title, rewardStreakShields, rewardGems }` | (no header, full-screen modal, fade, no swipe-back; colour and animation per achievement group) | `features/achievements/screens/AchievementCelebrationScreen` |
 | `SignRecognition` | — | "Practicar" | `features/ml/screens/SignRecognitionScreen` |
 | `ConnectionTest` | — | "Test de conexion" | `screens/ConnectionTestScreen` |

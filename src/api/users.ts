@@ -22,6 +22,13 @@ export interface UserStats {
   weeklyRank: number;
 }
 
+/** Mirrors `StreakDayResponse`: today added a streak day the app has not celebrated yet. */
+export interface StreakDay {
+  pending: boolean;
+  /** Streak length including today; 0 when nothing is pending. */
+  currentStreak: number;
+}
+
 export interface DailyGoal {
   dailyGoalMinutes: number;
   minutesToday: number;
@@ -53,6 +60,11 @@ export const usersApi = {
   getMe: () => apiClient.get<UserProfile>("/users/me"),
 
   getStats: () => apiClient.get<UserStats>("/users/me/stats"),
+
+  getStreakDay: () => apiClient.get<StreakDay>("/users/me/streak-day"),
+
+  /** Idempotent. Marks today's streak day as celebrated so it is not offered again. */
+  markStreakDaySeen: () => apiClient.post<void>("/users/me/streak-day/seen"),
 
   getWeeklyXp: () => apiClient.get<WeeklyXpEntry[]>("/users/me/weekly-xp"),
 

@@ -13,6 +13,7 @@ import { NotificationsScreen } from "@/features/social/screens/NotificationsScre
 import { PublicProfileScreen } from "@/features/social/screens/PublicProfileScreen";
 import { FriendAcceptedScreen } from "@/features/social/screens/FriendAcceptedScreen";
 import { AchievementCelebrationScreen } from "@/features/achievements/screens/AchievementCelebrationScreen";
+import { StreakDayScreen } from "@/features/achievements/screens/StreakDayScreen";
 import { InviteCodeScreen } from "@/features/organizations/screens/InviteCodeScreen";
 import { OrganizationWelcomeScreen } from "@/features/organizations/screens/OrganizationWelcomeScreen";
 import { GemShopScreen } from "@/features/store/screens/GemShopScreen";
@@ -62,6 +63,8 @@ export type AppStackParamList = {
     rewardStreakShields: number;
     rewardGems: number;
   };
+  /** A lesson added a day to the streak; `streak` is the count after today. */
+  StreakDay: { streak: number };
   /** Gem packs shop. `missingGems` marks the smallest pack that covers them; `returnTo` (name of where the user came from) relabels the success button "Volver a ...". */
   GemShop: { missingGems?: number; returnTo?: string } | undefined;
   ConnectionTest: undefined;
@@ -104,6 +107,11 @@ export function AppNavigator() {
       <Stack.Screen
         name="AchievementCelebration"
         component={AchievementCelebrationScreen}
+        options={{ headerShown: false, presentation: "fullScreenModal", animation: "fade", gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="StreakDay"
+        component={StreakDayScreen}
         options={{ headerShown: false, presentation: "fullScreenModal", animation: "fade", gestureEnabled: false }}
       />
       <Stack.Screen
