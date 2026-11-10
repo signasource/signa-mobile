@@ -5,6 +5,7 @@
 > Sources: src/types/index.ts, src/api/social.ts, src/api/notifications.ts, src/api/shop.ts, src/api/gemOrders.ts
 
 - `AuthResponse { accessToken, refreshToken }` — **carries no user data**.
+- `GoogleAuthRequest { idToken }` — body of `POST /auth/google`.
 - `LoginRequest { identifier, password }` — `identifier` is email or username.
 - `RegisterRequest { email, username, password, name, lastName }`.
 - `ForgotPasswordRequest { email }`.

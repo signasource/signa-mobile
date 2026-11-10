@@ -18,6 +18,7 @@ Single global state. Consumed via `useAuth()` (throws if used outside `<AuthProv
 | `authInitialRoute` | `"Login" \| "Welcome"` | initial route `RootNavigator` gives `AuthNavigator`: `"Login"` after `resumeExpiredSession()`, `"Welcome"` otherwise |
 | `login(LoginRequest)` | `Promise<void>` | logs in, stores tokens, builds `user` |
 | `register(RegisterRequest)` | `Promise<void>` | registers, stores tokens, caches the name and builds `user` — **auto-logs in** |
+| `loginWithGoogle()` | `Promise<boolean>` | opens the Google account picker (`signInWithGoogle`), calls `POST /auth/google`, stores tokens, builds `user` (name from Google if not cached). Resolves `false` if the user cancelled; throws on failure. Same call for login and sign-up |
 | `changePassword(ChangePasswordRequest)` | `Promise<void>` | changes password and **rotates tokens** |
 | `logout()` | `Promise<void>` | clears tokens and `user` (manual logout, e.g. from Configuración) |
 | `resumeExpiredSession()` | `void` | user tapped "Iniciar sesión" on the session-expired modal: clears `user`, sets `authInitialRoute = "Login"` |

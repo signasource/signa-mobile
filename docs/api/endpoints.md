@@ -12,6 +12,7 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 |---|---|---|---|
 | `register(RegisterRequest)` | `POST /auth/register` | `AuthResponse` | 201 with `{ accessToken, refreshToken }`. **Auto-logs in.** Backend sends a verification email (`verified` flag) but it is **not required** to use the app; the mobile app exposes no verify/resend UI. |
 | `login(LoginRequest)` | `POST /auth/login` | `AuthResponse` | `{ accessToken, refreshToken }` |
+| `google(GoogleAuthRequest)` | `POST /auth/google` | `AuthResponse` | Body `{ idToken }` (Google ID token, audience = the backend `GOOGLE_CLIENT_ID`). One endpoint for login **and** sign-up: an unknown email creates the account (generated username, `verified`), a known one gets the `GOOGLE` provider linked. 401 `Invalid Google token` if verification fails |
 | `refresh(refreshToken)` | `POST /auth/refresh` | `AuthResponse` | also used by the interceptor |
 | `forgotPassword(ForgotPasswordRequest)` | `POST /auth/forgot-password` | `void` | Always 200, whether or not the email exists. Emails a **6-digit code** valid for 15 min; a new request replaces the pending code. Rate-limited (10 / 15 min per IP, 429) |
 | `resetPassword(ResetPasswordRequest)` | `POST /auth/reset-password` | `void` | Body `{ email, code, newPassword }`. Wrong, expired or exhausted code (5 failed attempts discard it) and unknown email all answer **400 `Invalid or expired code`**. Revokes the user's refresh tokens. Rate-limited (10 / 15 min per IP, 429) |

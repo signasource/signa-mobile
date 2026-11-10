@@ -5,6 +5,7 @@ import { usersApi } from "@/api/users";
 import { setOnRefreshFailure } from "@/api/client";
 import { tokenStorage } from "@/utils/storage";
 import { extractEmailFromToken, isTokenExpired } from "@/utils/jwt";
+import { signInWithGoogle } from "@/utils/googleAuth";
 import { profileCache } from "@/utils/profileCache";
 import { ChangePasswordRequest, LoginRequest, RegisterRequest, User } from "@/types";
 
@@ -16,6 +17,8 @@ interface AuthContextValue {
   sessionExpired: boolean;
   login: (payload: LoginRequest) => Promise<void>;
   register: (payload: RegisterRequest) => Promise<void>;
+  /** Abre el selector de Google y entra (o crea la cuenta). Devuelve false si el usuario canceló. */
+  loginWithGoogle: () => Promise<boolean>;
   changePassword: (payload: ChangePasswordRequest) => Promise<void>;
   logout: () => Promise<void>;
   /** El usuario eligió "Iniciar sesión" en el aviso de sesión expirada */
@@ -144,6 +147,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const loginWithGoogle = useCallback(async () => {
+    setError(null);
+    try {
+      const google = await signInWithGoogle();
+      if (!google) return false;
+      const { data } = await authApi.google({ idToken: google.idToken });
+      await tokenStorage.setTokens(data.accessToken, data.refreshToken);
+      const built = await buildUserFromToken(data.accessToken);
+      if (!built.name && google.name) await profileCache.setName(built.email, google.name);
+      setUser(built.name ? built : { ...built, name: google.name ?? undefined });
+      return true;
+    } catch (err: any) {
+      setError(err?.response?.data?.message ?? "No se pudo iniciar sesion con Google");
+      throw err;
+    }
+  }, []);
+
   const changePassword = useCallback(async (payload: ChangePasswordRequest) => {
     setError(null);
     try {
@@ -181,6 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       sessionExpired,
       login,
       register,
+      loginWithGoogle,
       changePassword,
       logout,
       resumeExpiredSession,
@@ -194,6 +215,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       sessionExpired,
       login,
       register,
+      loginWithGoogle,
       changePassword,
       logout,
       resumeExpiredSession,

@@ -23,6 +23,7 @@ Axios instance:
 ## Environment (`.env`)
 
 - `EXPO_PUBLIC_API_URL` — base URL **without `/api`**.
+- `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` — Google OAuth client ID type "Web application"; must equal `GOOGLE_CLIENT_ID` in signa-api (it is the `idToken` audience). Read by `src/utils/googleAuth.ts`.
   - Production/default: `https://api.signasource.app` (HTTPS via Cloudflare). Set in `.env.production` (release builds) and `eas.json` (`preview`/`production` profiles).
   - Cleartext HTTP is **disabled** on Android (no `usesCleartextTraffic` in `app.json`), so release builds (EAS `preview`/`production`) can only reach `https://` URLs. Debug builds (`npx expo run:android`, EAS `development`) still allow cleartext via the prebuild template's `src/debug/AndroidManifest.xml`, so local `http://` backends keep working there.
   - Local dev per platform: Android emulator → `http://10.0.2.2:8080` (not `localhost`); iOS simulator → `http://localhost:8080`; physical device → local PC IP (e.g. `http://192.168.0.10:8080`).

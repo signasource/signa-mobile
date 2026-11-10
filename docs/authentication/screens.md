@@ -9,6 +9,7 @@ All auth screens mount inside `AuthScreen` and use `@/components/auth` primitive
 | Screen | Flow |
 |---|---|
 | `LoginScreen` | validate fields → `login({ identifier, password })` → stack swaps on auth |
+| `LoginScreen` / `RegisterScreen` — Google | "Iniciar sesión con Google" / "Registrarse con Google" (`GoogleButton`) → `loginWithGoogle()`; both do the same thing since the backend creates the account when the email is new. Cancelling the picker is silent; errors go through `mapAuthError` |
 | `RegisterScreen` | validate name/lastName/username/email/password (live username availability + password checklist) → `register(...)` → **auto-login**, stack swaps to app (no email verification) |
 | `ForgotPasswordScreen` | validate email → `authApi.forgotPassword` → navigate to `ForgotPasswordSent` |
 | `ForgotPasswordSentScreen` | informational (no form): "Ingresar código" → `ResetPassword` with the email; "Probar con otro correo" → back to `ForgotPassword` |
