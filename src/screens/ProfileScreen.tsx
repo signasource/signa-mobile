@@ -26,6 +26,7 @@ import { SegmentedControl, Segment } from "@/components/SegmentedControl";
 import { SubTabs, SubTab } from "@/components/SubTabs";
 import { EmptyState } from "@/components/EmptyState";
 import { NavIconButton } from "@/components/BackButton";
+import { VerifyEmailChip } from "@/components/VerifyEmailChip";
 import { isLightColor } from "@/utils/color";
 import { useAuth } from "@/context/AuthContext";
 import { usersApi, WeeklyXpEntry, UserStats } from "@/api/users";
@@ -167,6 +168,8 @@ export function ProfileScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [displayName, setDisplayName] = useState("");
+  // Solo `false` explícito muestra el aviso: si el perfil no lo informa, no se molesta.
+  const [emailUnverified, setEmailUnverified] = useState(false);
   const [username, setUsername] = useState("");
 
   const firstFocus = useRef(true);
@@ -209,6 +212,7 @@ export function ProfileScreen({ navigation }: Props) {
       const p = profileRes.value.data;
       setDisplayName(p.name);
       setUsername(p.username);
+      setEmailUnverified(p.verified === false);
     } else {
       setDisplayName(user?.name ?? "");
     }
@@ -282,6 +286,7 @@ export function ProfileScreen({ navigation }: Props) {
       usersApi.getMe().then((res) => {
         setDisplayName(res.data.name);
         setUsername(res.data.username);
+        setEmailUnverified(res.data.verified === false);
       }).catch(() => {});
       usersApi.getSettings().then((res) => {
         const color = res.data.profileHeaderColor;
@@ -430,7 +435,11 @@ export function ProfileScreen({ navigation }: Props) {
             />
           </View>
         }
-      />
+      >
+        {emailUnverified && (
+          <VerifyEmailChip onPress={() => navigation.navigate("VerifyEmail")} />
+        )}
+      </ScreenHeader>
     );
   }
 
