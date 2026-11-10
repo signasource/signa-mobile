@@ -34,6 +34,22 @@ npm start   # then: a=Android, i=iOS, w=web
 
 Scan the QR with Expo Go (Android) or the Camera app (iOS).
 
+## Run with Google sign-in
+
+Google sign-in uses a native module, so it does **not** work in Expo Go: you need a dev build.
+
+1. `.env` must have `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (the "Web application" client ID, same value as `GOOGLE_CLIENT_ID` in `signa-api`).
+2. Build the dev client once (and again whenever a native dependency changes), then install the APK on the device:
+   ```bash
+   npx eas-cli build --profile development --platform android
+   ```
+3. Start Metro for the dev client and open the app from the installed build:
+   ```bash
+   npx expo start --dev-client -c
+   ```
+
+Google only accepts the build if its signing key's SHA-1 is registered on an "Android" OAuth client (package `com.signasource.signamobile`) in the same Google Cloud project; otherwise sign-in fails with `DEVELOPER_ERROR`. Get the SHA-1 with `npx eas-cli credentials`. Setup details → [`docs/status.md`](./docs/status.md) ("Google sign-in setup pending").
+
 ---
 
 # Instalar EAS CLI globalmente

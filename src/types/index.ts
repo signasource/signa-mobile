@@ -46,6 +46,11 @@ export interface ForgotPasswordRequest {
   email: string;
 }
 
+// GoogleAuthRequest.java: ID token de Google (audience = GOOGLE_CLIENT_ID del back, el client ID "web").
+export interface GoogleAuthRequest {
+  idToken: string;
+}
+
 // ResetPasswordRequest.java - confirmado: email + codigo de 6 digitos del mail + nueva contrasena.
 export interface ResetPasswordRequest {
   email: string;

@@ -5,6 +5,7 @@ import {
   LoginRequest,
   RegisterRequest,
   ResendVerificationEmailRequest,
+  GoogleAuthRequest,
   ResetPasswordRequest,
   VerifyEmailRequest,
 } from "@/types";
@@ -17,6 +18,9 @@ export const authApi = {
   register: (payload: RegisterRequest) => apiClient.post<AuthResponse>("/auth/register", payload),
 
   login: (payload: LoginRequest) => apiClient.post<AuthResponse>("/auth/login", payload),
+
+  // POST /auth/google: login y registro en uno (crea la cuenta si el correo no existe).
+  google: (payload: GoogleAuthRequest) => apiClient.post<AuthResponse>("/auth/google", payload),
 
   refresh: (refreshToken: string) =>
     apiClient.post<AuthResponse>("/auth/refresh", { refreshToken }),

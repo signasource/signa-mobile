@@ -2,6 +2,10 @@ const AUTH_ERROR_MAP: Record<string, string> = {
   // Login
   "Invalid credentials": "El usuario o la contraseña son incorrectos",
 
+  // Google
+  "Invalid Google token": "No pudimos verificar tu cuenta de Google. Probá de nuevo",
+  "Authentication failed": "No se pudo iniciar sesión con esa cuenta",
+
   // Register
   "Email already in use": "Ese correo ya está registrado",
   "Username already in use": "Ese nombre de usuario ya está en uso",

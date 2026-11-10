@@ -11,6 +11,7 @@ import {
   AuthHeading,
   AuthDivider,
   AuthFooter,
+  GoogleButton,
   PrimaryButton,
   PasswordChecklist,
   StatusText,
@@ -22,13 +23,14 @@ import { colors, fonts } from "@/theme";
 type Props = NativeStackScreenProps<AuthStackParamList, "Register">;
 
 export function RegisterScreen({ navigation }: Props) {
-  const { register } = useAuth();
+  const { register, loginWithGoogle } = useAuth();
   const [name, setName] = useState("");
   const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
   const [passwordTouched, setPasswordTouched] = useState(false);
 
@@ -82,6 +84,19 @@ export function RegisterScreen({ navigation }: Props) {
       setError(mapAuthError(err, "No se pudo crear la cuenta"));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleGoogle() {
+    setGoogleLoading(true);
+    setError("");
+    try {
+      // Si el usuario cancela el selector no pasa nada; si entra, RootNavigator cambia de stack.
+      await loginWithGoogle();
+    } catch (err: unknown) {
+      setError(mapAuthError(err, "No se pudo registrar con Google"));
+    } finally {
+      setGoogleLoading(false);
     }
   }
 
@@ -164,13 +179,15 @@ export function RegisterScreen({ navigation }: Props) {
           label="Crear cuenta y empezar"
           onPress={handleRegister}
           loading={loading}
-          disabled={usernameChecking || usernameTaken}
+          disabled={usernameChecking || usernameTaken || googleLoading}
         />
 
         {error ? <StatusText>{error}</StatusText> : null}
       </View>
 
       <AuthDivider />
+
+      <GoogleButton label="Registrarse con Google" onPress={handleGoogle} loading={googleLoading} disabled={loading} />
 
       <AuthFooter
         text="¿Ya tenés cuenta?"

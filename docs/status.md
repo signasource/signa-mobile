@@ -18,6 +18,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 | User profile | partial | [api/session-persistence.md](./api/session-persistence.md) |
 | Store / Tienda (gem catalog, buy for self, **gem packs with real money via Mercado Pago Checkout Pro**) | real, **verified in production 2026-11-07** (purchase, credit and refund with real money); needs a build with the `signa://` scheme and signa-api with Mercado Pago configured | [features/store.md](./features/store.md) |
 | Inicio (Home) roadmap screen | real (topics/lessons + per-lesson state from `signa-api`) | [features/courses.md](./features/courses.md#inicio-home-roadmap-screen) |
+| Paid-course sheet + purchase flow (`CourseDetailScreen`) | real; needs `signa-api` with the extended `GET /courses/{id}` | [features/courses.md](./features/courses.md#buying-a-paid-course--real) |
 | Lesson player (`LessonScreen`) | real, wired to `signa-api` | [features/courses.md](./features/courses.md#lesson-player--real) |
 | Social (feed + likes, amigos, solicitudes, búsqueda, ranking semanal) | real | [features/social.md](./features/social.md) |
 | Notifications inbox | real | [features/social.md](./features/social.md#notificationsscreen) |
@@ -63,6 +64,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 - ~~signa-api: Hibernate DDL warning on every startup.~~ Gone since Flyway took over the schema (`ddl-auto: validate` no longer runs `alter table`); verified with a clean `bootRun`.
 - ~~signa-api: local `bootRun` needs undocumented setup.~~ Documented in [signa-api#100](https://github.com/signasource/signa-api/pull/100), in the signa-api `README.md` ("Correr la API fuera de Docker"), including that a pre-Flyway local DB fails `validate` and must be recreated.
 - **signa-api: remaining startup warnings.** A clean `bootRun` still logs `spring.jpa.open-in-view is enabled by default` and SpringDoc's "enabled by default" (×2), plus `Serializing PageImpl instances as-is` on the first paginated response. Each needs its own decision (turning off open-in-view can surface `LazyInitializationException`s; `PageImpl` needs `@EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO)`, which changes the JSON shape the app reads). The Google Play "DISABLED" warning is intentional in `local`.
+- **Google sign-in setup pending.** Code is done (`@react-native-google-signin/google-signin`, `src/utils/googleAuth.ts`, `POST /auth/google`). To work it needs: `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` in `.env` (same "Web application" client ID as `GOOGLE_CLIENT_ID` in signa-api), an "Android" OAuth client in the same Google Cloud project (package `com.signasource.signamobile` + SHA-1 of the debug/release/EAS keystore), and a **new native build** (new native module; not available in Expo Go / an old dev client). iOS: replace the placeholder `iosUrlScheme` in `app.json` with the reversed iOS client ID. Google users get a backend-generated username (`name` + random digits) and no way to change it from the app yet; they also have no password (`passwordHash` null), so "Cambiar contraseña" will not work for them.
 - **CI:** GitHub Actions (`.github/workflows/release.yml`, semantic-release on push to `master`). No GitLab pipeline.
 
 ## Next steps
@@ -73,6 +75,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 - ~~Wire the Inicio roadmap lesson CTA to navigate into `LessonScreen`.~~ Done (`HomeTabScreen.navigateToLesson`).
 - ~~Leaderboard endpoint + the Social *Ranking* tile.~~ Done.
 - ~~Fix `CourseProgress` / `Achievement` client types.~~ Done.
+- The course sheet lacks 3D/video availability and a per-course tone (the backend has neither).
 - Confirm real `courses` endpoints for the flat browse stub, or retire it in favor of the Inicio roadmap.
 - ~~Decide the camera + ML runtime stack and migrate to a dev build.~~ Done: `expo-camera` + MediaPipe (WASM in a WebView worker) + TFLite, all on-device ([features/ml.md](./features/ml.md)); `expo-dev-client` with an EAS `development` profile.
 - Persist onboarding answers once there is a place to store them.

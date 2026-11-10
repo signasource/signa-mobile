@@ -33,7 +33,6 @@ import {
   RoadmapTopic,
 } from "@/features/courses/api";
 import { accentFor, progressFor } from "@/features/courses/roadmap";
-import { useCoursePurchase } from "@/features/store/useCoursePurchase";
 import { PaidCourseRow } from "@/features/store/PaidCourseRow";
 import { useTour } from "@/features/tour/TourContext";
 import { challengesApi, Challenge, Challenges } from "@/api/challenges";
@@ -221,21 +220,19 @@ export function HomeTabScreen({ navigation }: Props) {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const coursePurchase = useCoursePurchase({
-    onPurchased: async () => {
-      // The new enrollment now grants access: reload so it shows as an owned, selectable course.
-      freeCoursesJoined = false;
-      await load();
-    },
-  });
   const purchasableCourses = catalog.filter((c) => !c.owned && !c.isFree);
-  const purchaseBusy =
-    coursePurchase.status === "buying" || coursePurchase.status === "checking";
+
+  function openCourseSheet(course: CourseSummary) {
+    setSelectorOpen(false);
+    navigation.navigate("CourseDetail", { courseId: course.id });
+  }
 
   const currentLessonId = roadmap ? findCurrentLessonId(roadmap.topics) : null;
   const cta = openLesson ? ctaFor(openLesson.lesson.state) : null;
 
   const currentCourse = enrollments.find((e) => e.isCurrent) ?? enrollments[0] ?? null;
+  const currentCourseIsFree =
+    catalog.find((c) => c.id === currentCourse?.courseId)?.isFree ?? false;
 
   async function selectCourse(course: EnrollmentSummary) {
     if (course.courseId === currentCourse?.courseId) {
@@ -257,7 +254,20 @@ export function HomeTabScreen({ navigation }: Props) {
 
   function navigateToLesson(lesson: RoadmapLesson, unitLabel: string) {
     setOpenLesson(null);
-    navigation.navigate("Lesson", { lessonId: lesson.id, unitLabel, signsCount: lesson.signsCount });
+    // Closing the last pending lesson of a unit of the free course is the moment to suggest a
+    // paid one (the motivation is high); never on a replay or on every lesson.
+    const topic = roadmap?.topics.find((t) => t.lessons.some((l) => l.id === lesson.id));
+    const closesUnit =
+      !!topic &&
+      lesson.state !== "COMPLETED" &&
+      topic.lessons.every((l) => l.id === lesson.id || l.state === "COMPLETED");
+    const suggestion = closesUnit && currentCourseIsFree ? purchasableCourses[0] : undefined;
+    navigation.navigate("Lesson", {
+      lessonId: lesson.id,
+      unitLabel,
+      signsCount: lesson.signsCount,
+      suggestedCourse: suggestion ? { id: suggestion.id, name: suggestion.name } : undefined,
+    });
   }
 
   function handleChallengePress(challenge: Challenge) {
@@ -311,17 +321,33 @@ export function HomeTabScreen({ navigation }: Props) {
         tone={colors.primary}
         top={
           currentCourse ? (
-            <TouchableOpacity
-              style={styles.courseChip}
-              onPress={() => setSelectorOpen(true)}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="briefcase" size={14} color={colors.onDark} />
-              <Text style={styles.courseChipText} numberOfLines={1}>
-                {currentCourse.courseName}
-              </Text>
-              <Ionicons name="chevron-down" size={14} color={colors.onDark} />
-            </TouchableOpacity>
+            <View style={styles.courseChipRow}>
+              <TouchableOpacity
+                style={styles.courseChip}
+                onPress={() => setSelectorOpen(true)}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="briefcase" size={14} color={colors.onDark} />
+                <Text style={styles.courseChipText} numberOfLines={1}>
+                  {currentCourse.courseName}
+                </Text>
+                <Ionicons name="chevron-down" size={14} color={colors.onDark} />
+              </TouchableOpacity>
+              {purchasableCourses.length > 0 && (
+                <TouchableOpacity
+                  style={styles.moreCoursesChip}
+                  onPress={() => setSelectorOpen(true)}
+                  activeOpacity={0.85}
+                  accessibilityLabel="Ver más cursos"
+                >
+                  <Ionicons name="add" size={14} color={colors.onDark} />
+                  <Text style={styles.courseChipText}>
+                    {purchasableCourses.length}{" "}
+                    {purchasableCourses.length === 1 ? "curso" : "cursos"}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           ) : null
         }
         stats={[
@@ -390,6 +416,24 @@ export function HomeTabScreen({ navigation }: Props) {
               onNavigate={(lesson) => navigateToLesson(lesson, topic.title)}
             />
           ))}
+          {roadmap && roadmap.topics.length > 0 && currentCourseIsFree && purchasableCourses.length > 0 && (
+            <View style={styles.afterCourse}>
+              <View style={styles.endMark}>
+                <View style={styles.endLine} />
+                <Text style={styles.endText}>FIN DE {currentCourse?.courseName.toUpperCase()}</Text>
+                <View style={styles.endLine} />
+              </View>
+              <Text style={styles.afterTitle}>¿Y después?</Text>
+              <Text style={styles.afterSub}>
+                Cursos temáticos para usar LSA en lugares concretos.
+              </Text>
+              <View style={styles.afterList}>
+                {purchasableCourses.map((course) => (
+                  <PaidCourseRow key={course.id} course={course} onOpen={openCourseSheet} />
+                ))}
+              </View>
+            </View>
+          )}
           {roadmap && roadmap.topics.length === 0 && (
             <EmptyState
               title="Todavía no hay contenido"
@@ -462,23 +506,9 @@ export function HomeTabScreen({ navigation }: Props) {
               <>
                 <Text style={styles.sheetSectionLabel}>Más cursos</Text>
                 {purchasableCourses.map((course) => (
-                  <PaidCourseRow
-                    key={course.id}
-                    course={course}
-                    buying={coursePurchase.buyingCourseId === course.id}
-                    disabled={purchaseBusy}
-                    onBuy={coursePurchase.buy}
-                  />
+                  <PaidCourseRow key={course.id} course={course} onOpen={openCourseSheet} />
                 ))}
               </>
-            )}
-            {!!coursePurchase.error && (
-              <Text style={styles.sheetError}>{coursePurchase.error}</Text>
-            )}
-            {coursePurchase.status === "pending" && (
-              <Text style={styles.sheetSubtitle}>
-                Tu pago se está confirmando. El curso va a aparecer en unos minutos.
-              </Text>
             )}
           </Pressable>
         </Pressable>
@@ -754,17 +784,43 @@ const styles = StyleSheet.create({
   },
 
   // Course selector chip (header) and organization banner
+  courseChipRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 10,
+  },
+  moreCoursesChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderWidth: 1.5,
+    borderColor: alpha(colors.onColor, 0.45),
+    borderRadius: 999,
+    paddingVertical: 4.5,
+    paddingHorizontal: 10,
+  },
+  afterCourse: { marginTop: 8, gap: 6 },
+  endMark: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14 },
+  endLine: { flex: 1, height: 2, backgroundColor: colors.roadmapLockedBorder },
+  endText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    letterSpacing: 1.1,
+    color: colors.textMuted,
+  },
+  afterTitle: { fontFamily: fonts.displayExtraBold, fontSize: 20, color: colors.text },
+  afterSub: { fontFamily: fonts.bodyRegular, fontSize: 13, color: colors.textMuted },
+  afterList: { gap: 10, marginTop: 8 },
   courseChip: {
-    alignSelf: "flex-start",
+    flexShrink: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    maxWidth: "80%",
     backgroundColor: alpha(colors.onColor, 0.16),
     borderRadius: 999,
     paddingVertical: 6,
     paddingHorizontal: 12,
-    marginBottom: 10,
   },
   courseChipText: {
     flexShrink: 1,
@@ -837,13 +893,6 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 8,
     marginBottom: 2,
-  },
-  sheetError: {
-    fontFamily: fonts.bodyRegular,
-    fontSize: 13,
-    color: colors.danger,
-    textAlign: "center",
-    marginTop: 4,
   },
   courseOption: {
     flexDirection: "row",

@@ -2,7 +2,7 @@
 
 > Responsibility: courses module scope and state.
 > Update when: course screens/types change, or the backend content API changes.
-> Sources: src/features/courses/, src/api/lessons.ts, src/api/learning.ts, src/api/courseOrders.ts, src/api/signs.ts, src/screens/tabs/HomeTabScreen.tsx, src/features/store/useCoursePurchase.ts, src/features/store/CourseCatalogSheet.tsx, src/features/store/PaidCourseRow.tsx
+> Sources: src/features/courses/, src/features/courses/screens/CourseDetailScreen.tsx, src/api/lessons.ts, src/api/learning.ts, src/api/courseOrders.ts, src/api/signs.ts, src/screens/tabs/HomeTabScreen.tsx, src/features/store/useCoursePurchase.ts, src/features/store/CourseCatalogSheet.tsx, src/features/store/PaidCourseRow.tsx
 
 Status: **mixed**. The **Inicio (Home) roadmap** is wired to real `signa-api` content, and the
 lesson player (`LessonScreen`) is real and wired to `signa-api`. Flat course/lesson browsing
@@ -221,16 +221,36 @@ lesson-path screen → `Lesson` with a real `lessonId`.
 ## Buying a paid course — real
 
 The base course is free (auto-joined); every other catalog course is paid and bought **once** for
-permanent access, via Mercado Pago, mirroring the gem flow. `CourseSummary` now carries `price`
-(ARS, null for free) and `owned` (user has active access).
+permanent access, via Mercado Pago, mirroring the gem flow. `CourseSummary` carries `price` (ARS,
+null for free) and `owned` (user has active access).
 
-- `useCoursePurchase({ onPurchased })` (`src/features/store/`): `buy(course)` → `POST
+The buy button never says "Comprar": every entry point shows **"Ver"** and opens the course sheet.
+
+- **Course sheet** — `screens/CourseDetailScreen.tsx` (route `CourseDetail { courseId }`), design
+  `Compra de cursos.dc.html`. Loads `coursesApi.getDetail` (`GET /courses/{id}`) and shows only
+  real data: header in `colors.courseIndigo` with unidades / lecciones / señas, a sample sign
+  (`SignAnimation` of `sampleSign`, the first sign taught), "Qué trae el curso" (señas, ejercicios
+  — `describeExercises(exerciseTypes)` — and camera practice yes/no), the syllabus (units →
+  lessons → signs) and a fixed price bar with **"Ir al pago"**. Not shown, because the backend
+  doesn't know them: which signs are 3D vs. video, a per-course tone and a refund policy.
+- **Purchase flow** (all inside that screen): "Antes de pagar" summary sheet → `useCoursePurchase`
+  → Mercado Pago → "Confirmando tu pago" (`status === "checking"`) → approved ("¡El curso ya es
+  tuyo!", "Empezar el curso" sets it as current via `setCurrentCourse` and goes to Inicio) or
+  pending ("Tu pago está en camino"). A failed order reopens the summary with the error.
+- `useCoursePurchase({ onPurchased })` (`src/features/store/`): `buy({ id })` → `POST
   /store/course-orders` → opens the checkout with `WebBrowser.openAuthSessionAsync(url,
   "signa://store")` → on return, `POST /store/course-orders/{id}/sync` (retried ~4×) grants access
   and fires `onPurchased`. Access is never granted client-side; the webhook also grants it.
-- `PaidCourseRow` — a buyable course row (price + "Comprar"). Used by both entry points.
-- **Home selector** (`HomeTabScreen`, "Elegí tu curso" sheet): lists owned enrollments (switch
-  current course) plus a "Más cursos" section of buyable paid courses; buying reloads the home data
-  so the course becomes owned/selectable.
-- **Profile → Cursos** ("Ver más cursos"): opens `CourseCatalogSheet`, which lists owned courses
-  and buyable ones; a purchase refetches the profile progress.
+- `PaidCourseRow` — a paid course row (price + "Ver"). Used by every entry point below.
+- **Entry points** (all open the sheet, all show "Ver"):
+  - Home: the "Elegí tu curso" selector ("Más cursos"); an outlined **"+N cursos"** chip next to the
+    course chip in the header; and, when the current course is free, a **"¿Y después?"** card
+    under the roadmap (after a "FIN DE …" divider) listing the buyable courses.
+  - Lesson complete: when the lesson just closed the **last pending lesson of a unit** of the free
+    course (never a replay, never every lesson), `HomeTabScreen` passes `suggestedCourse` in the
+    `Lesson` params and `LessonComplete` shows a "Seguí aprendiendo" card below the stats; it
+    `replace`s the screen with `CourseDetail` so the lesson isn't left underneath.
+  - Profile → Cursos: a **"Para sumar"** block with dashed `PaidCourseRow`s (`dashed`) — it replaced
+    the old "Ver más cursos" button and `CourseCatalogSheet` (deleted).
+  - Store → **Cursos** tab (`CoursesSection`).
+  Home/Profile/Store refetch on focus, so a bought course shows up as owned when the sheet closes.
