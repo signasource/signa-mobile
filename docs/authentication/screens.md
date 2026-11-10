@@ -10,6 +10,7 @@ All auth screens mount inside `AuthScreen` and use `@/components/auth` primitive
 |---|---|
 | `LoginScreen` | validate fields → `login({ identifier, password })` → stack swaps on auth |
 | `LoginScreen` / `RegisterScreen` — Google | "Iniciar sesión con Google" / "Registrarse con Google" (`GoogleButton`) → `loginWithGoogle()`; both do the same thing since the backend creates the account when the email is new. Cancelling the picker is silent; errors go through `mapAuthError` |
+| `ConfigurationScreen` — Cuenta de Google | row "Cuenta de Google": "Vincular" opens the Google picker and calls `usersApi.linkGoogle` (toast on success/error, "Vinculada" afterwards); state comes from `UserProfile.providers`. "Cambiar contraseña" is hidden for Google-only accounts (no `LOCAL` provider) |
 | `RegisterScreen` | validate name/lastName/username/email/password (live username availability + password checklist) → `register(...)` → **auto-login**, stack swaps to app and offers `VerifyEmail` once (optional: nothing in the app requires a verified email) |
 | `ForgotPasswordScreen` | validate email → `authApi.forgotPassword` → navigate to `ForgotPasswordSent` |
 | `ForgotPasswordSentScreen` | informational (no form): "Ingresar código" → `ResetPassword` with the email; "Probar con otro correo" → back to `ForgotPassword` |

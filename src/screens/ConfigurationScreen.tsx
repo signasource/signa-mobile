@@ -21,6 +21,8 @@ import { BackButton } from "@/components/BackButton";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { usersApi } from "@/api/users";
+import { signInWithGoogle } from "@/utils/googleAuth";
+import { mapAuthError } from "@/utils/authErrors";
 
 type Props = NativeStackScreenProps<AppStackParamList, "Configuration">;
 type Sheet = null | "color" | "vis" | "time";
@@ -97,6 +99,9 @@ export function ConfigurationScreen({ navigation, route }: Props) {
   const [username, setUsername] = useState("");
   // null = todavía no se sabe (o el perfil no lo informó): no se ofrece verificar.
   const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
+  const [googleLinked, setGoogleLinked] = useState(false);
+  const [hasPassword, setHasPassword] = useState(true);
+  const [linkingGoogle, setLinkingGoogle] = useState(false);
 
   // UI overlays
   const [sheet, setSheet] = useState<Sheet>(null);
@@ -144,6 +149,10 @@ export function ConfigurationScreen({ navigation, route }: Props) {
       setLastName(p.lastName ?? "");
       setUsername(p.username);
       setEmailVerified(p.verified ?? null);
+      if (p.providers) {
+        setGoogleLinked(p.providers.includes("GOOGLE"));
+        setHasPassword(p.providers.includes("LOCAL"));
+      }
     }
 
     setLoading(false);
@@ -216,6 +225,22 @@ export function ConfigurationScreen({ navigation, route }: Props) {
 
   function openEdit() {
     navigation.navigate("EditProfile", { displayName, lastName, username });
+  }
+
+  async function handleLinkGoogle() {
+    if (googleLinked || linkingGoogle) return;
+    setLinkingGoogle(true);
+    try {
+      const google = await signInWithGoogle();
+      if (!google) return;
+      await usersApi.linkGoogle(google.idToken);
+      setGoogleLinked(true);
+      showToast("Cuenta de Google vinculada");
+    } catch (err: unknown) {
+      showToast(mapAuthError(err, "No se pudo vincular la cuenta de Google"));
+    } finally {
+      setLinkingGoogle(false);
+    }
   }
 
   function openPassword() {
@@ -508,13 +533,40 @@ export function ConfigurationScreen({ navigation, route }: Props) {
 
           <TouchableOpacity
             style={styles.settingRow}
-            onPress={openPassword}
+            onPress={handleLinkGoogle}
+            disabled={googleLinked || linkingGoogle}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={googleLinked ? "Google vinculado" : "Vincular cuenta de Google"}
           >
-            <Ionicons name="lock-closed-outline" size={20} color={colors.neutral600} />
-            <Text style={[styles.settingLabel, { flex: 1 }]}>Cambiar contraseña</Text>
-            <Ionicons name="chevron-forward" size={16} color={colors.neutral600} />
+            <Ionicons name="logo-google" size={20} color={colors.neutral600} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.settingLabel}>Cuenta de Google</Text>
+              <Text style={styles.settingSubtitle}>Iniciá sesión con Google en esta cuenta</Text>
+            </View>
+            {linkingGoogle ? (
+              <ActivityIndicator size="small" color={colors.neutral600} />
+            ) : googleLinked ? (
+              <Text style={styles.settingValue}>Vinculada</Text>
+            ) : (
+              <>
+                <Text style={styles.settingValue}>Vincular</Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.neutral600} />
+              </>
+            )}
           </TouchableOpacity>
+
+          {hasPassword ? (
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={openPassword}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="lock-closed-outline" size={20} color={colors.neutral600} />
+              <Text style={[styles.settingLabel, { flex: 1 }]}>Cambiar contraseña</Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.neutral600} />
+            </TouchableOpacity>
+          ) : null}
 
           <TouchableOpacity
             style={styles.logoutBtn}
