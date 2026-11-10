@@ -110,7 +110,8 @@ export interface LessonContentBlock {
   id: string;
   type: BlockType;
   order: number;
-  config: string;
+  config?: string | null;
+  content?: Record<string, unknown>;
   xpReward: number | null;
 }
 
@@ -124,7 +125,13 @@ export interface LessonContent {
 }
 
 export function parseBlockConfig<T extends BlockType>(block: LessonContentBlock): BlockConfigFor<T> {
-  return JSON.parse(block.config) as BlockConfigFor<T>;
+  if (block.content) {
+    return block.content as unknown as BlockConfigFor<T>;
+  }
+  if (block.config) {
+    return JSON.parse(block.config) as BlockConfigFor<T>;
+  }
+  return {} as unknown as BlockConfigFor<T>;
 }
 
 /**
