@@ -52,9 +52,16 @@ function FriendAcceptedModalConnected({
   );
 }
 
+/** Mid-lesson, or already on a celebration: nothing is shown on top. */
+function isCelebrationBlocked(routeName: string): boolean {
+  return (
+    routeName === "" || routeName === "Lesson" || routeName === "StreakDay" || routeName === "AchievementCelebration"
+  );
+}
+
 /**
- * Shows the achievement celebration on top of whatever the user is doing, except mid-lesson,
- * and re-checks for new achievements as soon as a lesson or practice session is left.
+ * Shows the streak-day and achievement celebrations on top of whatever the user is doing, except
+ * mid-lesson, and re-checks for them as soon as a lesson or practice session is left.
  */
 function AchievementCelebrationConnected({
   currentRouteName,
@@ -63,7 +70,7 @@ function AchievementCelebrationConnected({
   currentRouteName: string;
   navigationRef: React.RefObject<NavigationContainerRef<AppStackParamList> | null>;
 }) {
-  const { pending, consume, refresh } = useAchievementCelebration();
+  const { pending, consume, pendingStreakDay, consumeStreakDay, refresh } = useAchievementCelebration();
   const previousRoute = useRef("");
 
   useEffect(() => {
@@ -72,9 +79,17 @@ function AchievementCelebrationConnected({
     if (left === "Lesson" || left === "PracticeSession") refresh();
   }, [currentRouteName, refresh]);
 
+  // The streak day goes first: the achievement waits until that screen is dismissed.
   useEffect(() => {
-    if (!pending) return;
-    if (currentRouteName === "" || currentRouteName === "Lesson" || currentRouteName === "AchievementCelebration") return;
+    if (pendingStreakDay === null || isCelebrationBlocked(currentRouteName)) return;
+    if (!navigationRef.current?.isReady()) return;
+
+    navigationRef.current.navigate("StreakDay", { streak: pendingStreakDay });
+    consumeStreakDay();
+  }, [pendingStreakDay, currentRouteName, consumeStreakDay, navigationRef]);
+
+  useEffect(() => {
+    if (!pending || pendingStreakDay !== null || isCelebrationBlocked(currentRouteName)) return;
     if (!navigationRef.current?.isReady()) return;
 
     navigationRef.current.navigate("AchievementCelebration", {
@@ -86,7 +101,7 @@ function AchievementCelebrationConnected({
       rewardGems: pending.rewardGems,
     });
     consume();
-  }, [pending, currentRouteName, consume, navigationRef]);
+  }, [pending, pendingStreakDay, currentRouteName, consume, navigationRef]);
 
   return null;
 }

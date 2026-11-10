@@ -28,6 +28,8 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 | `getMe()` | `GET /users/me` | `UserProfile` | `{ name, lastName, username, providers? }`; `providers` is a set of `"LOCAL"` (email + password) / `"GOOGLE"` |
 | `linkGoogle(idToken)` | `POST /users/me/google` | `void` (204) | Links a Google account (by its stable id) to the signed-in user, even if its email differs. 409 `Google account already linked` / `Google account already in use`; 401 `Invalid Google token`. After it, `POST /auth/google` with that account signs into this user |
 | `updateProfile({ username, name, lastName })` | `PATCH /users/me` | `void` (204) | persists username, name and last name; name/lastName optional server-side. 409 if username taken |
+| `getStreakDay()` | `GET /users/me/streak-day` | `StreakDay` | `{ pending, currentStreak }`: today added a streak day not celebrated yet (`pending`), with the streak length including today. Polled by `AchievementCelebrationContext.refresh()` |
+| `markStreakDaySeen()` | `POST /users/me/streak-day/seen` | `void` (204) | idempotent; called by `StreakDayScreen` on mount |
 | `getWeeklyXp()` | `GET /users/me/weekly-xp` | `WeeklyXpEntry[]` | `[{ date, xpEarned }]` Mon–today; zeros for inactive days |
 | `getDailyGoal()` | `GET /users/daily-goal` | `{ dailyGoalMinutes, minutesToday }` | `minutesToday` comes from `UserDailyActivity` (today's row, Argentina date, `America/Argentina/Cordoba`) |
 | `updateDailyGoal(minutes)` | `PATCH /users/daily-goal` | `void` | body: `{ daily_goal_minutes }` (snake_case via interceptor) |

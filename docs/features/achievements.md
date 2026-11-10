@@ -68,6 +68,26 @@ The look comes from `features/achievements/celebrations.ts`:
   `animation: require("@assets/animations/<file>.json")` (and `aspect` = width / height) on the
   theme. Nothing else changes.
 
+## Streak day screen
+
+Not an achievement: `features/achievements/screens/StreakDayScreen.tsx` (route `StreakDay`) celebrates
+**a day added to the streak**, with the same `streak-fire.json` and `streak` theme.
+
+- **Backend event (same pattern as unseen achievements):** `UserStats.streakCelebratedDate` records the
+  streak day already celebrated. Today's streak day is *pending* while `lastStreakDate` is today and
+  that column is not. `GET /users/me/streak-day` → `{ pending, currentStreak }`;
+  `POST /users/me/streak-day/seen` marks it. Includes a streak that restarts at 1 after missed days.
+  Endpoints → [../api/endpoints.md](../api/endpoints.md).
+- **Mobile:** `AchievementCelebrationContext.refresh()` fetches unseen achievements **and** the streak
+  day in one go (login, app back to foreground, leaving `Lesson`/`PracticeSession`) and exposes
+  `pendingStreakDay` / `consumeStreakDay`. `RootNavigator` navigates to `StreakDay { streak }` unless
+  mid-lesson or already on a celebration. `StreakDayScreen` marks it seen **on mount**, so a killed
+  app can't replay it; a handed-out streak value is ignored until the backend reports it as no longer
+  pending.
+- **Order:** a pending streak day always goes before a pending achievement (the achievement effect
+  waits while `pendingStreakDay !== null`, and while `StreakDay` is on screen).
+- Copy: `streakDayHeadline` / `streakDaySubtitle` in `celebrations.ts`.
+
 ## Mobile pieces
 
 | Piece | File |

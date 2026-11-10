@@ -109,6 +109,17 @@ export function headlineFor(kind: CelebrationKind, value: number): string {
   }
 }
 
+/** Big line of the "streak day added" screen (not an achievement). `days` is the streak after today. */
+export function streakDayHeadline(days: number): string {
+  return days === 1 ? "¡Empezaste tu racha!" : `¡${formatCount(days)} días de racha!`;
+}
+
+export function streakDaySubtitle(days: number): string {
+  return days === 1
+    ? "Volvé mañana para sumar tu segundo día."
+    : "Sumaste un día más. Volvé mañana para mantenerla.";
+}
+
 export function subtitleFor(kind: CelebrationKind): string {
   switch (kind) {
     case "streak":
