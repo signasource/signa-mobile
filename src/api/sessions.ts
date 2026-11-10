@@ -6,6 +6,10 @@ import { apiClient } from "@/api/client";
  * promedio de sesión" admin metrics.
  */
 export const sessionsApi = {
-  record: (startedAt: string, durationSeconds: number) =>
-    apiClient.post<void>("/sessions", { startedAt, durationSeconds }),
+  record: (startedAt: string, durationSeconds: number, sessionId: string) =>
+    apiClient.post<void>("/sessions", {
+      startedAt,
+      durationSeconds,
+      sessionId,
+    }),
 };
