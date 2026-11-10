@@ -164,6 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(built.name ? built : { ...built, name: google.name ?? undefined });
       return true;
     } catch (err: any) {
+      if (__DEV__) console.warn("[google-auth]", err?.code, err?.message, err?.response?.status, err?.response?.data);
       setError(err?.response?.data?.message ?? "No se pudo iniciar sesion con Google");
       throw err;
     }
