@@ -46,7 +46,8 @@ Flow:
 1. On mount: `gemOrdersApi.getPacks()`, sorted by `sortOrder`.
 2. `buy(pack)` → `gemOrdersApi.createOrder(pack.id)` → `WebBrowser.openAuthSessionAsync(checkoutUrl,
    "signa://store")` (Custom Tab / in-app browser). Mercado Pago sends the buyer back to the API's
-   public return page, which deep-links to `signa://store`, closing the browser.
+   public return endpoint, which answers with a 302 straight to `signa://store?pago=…` (no page is
+   shown), closing the browser.
 3. Whether the browser returned or the user closed it, the hook calls `gemOrdersApi.syncOrder(orderId)`
    (up to 4 times, 2.5 s apart, since approval can take seconds). The backend re-reads the order from
    Mercado Pago and credits the gems **exactly once** (it also credits from the webhook).
