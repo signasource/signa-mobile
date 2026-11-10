@@ -14,8 +14,6 @@ import { PublicProfileScreen } from "@/features/social/screens/PublicProfileScre
 import { FriendAcceptedScreen } from "@/features/social/screens/FriendAcceptedScreen";
 import { AchievementCelebrationScreen } from "@/features/achievements/screens/AchievementCelebrationScreen";
 import { StreakDayScreen } from "@/features/achievements/screens/StreakDayScreen";
-import { InviteCodeScreen } from "@/features/organizations/screens/InviteCodeScreen";
-import { OrganizationWelcomeScreen } from "@/features/organizations/screens/OrganizationWelcomeScreen";
 import { GemShopScreen } from "@/features/store/screens/GemShopScreen";
 import { TabNavigator, TabParamList } from "./TabNavigator";
 import { colors, fonts } from "@/theme";
@@ -68,12 +66,6 @@ export type AppStackParamList = {
   /** Gem packs shop. `missingGems` marks the smallest pack that covers them; `returnTo` (name of where the user came from) relabels the success button "Volver a ...". */
   GemShop: { missingGems?: number; returnTo?: string } | undefined;
   ConnectionTest: undefined;
-  InviteCode: undefined;
-  OrganizationWelcome: {
-    orgName: string;
-    courses: { id: string; name: string }[];
-    alreadyMember?: boolean;
-  };
 };
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -120,12 +112,6 @@ export function AppNavigator() {
         options={{ headerShown: false, presentation: "modal", animation: "slide_from_bottom" }}
       />
       <Stack.Screen name="ConnectionTest" component={ConnectionTestScreen} options={{ title: "Test de conexion" }} />
-      <Stack.Screen name="InviteCode" component={InviteCodeScreen} options={{ headerShown: false }} />
-      <Stack.Screen
-        name="OrganizationWelcome"
-        component={OrganizationWelcomeScreen}
-        options={{ headerShown: false, presentation: "fullScreenModal", animation: "fade", gestureEnabled: false }}
-      />
     </Stack.Navigator>
   );
 }
