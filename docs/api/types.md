@@ -24,6 +24,7 @@
 - `GiftClaimResult { gift, effect, inventory }` — mirrors `GiftClaimResponse`; `effect` is an `AppliedEffect`, `inventory` the refreshed `ShopInventory`.
 - `GemPack { id, productId, gems, price, currency, sortOrder }` — mirrors `GemPackResponse`. A gem bundle sold through Mercado Pago; `productId` is a stable pack code and `price` is in `currency` (ARS).
 - `GemCheckout { orderId, checkoutUrl }` — mirrors `GemCheckoutResponse`. `checkoutUrl` is the Mercado Pago Checkout Pro page to open.
+- `PendingGemOrder { id, gems, amount, currency, createdAt }` — mirrors `PendingGemOrderResponse` (`GET /store/gem-orders/pending`).
 - `GemOrder { id, status, gems, inventory }` — mirrors `GemOrderResponse`. `status` is `GemOrderStatus` (`PENDING | PAID | REFUNDED`); `inventory` is the wallet after the sync.
 - `CourseCheckout { orderId, checkoutUrl }` — mirrors `CourseCheckoutResponse`. The Mercado Pago page to open for a one-time paid-course purchase.
 - `CourseOrder { id, status, courseId, owned }` — mirrors `CourseOrderResponse`. `status` is `CourseOrderStatus` (`PENDING | PAID | REFUNDED`); `owned` is `true` once permanent access was granted.

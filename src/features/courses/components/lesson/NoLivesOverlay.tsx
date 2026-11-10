@@ -8,12 +8,24 @@ import ManoCelularSinVidas from "@assets/ilus/mano-celular-sin-vidas.svg";
 interface NoLivesOverlayProps {
   onGoToStore: () => void;
   onExit: () => void;
+  /** Current gem balance: shows a pill with a "+" that opens the gem shop. */
+  gems?: number;
+  onGetGems?: () => void;
 }
 
-export function NoLivesOverlay({ onGoToStore, onExit }: NoLivesOverlayProps) {
+export function NoLivesOverlay({ onGoToStore, onExit, gems, onGetGems }: NoLivesOverlayProps) {
   return (
     <View style={styles.overlay}>
       <View style={styles.sheet}>
+        {gems != null && onGetGems && (
+          <TouchableOpacity style={styles.gemPill} onPress={onGetGems} activeOpacity={0.85} accessibilityLabel="Conseguir más gemas">
+            <Ionicons name="diamond" size={14} color={colors.gemsBlueDark} />
+            <Text style={styles.gemPillText}>{gems.toLocaleString("es-AR")}</Text>
+            <View style={styles.gemPillPlus}>
+              <Ionicons name="add" size={17} color={colors.onColor} />
+            </View>
+          </TouchableOpacity>
+        )}
         <ManoCelularSinVidas width={140} height={140} />
         <Text style={styles.title}>Te quedaste sin vidas</Text>
         <Text style={styles.subtitle}>
@@ -49,6 +61,28 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     alignItems: "center",
     gap: 12,
+  },
+  gemPill: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.avatarBlueLight,
+    borderRadius: 999,
+    paddingVertical: 5,
+    paddingLeft: 11,
+    paddingRight: 5,
+  },
+  gemPillText: { fontFamily: fonts.displayExtraBold, fontSize: 15, color: colors.gemsBlueDark },
+  gemPillPlus: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.gemsBlueDark,
+    alignItems: "center",
+    justifyContent: "center",
   },
   title: {
     fontFamily: fonts.displayBold,

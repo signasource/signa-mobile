@@ -50,7 +50,7 @@ function limpiar(texto: string, tope: number): string {
  * de una ventana de 2,5 s.
  */
 export function SpellNameBlock({ config, active, ultimo, xp, onAnswer, onContinue }: Props) {
-  const tope = config.max_letters ?? 12;
+  const tope = config.max_letters ?? 10;
   const [permission, requestPermission] = useCameraPermissions();
   const [nombre, setNombre] = useState("");
   const [empezado, setEmpezado] = useState(false);

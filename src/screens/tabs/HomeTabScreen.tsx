@@ -16,6 +16,7 @@ import { BottomTabNavigationProp, BottomTabScreenProps } from "@react-navigation
 import { CompositeNavigationProp, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { colors, fonts, fontSizes, alpha } from "@/theme";
+import { usePendingGemOrders } from "@/features/store/usePendingGemOrders";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { TabParamList } from "@/navigation/TabNavigator";
@@ -219,6 +220,7 @@ export function HomeTabScreen({ navigation }: Props) {
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+  const pendingGemOrders = usePendingGemOrders();
 
   const purchasableCourses = catalog.filter((c) => !c.owned && !c.isFree);
 
@@ -352,7 +354,15 @@ export function HomeTabScreen({ navigation }: Props) {
         }
         stats={[
           { key: "streak", label: "Racha", value: String(streak), icon: "flame" },
-          { key: "gems", label: "Gemas", value: gems.toLocaleString("es-AR"), icon: "diamond" },
+          {
+            key: "gems",
+            label: "Gemas",
+            value: gems.toLocaleString("es-AR"),
+            icon: "diamond",
+            onPress: () => navigation.navigate("GemShop"),
+            dot: pendingGemOrders.length > 0,
+            accessibilityLabel: "Conseguir más gemas",
+          },
           { key: "xp", label: "XP", value: xp.toLocaleString("es-AR"), icon: "flash" },
         ]}
       />

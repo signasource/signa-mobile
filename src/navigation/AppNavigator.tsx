@@ -15,6 +15,7 @@ import { FriendAcceptedScreen } from "@/features/social/screens/FriendAcceptedSc
 import { AchievementCelebrationScreen } from "@/features/achievements/screens/AchievementCelebrationScreen";
 import { InviteCodeScreen } from "@/features/organizations/screens/InviteCodeScreen";
 import { OrganizationWelcomeScreen } from "@/features/organizations/screens/OrganizationWelcomeScreen";
+import { GemShopScreen } from "@/features/store/screens/GemShopScreen";
 import { TabNavigator, TabParamList } from "./TabNavigator";
 import { colors, fonts } from "@/theme";
 import { useSettings } from "@/context/SettingsContext";
@@ -61,6 +62,8 @@ export type AppStackParamList = {
     rewardStreakShields: number;
     rewardGems: number;
   };
+  /** Gem packs shop. `missingGems` marks the smallest pack that covers them; `returnTo` (name of where the user came from) relabels the success button "Volver a ...". */
+  GemShop: { missingGems?: number; returnTo?: string } | undefined;
   ConnectionTest: undefined;
   InviteCode: undefined;
   OrganizationWelcome: {
@@ -102,6 +105,11 @@ export function AppNavigator() {
         name="AchievementCelebration"
         component={AchievementCelebrationScreen}
         options={{ headerShown: false, presentation: "fullScreenModal", animation: "fade", gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="GemShop"
+        component={GemShopScreen}
+        options={{ headerShown: false, presentation: "modal", animation: "slide_from_bottom" }}
       />
       <Stack.Screen name="ConnectionTest" component={ConnectionTestScreen} options={{ title: "Test de conexion" }} />
       <Stack.Screen name="InviteCode" component={InviteCodeScreen} options={{ headerShown: false }} />

@@ -67,6 +67,7 @@ Real-money gem packs through Mercado Pago Checkout Pro. Flow and edge cases → 
 |---|---|---|---|
 | `getPacks()` | `GET /store/gem-packs` | `GemPack[]` | active packs ordered by `sortOrder`; `price` is in `currency` (ARS), owned by the backend |
 | `createOrder(packId)` | `POST /store/gem-orders` | `GemCheckout` | 201. Creates a `PENDING` order with gems and price frozen, and a Mercado Pago order; `checkoutUrl` is what the app opens. Pack without price → 400; unknown/inactive pack → 404. Rate-limited (30/min per IP) |
+| `getPending()` | `GET /store/gem-orders/pending` | `PendingGemOrder[]` | Orders from the last 7 days whose payment is **in process** at Mercado Pago (cash, transfer, review). The server re-reads each one (and credits an approved one on the way), so abandoned checkouts are not listed. Empty when nothing is pending |
 | `syncOrder(orderId)` | `POST /store/gem-orders/{id}/sync` | `GemOrder` | Server re-reads the order from Mercado Pago and credits the gems **once** if it was approved with the expected amount (`status: "PAID"`); otherwise `PENDING`. Only the caller's own orders (404 otherwise). Rate-limited |
 
 The payment is also credited by the Mercado Pago webhook, so a missed `syncOrder` never loses a payment.

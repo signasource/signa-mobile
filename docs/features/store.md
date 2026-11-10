@@ -2,7 +2,7 @@
 
 > Responsibility: the Store tab — gem-priced catalog and the real-money gem packs bought through Mercado Pago.
 > Update when: a store tab, purchase flow, gem pack, gift flow, or its backing endpoint changes.
-> Sources: src/screens/tabs/StoreTabScreen.tsx, src/features/store/, src/api/shop.ts, src/api/gemOrders.ts, src/api/courseOrders.ts, app.json
+> Sources: src/screens/tabs/StoreTabScreen.tsx, src/features/store/ (incl. screens/GemShopScreen.tsx), src/api/shop.ts, src/api/gemOrders.ts, src/api/courseOrders.ts, app.json
 >
 > Note: the same Mercado Pago pattern (`useGemPurchase`) is reused by `useCoursePurchase` to buy
 > permanent access to paid courses (`/store/course-orders`), surfaced in the Home course selector
@@ -22,7 +22,7 @@ Header (`ScreenHeader`, amber tone) with the wallet: gems / lives / shields, all
 |---|---|---|
 | Vidas | `LIFE`, `UNLIMITED_LIVES` | gems |
 | Potenciadores | `XP_MULTIPLIER`, `STREAK_SHIELD` | gems |
-| Especiales | **gem packs** (top) + `MYSTERY_CHEST` | **real money** (packs) / gems (chest) |
+| Especiales | `MYSTERY_CHEST` | gems |
 
 `GEMS`-typed catalog items no longer exist: the backend deactivated the ones that were priced in
 gems. Gems only enter the economy through the signup bonus (100), the mystery chest and the packs.
@@ -31,15 +31,38 @@ gems. Gems only enter the economy through the signup bonus (100), the mystery ch
 
 `openBuy(item)` → `confirm` sheet (or `insufficient` if `gems < priceGems`) → `shopApi.purchase(id)`
 → `success` overlay (the mystery chest passes through an `opening` step first). The `insufficient`
-sheet's **"Conseguir gemas"** button calls `goToGemPacks()`: closes the sheet, switches to the
-*Especiales* tab and scrolls the list to the top, where the packs live.
+sheet's **"Conseguir gemas"** button calls `goToGemPacks(missing)`: closes the sheet and opens the
+**gem shop** (`GemShop` route) with `missingGems` (pre-marks the smallest pack that covers it) and
+`returnTo` (the item title: the credited screen then offers "Volver a <item>" instead of "Ir a
+gastarlas"). The sheet itself shows a "Te alcanza con N gemas · $ X" card, from `gemOrdersApi.getPacks()`
+loaded with the shop (`suggestedPack` in `features/store/gemPacks.ts`). The lesson's `NoLivesOverlay`
+also shows the gems balance with a "+" that opens the gem shop (`returnTo: "la lección"`).
+The Store header's GEMAS card carries the same "+" (and so does Inicio's). The tab refetches
+`/inventories/me` on focus, so a purchase made in the gem shop shows up on return.
 
 ## Gem packs with real money (Mercado Pago Checkout Pro)
 
-All platforms. The `GemPacksSection` component (`src/features/store/components/`) owns the purchase
-through the `useGemPurchase` hook (`src/features/store/useGemPurchase.ts`); the screen only receives
-`onCredited(order)` and updates its inventory + shows `GemsSuccessOverlay`. The price shown is the
-pack's `price` in ARS from the backend (`$ 3.300`).
+All platforms. Packs are bought in their own screen, `GemShopScreen`
+(`src/features/store/screens/`, route `GemShop`, modal), separate from the Store tab where gems are
+*spent*. Entry points: the "+" on the GEMAS stat of Inicio and Tienda, and "Conseguir gemas" in the
+`insufficient` sheet. The screen owns the purchase through `useGemPurchase`
+(`src/features/store/useGemPurchase.ts`); the price shown is the pack's `price` in ARS from the
+backend (`$ 3.300`). Design: `Compra de gemas.dc.html` (Claude Design project "Flujo de compra de cursos").
+
+Screens (all inside `GemShopScreen`, driven by the hook's `status`):
+
+1. **Shop**: header + 2-column grid of packs (more gems → more diamonds in the art; "MÁS ELEGIDO" on
+   `gems_pack_850`, "MEJOR PRECIO" on the last; "+N%" bonus computed client-side against the
+   smallest pack's gems-per-peso). With `missingGems`, the smallest covering pack gets a ring. Below:
+   "Gemas gratis" row (goes to Inicio, where the challenges live) and payment notes.
+2. **Confirm sheet** (tap a pack): before/after balance, total, "Pagar con Mercado Pago". The order is
+   created only here (`buy(pack)`).
+3. **Checking** (`status: "checking"`): full-screen "Confirmando tu pago" instead of a spinner in the button.
+4. **Credited**: blue full screen, "+N" and a count-up from the old to the new balance. "Ir a gastarlas"
+   → Store tab, "Listo" → back. Either button first plays a ~0.9 s flight of diamonds (`DiamondFlight`) from the art up to the header's gems card, then navigates; the target height is `insets.top + 150`, an approximation of where the card sits in Inicio / Tienda.
+   While an order is in process (also later, after leaving the checkout) `usePendingGemOrders` (`GET /store/gem-orders/pending`, refetched on focus) puts an orange dot on the GEMAS card of Inicio and Tienda and a "Pendiente" row above the packs.
+5. **Pending** (`status: "pending"`): `pajaros.svg`, "Tu pago está en camino" + order card with a
+   "Pendiente" chip.
 
 Flow:
 
@@ -51,18 +74,18 @@ Flow:
 3. Whether the browser returned or the user closed it, the hook calls `gemOrdersApi.syncOrder(orderId)`
    (up to 4 times, 2.5 s apart, since approval can take seconds). The backend re-reads the order from
    Mercado Pago and credits the gems **exactly once** (it also credits from the webhook).
-4. `status: "PAID"` → `onCredited(order)`: the screen sets `inventory = order.inventory` and opens
-   `GemsSuccessOverlay` ("¡Sumaste N gemas!").
+4. `status: "PAID"` → `onCredited(order)`: the screen shows the credited view with
+   `order.inventory.gems` as the new balance.
 
 Edge cases:
 
 - **Payment still in process** (cash, bank transfer, review): after the attempts the hook sets
-  `pending` and an inline note says the gems arrive when Mercado Pago approves. The webhook credits
+  `pending` and the pending screen says the gems arrive when Mercado Pago approves. The webhook credits
   them later; Home/Profile refetch `/inventories/me` on focus.
-- **User abandons checkout**: `sync` returns `PENDING`, so the same `pending` note shows; no gems move.
+- **User abandons checkout**: `sync` returns `PENDING`, so the same pending screen shows; no gems move.
 - **Crash / kill mid-payment**: nothing to recover client-side; the webhook credits the order.
-- **Backend error** (pack without price 400, unknown pack 404, Mercado Pago down): inline error note
-  from `err.response.data.message`.
+- **Backend error** (pack without price 400, unknown pack 404, Mercado Pago down): error note in the
+  confirm sheet from `err.response.data.message`.
 
 Packs are seeded by the backend with their ARS price (`gems_pack_120` · `gems_pack_300` ·
 `gems_pack_850` (featured "Más elegido") · `gems_pack_2000`); changing a price or adding a pack is a
