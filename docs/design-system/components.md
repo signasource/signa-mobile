@@ -29,7 +29,7 @@ Reuse a primitive before creating a new one. Tokens → [colors.md](./colors.md)
 
 | Component | Main props | Use |
 |---|---|---|
-| `AuthScreen` | `children, onBack?, canGoBack?, contentStyle?` | **mandatory shell** for auth/onboarding: safe area, keyboard, scroll, back |
+| `AuthScreen` | `children, onBack?, canGoBack?, contentStyle?` | **mandatory shell** for auth/onboarding: safe area, keyboard, scroll, back; horizontal gutter grows so the column stays ≤ 480dp on tablets. Its `contentContainerStyle` is flattened to one object: `KeyboardAwareScrollView` on Android overwrites `paddingBottom` when given an array (do the same for any new `KeyboardAwareScrollView` with computed padding) |
 | `AuthField` | `icon(FieldIconName), secure?, invalid?, error?, hint?, hintTone?, trailing?` + `TextInputProps` | pill input with icon, password toggle, `trailing` slot (e.g. availability ✓/✕) |
 | `PrimaryButton` / `SecondaryButton` | `label, onPress, loading?, disabled?, style?` | auth CTA (dark primary / light secondary) |
 | `GoogleButton` | `label, onPress, loading?, disabled?, style?` | outlined "Continuar con Google" button (brand logo `assets/ilus/google.svg`, kept in brand colors) under the "o" divider in Login/Register |

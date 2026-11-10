@@ -32,6 +32,8 @@ Per-feature detail is owned by each feature doc; this is the index.
 
 ## Cross-cutting tech debt
 
+- **Responsive pending**: only `AuthScreen` caps its width on tablets; the other screens (tabs, onboarding choice screens, lessons) stretch full width. Lesson sign animations use fixed heights (330dp in `SignCarouselBlock`). Not yet checked on small/short screens or at large font scale beyond Welcome/Achievement (which now fit via `useFitSquare`).
+
 - **Profile partly from JWT + local cache.** `GET /users/me` *does* exist and `usersApi.getMe()` calls it; what is still cached in AsyncStorage is the name captured at registration, used as a fallback before the profile loads.
 - ~~**Password reset is barely usable.**~~ Fixed in [signa-api#99](https://github.com/signasource/signa-api/pull/99) + the app branch `feat/password-reset-code` (merged to `develop` 2026-10-22): the email now carries a 6-digit code (BCrypt-hashed, 15 min TTL, discarded after 5 failed attempts) and `ResetPasswordScreen` takes `{ email, code, newPassword }`, then auto-logs in. **The contract changed**: older app builds can no longer reset once the new API is deployed, so release the API and the app together. Email verification still exists on the backend (`verified` flag) but registration auto-logs in and the app surfaces no verify/resend UI.
 - **Email verification by 6-digit code** (app + [signa-api#122](https://github.com/signasource/signa-api/pull/122)): registration emails a code; `VerifyEmailScreen` opens once after sign-up (optional, "Más tarde") and from Configuración while the account is unverified. Release the API and the app together; an older app just never shows the screen and registration keeps working. Verification still gates nothing.
