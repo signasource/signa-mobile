@@ -5,6 +5,8 @@ export interface UserProfile {
   name: string;
   lastName?: string;
   username: string;
+  /** Métodos de inicio de sesión de la cuenta: LOCAL = correo y contraseña. */
+  providers?: ("LOCAL" | "GOOGLE")[];
 }
 
 export interface WeeklyXpEntry {
@@ -43,6 +45,9 @@ export const usersApi = {
       params: { username },
       signal,
     }),
+
+  /** Vincula una cuenta de Google (ID token) a la cuenta actual; puede tener otro correo. */
+  linkGoogle: (idToken: string) => apiClient.post<void>("/users/me/google", { idToken }),
 
   getMe: () => apiClient.get<UserProfile>("/users/me"),
 

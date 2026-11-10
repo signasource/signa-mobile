@@ -6,6 +6,9 @@ const AUTH_ERROR_MAP: Record<string, string> = {
   "Invalid Google token": "No pudimos verificar tu cuenta de Google. Probá de nuevo",
   "Authentication failed": "No se pudo iniciar sesión con esa cuenta",
 
+  "Google account already linked": "Ya vinculaste una cuenta de Google",
+  "Google account already in use": "Esa cuenta de Google ya está asociada a otro usuario de Signa",
+
   // Register
   "Email already in use": "Ese correo ya está registrado",
   "Username already in use": "Ese nombre de usuario ya está en uso",
