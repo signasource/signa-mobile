@@ -31,12 +31,13 @@ Reuse a primitive before creating a new one. Tokens → [colors.md](./colors.md)
 | `AuthScreen` | `children, onBack?, canGoBack?, contentStyle?` | **mandatory shell** for auth/onboarding: safe area, keyboard, scroll, back |
 | `AuthField` | `icon(FieldIconName), secure?, invalid?, error?, hint?, hintTone?, trailing?` + `TextInputProps` | pill input with icon, password toggle, `trailing` slot (e.g. availability ✓/✕) |
 | `PrimaryButton` / `SecondaryButton` | `label, onPress, loading?, disabled?, style?` | auth CTA (dark primary / light secondary) |
+| `GoogleButton` | `label, onPress, loading?, disabled?, style?` | outlined "Continuar con Google" button (brand logo `assets/ilus/google.svg`, kept in brand colors) under the "o" divider in Login/Register |
 | `AuthHeading` | `title, subtitle?, style?` | heading (Bricolage + Figtree subtitle) |
 | `AuthIconBadge` | `icon(FieldIconName)` | medallion with icon (Verify/Forgot/Reset) |
 | `PasswordChecklist` | `rules(PasswordRules)` | live password-rules checklist |
 | `AuthDivider` / `AuthFooter` / `StatusText` | see source | "or" divider, footer with link, status/error text |
 
-Barrel exports (`src/components/auth/index.ts`): `AuthScreen`, `AuthField`, `PrimaryButton`, `SecondaryButton`, `AuthHeading`, `AuthIconBadge`, `AuthDivider`, `AuthFooter`, `StatusText`, `PasswordChecklist`.
+Barrel exports (`src/components/auth/index.ts`): `AuthScreen`, `AuthField`, `PrimaryButton`, `SecondaryButton`, `GoogleButton`, `AuthHeading`, `AuthIconBadge`, `AuthDivider`, `AuthFooter`, `StatusText`, `PasswordChecklist`.
 
 ## SVG icons & illustrations
 

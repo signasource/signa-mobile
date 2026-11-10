@@ -10,6 +10,7 @@ import {
   AuthHeading,
   AuthDivider,
   AuthFooter,
+  GoogleButton,
   PrimaryButton,
   StatusText,
 } from "@/components/auth";
@@ -19,10 +20,11 @@ import { mapAuthError } from "@/utils/authErrors";
 type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
 
 export function LoginScreen({ navigation }: Props) {
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
 
   function validate() {
@@ -44,6 +46,19 @@ export function LoginScreen({ navigation }: Props) {
       setError(mapAuthError(err, "No se pudo iniciar sesión"));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleGoogle() {
+    setGoogleLoading(true);
+    setError("");
+    try {
+      // Si el usuario cancela el selector no pasa nada; si entra, RootNavigator cambia de stack.
+      await loginWithGoogle();
+    } catch (err: unknown) {
+      setError(mapAuthError(err, "No se pudo iniciar sesión con Google"));
+    } finally {
+      setGoogleLoading(false);
     }
   }
 
@@ -77,12 +92,14 @@ export function LoginScreen({ navigation }: Props) {
           <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
         </Pressable>
 
-        <PrimaryButton label="Iniciar sesión" onPress={handleLogin} loading={loading} />
+        <PrimaryButton label="Iniciar sesión" onPress={handleLogin} loading={loading} disabled={googleLoading} />
 
         {error ? <StatusText>{error}</StatusText> : null}
       </View>
 
       <AuthDivider />
+
+      <GoogleButton label="Iniciar sesión con Google" onPress={handleGoogle} loading={googleLoading} disabled={loading} />
 
       <AuthFooter
         text="¿No tenés cuenta?"
