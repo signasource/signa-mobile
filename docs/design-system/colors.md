@@ -54,6 +54,7 @@ of an `rgba()` literal. Appending a hex alpha suffix (`colors.onColor + "47"`) a
 | `colors.celebrationGeneric` | `#9B86FF` | achievement celebration background: any other achievement |
 | `colors.gemsBlue` | `#29B6E8` | gems icon/border |
 | `colors.gemsBlueDark` | `#1B84AB` | gems text/count |
+| `colors.gemsHighlight` | `#FFE27A` | "Más elegido" badge and sparkles in the gem shop |
 | `colors.courseIndigo` | `#4361D8` | paid-course tone: sheet header, icon medallions, success screen (`CourseDetailScreen`, `PaidCourseRow`) |
 | `colors.courseIndigoDark` | `#2C46A8` | text on `courseIndigoLight` |
 | `colors.courseIndigoLight` | `#E6EBFB` | icon medallion tint for `courseIndigo` items |

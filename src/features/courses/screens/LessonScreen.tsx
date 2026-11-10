@@ -70,6 +70,7 @@ export function LessonScreen({ route, navigation }: Props) {
   const [blockIndex, setBlockIndex] = useState(0);
   const [lives, setLives] = useState(STARTING_LIVES);
   const [unlimitedLives, setUnlimitedLives] = useState(false);
+  const [gems, setGems] = useState<number | undefined>(undefined);
   const [awardedXp, setAwardedXp] = useState<Record<string, number>>({});
   const [correctBlockIds, setCorrectBlockIds] = useState<Set<string>>(new Set());
   const [completed, setCompleted] = useState(false);
@@ -91,6 +92,7 @@ export function LessonScreen({ route, navigation }: Props) {
         if (inventoryRes?.data) {
           setUnlimitedLives(inventoryRes.data.livesMode === "INFINITE");
           setLives(inventoryRes.data.currentLives ?? STARTING_LIVES);
+          setGems(inventoryRes.data.gems);
         }
       })
       .catch((err: any) => setError(err?.response?.data?.message ?? "No pudimos cargar la lección."))
@@ -264,6 +266,8 @@ export function LessonScreen({ route, navigation }: Props) {
         <NoLivesOverlay
           onGoToStore={() => navigation.navigate("Tabs", { screen: "Store", params: { fromLesson: true } })}
           onExit={() => navigation.goBack()}
+          gems={gems}
+          onGetGems={() => navigation.navigate("GemShop", { returnTo: "la lección" })}
         />
       )}
     </View>

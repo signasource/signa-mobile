@@ -11,7 +11,7 @@ Reuse a primitive before creating a new one. Tokens → [colors.md](./colors.md)
 | Component | Main props | Use |
 |---|---|---|
 | `Button` | `label, onPress, variant?("primary"\|"secondary"), loading?, disabled?, style?` | generic CTA (outside auth): black primary / neutral secondary |
-| `ScreenHeader` | `title, description?, paddingTop, tone, stats?, left?, right?, top?, children?, compact?` | **the** colored hero header of every top-level screen. A `HeaderStat` with `onPress` becomes a tappable card with a white "+" chip (the gems counter in Inicio and Tienda opens `GemShop`) |
+| `ScreenHeader` | `title, description?, paddingTop, tone, stats?, left?, right?, top?, children?, compact?` | **the** colored hero header of every top-level screen. A `HeaderStat` with `onPress` becomes a tappable card with a white "+" chip (the gems counter in Inicio and Tienda opens `GemShop`); `dot` adds an orange dot (pending payment) |
 | `VerifyEmailChip` | `onPress, style?` | amber pill "Email sin verificar · Verificar" (`warning`/`warningLight`); Perfil renders it inside the `ScreenHeader` while `GET /users/me` reports `verified === false`, and it opens `VerifyEmail` |
 | `PaidCourseRow` (`@/features/store`) | `course, onOpen` | row of a paid, not-owned course: price + "Ver" → opens `CourseDetail`; `dashed` = outlined "not yours yet" variant (Profile) |
 | `SegmentedControl` | `options(Segment[]), value, onChange, style?` | primary selector (full width, black active) |
