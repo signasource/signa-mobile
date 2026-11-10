@@ -15,6 +15,7 @@ Single global state. Consumed via `useAuth()` (throws if used outside `<AuthProv
 | `isAuthenticated` | `boolean` | `!!user` — consumed by `RootNavigator` |
 | `error` | `string \| null` | last auth-operation error |
 | `sessionExpired` | `boolean` | true when the session closed itself (inactivity / failed refresh), as opposed to a manual `logout()` |
+| `verificationPrompt` | `boolean` | set by `register()`; `RootNavigator` (`VerificationPromptConnected`) opens `VerifyEmail` once and calls `clearVerificationPrompt()` |
 | `authInitialRoute` | `"Login" \| "Welcome"` | initial route `RootNavigator` gives `AuthNavigator`: `"Login"` after `resumeExpiredSession()`, `"Welcome"` otherwise |
 | `login(LoginRequest)` | `Promise<void>` | logs in, stores tokens, builds `user` |
 | `register(RegisterRequest)` | `Promise<void>` | registers, stores tokens, caches the name and builds `user` — **auto-logs in** |

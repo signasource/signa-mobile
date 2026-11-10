@@ -52,6 +52,7 @@ Post-login screens with tab navigation. `screenOptions` use a dark header: `head
 | Route | Params | Header title | Screen |
 |---|---|---|---|
 | `ChangePassword` | — | (no header, screen renders its own back button) | `screens/ChangePasswordScreen` |
+| `VerifyEmail` | — | (no header, `AuthScreen` with its own back button) | `screens/VerifyEmailScreen` |
 | `Configuration` | `{ updatedProfile?: {...}, passwordChanged?: boolean }` (set by `EditProfile`/`ChangePassword` on save, via "pass params back") | (no header) | `screens/ConfigurationScreen` |
 | `EditProfile` | `{ displayName: string; lastName: string; username: string }` | (no header, screen renders its own back button) | `screens/EditProfileScreen` |
 | `CourseDetail` | `{ courseId: string }` | (no header, screen renders its own) | `features/courses/screens/CourseDetailScreen` — paid-course sheet + whole purchase flow |

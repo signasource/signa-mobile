@@ -58,6 +58,16 @@ export interface ResetPasswordRequest {
   newPassword: string;
 }
 
+// VerifyEmailRequest.java / ResendVerificationEmailRequest.java - confirmado: email + codigo de 6 digitos.
+export interface VerifyEmailRequest {
+  email: string;
+  code: string;
+}
+
+export interface ResendVerificationEmailRequest {
+  email: string;
+}
+
 // ChangePasswordRequest.java - confirmado: currentPassword + newPassword
 export interface ChangePasswordRequest {
   currentPassword: string;

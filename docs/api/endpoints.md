@@ -15,6 +15,8 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 | `google(GoogleAuthRequest)` | `POST /auth/google` | `AuthResponse` | Body `{ idToken }` (Google ID token, audience = the backend `GOOGLE_CLIENT_ID`). One endpoint for login **and** sign-up: an unknown email creates the account (generated username, `verified`), a known one gets the `GOOGLE` provider linked. 401 `Invalid Google token` if verification fails |
 | `refresh(refreshToken)` | `POST /auth/refresh` | `AuthResponse` | also used by the interceptor |
 | `forgotPassword(ForgotPasswordRequest)` | `POST /auth/forgot-password` | `void` | Always 200, whether or not the email exists. Emails a **6-digit code** valid for 15 min; a new request replaces the pending code. Rate-limited (10 / 15 min per IP, 429) |
+| `verifyEmail(VerifyEmailRequest)` | `POST /auth/verify-email` | `void` | Body `{ email, code }`: the 6-digit code emailed at registration (24 h). Wrong, expired or exhausted code (5 failed attempts discard it) and unknown email all answer **400 `Invalid or expired code`**. Rate-limited (10 / 15 min per IP, 429) |
+| `resendVerificationEmail(ResendVerificationEmailRequest)` | `POST /auth/resend-verification-email` | `void` | Body `{ email }`. Always 200, whether or not the email exists or is already verified; a new code replaces the pending one. Rate-limited |
 | `resetPassword(ResetPasswordRequest)` | `POST /auth/reset-password` | `void` | Body `{ email, code, newPassword }`. Wrong, expired or exhausted code (5 failed attempts discard it) and unknown email all answer **400 `Invalid or expired code`**. Revokes the user's refresh tokens. Rate-limited (10 / 15 min per IP, 429) |
 
 ## `usersApi` (`src/api/users.ts`) — mirrors `UserController.java`

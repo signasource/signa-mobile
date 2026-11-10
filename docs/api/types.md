@@ -10,6 +10,8 @@
 - `RegisterRequest { email, username, password, name, lastName }`.
 - `ForgotPasswordRequest { email }`.
 - `ResetPasswordRequest { email, code, newPassword }` — `code` is the 6-digit code from the email.
+- `VerifyEmailRequest { email, code }` — `code` is the 6-digit verification code from the email.
+- `ResendVerificationEmailRequest { email }`.
 - `ChangePasswordRequest { currentPassword, newPassword }`.
 - `ApiErrorResponse { message, status, timestamp }` — backend error shape; UI error messages come from `err?.response?.data?.message`.
 - `User { email, name? }` — `name` is best-effort local cache (see [session-persistence.md](./session-persistence.md)).
