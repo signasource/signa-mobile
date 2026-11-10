@@ -1,9 +1,13 @@
 import React from "react";
-import { StyleSheet, ViewStyle, StyleProp } from "react-native";
+import { StyleSheet, ViewStyle, StyleProp, useWindowDimensions } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BackButton } from "@/components/BackButton";
 import { colors } from "@/theme";
+
+/** Widest the form column grows on tablets / landscape; phones keep the 30dp gutter. */
+const MAX_CONTENT_WIDTH = 480;
+const MIN_GUTTER = 30;
 
 interface AuthScreenProps {
   children: React.ReactNode;
@@ -23,15 +27,21 @@ interface AuthScreenProps {
  */
 export function AuthScreen({ children, onBack, canGoBack = true, contentStyle }: AuthScreenProps) {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const gutter = Math.max(MIN_GUTTER, (width - MAX_CONTENT_WIDTH) / 2);
+  // Must be a flat object, not an array: on Android the library reads
+  // `contentContainerStyle.paddingBottom` to append its own padding, and with an array it
+  // reads undefined and overwrites ours with 0 (footer ended up under the system nav buttons).
+  const contentContainerStyle = StyleSheet.flatten([
+    styles.container,
+    { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24, paddingHorizontal: gutter },
+    contentStyle,
+  ]);
 
   return (
     <KeyboardAwareScrollView
       style={styles.flex}
-      contentContainerStyle={[
-        styles.container,
-        { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 },
-        contentStyle,
-      ]}
+      contentContainerStyle={contentContainerStyle}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
       enableOnAndroid

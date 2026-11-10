@@ -16,7 +16,7 @@
 | `components/` | UI primitives (generic + `auth/`) | [design-system/components.md](./design-system/components.md) |
 | `theme/` | `colors`, `typography`, `fontSizes` | [design-system/colors.md](./design-system/colors.md) |
 | `types/` | DTOs mirrored from the backend | [api/types.md](./api/types.md) |
-| `hooks/` | Reusable hooks (`useUsernameAvailability`) | [authentication/validation.md](./authentication/validation.md) |
+| `hooks/` | Reusable hooks (`useUsernameAvailability`, `useFitSquare` — sizes a square illustration to the free space of a flex container) | [authentication/validation.md](./authentication/validation.md) |
 | `utils/` | `validation`, `storage`, `jwt`, `caseConverter`, `profileCache` | — |
 
 ## `screens/` vs `features/`
