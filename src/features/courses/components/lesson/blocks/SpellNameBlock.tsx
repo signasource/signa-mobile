@@ -5,6 +5,7 @@ import { Animated, StyleSheet, TextInput, View } from "react-native";
 
 import { Text } from "@/components/Text";
 import { LiveSignRecognizer } from "@/features/ml";
+import { trackCameraSkip } from "@/telemetry/telemetry";
 import { colors, fonts, alpha } from "@/theme";
 import { LessonButton } from "../LessonButton";
 import { SignPip } from "../SignPip";
@@ -173,7 +174,14 @@ export function SpellNameBlock({ config, active, ultimo, xp, onAnswer, onContinu
         </View>
         <View style={styles.footer}>
           <LessonButton label="Permitir cámara" icon="camera" onPress={requestPermission} />
-          <LessonButton label="Saltear por ahora" variant="outline" onPress={onContinue} />
+          <LessonButton
+            label="Saltear por ahora"
+            variant="outline"
+            onPress={() => {
+              trackCameraSkip();
+              onContinue();
+            }}
+          />
         </View>
       </View>
     );

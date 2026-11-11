@@ -7,6 +7,7 @@ import { colors, fonts, alpha } from "@/theme";
 import { PerformSignConfig } from "@/features/courses/lessonContent.types";
 import { LiveSignRecognizer, LiveFrame } from "@/features/ml/components/LiveSignRecognizer";
 import { signMeaning } from "@/features/ml";
+import { trackCameraSkip } from "@/telemetry/telemetry";
 import { SignPip } from "../SignPip";
 import {
   BadgeEstado,
@@ -165,7 +166,14 @@ export function PerformSignBlock({ config, active, ultimo, xp, onAnswer, onConti
 
         <View style={styles.footer}>
           <LessonButton label="Permitir cámara" icon="camera" onPress={requestPermission} />
-          <LessonButton label="Saltear por ahora" variant="outline" onPress={onContinue} />
+          <LessonButton
+            label="Saltear por ahora"
+            variant="outline"
+            onPress={() => {
+              trackCameraSkip();
+              onContinue();
+            }}
+          />
         </View>
       </View>
     );

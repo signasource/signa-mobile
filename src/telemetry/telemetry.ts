@@ -19,7 +19,8 @@ type WireEvent = {
     | "api_error"
     | "ml_inference"
     | "ml_confidence"
-    | "ml_fps";
+    | "ml_fps"
+    | "camera_skip";
   name?: string;
   value_ms?: number;
   status?: "ok" | "error";
@@ -100,6 +101,11 @@ export function trackConfidence(confidencePct: number): void {
 /** Camera frame rate during live recognition, in FPS (callers throttle). */
 export function trackFps(fps: number): void {
   enqueue({ type: "ml_fps", value_ms: Math.max(0, Math.round(fps)) });
+}
+
+/** The user skipped a camera exercise (PERFORM_SIGN / SPELL_NAME) instead of attempting it. */
+export function trackCameraSkip(): void {
+  enqueue({ type: "camera_skip" });
 }
 
 /** Flushes pending telemetry when the app goes to the background. Idempotent. */
