@@ -20,7 +20,8 @@ type WireEvent = {
     | "ml_inference"
     | "ml_confidence"
     | "ml_fps"
-    | "camera_skip";
+    | "camera_skip"
+    | "lesson_time";
   name?: string;
   value_ms?: number;
   status?: "ok" | "error";
@@ -106,6 +107,11 @@ export function trackFps(fps: number): void {
 /** The user skipped a camera exercise (PERFORM_SIGN / SPELL_NAME) instead of attempting it. */
 export function trackCameraSkip(): void {
   enqueue({ type: "camera_skip" });
+}
+
+/** How long (ms) a learner spent on a lesson, from opening it to finishing. */
+export function trackLessonTime(valueMs: number): void {
+  enqueue({ type: "lesson_time", value_ms: Math.max(0, Math.round(valueMs)) });
 }
 
 /** Flushes pending telemetry when the app goes to the background. Idempotent. */

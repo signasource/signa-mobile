@@ -9,6 +9,7 @@ import { lessonsApi } from "@/api/lessons";
 import { learningApi } from "@/api/learning";
 import { shopApi } from "@/api/shop";
 import { useActivityTracker } from "@/hooks/useActivityTracker";
+import { trackLessonTime } from "@/telemetry/telemetry";
 import { BlockType, LessonContent, LessonContentBlock, parseBlockConfig } from "@/features/courses/lessonContent.types";
 import { LessonButton } from "@/features/courses/components/lesson/LessonButton";
 import { LessonHeader } from "@/features/courses/components/lesson/LessonHeader";
@@ -76,6 +77,8 @@ export function LessonScreen({ route, navigation }: Props) {
   const [completed, setCompleted] = useState(false);
   // Respuestas ya mandadas al backend cuyo POST sigue viajando.
   const enVuelo = useRef<Promise<unknown>[]>([]);
+  // When the lesson opened, to report time-on-lesson once (null after it's been sent).
+  const startRef = useRef<number | null>(null);
 
   const loadLesson = useCallback(() => {
     if (!lessonId) {
@@ -89,6 +92,7 @@ export function LessonScreen({ route, navigation }: Props) {
     Promise.all([lessonsApi.getLesson(lessonId), shopApi.getMyInventory().catch(() => null)])
       .then(([lessonRes, inventoryRes]) => {
         setLesson(lessonRes.data);
+        startRef.current = Date.now();
         if (inventoryRes?.data) {
           setUnlimitedLives(inventoryRes.data.livesMode === "INFINITE");
           setLives(inventoryRes.data.currentLives ?? STARTING_LIVES);
@@ -159,6 +163,10 @@ export function LessonScreen({ route, navigation }: Props) {
   function goToNextBlock() {
     if (!lesson) return;
     if (blockIndex + 1 >= blocks.length) {
+      if (startRef.current != null) {
+        trackLessonTime(Date.now() - startRef.current);
+        startRef.current = null;
+      }
       setCompleted(true);
     } else {
       setBlockIndex((prev) => prev + 1);
