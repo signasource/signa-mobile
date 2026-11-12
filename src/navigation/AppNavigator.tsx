@@ -15,6 +15,7 @@ import { FriendAcceptedScreen } from "@/features/social/screens/FriendAcceptedSc
 import { AchievementCelebrationScreen } from "@/features/achievements/screens/AchievementCelebrationScreen";
 import { StreakDayScreen } from "@/features/achievements/screens/StreakDayScreen";
 import { GemShopScreen } from "@/features/store/screens/GemShopScreen";
+import { PurchaseHistoryScreen } from "@/features/store/screens/PurchaseHistoryScreen";
 import { TabNavigator, TabParamList } from "./TabNavigator";
 import { colors, fonts } from "@/theme";
 import { useSettings } from "@/context/SettingsContext";
@@ -65,6 +66,7 @@ export type AppStackParamList = {
   StreakDay: { streak: number };
   /** Gem packs shop. `missingGems` marks the smallest pack that covers them; `returnTo` (name of where the user came from) relabels the success button "Volver a ...". */
   GemShop: { missingGems?: number; returnTo?: string } | undefined;
+  PurchaseHistory: undefined;
   ConnectionTest: undefined;
 };
 
@@ -111,6 +113,7 @@ export function AppNavigator() {
         component={GemShopScreen}
         options={{ headerShown: false, presentation: "modal", animation: "slide_from_bottom" }}
       />
+      <Stack.Screen name="PurchaseHistory" component={PurchaseHistoryScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ConnectionTest" component={ConnectionTestScreen} options={{ title: "Test de conexion" }} />
     </Stack.Navigator>
   );

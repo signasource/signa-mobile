@@ -37,6 +37,36 @@ export interface PendingGemOrder {
   createdAt: string;
 }
 
+export interface GemOrderHistoryItem {
+  id: string;
+  packName: string;
+  gems: number;
+  amount: number;
+  currency: string;
+  status: GemOrderStatus;
+  createdAt: string;
+  paidAt: string | null;
+  refundedAt: string | null;
+}
+
+export interface RefundEligibilityResult {
+  eligible: boolean;
+  reason?: string;
+}
+
+export interface UserRefundRequest {
+  id: string;
+  purchaseType: string;
+  purchaseId: string;
+  reason: string;
+  message: string;
+  status: string;
+  createdAt: string;
+  productName: string | null;
+  amount: number | null;
+  currency: string | null;
+}
+
 export const gemOrdersApi = {
   getPacks: () => apiClient.get<GemPack[]>("/store/gem-packs"),
   /** Orders still waiting on Mercado Pago; the server re-checks them (and credits approved ones). */
@@ -44,4 +74,9 @@ export const gemOrdersApi = {
   createOrder: (packId: string) => apiClient.post<GemCheckout>("/store/gem-orders", { packId }),
   /** Server re-reads the order from Mercado Pago and credits the gems once if it was paid. */
   syncOrder: (orderId: string) => apiClient.post<GemOrder>(`/store/gem-orders/${orderId}/sync`),
+  getHistory: () => apiClient.get<GemOrderHistoryItem[]>("/store/gem-orders"),
+  checkRefundEligibility: (orderId: string) =>
+    apiClient.get<RefundEligibilityResult>(`/store/gem-orders/${orderId}/refund-eligibility`),
+  createRefundRequest: (orderId: string, data: { reason: string; message: string }) =>
+    apiClient.post<UserRefundRequest>(`/store/gem-orders/${orderId}/refund-request`, data),
 };

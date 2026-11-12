@@ -8,6 +8,18 @@ export interface CourseCheckout {
 
 export type CourseOrderStatus = "PENDING" | "PAID" | "REFUNDED";
 
+export interface CourseOrderHistoryItem {
+  id: string;
+  courseId: string;
+  courseName: string;
+  amount: number;
+  currency: string;
+  status: CourseOrderStatus;
+  createdAt: string;
+  paidAt: string | null;
+  refundedAt: string | null;
+}
+
 export interface CourseOrder {
   id: string;
   status: CourseOrderStatus;
@@ -26,4 +38,14 @@ export const courseOrdersApi = {
   /** Server re-reads the order from Mercado Pago and grants access once if it was paid. */
   syncOrder: (orderId: string) =>
     apiClient.post<CourseOrder>(`/store/course-orders/${orderId}/sync`),
+  getHistory: () => apiClient.get<CourseOrderHistoryItem[]>("/store/course-orders"),
+  checkRefundEligibility: (orderId: string) =>
+    apiClient.get<{ eligible: boolean; reason?: string }>(
+      `/store/course-orders/${orderId}/refund-eligibility`,
+    ),
+  createRefundRequest: (orderId: string, data: { reason: string; message: string }) =>
+    apiClient.post<import("@/api/gemOrders").UserRefundRequest>(
+      `/store/course-orders/${orderId}/refund-request`,
+      data,
+    ),
 };

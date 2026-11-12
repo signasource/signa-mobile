@@ -13,7 +13,9 @@ import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { TabParamList } from "@/navigation/TabNavigator";
+import { AppStackParamList } from "@/navigation/AppNavigator";
 import { colors, fonts, alpha } from "@/theme";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SegmentedControl, Segment } from "@/components/SegmentedControl";
@@ -25,6 +27,7 @@ import { usePendingGemOrders } from "@/features/store/usePendingGemOrders";
 import { fmt, formatPrice, suggestedPack } from "@/features/store/gemPacks";
 import { CoursesSection } from "@/features/store/components/CoursesSection";
 import { GiftSheet } from "@/features/store/components/GiftSheet";
+import { NavIconButton } from "@/components/BackButton";
 import { ReceivedGiftsSection } from "@/features/store/components/ReceivedGiftsSection";
 import ManoVacia from "@assets/ilus/mano-vacia.svg";
 import HeartConFondo from "@assets/ilus/heart-con-fondo.svg";
@@ -297,7 +300,7 @@ function GiftDoneOverlay({ done, gems, insets, onClose }: GiftDoneOverlayProps) 
 
 export function StoreTabScreen() {
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const route = useRoute<RouteProp<TabParamList, "Store">>();
   const fromLesson = route.params?.fromLesson ?? false;
   const [loading, setLoading] = useState(true);
@@ -429,6 +432,15 @@ export function StoreTabScreen() {
         description="Gastá tus gemas en vidas y potenciadores para seguir aprendiendo."
         paddingTop={insets.top + 14}
         tone={colors.shopAmber}
+        right={
+          <NavIconButton
+            icon="receipt-outline"
+            label="Mis compras"
+            color={colors.onDark}
+            size={22}
+            onPress={() => navigation.navigate("PurchaseHistory")}
+          />
+        }
         stats={[
           {
             key: "gems",
