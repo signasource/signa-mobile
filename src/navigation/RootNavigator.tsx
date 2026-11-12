@@ -104,37 +104,6 @@ function AchievementCelebrationConnected({
   return null;
 }
 
-/** Tras registrarse, abre "Verificar cuenta" una sola vez (el usuario puede cerrarla con "Más tarde"). */
-function VerificationPromptConnected({
-  navigationRef,
-}: {
-  navigationRef: React.RefObject<NavigationContainerRef<AppStackParamList> | null>;
-}) {
-  const { isAuthenticated, verificationPrompt, clearVerificationPrompt } = useAuth();
-
-  useEffect(() => {
-    if (!isAuthenticated || !verificationPrompt) return;
-    let cancelled = false;
-
-    const openWhenReady = () => {
-      if (cancelled) return;
-      if (!navigationRef.current?.isReady()) {
-        setTimeout(openWhenReady, 100);
-        return;
-      }
-      navigationRef.current.navigate("VerifyEmail");
-      clearVerificationPrompt();
-    };
-    const timer = setTimeout(openWhenReady, 300);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [isAuthenticated, verificationPrompt, clearVerificationPrompt, navigationRef]);
-
-  return null;
-}
 
 export function RootNavigator() {
   const {
@@ -188,7 +157,6 @@ export function RootNavigator() {
           navigationRef={navigationRef}
         />
         <AchievementCelebrationConnected currentRouteName={currentRouteName} navigationRef={navigationRef} />
-        <VerificationPromptConnected navigationRef={navigationRef} />
         <TourOverlay />
       </TourProvider>
       </AchievementCelebrationProvider>
