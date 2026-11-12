@@ -481,6 +481,12 @@ export function GemShopScreen({ navigation, route }: Props) {
                   <Ionicons name="lock-closed" size={14} color={colors.successDark} />
                   <Text style={styles.safeNoteText}>No se cobra nada hasta que confirmes en Mercado Pago.</Text>
                 </View>
+                <View style={styles.safeNote}>
+                  <Ionicons name="refresh-circle-outline" size={14} color={colors.textMuted} />
+                  <Text style={[styles.safeNoteText, { color: colors.textMuted }]}>
+                    Podés pedir el reembolso si no usás las gemas. Revisá "Mis compras" en la tienda.
+                  </Text>
+                </View>
                 {status === "error" && error != null && (
                   <View style={styles.errorNote}>
                     <Text style={styles.errorText}>{error}</Text>
