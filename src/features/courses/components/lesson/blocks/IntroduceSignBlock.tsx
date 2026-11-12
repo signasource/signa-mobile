@@ -189,15 +189,17 @@ export function IntroduceSignBlock({ config, onContinue }: IntroduceSignBlockPro
 
             {view === "success" && (
               <>
-                <View style={styles.successIcon}>
-                  <Ionicons name="checkmark-circle" size={38} color={colors.success} />
+                <View style={styles.successIconWrap}>
+                  <View style={styles.successIconCircle}>
+                    <Ionicons name="checkmark" size={32} color={colors.onDark} />
+                  </View>
                 </View>
-                <Text style={styles.sheetTitle}>Reporte enviado</Text>
+                <Text style={styles.sheetTitle}>¡Gracias por tu aporte!</Text>
                 <Text style={styles.sheetSubtitle}>
-                  Gracias por ayudarnos a mejorar el contenido de Signa.
+                  Tu reporte va a ser revisado por el equipo de Signa. Vamos a hacer algo al respecto y te vamos a avisar cuando esté resuelto.
                 </Text>
                 <TouchableOpacity style={styles.submitBtn} onPress={closeModal}>
-                  <Text style={styles.submitLabel}>Aceptar</Text>
+                  <Text style={styles.submitLabel}>Entendido</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -408,8 +410,16 @@ const styles = StyleSheet.create({
   },
 
   // Success view
-  successIcon: {
-    alignSelf: "center",
-    marginBottom: 12,
+  successIconWrap: {
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  successIconCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: colors.success,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

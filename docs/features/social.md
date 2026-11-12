@@ -102,6 +102,12 @@ background, which read as noisy.
 Icon and colors per `code` come from `notificationVisual()` in `features/social/people.ts`; unknown
 codes fall back to a neutral bell, so a new backend code never breaks the list.
 
+**`SIGN_REPORT_RESOLVED`** — sent by `signa-api` when an admin resolves a sign report. The
+notification's `metadata.sign` holds the sign's meaning. The row is rendered as a `TouchableOpacity`
+with a forward chevron; tapping navigates to `SignDetail` (`{ signMeaning: metadata.sign }`) so the
+user can view the sign again. The `shield-checkmark` icon in `successDark/successLight` distinguishes
+it from other notification types.
+
 ## PublicProfileScreen
 
 Reached by **tapping anyone's avatar** — in a feed card, a friend row, a search result or a request

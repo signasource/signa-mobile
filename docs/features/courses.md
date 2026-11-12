@@ -73,7 +73,12 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   `SelectSignBlock`, `ContextResponseBlock` and `SelectSignBlock` share `SignCarouselBlock`,
   `MatchBlock`, `VisualRecognitionBlock`). `IntroduceSignBlock` presents a new sign with its
   full-height `SignAnimation` and a "La practico" button — no answer required, `xpReward` is
-  ignored. `SelectMeaningBlock` renders its single sign via `SignAnimation`; the multi-option blocks
+  ignored. The "…" menu at the top-right offers a YouTube search link and "Reportar seña"
+  (`signReportsApi.createReport`; works for both GLB animations and MP4 videos since the block
+  is format-agnostic). After the report is submitted, a bottom-sheet success view thanks the user
+  and tells them they will be notified when the report is resolved; when that happens, the
+  `SIGN_REPORT_RESOLVED` notification in `NotificationsScreen` lets them navigate to
+  `SignDetailScreen` to view the sign again (see [../features/social.md](social.md)). `SelectMeaningBlock` renders its single sign via `SignAnimation`; the multi-option blocks
   (`SignCarouselBlock` — so `SelectSignBlock`/`ContextResponseBlock` —, `MatchBlock`,
   `VisualRecognitionBlock`) render their signs through `MultiSignView` (a carousel shows one at a
   time, a match grid shows all at once). Both paths resolve `.glb`/`.mp4` per sign. Answer-option

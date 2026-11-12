@@ -66,6 +66,7 @@ Post-login screens with tab navigation. `screenOptions` use a dark header: `head
 | `AchievementCelebration` | `{ achievementId, criteriaType, criteriaValue, title, rewardStreakShields, rewardGems }` | (no header, full-screen modal, fade, no swipe-back; colour and animation per achievement group) | `features/achievements/screens/AchievementCelebrationScreen` |
 | `SignRecognition` | — | "Practicar" | `features/ml/screens/SignRecognitionScreen` |
 | `ConnectionTest` | — | "Test de conexion" | `screens/ConnectionTestScreen` |
+| `SignDetail` | `{ signMeaning: string }` | (no header, screen renders its own) | `features/courses/screens/SignDetailScreen` — standalone sign viewer; navigated to from `NotificationsScreen` when tapping a `SIGN_REPORT_RESOLVED` notification |
 
 Header titles are UI copy (Spanish), kept verbatim from the code.
 

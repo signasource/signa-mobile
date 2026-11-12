@@ -8,6 +8,7 @@ import { EditProfileScreen } from "@/screens/EditProfileScreen";
 import { ConnectionTestScreen } from "@/screens/ConnectionTestScreen";
 import { LessonScreen } from "@/features/courses/screens/LessonScreen";
 import { CourseDetailScreen } from "@/features/courses/screens/CourseDetailScreen";
+import { SignDetailScreen } from "@/features/courses/screens/SignDetailScreen";
 import { PracticeSessionScreen } from "@/features/practice/screens/PracticeSessionScreen";
 import { NotificationsScreen } from "@/features/social/screens/NotificationsScreen";
 import { PublicProfileScreen } from "@/features/social/screens/PublicProfileScreen";
@@ -30,6 +31,7 @@ export type AppStackParamList = {
   Tabs: NavigatorScreenParams<TabParamList> | undefined;
   ChangePassword: undefined;
   VerifyEmail: undefined;
+  SignDetail: { signMeaning: string };
   Configuration:
     | {
         updatedProfile?: { displayName: string; lastName: string; username: string };
@@ -115,6 +117,7 @@ export function AppNavigator() {
       />
       <Stack.Screen name="PurchaseHistory" component={PurchaseHistoryScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ConnectionTest" component={ConnectionTestScreen} options={{ title: "Test de conexion" }} />
+      <Stack.Screen name="SignDetail" component={SignDetailScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

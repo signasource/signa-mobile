@@ -22,6 +22,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 | Lesson player (`LessonScreen`) | real, wired to `signa-api` | [features/courses.md](./features/courses.md#lesson-player--real) |
 | Social (feed + likes, amigos, solicitudes, búsqueda, ranking semanal) | real | [features/social.md](./features/social.md) |
 | Notifications inbox | real | [features/social.md](./features/social.md#notificationsscreen) |
+| Sign report flow (`IntroduceSignBlock`: "…" → "Reportar seña" → thank-you) | real, works for both GLB and MP4 signs; `SIGN_REPORT_RESOLVED` notification navigates to `SignDetailScreen` | [features/courses.md](./features/courses.md), [features/social.md](./features/social.md#notificationsscreen) |
 | Public profile (read-only, of another user) | real | [features/social.md](./features/social.md#publicprofilescreen) |
 | Courses flat browse (`CoursesListScreen`) | stub | [features/courses.md](./features/courses.md#course-catalog--stub) |
 | Práctica libre (`PracticeTabScreen` + `PracticeSessionScreen`) | real, wired to `signa-api` | [features/practice.md](./features/practice.md) |

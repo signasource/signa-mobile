@@ -8,7 +8,8 @@ export type NotificationCode =
   | "GLOBAL_ANNOUNCEMENT"
   | "FRIEND_REQUEST_RECEIVED"
   | "FRIEND_REQUEST_ACCEPTED"
-  | "FRIEND_EVENT_LIKED";
+  | "FRIEND_EVENT_LIKED"
+  | "SIGN_REPORT_RESOLVED";
 
 export interface AppNotification {
   id: number;

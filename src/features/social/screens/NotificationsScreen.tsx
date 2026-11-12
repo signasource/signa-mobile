@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { View, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl } from "react-native";
+import { View, ScrollView, TouchableOpacity, Pressable, StyleSheet, ActivityIndicator, RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -93,9 +93,13 @@ export function NotificationsScreen({ navigation }: Props) {
             notifications.map((notification) => {
               const visual = notificationVisual(notification.code);
               const unread = !notification.read;
+              const signMeaning =
+                notification.code === "SIGN_REPORT_RESOLVED"
+                  ? notification.metadata?.["sign"]
+                  : null;
 
-              return (
-                <View key={notification.id} style={styles.row}>
+              const rowContent = (
+                <>
                   <View style={[styles.iconBox, { backgroundColor: visual.tint }]}>
                     <Ionicons name={visual.icon} size={17} color={visual.tone} />
                   </View>
@@ -107,6 +111,28 @@ export function NotificationsScreen({ navigation }: Props) {
                   </View>
 
                   {unread && <View style={styles.dot} />}
+                  {signMeaning && (
+                    <Ionicons name="chevron-forward" size={15} color={visual.tone} />
+                  )}
+                </>
+              );
+
+              if (signMeaning) {
+                return (
+                  <TouchableOpacity
+                    key={notification.id}
+                    style={styles.row}
+                    activeOpacity={0.7}
+                    onPress={() => navigation.navigate("SignDetail", { signMeaning })}
+                  >
+                    {rowContent}
+                  </TouchableOpacity>
+                );
+              }
+
+              return (
+                <View key={notification.id} style={styles.row}>
+                  {rowContent}
                 </View>
               );
             })
