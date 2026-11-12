@@ -8,6 +8,7 @@ import { extractEmailFromToken, isTokenExpired } from "@/utils/jwt";
 import { signInWithGoogle } from "@/utils/googleAuth";
 import { profileCache } from "@/utils/profileCache";
 import { ChangePasswordRequest, LoginRequest, RegisterRequest, User } from "@/types";
+import { onboardingStorage } from "@/features/onboarding/storage";
 
 interface AuthContextValue {
   user: User | null;
@@ -87,6 +88,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const refreshToken = await tokenStorage.getRefreshToken();
 
       if (!token || !refreshToken) {
+        const completed = await onboardingStorage.isCompleted();
+        if (completed) setAuthInitialRoute("Login");
         setIsLoading(false);
         return;
       }
