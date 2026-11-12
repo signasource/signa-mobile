@@ -256,14 +256,13 @@ export function HomeTabScreen({ navigation }: Props) {
 
   function navigateToLesson(lesson: RoadmapLesson, unitLabel: string) {
     setOpenLesson(null);
-    // Closing the last pending lesson of a unit of the free course is the moment to suggest a
-    // paid one (the motivation is high); never on a replay or on every lesson.
-    const topic = roadmap?.topics.find((t) => t.lessons.some((l) => l.id === lesson.id));
-    const closesUnit =
-      !!topic &&
+    // Closing the last pending lesson of the entire free course is the moment to suggest a
+    // paid one (the motivation is high); never on a replay, mid-course, or on every lesson.
+    const allLessons = roadmap?.topics.flatMap((t) => t.lessons) ?? [];
+    const closesCourse =
       lesson.state !== "COMPLETED" &&
-      topic.lessons.every((l) => l.id === lesson.id || l.state === "COMPLETED");
-    const suggestion = closesUnit && currentCourseIsFree ? purchasableCourses[0] : undefined;
+      allLessons.every((l) => l.id === lesson.id || l.state === "COMPLETED");
+    const suggestion = closesCourse && currentCourseIsFree ? purchasableCourses[0] : undefined;
     navigation.navigate("Lesson", {
       lessonId: lesson.id,
       unitLabel,
