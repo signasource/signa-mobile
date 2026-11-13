@@ -40,6 +40,8 @@ export function CourseDetailScreen({ navigation, route }: Props) {
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [purchased, setPurchased] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [joining, setJoining] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
 
   const purchase = useCoursePurchase({ onPurchased: () => setPurchased(true) });
 
@@ -76,6 +78,19 @@ export function CourseDetailScreen({ navigation, route }: Props) {
       setStarting(false);
     }
     navigation.navigate("Tabs", { screen: "Home" });
+  }
+
+  async function joinFreeCourse() {
+    setJoinError(null);
+    setJoining(true);
+    try {
+      await learningApi.joinCourse(courseId);
+      setPurchased(true);
+    } catch (err: any) {
+      setJoinError(err?.response?.data?.message ?? "No pudimos inscribirte. Intentá de nuevo.");
+    } finally {
+      setJoining(false);
+    }
   }
 
   function confirmPurchase() {
@@ -223,6 +238,7 @@ export function CourseDetailScreen({ navigation, route }: Props) {
 
   // ── Course sheet ──
   const exercises = describeExercises(course.exerciseTypes);
+  const isFreeUnenrolled = course.isFree && !course.owned;
 
   return (
     <View style={styles.root}>
@@ -333,40 +349,78 @@ export function CourseDetailScreen({ navigation, route }: Props) {
             ))}
           </View>
 
-          <View style={styles.assurance}>
-            <AssuranceRow icon="card" title="Pago único." text="Sin suscripción ni cobros automáticos." />
-            <AssuranceRow
-              icon="infinite"
-              title="Es tuyo para siempre."
-              text="Tu progreso en otros cursos no se toca."
-            />
-            <AssuranceRow
-              icon="shield-checkmark"
-              title="Pagás en Mercado Pago."
-              text="Signa no ve ni guarda tus datos de pago."
-            />
-          </View>
+          {isFreeUnenrolled ? (
+            <View style={styles.assurance}>
+              <AssuranceRow
+                icon="gift"
+                title="Completamente gratis."
+                text="Sin costo ni suscripción. Es tuyo para siempre."
+              />
+              <AssuranceRow
+                icon="infinite"
+                title="Tu progreso se guarda."
+                text="Podés pausar y retomar cuando quieras."
+              />
+            </View>
+          ) : (
+            <View style={styles.assurance}>
+              <AssuranceRow icon="card" title="Pago único." text="Sin suscripción ni cobros automáticos." />
+              <AssuranceRow
+                icon="infinite"
+                title="Es tuyo para siempre."
+                text="Tu progreso en otros cursos no se toca."
+              />
+              <AssuranceRow
+                icon="shield-checkmark"
+                title="Pagás en Mercado Pago."
+                text="Signa no ve ni guarda tus datos de pago."
+              />
+            </View>
+          )}
+
+          {isFreeUnenrolled && (
+            <View style={styles.freeCtaBlock}>
+              {!!joinError && <Text style={styles.joinError}>{joinError}</Text>}
+              <TouchableOpacity
+                style={styles.freeCtaBtn}
+                onPress={joinFreeCourse}
+                disabled={joining}
+                activeOpacity={0.86}
+              >
+                {joining ? (
+                  <ActivityIndicator color={colors.onDark} />
+                ) : (
+                  <>
+                    <Text style={styles.freeCtaBtnText}>Empezar gratis</Text>
+                    <Ionicons name="arrow-forward" size={18} color={colors.onDark} />
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
-        <View style={{ height: 120 + insets.bottom }} />
+        <View style={{ height: isFreeUnenrolled ? 40 + insets.bottom : 120 + insets.bottom }} />
       </ScrollView>
 
-      <View style={[styles.priceBar, { paddingBottom: Math.max(insets.bottom, 18) + 12 }]}>
-        <View style={styles.flex}>
-          <Text style={styles.price}>{price}</Text>
-          <Text style={styles.priceCaption}>Pago único · ARS</Text>
+      {!isFreeUnenrolled && (
+        <View style={[styles.priceBar, { paddingBottom: Math.max(insets.bottom, 18) + 12 }]}>
+          <View style={styles.flex}>
+            <Text style={styles.price}>{price}</Text>
+            <Text style={styles.priceCaption}>Pago único · ARS</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.payBtn}
+            onPress={() => {
+              purchase.reset();
+              setSummaryOpen(true);
+            }}
+            activeOpacity={0.86}
+          >
+            <Text style={styles.payBtnText}>Ir al pago</Text>
+            <Ionicons name="arrow-forward" size={17} color={colors.onDark} />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={styles.payBtn}
-          onPress={() => {
-            purchase.reset();
-            setSummaryOpen(true);
-          }}
-          activeOpacity={0.86}
-        >
-          <Text style={styles.payBtnText}>Ir al pago</Text>
-          <Ionicons name="arrow-forward" size={17} color={colors.onDark} />
-        </TouchableOpacity>
-      </View>
+      )}
 
       {/* ── Summary before the gateway ── */}
       <Modal
@@ -869,6 +923,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   payBtnText: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.onDark },
+
+  // Free-course CTA (inside scroll)
+  freeCtaBlock: { gap: 10, marginTop: 8 },
+  freeCtaBtn: {
+    minHeight: 58,
+    borderRadius: 14,
+    backgroundColor: colors.primary,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  freeCtaBtnText: { fontFamily: fonts.bodySemiBold, fontSize: 16.5, color: colors.onDark },
+  joinError: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 13,
+    color: colors.danger,
+    textAlign: "center",
+  },
 
   // Summary sheet
   backdrop: { flex: 1, backgroundColor: alpha(colors.text, 0.45), justifyContent: "flex-end" },

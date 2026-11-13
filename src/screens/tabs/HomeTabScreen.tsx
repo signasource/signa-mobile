@@ -8,6 +8,7 @@ import {
   Pressable,
   ActivityIndicator,
   RefreshControl,
+  useWindowDimensions,
 } from "react-native";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -95,19 +96,23 @@ async function fetchEnrollmentData() {
 // the selector and in the profile's "Cursos" progress.
 let freeCoursesJoined = false;
 
-/** Enrolls the user in the free catalog courses they're missing. Returns true if any was joined. */
+/**
+ * Auto-enrols a brand-new user (no prior enrollments) in the base free course only.
+ * Additional free courses must be joined explicitly by the user via "Empezar".
+ */
 async function joinMissingFreeCourses(enrollments: EnrollmentSummary[]): Promise<boolean> {
   if (freeCoursesJoined) return false;
+  freeCoursesJoined = true;
+  if (enrollments.length > 0) return false;
   try {
     const { data: languages } = await coursesApi.getSignLanguages();
     const lsa = languages.find((l) => l.code === "LSA") ?? languages[0];
     if (!lsa) return false;
     const { data: catalog } = await coursesApi.getCatalog(lsa.id);
-    const enrolledIds = new Set(enrollments.map((e) => e.courseId));
-    const missing = catalog.content.filter((c) => c.isFree && !enrolledIds.has(c.id));
-    await Promise.all(missing.map((c) => learningApi.joinCourse(c.id)));
-    freeCoursesJoined = true;
-    return missing.length > 0;
+    const baseCourse = catalog.content.find((c) => c.isFree);
+    if (!baseCourse) return false;
+    await learningApi.joinCourse(baseCourse.id);
+    return true;
   } catch {
     return false;
   }
@@ -161,6 +166,7 @@ function findCurrentLessonId(topics: RoadmapTopic[]): string | null {
 
 export function HomeTabScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const { height: screenHeight } = useWindowDimensions();
   const [streak, setStreak] = useState(0);
   const [gems, setGems] = useState(0);
   const [xp, setXp] = useState(0);
@@ -222,7 +228,7 @@ export function HomeTabScreen({ navigation }: Props) {
   useFocusEffect(useCallback(() => { load(); }, [load]));
   const pendingGemOrders = usePendingGemOrders();
 
-  const purchasableCourses = catalog.filter((c) => !c.owned && !c.isFree);
+  const purchasableCourses = catalog.filter((c) => !c.owned && (!c.status || c.status === "PUBLISHED"));
 
   function openCourseSheet(course: CourseSummary) {
     setSelectorOpen(false);
@@ -462,7 +468,10 @@ export function HomeTabScreen({ navigation }: Props) {
       >
         <Pressable style={styles.sheetBackdrop} onPress={() => setSelectorOpen(false)}>
           <Pressable
-            style={[styles.sheet, { paddingBottom: insets.bottom + 20 }]}
+            style={[
+              styles.sheet,
+              { maxHeight: screenHeight * 0.72, paddingBottom: insets.bottom + 20 },
+            ]}
             onPress={() => {}}
           >
             <View style={styles.sheetHandle} />
@@ -470,55 +479,61 @@ export function HomeTabScreen({ navigation }: Props) {
             <Text style={styles.sheetSubtitle}>
               Tu progreso se guarda por separado en cada curso.
             </Text>
-            {enrollments.map((course) => {
-              const selected = course.courseId === currentCourse?.courseId;
-              const isOrg = !!course.organizationName;
-              return (
-                <TouchableOpacity
-                  key={course.courseId}
-                  style={[styles.courseOption, selected && styles.courseOptionSelected]}
-                  onPress={() => selectCourse(course)}
-                  disabled={switching}
-                  activeOpacity={0.85}
-                >
-                  <View
-                    style={[
-                      styles.courseOptionIcon,
-                      { backgroundColor: isOrg ? colors.success : colors.primary },
-                    ]}
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              style={styles.sheetScroll}
+              contentContainerStyle={styles.sheetScrollContent}
+            >
+              {enrollments.map((course) => {
+                const selected = course.courseId === currentCourse?.courseId;
+                const isOrg = !!course.organizationName;
+                return (
+                  <TouchableOpacity
+                    key={course.courseId}
+                    style={[styles.courseOption, selected && styles.courseOptionSelected]}
+                    onPress={() => selectCourse(course)}
+                    disabled={switching}
+                    activeOpacity={0.85}
                   >
-                    <Ionicons
-                      name={isOrg ? "medkit" : "hand-left"}
-                      size={22}
-                      color={colors.onDark}
-                    />
-                  </View>
-                  <View style={styles.courseOptionText}>
-                    <Text style={styles.courseOptionName} numberOfLines={1}>
-                      {course.courseName}
-                    </Text>
-                    <Text style={styles.courseOptionSub} numberOfLines={1}>
-                      {courseSubtitle(course, lessonCounts)}
-                    </Text>
-                  </View>
-                  {selected &&
-                    (switching ? (
-                      <ActivityIndicator color={colors.primary} />
-                    ) : (
-                      <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
-                    ))}
-                </TouchableOpacity>
-              );
-            })}
+                    <View
+                      style={[
+                        styles.courseOptionIcon,
+                        { backgroundColor: isOrg ? colors.success : colors.primary },
+                      ]}
+                    >
+                      <Ionicons
+                        name={isOrg ? "medkit" : "hand-left"}
+                        size={22}
+                        color={colors.onDark}
+                      />
+                    </View>
+                    <View style={styles.courseOptionText}>
+                      <Text style={styles.courseOptionName} numberOfLines={1}>
+                        {course.courseName}
+                      </Text>
+                      <Text style={styles.courseOptionSub} numberOfLines={1}>
+                        {courseSubtitle(course, lessonCounts)}
+                      </Text>
+                    </View>
+                    {selected &&
+                      (switching ? (
+                        <ActivityIndicator color={colors.primary} />
+                      ) : (
+                        <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                      ))}
+                  </TouchableOpacity>
+                );
+              })}
 
-            {purchasableCourses.length > 0 && (
-              <>
-                <Text style={styles.sheetSectionLabel}>Más cursos</Text>
-                {purchasableCourses.map((course) => (
-                  <PaidCourseRow key={course.id} course={course} onOpen={openCourseSheet} />
-                ))}
-              </>
-            )}
+              {purchasableCourses.length > 0 && (
+                <>
+                  <Text style={styles.sheetSectionLabel}>Más cursos</Text>
+                  {purchasableCourses.map((course) => (
+                    <PaidCourseRow key={course.id} course={course} onOpen={openCourseSheet} />
+                  ))}
+                </>
+              )}
+            </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>
@@ -871,8 +886,9 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
     paddingTop: 12,
-    gap: 10,
   },
+  sheetScroll: { flexShrink: 1 },
+  sheetScrollContent: { gap: 10, paddingTop: 4 },
   sheetHandle: {
     alignSelf: "center",
     width: 40,

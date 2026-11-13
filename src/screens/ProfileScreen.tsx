@@ -269,7 +269,7 @@ export function ProfileScreen({ navigation }: Props) {
     useCallback(() => {
       let active = true;
       fetchCatalog().then((catalog) => {
-        if (active) setBuyableCourses(catalog.filter((c) => !c.owned && !c.isFree));
+        if (active) setBuyableCourses(catalog.filter((c) => !c.owned && (!c.status || c.status === "PUBLISHED")));
       });
       return () => {
         active = false;
@@ -653,14 +653,15 @@ export function ProfileScreen({ navigation }: Props) {
     );
   }
 
-  /** "Para sumar": paid courses not owned yet, with a dashed outline; each opens its sheet. */
   function renderBuyableCourses() {
     if (buyableCourses.length === 0) return null;
+    const hasOnlyFree = buyableCourses.every((c) => c.isFree);
+    const hint = hasOnlyFree ? "Gratis" : buyableCourses.some((c) => c.isFree) ? "" : "Pago único";
     return (
       <>
         <View style={styles.buyableHeader}>
           <Text style={styles.buyableLabel}>PARA SUMAR</Text>
-          <Text style={styles.buyableHint}>Pago único</Text>
+          {!!hint && <Text style={styles.buyableHint}>{hint}</Text>}
         </View>
         {buyableCourses.map((course) => (
           <PaidCourseRow

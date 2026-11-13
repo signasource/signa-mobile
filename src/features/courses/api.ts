@@ -9,6 +9,8 @@ export interface SignLanguage {
   countryCode: string;
 }
 
+export type CourseStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
+
 /** Resumen de curso del catálogo (`GET /courses?signLanguageId=`). */
 export interface CourseSummary {
   id: string;
@@ -20,6 +22,7 @@ export interface CourseSummary {
   price: number | null;
   /** `true` si el usuario ya tiene acceso (gratis unido, comprado o por organización). */
   owned: boolean;
+  status: CourseStatus;
   signLanguageCode: string;
 }
 
@@ -31,6 +34,7 @@ export interface CourseDetail {
   isFree: boolean;
   price: number | null;
   owned: boolean;
+  status: CourseStatus;
   unitCount: number;
   lessonCount: number;
   /** Señas distintas que enseña el curso. */

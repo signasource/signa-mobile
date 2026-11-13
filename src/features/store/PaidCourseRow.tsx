@@ -6,11 +6,6 @@ import { colors, fonts } from "@/theme";
 import { CourseSummary } from "@/features/courses/api";
 import { formatPrice } from "@/features/courses/price";
 
-/**
- * A paid course the user doesn't own yet: shows its price and a "Ver" button that opens the
- * course sheet (`CourseDetail`), where the purchase is confirmed. Used in the home course
- * selector and the profile course catalog.
- */
 export function PaidCourseRow({
   course,
   onOpen,
@@ -21,22 +16,51 @@ export function PaidCourseRow({
   /** Dashed outline = "not yours yet" (Profile → Cursos). */
   dashed?: boolean;
 }) {
+  const enrolled = course.owned;
+  const free = !enrolled && course.isFree;
+
+  let subtitle: string;
+  if (enrolled) {
+    subtitle = "Inscripto";
+  } else if (free) {
+    subtitle = "Gratis";
+  } else {
+    subtitle = course.price != null ? `Pago único · ${formatPrice(course.price)}` : "Curso pago";
+  }
+
+  const ctaLabel = free ? "Empezar" : "Ver";
+
   return (
-    <TouchableOpacity style={[styles.row, dashed && styles.rowDashed]} onPress={() => onOpen(course)} activeOpacity={0.85}>
-      <View style={styles.icon}>
+    <TouchableOpacity
+      style={[styles.row, dashed && styles.rowDashed, enrolled && styles.rowEnrolled]}
+      onPress={() => onOpen(course)}
+      activeOpacity={0.85}
+    >
+      <View style={[styles.icon, enrolled && styles.iconEnrolled]}>
         <Ionicons name="school" size={22} color={colors.onDark} />
       </View>
       <View style={styles.text}>
         <Text style={styles.name} numberOfLines={1}>
           {course.name}
         </Text>
-        <Text style={styles.price} numberOfLines={1}>
-          {course.price != null ? `Pago único · ${formatPrice(course.price)}` : "Curso pago"}
+        <Text
+          style={[
+            styles.price,
+            enrolled && styles.subtitleEnrolled,
+            free && styles.subtitleFree,
+          ]}
+          numberOfLines={1}
+        >
+          {subtitle}
         </Text>
       </View>
-      <View style={styles.cta}>
-        <Text style={styles.ctaText}>Ver</Text>
-        <Ionicons name="chevron-forward" size={15} color={colors.text} />
+      <View style={[styles.cta, free && styles.ctaFree]}>
+        <Text style={[styles.ctaText, free && styles.ctaTextFree]}>{ctaLabel}</Text>
+        <Ionicons
+          name="chevron-forward"
+          size={15}
+          color={free ? colors.primaryDark : colors.text}
+        />
       </View>
     </TouchableOpacity>
   );
@@ -57,6 +81,9 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
     borderColor: colors.roadmapLockedBorder,
   },
+  rowEnrolled: {
+    backgroundColor: colors.successLight,
+  },
   icon: {
     width: 48,
     height: 48,
@@ -64,6 +91,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.courseIndigo,
+  },
+  iconEnrolled: {
+    backgroundColor: colors.successDark,
   },
   text: { flex: 1, minWidth: 0 },
   name: {
@@ -77,6 +107,14 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 2,
   },
+  subtitleEnrolled: {
+    color: colors.successDark,
+    fontFamily: fonts.bodySemiBold,
+  },
+  subtitleFree: {
+    color: colors.primaryDark,
+    fontFamily: fonts.bodySemiBold,
+  },
   cta: {
     flexDirection: "row",
     alignItems: "center",
@@ -87,9 +125,15 @@ const styles = StyleSheet.create({
     paddingLeft: 14,
     paddingRight: 10,
   },
+  ctaFree: {
+    backgroundColor: colors.primaryLight,
+  },
   ctaText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 14,
     color: colors.text,
+  },
+  ctaTextFree: {
+    color: colors.primaryDark,
   },
 });
