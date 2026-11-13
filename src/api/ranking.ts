@@ -9,6 +9,7 @@ export interface RankingEntry {
   currentStreak: number;
   /** Positive = moved up; negative = moved down; null = no previous data. */
   delta: number | null;
+  avatarUrl?: string | null;
 }
 
 export interface MyRankingPosition {

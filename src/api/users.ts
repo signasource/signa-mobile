@@ -8,6 +8,8 @@ export interface UserProfile {
   verified?: boolean;
   /** Métodos de inicio de sesión de la cuenta: LOCAL = correo y contraseña. */
   providers?: ("LOCAL" | "GOOGLE")[];
+  /** Ruta de la foto de perfil en la API (ver `avatarUri`); null si no tiene. */
+  avatarUrl?: string | null;
 }
 
 export interface WeeklyXpEntry {
@@ -58,6 +60,11 @@ export const usersApi = {
   linkGoogle: (idToken: string) => apiClient.post<void>("/users/me/google", { idToken }),
 
   getMe: () => apiClient.get<UserProfile>("/users/me"),
+
+  /** `avatar`: data URL JPEG/PNG/WebP ya achicado (ver `pickAvatar`). Devuelve el perfil nuevo. */
+  setAvatar: (avatar: string) => apiClient.put<UserProfile>("/users/me/avatar", { avatar }),
+
+  removeAvatar: () => apiClient.delete<UserProfile>("/users/me/avatar"),
 
   getStats: () => apiClient.get<UserStats>("/users/me/stats"),
 

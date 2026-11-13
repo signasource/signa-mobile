@@ -19,6 +19,8 @@ import { colors, fonts, alpha } from "@/theme";
 import { socialApi, Friend } from "@/api/social";
 import { shopApi, ShopItem } from "@/api/shop";
 import { avatarColors, initialsOf } from "@/features/social/people";
+import { AvatarPhoto } from "@/components/AvatarPhoto";
+import { avatarUri } from "@/utils/avatar";
 
 const MESSAGE_MAX = 500;
 
@@ -128,6 +130,7 @@ export function GiftSheet({ item, gems, onClose, onSent }: GiftSheetProps) {
                             <Text style={[styles.avatarText, { color: av.fg }]}>
                               {initialsOf(f.name, f.username)}
                             </Text>
+                            <AvatarPhoto uri={avatarUri(f.avatarUrl)} />
                           </View>
                           <View style={styles.friendTexts}>
                             <Text style={styles.friendName} numberOfLines={1}>
@@ -264,6 +267,7 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
   avatarText: {
     fontFamily: fonts.bodySemiBold,

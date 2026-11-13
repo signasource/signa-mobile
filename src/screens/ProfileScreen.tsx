@@ -27,6 +27,9 @@ import { SubTabs, SubTab } from "@/components/SubTabs";
 import { EmptyState } from "@/components/EmptyState";
 import { NavIconButton } from "@/components/BackButton";
 import { VerifyEmailChip } from "@/components/VerifyEmailChip";
+import { AvatarPhoto } from "@/components/AvatarPhoto";
+import { avatarUri } from "@/utils/avatar";
+import { pickAvatar, AvatarSource } from "@/features/profile/avatarPhoto";
 import { isLightColor } from "@/utils/color";
 import { useAuth } from "@/context/AuthContext";
 import { usersApi, WeeklyXpEntry, UserStats } from "@/api/users";
@@ -171,6 +174,10 @@ export function ProfileScreen({ navigation }: Props) {
   // Solo `false` explícito muestra el aviso: si el perfil no lo informa, no se molesta.
   const [emailUnverified, setEmailUnverified] = useState(false);
   const [username, setUsername] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarOpen, setAvatarOpen] = useState(false);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
 
   const firstFocus = useRef(true);
   const [weekDays, setWeekDays] = useState<DayXp[]>(buildDefaultWeek);
@@ -212,6 +219,7 @@ export function ProfileScreen({ navigation }: Props) {
       const p = profileRes.value.data;
       setDisplayName(p.name);
       setUsername(p.username);
+      setAvatarUrl(p.avatarUrl ?? null);
       setEmailUnverified(p.verified === false);
     } else {
       setDisplayName(user?.name ?? "");
@@ -286,6 +294,7 @@ export function ProfileScreen({ navigation }: Props) {
       usersApi.getMe().then((res) => {
         setDisplayName(res.data.name);
         setUsername(res.data.username);
+        setAvatarUrl(res.data.avatarUrl ?? null);
         setEmailUnverified(res.data.verified === false);
       }).catch(() => {});
       usersApi.getSettings().then((res) => {
@@ -328,6 +337,46 @@ export function ProfileScreen({ navigation }: Props) {
       await usersApi.updateSettings({ profileHeaderColor: hex });
     } catch {
       // optimistic update: keep local change even if API fails
+    }
+  }
+
+  function openAvatarSheet() {
+    setAvatarError(null);
+    setAvatarOpen(true);
+  }
+
+  /** Take or choose a photo, shrink it and upload it; the sheet closes only when it worked. */
+  async function changeAvatar(source: AvatarSource) {
+    setAvatarError(null);
+    setAvatarBusy(true);
+    try {
+      const picked = await pickAvatar(source);
+      if (picked.status === "denied") {
+        setAvatarError("Necesitamos permiso para usar la cámara. Podés habilitarlo en los ajustes del teléfono.");
+        return;
+      }
+      if (picked.status === "cancelled") return;
+      const { data } = await usersApi.setAvatar(picked.dataUrl);
+      setAvatarUrl(data.avatarUrl ?? null);
+      setAvatarOpen(false);
+    } catch (err: any) {
+      setAvatarError(err?.response?.data?.message ?? "No pudimos guardar la foto. Probá de nuevo.");
+    } finally {
+      setAvatarBusy(false);
+    }
+  }
+
+  async function removeAvatar() {
+    setAvatarError(null);
+    setAvatarBusy(true);
+    try {
+      await usersApi.removeAvatar();
+      setAvatarUrl(null);
+      setAvatarOpen(false);
+    } catch (err: any) {
+      setAvatarError(err?.response?.data?.message ?? "No pudimos quitar la foto. Probá de nuevo.");
+    } finally {
+      setAvatarBusy(false);
     }
   }
 
@@ -415,9 +464,20 @@ export function ProfileScreen({ navigation }: Props) {
           },
         ]}
         left={
-          <View style={[styles.avatar, { borderColor: fg }]}>
-            <Text style={styles.avatarInitials}>{initials(displayName || "?")}</Text>
-          </View>
+          <TouchableOpacity
+            onPress={openAvatarSheet}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Cambiar foto de perfil"
+          >
+            <View style={[styles.avatar, { borderColor: fg }]}>
+              <Text style={styles.avatarInitials}>{initials(displayName || "?")}</Text>
+              <AvatarPhoto uri={avatarUri(avatarUrl)} />
+            </View>
+            <View style={styles.avatarEditBadge}>
+              <Ionicons name="camera" size={12} color={colors.onColor} />
+            </View>
+          </TouchableOpacity>
         }
         right={
           <View style={styles.headerActions}>
@@ -1013,6 +1073,46 @@ export function ProfileScreen({ navigation }: Props) {
         </View>
       </BottomSheet>
 
+      {/* Profile photo modal */}
+      <BottomSheet open={avatarOpen} onClose={() => !avatarBusy && setAvatarOpen(false)} title="Foto de perfil">
+        <View style={styles.avatarOptions}>
+          <TouchableOpacity
+            style={styles.avatarOption}
+            onPress={() => changeAvatar("camera")}
+            disabled={avatarBusy}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+          >
+            <Ionicons name="camera-outline" size={20} color={colors.neutral900} />
+            <Text style={styles.avatarOptionLabel}>Tomar una foto</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.avatarOption}
+            onPress={() => changeAvatar("library")}
+            disabled={avatarBusy}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+          >
+            <Ionicons name="images-outline" size={20} color={colors.neutral900} />
+            <Text style={styles.avatarOptionLabel}>Elegir de la galería</Text>
+          </TouchableOpacity>
+          {avatarUrl && (
+            <TouchableOpacity
+              style={styles.avatarOption}
+              onPress={removeAvatar}
+              disabled={avatarBusy}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+            >
+              <Ionicons name="trash-outline" size={20} color={colors.danger} />
+              <Text style={[styles.avatarOptionLabel, { color: colors.danger }]}>Quitar foto</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        {avatarBusy && <ActivityIndicator style={styles.avatarSpinner} color={colors.primary} />}
+        {avatarError && <Text style={styles.avatarError}>{avatarError}</Text>}
+      </BottomSheet>
+
       {/* Daily goal modal */}
       <BottomSheet open={goalOpen} onClose={() => setGoalOpen(false)} title="Meta diaria">
         <View style={styles.goalEditor}>
@@ -1113,12 +1213,45 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
     flexShrink: 0,
   },
   avatarInitials: {
     fontFamily: fonts.displayExtraBold,
     fontSize: 23,
     color: colors.primary,
+  },
+  avatarEditBadge: {
+    position: "absolute",
+    right: -2,
+    bottom: -2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarOptions: { gap: 4 },
+  avatarOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    paddingVertical: 14,
+  },
+  avatarOptionLabel: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    color: colors.neutral900,
+  },
+  avatarSpinner: { marginTop: 8 },
+  avatarError: {
+    marginTop: 12,
+    fontFamily: fonts.bodyRegular,
+    fontSize: 13,
+    color: colors.danger,
   },
 
   // Scroll

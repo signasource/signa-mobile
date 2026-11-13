@@ -484,7 +484,7 @@ export function GemShopScreen({ navigation, route }: Props) {
                 <View style={styles.safeNote}>
                   <Ionicons name="refresh-circle-outline" size={14} color={colors.textMuted} />
                   <Text style={[styles.safeNoteText, { color: colors.textMuted }]}>
-                    Podés pedir el reembolso si no usás las gemas. Revisá "Mis compras" en la tienda.
+                    Podés pedir el reembolso si no usás las gemas. Revisá &quot;Mis compras&quot; en la tienda.
                   </Text>
                 </View>
                 {status === "error" && error != null && (
