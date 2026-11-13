@@ -14,7 +14,7 @@ Status: **real**. Module under `src/features/onboarding/` (`screens/`, `types.ts
 - `storage.ts`: persists the onboarding-completed flag in AsyncStorage.
 - Progress bar is a fixed overlay of `AuthNavigator` (`Intro`→1 … `Motivation`→4). See [../navigation.md](../navigation.md).
 
-The **daily goal** is synced to the backend (`PATCH /users/daily-goal`) right after register / Google sign-in (`syncOnboardingDailyGoal` in `AuthContext`), then cleared from AsyncStorage; on failure it is kept for the next attempt. Known gap: experience and motivation answers are not persisted to the backend — no place to store them. See [../status.md](../status.md).
+The **daily goal** is synced to the backend (`PATCH /users/daily-goal`) right after **email register** only (`syncOnboardingDailyGoal` in `AuthContext`), then cleared from AsyncStorage; on failure it is kept for the next attempt. Email login and Google sign-in discard it instead: an existing account keeps its own goal, and `/auth/google` doesn't say whether the account is new. Known gap: experience and motivation answers are not persisted to the backend — no place to store them. See [../status.md](../status.md).
 
 ## Post-login tour (`src/features/tour/`)
 
