@@ -175,9 +175,14 @@ error) instead of the local optimistic decrement, to remove the drift risk on a 
   personal" plus `X de Y` lessons (from `getProgress()`, matched by `courseName` because the
   progress DTO has no `courseId`). When the current course comes from an organization, a banner
   above the roadmap shows "Curso de {org}" and the "Acceso incluido hasta" date. Enrolment is what makes a course
-  appear in the selector and in the profile's Cursos tab, and nothing enrolled users before: once
-  per app session `joinMissingFreeCourses()` calls `joinCourse` for every free catalog course the
-  user lacks, then refetches. If that fails, the first catalog course is shown (previous behaviour).
+  appear in the selector and in the profile's Cursos tab (the course chip only renders when the user
+  has at least one enrolment). A brand-new user (enrolments loaded OK and empty) is auto-enrolled by
+  `joinMissingFreeCourses()` in the base free **published** course only, then the data is refetched.
+  There is no per-session flag: only an in-flight guard, so a failed attempt (or a different user
+  signing in within the same session) is retried on the next load. If `getEnrollments` itself fails
+  the auto-join is skipped (an empty list then means "unknown"). If enrolment is still missing, the
+  first catalog course is shown. The home also filters the catalog to published courses on the
+  client (`isPublished`), because older signa-api builds ignore the `status=PUBLISHED` param.
 - **Content** is **real**: it loads `getRoadmap(courseId)` for that course. Shows a spinner while
   loading and an error + "Reintentar" on failure. Units = topics; each unit header shows `topic.title`
   as the (uppercase) kicker, `topic.subtitle` as the bold line, and `X de Y` progress.

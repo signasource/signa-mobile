@@ -78,42 +78,60 @@ async function fetchCatalog(): Promise<CourseSummary[]> {
     const lsa = languages.find((l) => l.code === "LSA") ?? languages[0];
     if (!lsa) return [];
     const { data: catalog } = await coursesApi.getCatalog(lsa.id);
-    return catalog.content;
+    return catalog.content.filter(isPublished);
   } catch {
     return [];
   }
 }
 
-async function fetchEnrollmentData() {
-  const [enrollments, lessonCounts] = await Promise.all([
-    learningApi.getEnrollments().then((r) => r.data).catch(() => [] as EnrollmentSummary[]),
-    learningApi.getProgress().then((r) => r.data).catch(() => [] as PublicCourseProgress[]),
-  ]);
-  return { enrollments, lessonCounts };
+/** Defensive: older signa-api builds ignore the `status=PUBLISHED` param and return drafts too. */
+function isPublished(course: CourseSummary): boolean {
+  return !course.status || course.status === "PUBLISHED";
 }
 
-// Free courses are joined once per app session; enrolment is what makes a course show up in
-// the selector and in the profile's "Cursos" progress.
-let freeCoursesJoined = false;
+async function fetchEnrollmentData() {
+  const [enrollments, lessonCounts] = await Promise.all([
+    learningApi.getEnrollments().then((r) => r.data).catch(() => null),
+    learningApi.getProgress().then((r) => r.data).catch(() => [] as PublicCourseProgress[]),
+  ]);
+  // `enrollmentsLoaded` is false when the request failed: an empty list then means "unknown",
+  // not "brand-new user", so it must not trigger the auto-enrolment.
+  return {
+    enrollments: enrollments ?? ([] as EnrollmentSummary[]),
+    enrollmentsLoaded: enrollments !== null,
+    lessonCounts,
+  };
+}
+
+// Enrolment is what makes a course show up in the selector and in the profile's "Cursos"
+// progress. Only an in-flight guard (no per-session flag): a failed attempt, or a different user
+// signing in within the same session, must be retried on the next load.
+let freeCourseJoin: Promise<boolean> | null = null;
 
 /**
  * Auto-enrols a brand-new user (no prior enrollments) in the base free course only.
  * Additional free courses must be joined explicitly by the user via "Empezar".
  */
-async function joinMissingFreeCourses(enrollments: EnrollmentSummary[]): Promise<boolean> {
-  if (freeCoursesJoined) return false;
-  freeCoursesJoined = true;
-  if (enrollments.length > 0) return false;
+function joinMissingFreeCourses(enrollments: EnrollmentSummary[]): Promise<boolean> {
+  if (enrollments.length > 0) return Promise.resolve(false);
+  freeCourseJoin ??= joinBaseFreeCourse().finally(() => {
+    freeCourseJoin = null;
+  });
+  return freeCourseJoin;
+}
+
+async function joinBaseFreeCourse(): Promise<boolean> {
   try {
     const { data: languages } = await coursesApi.getSignLanguages();
     const lsa = languages.find((l) => l.code === "LSA") ?? languages[0];
     if (!lsa) return false;
     const { data: catalog } = await coursesApi.getCatalog(lsa.id);
-    const baseCourse = catalog.content.find((c) => c.isFree);
+    const baseCourse = catalog.content.filter(isPublished).find((c) => c.isFree);
     if (!baseCourse) return false;
     await learningApi.joinCourse(baseCourse.id);
     return true;
-  } catch {
+  } catch (err) {
+    if (__DEV__) console.warn("[home] auto-join of the base free course failed", err);
     return false;
   }
 }
@@ -123,9 +141,9 @@ async function joinMissingFreeCourses(enrollments: EnrollmentSummary[]): Promise
  * to the first catalog course if enrolment isn't available.
  */
 async function fetchHomeData(): Promise<HomeData> {
-  let { enrollments, lessonCounts } = await fetchEnrollmentData();
-  if (await joinMissingFreeCourses(enrollments)) {
-    ({ enrollments, lessonCounts } = await fetchEnrollmentData());
+  let { enrollments, enrollmentsLoaded, lessonCounts } = await fetchEnrollmentData();
+  if (enrollmentsLoaded && (await joinMissingFreeCourses(enrollments))) {
+    ({ enrollments, enrollmentsLoaded, lessonCounts } = await fetchEnrollmentData());
   }
 
   const catalog = await fetchCatalog();
@@ -228,7 +246,7 @@ export function HomeTabScreen({ navigation }: Props) {
   useFocusEffect(useCallback(() => { load(); }, [load]));
   const pendingGemOrders = usePendingGemOrders();
 
-  const purchasableCourses = catalog.filter((c) => !c.owned && !c.owned);
+  const purchasableCourses = catalog.filter((c) => !c.owned && isPublished(c));
 
   function openCourseSheet(course: CourseSummary) {
     setSelectorOpen(false);
