@@ -14,7 +14,7 @@ import { Text } from "@/components/Text";
 import { BackButton } from "@/components/BackButton";
 import { EmptyState } from "@/components/EmptyState";
 import { ScreenHeader } from "@/components/ScreenHeader";
-import { colors, fonts, alpha } from "@/theme";
+import { colors, fonts } from "@/theme";
 import { gemOrdersApi, GemOrderHistoryItem } from "@/api/gemOrders";
 import { courseOrdersApi, CourseOrderHistoryItem } from "@/api/courseOrders";
 import { AppStackParamList } from "@/navigation/AppNavigator";

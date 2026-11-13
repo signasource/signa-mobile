@@ -43,6 +43,14 @@
         }
       ],
       "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Signa accede a tus fotos solo para que elijas tu foto de perfil.",
+          "cameraPermission": "Signa usa la cámara para reconocer señas y para sacarte una foto de perfil si lo elegís.",
+          "microphonePermission": false
+        }
+      ],
       "expo-asset",
       "expo-web-browser",
       [

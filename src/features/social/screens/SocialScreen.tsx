@@ -295,6 +295,7 @@ export function SocialScreen({ navigation }: Props) {
             friendName: name,
             friendUsername: username,
             friendStreak: accepted?.currentStreak ?? 0,
+            friendAvatarUrl: accepted?.avatarUrl,
           });
         },
         "No pudimos aceptar la solicitud."
@@ -610,6 +611,7 @@ export function SocialScreen({ navigation }: Props) {
                       id={result.id}
                       name={result.name}
                       username={result.username}
+                      avatarUrl={result.avatarUrl}
                       sub={searchSub(result)}
                       actions={actionsFor(
                         result.id,
@@ -656,6 +658,7 @@ export function SocialScreen({ navigation }: Props) {
                           id={friend.id}
                           name={friend.name}
                           username={friend.username}
+                          avatarUrl={friend.avatarUrl}
                           sub={`@${friend.username}`}
                           stats={friendStats(friend)}
                           actions={actionsFor(
@@ -681,6 +684,7 @@ export function SocialScreen({ navigation }: Props) {
                             id={request.requesterId}
                             name={request.requesterName}
                             username={request.requesterUsername}
+                            avatarUrl={request.requesterAvatarUrl}
                             sub={`@${request.requesterUsername} · te mandó una solicitud`}
                             actions={actionsFor(
                               request.requesterId,
@@ -706,6 +710,7 @@ export function SocialScreen({ navigation }: Props) {
                             id={request.addresseeId}
                             name={request.addresseeName}
                             username={request.addresseeUsername}
+                            avatarUrl={request.addresseeAvatarUrl}
                             sub={`@${request.addresseeUsername} · solicitud pendiente`}
                             actions={actionsFor(
                               request.addresseeId,

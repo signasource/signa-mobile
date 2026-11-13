@@ -153,7 +153,8 @@ interval: 30 s + AppState foreground resume.
 
 ## Components — `features/social/components/`
 
-`Avatar`, `PersonRow` (+ `RowAction`), `FeedCard`, `ConfirmSheet`, `Toast`, `FriendAcceptedModal`.
+`Avatar` (takes `avatarUrl`; initials when none), `PersonRow` (+ `RowAction`), `FeedCard`, `ConfirmSheet`, `Toast`, `FriendAcceptedModal`.
+Profile photos (`avatarUrl` on every user in the social/ranking responses) show in `Avatar`, the ranking podium/rows/me bar, `PublicProfileScreen` and the gift friend list through `AvatarPhoto`; `FriendAcceptedScreen` too (`SocialScreen` passes `friendAvatarUrl` from the refreshed friends list). Editing happens in Perfil → tap the avatar.
 `EmptyState` / `EmptyNote` now live in `@/components/EmptyState` (the local file only re-exports them);
 the header comes from `@/components/ScreenHeader`.
 

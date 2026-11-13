@@ -25,7 +25,9 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 |---|---|---|---|
 | `changePassword(ChangePasswordRequest)` | `PUT /users/password` | `AuthResponse` | returns **new tokens** |
 | `checkUsernameAvailability(username, signal?)` | `GET /users/username-availability?username=` | `{ available: boolean }` | **public**; accepts `AbortSignal` |
-| `getMe()` | `GET /users/me` | `UserProfile` | `{ name, lastName, username, providers? }`; `providers` is a set of `"LOCAL"` (email + password) / `"GOOGLE"` |
+| `getMe()` | `GET /users/me` | `UserProfile` | `{ name, lastName, username, providers?, avatarUrl? }`; `avatarUrl` is an API path (or null): `avatarUri()` prefixes `API_URL` and `<Image>` loads it from the public `GET /users/{username}/avatar` (versioned, cached); `providers` is a set of `"LOCAL"` (email + password) / `"GOOGLE"` |
+| `setAvatar(avatar)` | `PUT /users/me/avatar` | `UserProfile` | `avatar` = JPEG/PNG/WebP data URL (≤150 000 chars; `pickAvatar` makes a 256 px JPEG, ~15–25 KB). Returns the profile with the new `avatarUrl`; 400 if malformed |
+| `removeAvatar()` | `DELETE /users/me/avatar` | `UserProfile` | back to initials |
 | `linkGoogle(idToken)` | `POST /users/me/google` | `void` (204) | Links a Google account (by its stable id) to the signed-in user, even if its email differs. 409 `Google account already linked` / `Google account already in use`; 401 `Invalid Google token`. After it, `POST /auth/google` with that account signs into this user |
 | `updateProfile({ username, name, lastName })` | `PATCH /users/me` | `void` (204) | persists username, name and last name; name/lastName optional server-side. 409 if username taken |
 | `getStreakDay()` | `GET /users/me/streak-day` | `StreakDay` | `{ pending, currentStreak }`: today added a streak day not celebrated yet (`pending`), with the streak length including today. Polled by `AchievementCelebrationContext.refresh()` |

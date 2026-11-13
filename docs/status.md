@@ -10,6 +10,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 
 | Area | State | Owner doc |
 |---|---|---|
+| Profile photo (take/choose, crop square, 256 px JPEG, upload; shown in profile, social, ranking, gifts) | real — needs a **new dev build** (`expo-image-picker` + `expo-image-manipulator` are native) | [features/social.md](./features/social.md), [api/endpoints.md](./api/endpoints.md) |
 | Auth (login/register→auto-login/forgot/reset/change) | real | [authentication/screens.md](./authentication/screens.md) |
 | Session + token refresh | real | [authentication/auth-context.md](./authentication/auth-context.md), [api/http-client.md](./api/http-client.md) |
 | Onboarding (6 screens + progress) | real | [features/onboarding.md](./features/onboarding.md) |

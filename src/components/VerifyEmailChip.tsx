@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     paddingHorizontal: 14,
     borderRadius: 16,
-    backgroundColor: "#FEF3D6",
+    backgroundColor: colors.warningLight,
     borderWidth: 1,
     borderColor: colors.warning + "55",
   },

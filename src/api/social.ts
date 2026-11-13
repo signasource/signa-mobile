@@ -19,12 +19,14 @@ export interface Friend {
   currentStreak: number;
   totalXp: number;
   learnedSignsCount: number;
+  avatarUrl?: string | null;
 }
 
 export interface FriendRequest {
   requesterId: string;
   requesterUsername: string;
   requesterName: string;
+  requesterAvatarUrl?: string | null;
   requestedAt: string;
 }
 
@@ -32,6 +34,7 @@ export interface SentFriendRequest {
   addresseeId: string;
   addresseeUsername: string;
   addresseeName: string;
+  addresseeAvatarUrl?: string | null;
   requestedAt: string;
 }
 
@@ -49,6 +52,7 @@ export interface FriendEvent {
   context: string | null;
   liked: boolean;
   createdAt: string;
+  friendAvatarUrl?: string | null;
 }
 
 export interface UserSearchResult {
@@ -57,6 +61,7 @@ export interface UserSearchResult {
   name: string;
   relation: RelationStatus;
   mutualFriends: number;
+  avatarUrl?: string | null;
 }
 
 export const socialApi = {
@@ -153,6 +158,7 @@ export interface PublicUserProfile {
   weeklyXp: { date: string; xpEarned: number }[];
   achievements: PublicAchievement[];
   courses: PublicCourseProgress[];
+  avatarUrl?: string | null;
 }
 
 export const publicProfileApi = {

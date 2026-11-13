@@ -13,6 +13,8 @@ import { colors, fonts } from "@/theme";
 import { rankingApi, RankingEntry, WeeklyRanking } from "@/api/ranking";
 import { usersApi, UserProfile } from "@/api/users";
 import { avatarColors, initialsOf, formatXp } from "@/features/social/people";
+import { AvatarPhoto } from "@/components/AvatarPhoto";
+import { avatarUri } from "@/utils/avatar";
 
 // ─── Countdown ──────────────────────────────────────────────────────────────
 
@@ -127,6 +129,7 @@ function Podium({ entries, onPressProfile }: { entries: RankingEntry[]; onPressP
                 <Text style={[styles.podiumInitials, { color: fg, fontSize: initialsFs }]}>
                   {initialsOf(entry.name, entry.username)}
                 </Text>
+                <AvatarPhoto uri={avatarUri(entry.avatarUrl)} />
               </View>
               <View style={[styles.rankBadge, { backgroundColor: RING[idx] }]}>
                 <Text style={styles.rankBadgeLabel}>{entry.rank}</Text>
@@ -166,6 +169,7 @@ function RankRow({ entry, onPressProfile }: { entry: RankingEntry; onPressProfil
         <Text style={[styles.rowInitials, { color: fg }]}>
           {initialsOf(entry.name, entry.username)}
         </Text>
+        <AvatarPhoto uri={avatarUri(entry.avatarUrl)} />
       </View>
       <View style={styles.rowInfo}>
         <Text style={styles.rowName} numberOfLines={1}>
@@ -191,16 +195,18 @@ function RankRow({ entry, onPressProfile }: { entry: RankingEntry; onPressProfil
 
 // ─── Me bar ──────────────────────────────────────────────────────────────────
 
-function MeBar({ me, myName, myUsername }: {
+function MeBar({ me, myName, myUsername, myAvatarUrl }: {
   me: WeeklyRanking["me"];
   myName: string;
   myUsername: string;
+  myAvatarUrl?: string | null;
 }) {
   return (
     <View style={styles.meBar}>
       <Text style={styles.meRank}>#{me.rank}</Text>
       <View style={styles.meAvatar}>
         <Text style={styles.meInitials}>{initialsOf(myName, myUsername)}</Text>
+        <AvatarPhoto uri={avatarUri(myAvatarUrl)} />
       </View>
       <View style={styles.meInfo}>
         <Text style={styles.meName}>Vos</Text>
@@ -350,7 +356,12 @@ export function RankingTab({ onPressProfile }: RankingTabProps) {
       </ScrollView>
 
       {/* Sticky me bar */}
-      <MeBar me={data.me} myName={myName} myUsername={myUsername} />
+      <MeBar
+        me={data.me}
+        myName={myName}
+        myUsername={myUsername}
+        myAvatarUrl={myProfile?.avatarUrl}
+      />
     </View>
   );
 }
@@ -491,6 +502,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2.5,
+    overflow: "hidden",
   },
   podiumInitials: {
     fontFamily: fonts.displayExtraBold,
@@ -555,6 +567,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
   rowInitials: {
     fontFamily: fonts.displayExtraBold,
@@ -656,6 +669,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 2,
     borderColor: colors.socialWine,
+    overflow: "hidden",
   },
   meInitials: {
     fontFamily: fonts.displayExtraBold,

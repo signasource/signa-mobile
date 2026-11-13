@@ -31,6 +31,8 @@ import {
   socialApi,
 } from "@/api/social";
 import { avatarColors, formatXp, initialsOf } from "@/features/social/people";
+import { AvatarPhoto } from "@/components/AvatarPhoto";
+import { avatarUri } from "@/utils/avatar";
 import { ConfirmSheet, ConfirmSpec } from "@/features/social/components/ConfirmSheet";
 import { Toast } from "@/features/social/components/Toast";
 
@@ -278,6 +280,7 @@ export function PublicProfileScreen({ route, navigation }: Props) {
             <Text style={[styles.avatarInitials, { color: avatar.fg }]}>
               {initialsOf(profile.name, profile.username)}
             </Text>
+            <AvatarPhoto uri={avatarUri(profile.avatarUrl)} />
           </View>
         }
         right={
@@ -645,6 +648,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
     flexShrink: 0,
   },
   avatarInitials: {
