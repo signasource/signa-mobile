@@ -42,6 +42,21 @@ async function buildUserFromToken(accessToken: string): Promise<User> {
   return { email, name: cachedName ?? undefined };
 }
 
+/**
+ * Pushes the daily goal picked during onboarding to the backend (it only lives in AsyncStorage
+ * until there is an account). Best effort: a failure keeps the value so the next attempt retries.
+ */
+async function syncOnboardingDailyGoal(): Promise<void> {
+  try {
+    const { dailyGoal } = await onboardingStorage.getData();
+    if (dailyGoal == null) return;
+    await usersApi.updateDailyGoal(dailyGoal);
+    await onboardingStorage.saveData({ dailyGoal: null });
+  } catch {
+    // non-blocking
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -147,6 +162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data } = await authApi.register(payload);
       await tokenStorage.setTokens(data.accessToken, data.refreshToken);
       await profileCache.setName(payload.email, payload.name);
+      await syncOnboardingDailyGoal();
       setVerificationPrompt(true);
       setUser(await buildUserFromToken(data.accessToken));
     } catch (err: any) {
@@ -162,6 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!google) return false;
       const { data } = await authApi.google({ idToken: google.idToken });
       await tokenStorage.setTokens(data.accessToken, data.refreshToken);
+      await syncOnboardingDailyGoal();
       const built = await buildUserFromToken(data.accessToken);
       if (!built.name && google.name) await profileCache.setName(built.email, google.name);
       setUser(built.name ? built : { ...built, name: google.name ?? undefined });
