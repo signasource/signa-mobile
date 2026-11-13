@@ -269,7 +269,7 @@ export function ProfileScreen({ navigation }: Props) {
     useCallback(() => {
       let active = true;
       fetchCatalog().then((catalog) => {
-        if (active) setBuyableCourses(catalog.filter((c) => !c.owned && (!c.status || c.status === "PUBLISHED")));
+        if (active) setBuyableCourses(catalog.filter((c) => !c.owned && !c.owned));
       });
       return () => {
         active = false;

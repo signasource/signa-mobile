@@ -228,7 +228,7 @@ export function HomeTabScreen({ navigation }: Props) {
   useFocusEffect(useCallback(() => { load(); }, [load]));
   const pendingGemOrders = usePendingGemOrders();
 
-  const purchasableCourses = catalog.filter((c) => !c.owned && (!c.status || c.status === "PUBLISHED"));
+  const purchasableCourses = catalog.filter((c) => !c.owned && !c.owned);
 
   function openCourseSheet(course: CourseSummary) {
     setSelectorOpen(false);

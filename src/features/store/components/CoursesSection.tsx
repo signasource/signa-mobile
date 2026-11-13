@@ -32,7 +32,7 @@ export function CoursesSection() {
   }
 
   const enrolled = courses.filter((c) => c.owned);
-  const available = courses.filter((c) => !c.owned && (!c.status || c.status === "PUBLISHED"));
+  const available = courses.filter((c) => !c.owned && !c.owned);
 
   const openCourse = (c: CourseSummary) => navigation.navigate("CourseDetail", { courseId: c.id });
 

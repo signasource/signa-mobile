@@ -51,7 +51,8 @@ export function CourseDetailScreen({ navigation, route }: Props) {
     try {
       const { data } = await coursesApi.getDetail(courseId);
       setCourse(data);
-      if (data.owned) setPurchased(true);
+      // Free courses always show the detail view; "purchased" only applies to paid courses.
+      if (data.owned && !data.isFree) setPurchased(true);
     } catch (err: any) {
       setLoadError(err?.response?.data?.message ?? "No pudimos cargar el curso.");
     } finally {
@@ -238,7 +239,10 @@ export function CourseDetailScreen({ navigation, route }: Props) {
 
   // ── Course sheet ──
   const exercises = describeExercises(course.exerciseTypes);
-  const isFreeUnenrolled = course.isFree && !course.owned;
+  // Free courses always show the detail; owned=true means the user already enrolled.
+  const isFree = course.isFree;
+  const isFreeOwned = isFree && course.owned;
+  const isFreeUnenrolled = isFree && !course.owned;
 
   return (
     <View style={styles.root}>
@@ -378,31 +382,49 @@ export function CourseDetailScreen({ navigation, route }: Props) {
             </View>
           )}
 
-          {isFreeUnenrolled && (
+          {isFree && (
             <View style={styles.freeCtaBlock}>
               {!!joinError && <Text style={styles.joinError}>{joinError}</Text>}
-              <TouchableOpacity
-                style={styles.freeCtaBtn}
-                onPress={joinFreeCourse}
-                disabled={joining}
-                activeOpacity={0.86}
-              >
-                {joining ? (
-                  <ActivityIndicator color={colors.onDark} />
-                ) : (
-                  <>
-                    <Text style={styles.freeCtaBtnText}>Empezar gratis</Text>
-                    <Ionicons name="arrow-forward" size={18} color={colors.onDark} />
-                  </>
-                )}
-              </TouchableOpacity>
+              {isFreeOwned ? (
+                <TouchableOpacity
+                  style={styles.freeCtaBtn}
+                  onPress={startCourse}
+                  disabled={starting}
+                  activeOpacity={0.86}
+                >
+                  {starting ? (
+                    <ActivityIndicator color={colors.onDark} />
+                  ) : (
+                    <>
+                      <Ionicons name="play" size={18} color={colors.onDark} />
+                      <Text style={styles.freeCtaBtnText}>Ir al curso</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={styles.freeCtaBtn}
+                  onPress={joinFreeCourse}
+                  disabled={joining}
+                  activeOpacity={0.86}
+                >
+                  {joining ? (
+                    <ActivityIndicator color={colors.onDark} />
+                  ) : (
+                    <>
+                      <Text style={styles.freeCtaBtnText}>Empezar gratis</Text>
+                      <Ionicons name="arrow-forward" size={18} color={colors.onDark} />
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </View>
-        <View style={{ height: isFreeUnenrolled ? 40 + insets.bottom : 120 + insets.bottom }} />
+        <View style={{ height: isFree ? 40 + insets.bottom : 120 + insets.bottom }} />
       </ScrollView>
 
-      {!isFreeUnenrolled && (
+      {!isFree && (
         <View style={[styles.priceBar, { paddingBottom: Math.max(insets.bottom, 18) + 12 }]}>
           <View style={styles.flex}>
             <Text style={styles.price}>{price}</Text>

@@ -112,9 +112,9 @@ export const coursesApi = {
   /** Lenguas de señas sembradas en el back (para resolver el `signLanguageId` de LSA). */
   getSignLanguages: () => apiClient.get<SignLanguage[]>("/sign-languages"),
 
-  /** Catálogo de cursos de una lengua de señas. */
+  /** Catálogo de cursos de una lengua de señas (solo publicados). */
   getCatalog: (signLanguageId: string) =>
-    apiClient.get<Page<CourseSummary>>("/courses", { params: { signLanguageId } }),
+    apiClient.get<Page<CourseSummary>>("/courses", { params: { signLanguageId, status: "PUBLISHED" } }),
 
   /** Ficha del curso (también para quien todavía no lo tiene). */
   getDetail: (courseId: string) => apiClient.get<CourseDetail>(`/courses/${courseId}`),
