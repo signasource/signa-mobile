@@ -28,7 +28,7 @@ export function PaidCourseRow({
     subtitle = course.price != null ? `Pago único · ${formatPrice(course.price)}` : "Curso pago";
   }
 
-  const ctaLabel = free ? "Empezar" : "Ver";
+  const ctaLabel = "Ver";
 
   return (
     <TouchableOpacity
