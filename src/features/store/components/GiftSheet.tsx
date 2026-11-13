@@ -79,7 +79,7 @@ export function GiftSheet({ item, gems, onClose, onSent }: GiftSheetProps) {
     >
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <Pressable style={styles.backdrop} onPress={onClose}>
           <Pressable

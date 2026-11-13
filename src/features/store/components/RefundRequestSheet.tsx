@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
 import { colors, fonts, alpha } from "@/theme";
@@ -36,6 +37,7 @@ const REASONS: { value: string; label: string }[] = [
 ];
 
 export function RefundRequestSheet({ target, onClose, onSubmitted }: Props) {
+  const insets = useSafeAreaInsets();
   const [reason, setReason] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -97,7 +99,7 @@ export function RefundRequestSheet({ target, onClose, onSubmitted }: Props) {
       statusBarTranslucent
     >
       <Pressable style={styles.backdrop} onPress={() => { if (!submitting) { reset(); onClose(); } }}>
-        <Pressable style={styles.sheet} onPress={() => {}}>
+        <Pressable style={[styles.sheet, { paddingBottom: insets.bottom }]} onPress={() => {}}>
           <View style={styles.grabber} />
 
           {sent ? (

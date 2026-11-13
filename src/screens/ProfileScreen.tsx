@@ -616,7 +616,7 @@ export function ProfileScreen({ navigation }: Props) {
               {unit && (
                 <View style={styles.courseUnit}>
                   <View style={styles.courseUnitHeader}>
-                    <Text style={styles.courseUnitLabel}>{unit.title}</Text>
+                    <Text style={styles.courseUnitLabel} numberOfLines={1}>{unit.title}</Text>
                     <Text style={styles.courseUnitPct}>{unit.progressPercentage}% de la unidad</Text>
                   </View>
                   <View style={styles.courseUnitTrack}>
@@ -1373,11 +1373,15 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodySemiBold,
     fontSize: 12,
     color: colors.neutral900,
+    flex: 1,
+    minWidth: 0,
   },
   courseUnitPct: {
     fontFamily: fonts.bodyBold,
     fontSize: 12,
     color: colors.neutral600,
+    flexShrink: 0,
+    marginLeft: 8,
   },
   courseUnitTrack: {
     height: 6,

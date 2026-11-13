@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts, alpha } from "@/theme";
@@ -14,9 +15,10 @@ interface NoLivesOverlayProps {
 }
 
 export function NoLivesOverlay({ onGoToStore, onExit, gems, onGetGems }: NoLivesOverlayProps) {
+  const insets = useSafeAreaInsets();
   return (
     <View style={styles.overlay}>
-      <View style={styles.sheet}>
+      <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 40) }]}>
         {gems != null && onGetGems && (
           <TouchableOpacity style={styles.gemPill} onPress={onGetGems} activeOpacity={0.85} accessibilityLabel="Conseguir más gemas">
             <Ionicons name="diamond" size={14} color={colors.gemsBlueDark} />
@@ -58,7 +60,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     paddingHorizontal: 22,
     paddingTop: 26,
-    paddingBottom: 40,
     alignItems: "center",
     gap: 12,
   },

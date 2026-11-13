@@ -10,6 +10,7 @@ import {
   Linking,
   ActivityIndicator,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts, alpha } from "@/theme";
@@ -36,6 +37,7 @@ const REASONS: { value: ReportReason; label: string }[] = [
 ];
 
 export function IntroduceSignBlock({ config, onContinue }: IntroduceSignBlockProps) {
+  const insets = useSafeAreaInsets();
   const [view, setView] = useState<ModalView | null>(null);
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [description, setDescription] = useState("");
@@ -102,7 +104,7 @@ export function IntroduceSignBlock({ config, onContinue }: IntroduceSignBlockPro
 
       <Modal visible={view !== null} transparent animationType="slide" onRequestClose={closeModal}>
         <Pressable style={styles.backdrop} onPress={closeModal}>
-          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+          <Pressable style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 30) }]} onPress={(e) => e.stopPropagation()}>
             <View style={styles.grabber} />
 
             {view === "options" && (
@@ -278,7 +280,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 26,
     paddingHorizontal: 22,
     paddingTop: 16,
-    paddingBottom: 30,
+    paddingBottom: 0,
   },
   grabber: {
     width: 40,
