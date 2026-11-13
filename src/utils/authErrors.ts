@@ -36,5 +36,9 @@ export function mapAuthError(err: unknown, fallback: string): string {
     (err as { response?: { data?: { message?: string } } })?.response?.data
       ?.message ?? null;
   if (raw && AUTH_ERROR_MAP[raw]) return AUTH_ERROR_MAP[raw];
+  if (__DEV__) {
+    const e = err as { message?: string; response?: { status?: number } };
+    console.warn("[authErrors] unmapped error", { status: e?.response?.status, raw, message: e?.message });
+  }
   return fallback;
 }

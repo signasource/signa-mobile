@@ -33,6 +33,11 @@ export async function signInWithGoogle(): Promise<GoogleIdentity | null> {
     return { idToken, name: res.data.user.givenName ?? res.data.user.name ?? null };
   } catch (err) {
     if (isErrorWithCode(err) && err.code === statusCodes.SIGN_IN_CANCELLED) return null;
+    // Solo en desarrollo: el mensaje de la UI es genérico y oculta la causa real (ej. DEVELOPER_ERROR).
+    if (__DEV__) {
+      const code = isErrorWithCode(err) ? err.code : "n/a";
+      console.warn("[googleAuth] signIn failed", { code, message: (err as Error)?.message });
+    }
     throw err;
   }
 }
