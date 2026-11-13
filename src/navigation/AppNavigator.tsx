@@ -55,6 +55,7 @@ export type AppStackParamList = {
     friendName: string;
     friendUsername: string;
     friendStreak: number;
+    friendAvatarUrl?: string | null;
   };
   AchievementCelebration: {
     achievementId: string;

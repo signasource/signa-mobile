@@ -295,6 +295,7 @@ export function SocialScreen({ navigation }: Props) {
             friendName: name,
             friendUsername: username,
             friendStreak: accepted?.currentStreak ?? 0,
+            friendAvatarUrl: accepted?.avatarUrl,
           });
         },
         "No pudimos aceptar la solicitud."
