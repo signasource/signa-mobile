@@ -34,6 +34,8 @@ export interface RegisterRequest {
   password: string;
   name: string;
   lastName: string;
+  /** Daily goal (min) from the onboarding survey; applied only when the account is created. */
+  dailyGoalMinutes?: number;
 }
 
 // RefreshTokenRequest.java
@@ -49,6 +51,8 @@ export interface ForgotPasswordRequest {
 // GoogleAuthRequest.java: ID token de Google (audience = GOOGLE_CLIENT_ID del back, el client ID "web").
 export interface GoogleAuthRequest {
   idToken: string;
+  /** Onboarding daily goal (min); the backend applies it only if this call creates the account. */
+  dailyGoalMinutes?: number;
 }
 
 // ResetPasswordRequest.java - confirmado: email + codigo de 6 digitos del mail + nueva contrasena.

@@ -42,6 +42,27 @@ async function buildUserFromToken(accessToken: string): Promise<User> {
   return { email, name: cachedName ?? undefined };
 }
 
+/**
+ * Daily goal picked in the onboarding survey (only stored locally until an account exists). It is
+ * sent along with register / Google sign-in, where the backend applies it only if that call
+ * creates the account. Never read it on email login: an existing account keeps its own goal.
+ */
+async function readOnboardingDailyGoal(): Promise<number | undefined> {
+  try {
+    return (await onboardingStorage.getData()).dailyGoal ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function discardOnboardingDailyGoal(): Promise<void> {
+  try {
+    await onboardingStorage.saveData({ dailyGoal: null });
+  } catch {
+    // non-blocking: worst case a stale goal is sent on the next sign-up
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -134,6 +155,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data } = await authApi.login(payload);
       await tokenStorage.setTokens(data.accessToken, data.refreshToken);
+      // The account already has its own goal; the onboarding one must not override it.
+      await discardOnboardingDailyGoal();
       setUser(await buildUserFromToken(data.accessToken));
     } catch (err: any) {
       setError(err?.response?.data?.message ?? "No se pudo iniciar sesion");
@@ -144,9 +167,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = useCallback(async (payload: RegisterRequest) => {
     setError(null);
     try {
-      const { data } = await authApi.register(payload);
+      const dailyGoalMinutes = await readOnboardingDailyGoal();
+      const { data } = await authApi.register({ ...payload, dailyGoalMinutes });
       await tokenStorage.setTokens(data.accessToken, data.refreshToken);
       await profileCache.setName(payload.email, payload.name);
+      await discardOnboardingDailyGoal();
       setVerificationPrompt(true);
       setUser(await buildUserFromToken(data.accessToken));
     } catch (err: any) {
@@ -160,8 +185,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const google = await signInWithGoogle();
       if (!google) return false;
-      const { data } = await authApi.google({ idToken: google.idToken });
+      // /auth/google logs in or registers; the backend applies the goal only when it creates the account.
+      const dailyGoalMinutes = await readOnboardingDailyGoal();
+      const { data } = await authApi.google({ idToken: google.idToken, dailyGoalMinutes });
       await tokenStorage.setTokens(data.accessToken, data.refreshToken);
+      await discardOnboardingDailyGoal();
       const built = await buildUserFromToken(data.accessToken);
       if (!built.name && google.name) await profileCache.setName(built.email, google.name);
       setUser(built.name ? built : { ...built, name: google.name ?? undefined });
