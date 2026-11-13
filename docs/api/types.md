@@ -5,9 +5,9 @@
 > Sources: src/types/index.ts, src/api/social.ts, src/api/notifications.ts, src/api/shop.ts, src/api/gemOrders.ts
 
 - `AuthResponse { accessToken, refreshToken }` — **carries no user data**.
-- `GoogleAuthRequest { idToken }` — body of `POST /auth/google`.
+- `GoogleAuthRequest { idToken, dailyGoalMinutes? }` — body of `POST /auth/google`.
 - `LoginRequest { identifier, password }` — `identifier` is email or username.
-- `RegisterRequest { email, username, password, name, lastName }`.
+- `RegisterRequest { email, username, password, name, lastName, dailyGoalMinutes? }`.
 - `ForgotPasswordRequest { email }`.
 - `ResetPasswordRequest { email, code, newPassword }` — `code` is the 6-digit code from the email.
 - `VerifyEmailRequest { email, code }` — `code` is the 6-digit verification code from the email.
