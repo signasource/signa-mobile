@@ -75,8 +75,10 @@ export function LessonScreen({ route, navigation }: Props) {
   const [awardedXp, setAwardedXp] = useState<Record<string, number>>({});
   const [correctBlockIds, setCorrectBlockIds] = useState<Set<string>>(new Set());
   const [completed, setCompleted] = useState(false);
-  // Respuestas ya mandadas al backend cuyo POST sigue viajando.
-  const enVuelo = useRef<Promise<unknown>[]>([]);
+  // Cola de respuestas: cada POST espera al anterior (el último eslabón de la cadena).
+  const cola = useRef<Promise<unknown>>(Promise.resolve());
+  // Bloques informativos ya reportados, para que un doble toque en "Continuar" no los duplique.
+  const infoReportados = useRef<Set<string>>(new Set());
   // When the lesson opened, to report time-on-lesson once (null after it's been sent).
   const startRef = useRef<number | null>(null);
 
@@ -112,10 +114,20 @@ export function LessonScreen({ route, navigation }: Props) {
     setAwardedXp({});
     setCorrectBlockIds(new Set());
     setCompleted(false);
+    infoReportados.current = new Set();
   }
 
+  /**
+   * Las respuestas se mandan en serie, no en paralelo: dos POST del mismo usuario
+   * a la vez (respuestas rápidas, doble toque) hacían que signa-api intentara
+   * crear dos veces el progreso de la lección y fallara con 500. El servidor ya
+   * lo serializa; acá además no lo ponemos a competir contra sí mismo. El orden
+   * se conserva y el juego no espera a la red (no se hace `await` al responder).
+   */
   function recordInteraction(block: LessonContentBlock, isCorrect: boolean | null) {
-    enVuelo.current.push(learningApi.recordBlockInteraction(block.id, isCorrect).catch(() => {}));
+    cola.current = cola.current.then(() =>
+      learningApi.recordBlockInteraction(block.id, isCorrect).catch(() => {})
+    );
   }
 
   /**
@@ -132,10 +144,8 @@ export function LessonScreen({ route, navigation }: Props) {
    * encerrado en la lección.
    */
   async function volver() {
-    const pendientes = enVuelo.current;
-    enVuelo.current = [];
     await Promise.race([
-      Promise.all(pendientes),
+      cola.current,
       new Promise((listo) => setTimeout(listo, ESPERA_MAX_SALIDA)),
     ]);
     navigation.goBack();
@@ -174,7 +184,8 @@ export function LessonScreen({ route, navigation }: Props) {
   }
 
   function handleInfoContinue(block: LessonContentBlock) {
-    if (awardedXp[block.id] === undefined) {
+    if (awardedXp[block.id] === undefined && !infoReportados.current.has(block.id)) {
+      infoReportados.current.add(block.id);
       recordInteraction(block, null);
       setAwardedXp((prev) => ({ ...prev, [block.id]: block.xpReward ?? 0 }));
     }

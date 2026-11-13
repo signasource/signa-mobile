@@ -26,7 +26,7 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   entering a lesson always shows the spinner) and the caller's lives
   (`shopApi.getMyInventory()`, always fresh), walks `blocks` in `order`, renders the matching block
   component, and reports every answer to `learningApi.recordBlockInteraction(blockId, isCorrect)`
-  (`isCorrect: null` for an `INFO` view; `INTRODUCE_SIGN` reports nothing, it just advances).
+  (`isCorrect: null` for an `INFO` view; `INTRODUCE_SIGN` reports nothing, it just advances). Reports are queued and sent **one at a time** (a promise chain in `recordInteraction`; `volver()` waits on its tail, capped by `ESPERA_MAX_SALIDA`), and an `INFO` block is reported once even on a double tap of "Continuar" — concurrent POSTs used to race on `user_lesson_progress` in signa-api (500).
   Blocks whose `type` isn't in `RENDERABLE_BLOCKS` (e.g. `INVISIBLE_SIGNS`, which only seeds the
   sign catalog) are dropped on load — they used to render `null` and leave a blank step with no
   way forward. `signa-api` doesn't require `INTRODUCE_SIGN`/`INVISIBLE_SIGNS` to complete a lesson. That same call is now also where the backend spends a
