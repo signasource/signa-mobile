@@ -41,8 +41,6 @@ export interface CourseDetail {
   signCount: number;
   /** Algún ejercicio usa reconocimiento con cámara. */
   hasCameraPractice: boolean;
-  /** Tipos de ejercicio distintos (`BlockType`, sin `INFO` ni `INTRODUCE_SIGN`). */
-  exerciseTypes: string[];
   /** El curso usa animaciones 3D (`.glb`). Mutuamente excluyente con `hasVideos`. */
   hasAnimations?: boolean;
   /** El curso usa videos (`.mp4`). Mutuamente excluyente con `hasAnimations`. */

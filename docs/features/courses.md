@@ -239,10 +239,11 @@ The buy button never says "Comprar": every entry point shows **"Ver"** and opens
 - **Course sheet** — `screens/CourseDetailScreen.tsx` (route `CourseDetail { courseId }`), design
   `Compra de cursos.dc.html`. Loads `coursesApi.getDetail` (`GET /courses/{id}`) and shows only
   real data: header in `colors.courseIndigo` with unidades / lecciones / señas, a sample sign
-  (`SignAnimation` of `sampleSign`, the first sign taught), "Qué trae el curso" (señas, ejercicios
-  — `describeExercises(exerciseTypes)` — and camera practice yes/no), the syllabus (units →
-  lessons → signs) and a fixed price bar with **"Ir al pago"**. Not shown, because the backend
-  doesn't know them: which signs are 3D vs. video, a per-course tone and a refund policy.
+  (`SignAnimation` of `sampleSign`, the first sign taught) with a hint that adapts to the course
+  media type (`hasVideos` → "todas en video", `hasAnimations` → "avatar 3D"), "Qué trae el curso"
+  (señas, media type row — `hasVideos` or `hasAnimations`, mutually exclusive — and camera practice
+  yes/no), the syllabus (units → lessons → signs) and a fixed price bar with **"Ir al pago"**.
+  The "Antes de pagar" sheet includes a refund note pointing to Tienda → Historial.
 - **Purchase flow** (all inside that screen): "Antes de pagar" summary sheet → `useCoursePurchase`
   → Mercado Pago → "Confirmando tu pago" (`status === "checking"`) → approved ("¡El curso ya es
   tuyo!", "Empezar el curso" sets it as current via `setCurrentCourse` and goes to Inicio) or

@@ -106,7 +106,6 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
           height={height}
           tone={tone}
           preparing
-          preparingKind={media.kind === "video" ? "video" : "glb"}
           style={StyleSheet.absoluteFillObject}
         />
       )}

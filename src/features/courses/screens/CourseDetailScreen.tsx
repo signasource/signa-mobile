@@ -271,7 +271,11 @@ export function CourseDetailScreen({ navigation, route }: Props) {
                 <Text style={styles.kicker}>PROBÁ UNA SEÑA DEL CURSO</Text>
                 <Text style={styles.sampleName}>{capitalize(course.sampleSign)}</Text>
                 <Text style={styles.sampleHint}>
-                  Así se ven las señas del curso: girá el modelo con el dedo.
+                  {course.hasVideos
+                    ? "Así se ven las señas del curso: todas en video."
+                    : course.hasAnimations
+                    ? "Así se ven las señas del curso: se muestran con un avatar 3D."
+                    : "Así se ven las señas del curso."}
                 </Text>
               </View>
             </View>
@@ -492,6 +496,10 @@ export function CourseDetailScreen({ navigation, route }: Props) {
                 No se cobra nada hasta que confirmes en Mercado Pago.
               </Text>
             </View>
+
+            <Text style={styles.refundNote}>
+              Si confirmaste el pago pero todavía no completaste ninguna lección del curso, podés pedir el reembolso en Tienda → Historial.
+            </Text>
 
             {!!purchase.error && <Text style={styles.error}>{purchase.error}</Text>}
 
@@ -1057,6 +1065,14 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodySemiBold,
     fontSize: 12.5,
     color: colors.successDark,
+  },
+  refundNote: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.textMuted,
+    textAlign: "center",
+    paddingHorizontal: 4,
   },
   error: {
     fontFamily: fonts.bodyRegular,
