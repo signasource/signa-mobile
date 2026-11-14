@@ -45,9 +45,7 @@ export function IntroduceSignBlock({ config, onContinue }: IntroduceSignBlockPro
   const [reportError, setReportError] = useState<string | null>(null);
 
   const label = config.word ?? config.meaning;
-  const youtubeUrl =
-    config.video_url ??
-    `https://www.youtube.com/results?search_query=${encodeURIComponent(`seña LSA ${label}`)}`;
+  const youtubeUrl = config.video_url ?? null;
 
   function closeModal() {
     if (loading) return;
@@ -111,15 +109,17 @@ export function IntroduceSignBlock({ config, onContinue }: IntroduceSignBlockPro
               <>
                 <Text style={styles.sheetTitle}>Sobre esta seña</Text>
 
-                <OptionRow
-                  icon="logo-youtube"
-                  iconColor={colors.youtubeRed}
-                  label="Ver en YouTube"
-                  onPress={() => {
-                    Linking.openURL(youtubeUrl);
-                    closeModal();
-                  }}
-                />
+                {youtubeUrl && (
+                  <OptionRow
+                    icon="logo-youtube"
+                    iconColor={colors.youtubeRed}
+                    label="Ver en YouTube"
+                    onPress={() => {
+                      Linking.openURL(youtubeUrl);
+                      closeModal();
+                    }}
+                  />
+                )}
                 <OptionRow
                   icon="flag-outline"
                   iconColor={colors.danger}

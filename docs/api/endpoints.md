@@ -73,6 +73,9 @@ Real-money gem packs through Mercado Pago Checkout Pro. Flow and edge cases → 
 | `createOrder(packId)` | `POST /store/gem-orders` | `GemCheckout` | 201. Creates a `PENDING` order with gems and price frozen, and a Mercado Pago order; `checkoutUrl` is what the app opens. Pack without price → 400; unknown/inactive pack → 404. Rate-limited (30/min per IP) |
 | `getPending()` | `GET /store/gem-orders/pending` | `PendingGemOrder[]` | Orders from the last 7 days whose payment is **in process** at Mercado Pago (cash, transfer, review). The server re-reads each one (and credits an approved one on the way), so abandoned checkouts are not listed. Empty when nothing is pending |
 | `syncOrder(orderId)` | `POST /store/gem-orders/{id}/sync` | `GemOrder` | Server re-reads the order from Mercado Pago and credits the gems **once** if it was approved with the expected amount (`status: "PAID"`); otherwise `PENDING`. Only the caller's own orders (404 otherwise). Rate-limited |
+| `getHistory()` | `GET /store/gem-orders` | `GemOrderHistoryItem[]` | All the caller's gem orders, newest first. Each item: `{ id, packName, gems, amount, currency, status, createdAt, paidAt, refundedAt }` |
+| `checkRefundEligibility(orderId)` | `GET /store/gem-orders/{id}/refund-eligibility` | `RefundEligibilityResult` | `{ eligible, reason? }`. Not eligible when: not `PAID`, already refunded, or the user has spent some of those gems (balance < order.gems) |
+| `createRefundRequest(orderId, { reason, message })` | `POST /store/gem-orders/{id}/refund-request` | `UserRefundRequest` | 201. Creates a refund request for the admin queue; does NOT refund automatically. 400 if not eligible or a pending request already exists |
 
 The payment is also credited by the Mercado Pago webhook, so a missed `syncOrder` never loses a payment.
 
@@ -84,6 +87,9 @@ One-time purchase of **permanent** access to a paid course through Mercado Pago,
 |---|---|---|---|
 | `createOrder(courseId)` | `POST /store/course-orders` | `CourseCheckout` | 201. Creates a `PENDING` order with the course price frozen (`external_reference = course_<id>`) and a Mercado Pago order; `checkoutUrl` is what the app opens. Free course / no price / already owned → 400; unknown course → 404 |
 | `syncOrder(orderId)` | `POST /store/course-orders/{id}/sync` | `CourseOrder` | Server re-reads the order from Mercado Pago and grants a permanent enrolment **once** if approved with the expected amount (`status: "PAID"`, `owned: true`); otherwise `PENDING`. Only the caller's own orders (404 otherwise) |
+| `getHistory()` | `GET /store/course-orders` | `CourseOrderHistoryItem[]` | All the caller's course orders, newest first. Each item: `{ id, courseId, courseName, amount, currency, status, createdAt, paidAt, refundedAt }` |
+| `checkRefundEligibility(orderId)` | `GET /store/course-orders/{id}/refund-eligibility` | `RefundEligibilityResult` | `{ eligible, reason? }`. Not eligible when: not `PAID`, already refunded, or the user has completed the first lesson of that course |
+| `createRefundRequest(orderId, { reason, message })` | `POST /store/course-orders/{id}/refund-request` | `UserRefundRequest` | 201. Creates a refund request for the admin queue; does NOT refund automatically. 400 if not eligible or a pending request already exists |
 
 Granting is also done by the Mercado Pago webhook, so a missed `syncOrder` never loses access.
 
