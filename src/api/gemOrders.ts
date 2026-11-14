@@ -47,6 +47,7 @@ export interface GemOrderHistoryItem {
   createdAt: string;
   paidAt: string | null;
   refundedAt: string | null;
+  refundRequestStatus: "PENDING" | "RESOLVED" | null;
 }
 
 export interface RefundEligibilityResult {

@@ -48,13 +48,13 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
 const STATUS_COLOR: Record<OrderStatus, string> = {
   PENDING: colors.shopAmberDark,
   PAID: colors.successDark,
-  REFUNDED: colors.textMuted,
+  REFUNDED: colors.successDark,
 };
 
 const STATUS_BG: Record<OrderStatus, string> = {
   PENDING: colors.shopAmberLight,
   PAID: colors.successLight,
-  REFUNDED: colors.fill,
+  REFUNDED: colors.successLight,
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -115,6 +115,7 @@ export function PurchaseHistoryScreen({ navigation }: Props) {
 
   function canRequestRefund(entry: HistoryEntry): boolean {
     if (submittedIds.has(entry.order.id)) return false;
+    if (entry.order.refundRequestStatus != null) return false;
     return entry.order.status === "PAID" && entry.order.refundedAt == null;
   }
 
@@ -194,17 +195,23 @@ export function PurchaseHistoryScreen({ navigation }: Props) {
                 </View>
                 {entry.order.status === "REFUNDED" && (
                   <View style={styles.refundedNote}>
-                    <Ionicons name="return-down-back" size={14} color={colors.textMuted} />
+                    <Ionicons name="checkmark-circle" size={14} color={colors.successDark} />
                     <Text style={styles.refundedNoteText}>
                       Reembolso procesado
                       {entry.order.refundedAt ? ` el ${formatDate(entry.order.refundedAt)}` : ""}
                     </Text>
                   </View>
                 )}
-                {submittedIds.has(entry.order.id) && (
+                {(submittedIds.has(entry.order.id) || entry.order.refundRequestStatus === "PENDING") && entry.order.status !== "REFUNDED" && (
                   <View style={styles.requestedNote}>
-                    <Ionicons name="checkmark-circle-outline" size={14} color={colors.successDark} />
-                    <Text style={styles.requestedNoteText}>Pedido de reembolso enviado</Text>
+                    <Ionicons name="time-outline" size={14} color={colors.shopAmberDark} />
+                    <Text style={styles.requestedNoteText}>Pedido de reembolso en revisión</Text>
+                  </View>
+                )}
+                {entry.order.refundRequestStatus === "RESOLVED" && entry.order.status !== "REFUNDED" && !submittedIds.has(entry.order.id) && (
+                  <View style={styles.requestedNote}>
+                    <Ionicons name="checkmark-circle-outline" size={14} color={colors.textMuted} />
+                    <Text style={styles.resolvedNoteText}>Solicitud de reembolso procesada</Text>
                   </View>
                 )}
                 {eligible && (
@@ -338,7 +345,7 @@ const styles = StyleSheet.create({
   refundedNoteText: {
     fontFamily: fonts.bodyRegular,
     fontSize: 12.5,
-    color: colors.textMuted,
+    color: colors.successDark,
   },
   requestedNote: {
     flexDirection: "row",
@@ -352,7 +359,12 @@ const styles = StyleSheet.create({
   requestedNoteText: {
     fontFamily: fonts.bodyRegular,
     fontSize: 12.5,
-    color: colors.successDark,
+    color: colors.shopAmberDark,
+  },
+  resolvedNoteText: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 12.5,
+    color: colors.textMuted,
   },
   refundButton: {
     flexDirection: "row",

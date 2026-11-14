@@ -18,6 +18,7 @@ export interface CourseOrderHistoryItem {
   createdAt: string;
   paidAt: string | null;
   refundedAt: string | null;
+  refundRequestStatus: "PENDING" | "RESOLVED" | null;
 }
 
 export interface CourseOrder {
