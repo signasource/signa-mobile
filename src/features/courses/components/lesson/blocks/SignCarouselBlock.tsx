@@ -3,7 +3,8 @@ import { StyleSheet, TouchableOpacity, View, ViewStyle } from "react-native";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts, alpha } from "@/theme";
-import { MultiSignView } from "@/features/animations/MultiSignView";
+import { MultiAvatarNativo } from "@/features/animations/MultiAvatarNativo";
+import { urlsDeSenas, useSignSources } from "@/features/animations/signMedia";
 import { SignPlaceholder } from "../SignPlaceholder";
 import { XpChip } from "../XpChip";
 import { FeedbackBar } from "../FeedbackBar";
@@ -39,6 +40,7 @@ interface CarouselAnimationProps {
 function CarouselAnimation({ options, activeIndex, tone, paused, style }: CarouselAnimationProps) {
   const [failed, setFailed] = useState(false);
   const wrong = tone === "wrong";
+  const urls = urlsDeSenas(useSignSources(options));
 
   return (
     <View style={[animStyles.container, wrong && animStyles.containerWrong, style]}>
@@ -49,8 +51,8 @@ function CarouselAnimation({ options, activeIndex, tone, paused, style }: Carous
       </View>
 
       {!failed ? (
-        <MultiSignView
-          meanings={options}
+        <MultiAvatarNativo
+          urls={urls}
           activeIndex={activeIndex}
           paused={paused}
           onError={() => setFailed(true)}

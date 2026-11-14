@@ -2,7 +2,7 @@
 
 > Responsibility: courses module scope and state.
 > Update when: course screens/types change, or the backend content API changes.
-> Sources: src/features/courses/, src/features/courses/screens/CourseDetailScreen.tsx, src/api/lessons.ts, src/api/learning.ts, src/api/courseOrders.ts, src/api/signs.ts, src/screens/tabs/HomeTabScreen.tsx, src/features/store/useCoursePurchase.ts, src/features/store/CourseCatalogSheet.tsx, src/features/store/PaidCourseRow.tsx
+> Sources: src/features/courses/, src/features/courses/screens/CourseDetailScreen.tsx, src/api/lessons.ts, src/api/learning.ts, src/api/courseOrders.ts, src/api/signs.ts, src/features/animations/signMedia.ts, src/screens/tabs/HomeTabScreen.tsx, src/features/store/useCoursePurchase.ts, src/features/store/CourseCatalogSheet.tsx, src/features/store/PaidCourseRow.tsx
 
 Status: **mixed**. The **Inicio (Home) roadmap** is wired to real `signa-api` content, and the
 lesson player (`LessonScreen`) is real and wired to `signa-api`. Flat course/lesson browsing
@@ -61,12 +61,12 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   (correct/incorrect banner — icon is the `check.svg`/`denied.svg` spot illustration, not an
   Ionicon), `LessonButton`, `SignPlaceholder` (fallback when a model fails to load or a meaning has
   no animation; also used in a `preparing` mode — `pajaros-grupo-pequeno.svg` illustration +
-  "La animación se está preparando" — while the GLB is still loading), `SignAnimation` (resolves the
-  sign's asset in R2 via `useSignMedia(meaning)` — a `.glb` renders through `GlbAnimationView`, a
-  `.mp4` through `SignVideoView`; overlays `SignPlaceholder preparing` until the source's `onLoaded`
-  fires, or `SignPlaceholder` on `onError`/no asset. When the sign is a video **and** a lateral take
-  exists, it shows a "Ver lateral"/"Ver de frente" pill that swaps between `{meaning}.mp4` and
-  `{meaning}_lateral.mp4`),
+  "La animación se está preparando" — while the GLB is still loading), `SignAnimation` (asks which file the
+  sign uses with `useSignSource(meaning)` — see *Media resolution* below; a `.glb` renders with the
+  native Filament avatar (`AvatarGlbNativo`, WebView `GlbAnimationView` on iOS or as fallback), a
+  `.mp4` with `SignVideo`; overlays `SignPlaceholder preparing` until loaded, or `SignPlaceholder` on
+  error. State resets when `meaning` changes (the spell-name PiP swaps letters). When the sign is a
+  video **and** has a lateral take, a Frente / Lateral switch swaps between both),
   `NoLivesOverlay`, `LessonComplete` (its three tiles — XP, aciertos, señas nuevas — are filtered to
   the ones actually **earned**, `> 0`; the row disappears when none is), and `blocks/` with one
   component per `BlockType` (`InfoBlock`, `IntroduceSignBlock`, `SelectMeaningBlock`,
@@ -80,8 +80,9 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   `SIGN_REPORT_RESOLVED` notification in `NotificationsScreen` lets them navigate to
   `SignDetailScreen` to view the sign again (see [../features/social.md](social.md)). `SelectMeaningBlock` renders its single sign via `SignAnimation`; the multi-option blocks
   (`SignCarouselBlock` — so `SelectSignBlock`/`ContextResponseBlock` —, `MatchBlock`,
-  `VisualRecognitionBlock`) render their signs through `MultiSignView` (a carousel shows one at a
-  time, a match grid shows all at once). Both paths resolve `.glb`/`.mp4` per sign. Answer-option
+  `VisualRecognitionBlock`) render their signs through `MultiAvatarNativo` (a carousel shows one at a
+  time, a match grid shows all at once; URLs from `useSignSources`). Both paths handle `.glb`/`.mp4`
+  per sign. Answer-option
   buttons across
   `SelectMeaningBlock`/`VisualRecognitionBlock`/`MatchBlock` share the same idle look — flat
   `colors.fill` background, no border — and the same `check.svg`/`denied.svg` icons for the
@@ -102,15 +103,13 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   `_lateral.mp4`. No backend round-trip; no presigned URLs; no cache layer in JS. The WebView/native
   player handle HTTP caching. File names are the lowercase meaning, URL-encoded by
   `encodeURIComponent`.
-- **Media resolution** (`src/features/animations/useSignMedia.ts`): `useSignMedia(meaning)` `HEAD`s
-  `{meaning}.glb` and `{meaning}.mp4` in parallel (on RN, `fetch` uses native networking, so no
-  browser CORS). `.glb` wins when both exist (the common case); when only `.mp4` is present it also
-  `HEAD`s `{meaning}_lateral.mp4` so `SignAnimation` knows whether to offer the lateral toggle.
-  Returns a discriminated `{ kind: "loading" | "glb" | "video" | "missing" }`. `resolveSignMedia`
-  is the shared promise; `useSignMediaList(meanings)` resolves a whole list at once for the
-  multi-option blocks. Both single-sign (`SignAnimation`) and multi-option
-  (`MultiSignView`) renderers handle video; only `SignAnimation` exposes the lateral toggle (see
-  [../status.md](../status.md)). `extractLessonSignNames(lesson)`
+- **Media resolution** (`src/features/animations/signMedia.ts`): the app asks signa-api which file
+  each sign uses — `POST /signs/media` → `[{meaning, url, format, lateralUrl}]`, batched and cached
+  in memory — so animations uploaded from the admin panel (`.glb`, or `.mp4` + optional lateral
+  `.mp4`) show up at once; re-uploads carry `?v=` so the on-disk avatar cache refreshes. No answer
+  within 2.5 s, no uploaded file, or API down: the usual `{meaning}.glb` by name (`getGlbUrl`).
+  Bucket keys follow the same convention as before (`lsa/{meaning}.mp4`, `lsa/{meaning}_lateral.mp4`).
+  Only `SignAnimation` exposes the lateral switch (see [../status.md](../status.md)). `extractLessonSignNames(lesson)`
   (in `lessonContent.types.ts`) returns the *taught* meanings (correct answers only, no
   distractors) for display in the lesson-detail modal chips.
 - `blocks/PerformSignBlock.tsx` (`PERFORM_SIGN`): the only block whose answer comes from the real
@@ -144,18 +143,11 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   `onRenderProcessGone` by calling the same `onError` callback the caller already uses to fall back
   to `SignPlaceholder` — without it, an Android WebView renderer crash (e.g. from a low-memory
   device) took the whole host app process down with it instead of just that one card.
-- `features/animations/SignVideoView.tsx`: renders a `.mp4` with `expo-av`'s `Video` (looping,
-  muted, `CONTAIN`), fetched natively straight from R2 — no WebView. Same contract as
-  `GlbAnimationView` (`url`, `paused`, `onLoaded` via `onReadyForDisplay`, `onError`) so
-  `SignAnimation` swaps them transparently, and reports the same `trackAnimationLoad` telemetry.
-- `features/animations/MultiSignView.tsx`: the mixed-media variant of `MultiGlbView` used by the
-  multi-option blocks (`SignCarouselBlock`, `MatchBlock`, `VisualRecognitionBlock`). Resolves each
-  slot's media with `useSignMediaList(meanings)`, feeds the `.glb` slots to one `MultiGlbView`
-  (blank `""` slot for the video ones) and overlays native `SignVideoView`s on the `.mp4` slots —
-  `stack` layout shows only the active slot's video, `rows` positions one per row at
-  `index * (rowHeight + rowGap)`. Native players carry no WebGL contexts, so stacking several does
-  not risk the OOM that forced the one-WebView design for GLBs. Shows the plain `colors.fill` box
-  while the `HEAD` resolution is in flight.
+- `features/animations/SignVideo.tsx`: renders a `.mp4` in a WebView `<video>` (looping, muted,
+  inline) — no extra native dependency (`expo-av` is gone in SDK 57). Same contract as the avatar
+  views (`url`, `paused`, `onLoaded`, `onError`).
+- `features/animations/MultiAvatarNativo.tsx`: several signs with the native avatar (one Filament
+  view per visible slot), `SignVideo` for `.mp4` slots; on iOS falls back to `MultiGlbView`.
 
 To advance: once `signa-api` #60 merges, consider trusting the server as the sole source of truth for `lives` (e.g. refetch
 `shopApi.getMyInventory()` after each wrong answer, or surface the fire-and-forget interaction

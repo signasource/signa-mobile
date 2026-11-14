@@ -3,7 +3,8 @@ import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Text } from "@/components/Text";
 import { colors, fonts, alpha } from "@/theme";
 import { MatchConfig } from "@/features/courses/lessonContent.types";
-import { MultiSignView } from "@/features/animations/MultiSignView";
+import { MultiAvatarNativo } from "@/features/animations/MultiAvatarNativo";
+import { urlsDeSenas, useSignSources } from "@/features/animations/signMedia";
 import { XpChip } from "../XpChip";
 import { LessonButton } from "../LessonButton";
 import Check from "@assets/ilus/check.svg";
@@ -55,6 +56,7 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const wordOrder = useMemo(() => shuffled(conceptos), [clave]);
 
+  const signUrls = urlsDeSenas(useSignSources(signOrder));
   const [modelsFailed, setModelsFailed] = useState(false);
 
   const [matched, setMatched] = useState<Set<string>>(new Set());
@@ -196,8 +198,8 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
         <View style={styles.grid}>
           <View style={[styles.column, { height: columnHeight }]}>
             {!modelsFailed && (
-              <MultiSignView
-                meanings={signOrder}
+              <MultiAvatarNativo
+                urls={signUrls}
                 activeIndex={0}
                 layout="rows"
                 rowHeight={ROW_HEIGHT}
@@ -252,7 +254,7 @@ const styles = StyleSheet.create({
   hint: { fontFamily: fonts.bodyRegular, fontSize: 13, lineHeight: 18, color: colors.textMuted },
   grid: { flexDirection: "row", gap: ROW_GAP },
   column: { flex: 1, gap: ROW_GAP },
-  models: { ...StyleSheet.absoluteFillObject, borderRadius: 16, overflow: "hidden" },
+  models: { ...StyleSheet.absoluteFill, borderRadius: 16, overflow: "hidden" },
   tile: {
     height: ROW_HEIGHT,
     borderRadius: 16,

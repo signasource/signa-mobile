@@ -510,7 +510,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   fullOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   spotBorder: {
     position: "absolute",

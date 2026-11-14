@@ -7,9 +7,6 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "icon": "./assets/images/icon.png",
-    "splash": {
-      "backgroundColor": "#1D283C"
-    },
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -51,12 +48,27 @@
           "microphonePermission": false
         }
       ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
       "expo-asset",
       "expo-web-browser",
       [
         "@react-native-google-signin/google-signin",
         {
           "iosUrlScheme": "com.googleusercontent.apps.REEMPLAZAR-POR-CLIENT-ID-IOS"
+        }
+      ],
+      "expo-status-bar",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#1D283C"
         }
       ]
     ],

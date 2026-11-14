@@ -28,7 +28,7 @@ export function AvatarPhoto({ uri }: Props) {
 
 const styles = StyleSheet.create({
   photo: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 999,
   },
 });

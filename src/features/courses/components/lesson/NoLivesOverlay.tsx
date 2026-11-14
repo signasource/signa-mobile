@@ -50,7 +50,7 @@ export function NoLivesOverlay({ onGoToStore, onExit, gems, onGetGems }: NoLives
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: alpha(colors.text, 0.42),
     justifyContent: "flex-end",
   },
