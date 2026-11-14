@@ -37,7 +37,10 @@ dependencies {
   // La misma LSTM y el mismo modelo de abecedario que hoy corren en el WebView,
   // pero con el runtime nativo. La inferencia era el 2% del cuadro, así que acá
   // lo que se gana no es velocidad: es que el cuadro deje de cruzar el puente.
-  implementation 'org.tensorflow:tensorflow-lite:2.16.1'
+  // LiteRT es el TFLite de siempre con otro nombre (misma API org.tensorflow.lite)
+  // pero con las .so alineadas a páginas de 16 KB: con tensorflow-lite 2.16.1
+  // Android avisaba "This app isn't 16 KB compatible" y Google Play lo exige.
+  implementation 'com.google.ai.edge.litert:litert:1.4.2'
 
   // El avatar 3D, con el motor adentro de la app en vez de <model-viewer>
   // dentro de un WebView bajando su runtime de un CDN.
