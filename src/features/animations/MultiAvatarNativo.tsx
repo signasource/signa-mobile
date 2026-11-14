@@ -5,6 +5,8 @@ import { colors } from "@/theme";
 import { AvatarNativo, hayNativo } from "../../../modules/signa-vision";
 import { MultiGlbView } from "./MultiGlbView";
 import { getGlbUrlOficial } from "./glbUrl";
+import { esVideo } from "./signMedia";
+import { SignVideo } from "./SignVideo";
 
 export interface MultiAvatarNativoProps {
   /** Un `.glb` por seña, en orden. Vacío = ese lugar queda en blanco. */
@@ -19,6 +21,16 @@ export interface MultiAvatarNativoProps {
   style?: ViewStyle;
   label?: string;
   onError?: (mensaje: string) => void;
+}
+
+/** "…/lsa/por%20favor.glb?v=3" → "por favor": el nombre para armar el respaldo. */
+function nombreDeUrl(url: string): string {
+  const archivo = (url.split("?")[0] ?? "").split("/").pop() ?? "";
+  try {
+    return decodeURIComponent(archivo.replace(/\.glb$/i, ""));
+  } catch {
+    return archivo.replace(/\.glb$/i, "");
+  }
 }
 
 /**
@@ -65,12 +77,14 @@ export function MultiAvatarNativo({
     const caja: ViewStyle =
       alto === "todo" ? { flex: 1, backgroundColor: colors.fill } : { height: alto, backgroundColor: colors.fill };
     if (!url) return <View key={key} style={caja} />;
+    // Seña subida como video desde el panel de admins.
+    if (esVideo(url)) return <SignVideo key={key} url={url} paused={enPausa} style={caja} />;
     return (
       <AvatarNativo
         key={key}
         style={caja}
         url={url}
-        urlRespaldo={getGlbUrlOficial(url.split("/").pop()?.replace(/\.glb$/, "") ?? "")}
+        urlRespaldo={getGlbUrlOficial(nombreDeUrl(url))}
         pausado={enPausa}
         rotable={false}
         onFalla={(e) => {

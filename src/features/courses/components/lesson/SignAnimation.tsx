@@ -1,10 +1,12 @@
 import React, { useRef, useState } from "react";
-import { StyleSheet, View, ViewStyle } from "react-native";
+import { Pressable, StyleSheet, View, ViewStyle } from "react-native";
 import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
 import { AvatarGlbNativo } from "@/features/animations/AvatarGlbNativo";
 import { GlbAnimationView } from "@/features/animations/GlbAnimationView";
-import { getGlbUrl, getGlbUrlOficial } from "@/features/animations/glbUrl";
+import { getGlbUrlOficial } from "@/features/animations/glbUrl";
+import { useSignSource } from "@/features/animations/signMedia";
+import { SignVideo } from "@/features/animations/SignVideo";
 import { marcar } from "@/features/ml/telemetria";
 import { hayNativo } from "../../../../../modules/signa-vision";
 import { SignPlaceholder } from "./SignPlaceholder";
@@ -51,6 +53,11 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
   const nativo = hayNativo && (motor ? motor === "nativo" : NATIVO) && !caidoANavegador;
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
+  // Lo que subieron desde el panel (.glb o .mp4); null mientras se pregunta.
+  const fuente = useSignSource(meaning);
+  // Las señas en video pueden traer además una toma lateral.
+  const [vista, setVista] = useState<"frente" | "lateral">("frente");
+  const lateral = fuente?.format === "mp4" ? fuente.lateralUrl ?? null : null;
   const wrong = tone === "wrong";
 
   // Cuánto tarda el avatar en aparecer, medido desde el mismo lugar para los dos
@@ -60,7 +67,7 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
   function listo(detalle?: { msArchivo: number; msMontaje: number }) {
     setReady(true);
     marcar("avatar", {
-      motor: nativo ? "filament" : "webview",
+      motor: fuente?.format === "mp4" ? "video" : nativo ? "filament" : "webview",
       sena: meaning,
       ms: Date.now() - desde.current,
       ...detalle,
@@ -71,6 +78,10 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
     return <SignPlaceholder label={label} height={height} tone={tone} badge={badge} style={style} />;
   }
 
+  if (!fuente) {
+    return <SignPlaceholder label={label} height={height} tone={tone} badge={badge} preparing style={style} />;
+  }
+
   return (
     <View style={[styles.container, { height }, wrong && styles.containerWrong, style]}>
       {badge && (
@@ -78,9 +89,36 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
           <Text style={styles.badgeText}>{badge}</Text>
         </View>
       )}
-      {nativo ? (
+      {lateral && (
+        <View style={styles.vistas} accessibilityRole="tablist">
+          {(["frente", "lateral"] as const).map((v) => (
+            <Pressable
+              key={v}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: vista === v }}
+              onPress={() => setVista(v)}
+              style={[styles.vista, vista === v && styles.vistaActiva]}
+            >
+              <Text style={[styles.vistaTexto, vista === v && styles.vistaTextoActivo]}>
+                {v === "frente" ? "Frente" : "Lateral"}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+      {fuente.format === "mp4" ? (
+        <SignVideo
+          url={vista === "lateral" && lateral ? lateral : fuente.url}
+          paused={paused}
+          onLoaded={() => listo()}
+          onError={(motivo) => {
+            marcar("video-falla", { sena: meaning, motivo });
+            setFailed(true);
+          }}
+        />
+      ) : nativo ? (
         <AvatarGlbNativo
-          url={getGlbUrl(meaning)}
+          url={fuente.url}
           urlRespaldo={getGlbUrlOficial(meaning)}
           paused={paused}
           cameraControls={cameraControls}
@@ -93,7 +131,7 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
         />
       ) : (
         <GlbAnimationView
-          url={getGlbUrl(meaning)}
+          url={fuente.url}
           paused={paused}
           cameraControls={cameraControls}
           onLoaded={() => listo()}
@@ -130,6 +168,21 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 9,
   },
+  vistas: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    zIndex: 1,
+    flexDirection: "row",
+    gap: 2,
+    padding: 2,
+    borderRadius: 9,
+    backgroundColor: "rgba(255,255,255,0.94)",
+  },
+  vista: { borderRadius: 7, paddingVertical: 4, paddingHorizontal: 9 },
+  vistaActiva: { backgroundColor: colors.text },
+  vistaTexto: { fontFamily: fonts.bodySemiBold, fontSize: 11.5, color: colors.textMuted },
+  vistaTextoActivo: { color: colors.surface },
   badgeText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 11.5,

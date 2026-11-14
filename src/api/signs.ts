@@ -22,7 +22,24 @@ interface SignsPage {
 export const signsApi = {
   getSigns: (signLanguageId: string, query?: string) =>
     apiClient.get<SignsPage>("/signs", { params: { signLanguageId, query } }),
+
+  /**
+   * Mirrors SignController#getSignMedia: dónde cargar la animación de cada seña,
+   * tal como la subieron desde el panel de admins (.glb o .mp4). Las que no
+   * tienen archivo o no existen no vienen en la lista.
+   */
+  getMedia: (meanings: string[]) =>
+    apiClient.post<SignMedia[]>("/signs/media", { meanings }),
 };
+
+/** Mirrors SignMediaResponse.java. `meaning` vuelve tal cual se pidió. */
+export interface SignMedia {
+  meaning: string;
+  url: string;
+  format: "glb" | "mp4";
+  /** Video lateral de una seña en .mp4; null si no tiene. */
+  lateralUrl: string | null;
+}
 
 export type ReportReason =
   | "INCORRECT_SIGN"

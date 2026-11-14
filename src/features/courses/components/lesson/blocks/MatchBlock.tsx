@@ -4,7 +4,7 @@ import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
 import { MatchConfig } from "@/features/courses/lessonContent.types";
 import { MultiAvatarNativo } from "@/features/animations/MultiAvatarNativo";
-import { getGlbUrl } from "@/features/animations/glbUrl";
+import { urlsDeSenas, useSignSources } from "@/features/animations/signMedia";
 import { XpChip } from "../XpChip";
 import { LessonButton } from "../LessonButton";
 import Check from "@assets/ilus/check.svg";
@@ -56,7 +56,7 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const wordOrder = useMemo(() => shuffled(conceptos), [clave]);
 
-  const signUrls = useMemo(() => signOrder.map(getGlbUrl), [signOrder]);
+  const signUrls = urlsDeSenas(useSignSources(signOrder));
   const [modelsFailed, setModelsFailed] = useState(false);
 
   const [matched, setMatched] = useState<Set<string>>(new Set());

@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+﻿import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
@@ -6,7 +6,7 @@ import { colors, fonts } from "@/theme";
 import { VisualRecognitionConfig } from "@/features/courses/lessonContent.types";
 import { SignPlaceholder } from "../SignPlaceholder";
 import { MultiAvatarNativo } from "@/features/animations/MultiAvatarNativo";
-import { getGlbUrl } from "@/features/animations/glbUrl";
+import { urlsDeSenas, useSignSources } from "@/features/animations/signMedia";
 import { XpChip } from "../XpChip";
 import { FeedbackBar } from "../FeedbackBar";
 import { LessonButton } from "../LessonButton";
@@ -38,7 +38,7 @@ export function VisualRecognitionBlock({ config, xp, onAnswer, onContinue }: Vis
 
   // The sequence plays one sign at a time inside a single WebView; `seqIndex`
   // advances on a timer and `replayKey` restarts it from the first sign.
-  const seqUrls = useMemo(() => config.sign_sequence.map(getGlbUrl), [config.sign_sequence]);
+  const seqUrls = urlsDeSenas(useSignSources(config.sign_sequence));
   const [seqIndex, setSeqIndex] = useState(0);
   const [replayKey, setReplayKey] = useState(0);
   const [seqFailed, setSeqFailed] = useState(false);

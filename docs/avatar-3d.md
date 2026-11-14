@@ -164,6 +164,25 @@ eso. El intercambio real es **1 MB más de descarga la primera vez** a cambio de
 **sacar la conversión del teléfono** (que en el teléfono del usuario costaba
 ~2 segundos por avatar) y de menos memoria de video mientras se usa.
 
+## De dónde sale el archivo de cada seña
+
+Desde el editor de señas del panel de admins (`signa-web` `/admin/signs`) se puede
+subir, para cada seña, un `.glb` o un **`.mp4`**. La app ya no arma la URL sólo
+con el nombre: `src/features/animations/signMedia.ts` pregunta en lote a
+`POST /signs/media` qué archivo y qué formato tiene cada seña, lo guarda en
+memoria y re-dibuja cuando llega la respuesta.
+
+- Sin respuesta (sin red, API caída, más de 2,5 s) o sin archivo subido, se usa
+  el `.glb` de siempre (`getGlbUrl`, que respeta `EXPO_PUBLIC_GLB_BASE`).
+- Las URLs subidas llevan `?v=<fecha de subida>`: como `AvatarView.kt` guarda los
+  `.glb` en disco por URL, una re-subida baja el archivo nuevo.
+- Si la seña en video trae `lateralUrl`, `SignAnimation` muestra un selector
+  Frente / Lateral arriba a la derecha.
+- Un `.mp4` se muestra con `SignVideo` (un WebView con `<video>` en loop y sin
+  sonido; no suma dependencias nativas). Lo usan `SignAnimation` y, en Android,
+  `MultiAvatarNativo` (Emparejar, carrusel, reconocimiento visual). En iOS los
+  bloques de varias señas siguen con `MultiGlbView`, que no reproduce video.
+
 ## Qué implicaría reemplazar los archivos del servidor
 
 Hoy la app arregla los `.glb` en el teléfono decodifica las texturas y rellena
