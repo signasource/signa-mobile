@@ -228,6 +228,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   sheet: {
+    flex: 1,
     backgroundColor: colors.surface,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
