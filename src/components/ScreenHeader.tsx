@@ -33,6 +33,8 @@ interface ScreenHeaderProps {
   /** Rendered above the title row (e.g. a course selector chip). */
   top?: React.ReactNode;
   children?: React.ReactNode;
+  /** Ref to the stats strip (the welcome tour measures it to place its spotlight). */
+  statsRef?: React.Ref<View>;
   /**
    * Drops the shared minimum height so the header hugs its content. Used by
    * secondary screens (Configuración, Notificaciones), which show only a title
@@ -59,6 +61,7 @@ export function ScreenHeader({
   right,
   top,
   children,
+  statsRef,
   compact = false,
 }: ScreenHeaderProps) {
   const light = isLightColor(tone);
@@ -96,7 +99,7 @@ export function ScreenHeader({
       </View>
 
       {stats && stats.length > 0 && (
-        <View style={styles.stats}>
+        <View ref={statsRef} collapsable={false} style={styles.stats}>
           {stats.map((stat) => {
             const Card = stat.onPress ? TouchableOpacity : View;
             return (

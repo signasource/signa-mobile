@@ -3,7 +3,7 @@ import { View, ScrollView, TextInput, TouchableOpacity, StyleSheet, ActivityIndi
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomTabNavigationProp, BottomTabScreenProps } from "@react-navigation/bottom-tabs";
-import { CompositeNavigationProp, useFocusEffect } from "@react-navigation/native";
+import { CompositeNavigationProp, useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
@@ -57,10 +57,15 @@ export function PracticeTabScreen({ navigation }: Props) {
     dismissPracticeModal,
     showSectionModal,
   } = useTour();
+  const isFocused = useIsFocused();
 
   useFocusEffect(
     useCallback(() => {
-      showSectionModal("practice");
+      let focused = true;
+      showSectionModal("practice", () => focused);
+      return () => {
+        focused = false;
+      };
     }, [showSectionModal]),
   );
 
@@ -127,7 +132,7 @@ export function PracticeTabScreen({ navigation }: Props) {
       </ScrollView>
 
       <SectionWelcomeModal
-        visible={practiceModalVisible}
+        visible={practiceModalVisible && isFocused}
         title="Práctica libre"
         subtitle="Repasá lo que ya aprendiste, a tu ritmo y sin perder vidas."
         headerColor={colors.courseTeal}
