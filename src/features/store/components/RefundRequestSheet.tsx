@@ -56,10 +56,6 @@ export function RefundRequestSheet({ target, onClose, onSubmitted }: Props) {
 
   async function submit() {
     if (!target || !reason) return;
-    if (message.trim().length < 10) {
-      setError("Escribí al menos 10 caracteres en el comentario.");
-      return;
-    }
     setError(null);
     setSubmitting(true);
     try {
@@ -102,7 +98,7 @@ export function RefundRequestSheet({ target, onClose, onSubmitted }: Props) {
     >
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <Pressable style={styles.backdrop} onPress={() => { if (!submitting) { reset(); onClose(); } }}>
           <Pressable style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 28) }]} onPress={() => {}}>
@@ -173,7 +169,7 @@ export function RefundRequestSheet({ target, onClose, onSubmitted }: Props) {
                 ))}
               </View>
 
-              <Text style={styles.fieldLabel}>Comentario</Text>
+              <Text style={styles.fieldLabel}>Comentario <Text style={styles.optionalLabel}>(opcional)</Text></Text>
               <TextInput
                 style={styles.textArea}
                 multiline
@@ -185,7 +181,9 @@ export function RefundRequestSheet({ target, onClose, onSubmitted }: Props) {
                 maxLength={2000}
                 textAlignVertical="top"
               />
-              <Text style={styles.charCount}>{message.length}/2000</Text>
+              {message.length > 0 && (
+                <Text style={styles.charCount}>{message.length}/2000</Text>
+              )}
 
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
@@ -282,6 +280,13 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     color: colors.textMuted,
     marginBottom: 10,
+  },
+  optionalLabel: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 11,
+    letterSpacing: 0,
+    textTransform: "none",
+    color: colors.textMuted,
   },
   reasonsGrid: {
     flexDirection: "row",
