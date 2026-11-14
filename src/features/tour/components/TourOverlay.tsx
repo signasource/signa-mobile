@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Image,
@@ -13,7 +13,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
 import { colors, fonts, fontSizes, alpha } from "@/theme";
-import { useTour } from "../TourContext";
+import type { NavigationContainerRef } from "@react-navigation/native";
+import { useTour, type TourRect } from "../TourContext";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -30,6 +31,21 @@ interface Spot {
   width: number;
   height: number;
   circular: boolean;
+}
+
+/** Spotlight for a measured element; falls back to the estimated spot when it can't be measured. */
+function spotFromRect(rect: TourRect, circular: boolean): Spot {
+  if (circular) {
+    const size = 62;
+    return {
+      x: rect.x + rect.width / 2 - size / 2,
+      y: rect.y + rect.height / 2 - size / 2,
+      width: size,
+      height: size,
+      circular: true,
+    };
+  }
+  return { x: rect.x, y: rect.y, width: rect.width, height: rect.height, circular: false };
 }
 
 function tabSpot(tabIndex: number, screenW: number, screenH: number, bottomInset: number): Spot {
@@ -52,6 +68,9 @@ interface StepData {
   lisaSize?: number;       // override container size (default 190)
   lisaBottomExtra?: number; // bottom offset above tab bar (default 220)
   bubbleAbove: boolean;
+  /** Registered tour target (see `useTourTarget`) measured for the real position. */
+  targetId: string;
+  /** Used only when the target can't be measured. */
   getSpot: (w: number, h: number, topInset: number, bottomInset: number) => Spot;
 }
 
@@ -59,11 +78,12 @@ const STEP_DATA: Record<number, StepData> = {
   1: {
     title: "Tus tres números",
     description:
-      "La racha son tus días seguidos. Las gemas se usan en la Tienda. El XP sube con cada lección.",
+      "La racha son tus días seguidos. Las gemas se usan en la Tienda. Las vidas se gastan cuando te equivocás en una lección.",
     infoBox:
       "Cada sección tiene su propia barra de números arriba. Siempre son los que importan en esa pantalla.",
     accentColor: colors.primary,
     bubbleAbove: false,
+    targetId: "home-stats",
     getSpot: (w, _h, topInset) => ({
       x: 14,
       y: topInset + 112,
@@ -78,6 +98,7 @@ const STEP_DATA: Record<number, StepData> = {
       "El recorrido va de abajo hacia arriba. Tocá Empezar en la lección que te toca. La ⓘ te dice qué señas vas a ver.",
     accentColor: colors.primary,
     bubbleAbove: false,
+    targetId: "home-current-lesson",
     getSpot: (w, _h, topInset) => ({
       x: 74,
       y: topInset + 286,
@@ -93,6 +114,7 @@ const STEP_DATA: Record<number, StepData> = {
     accentColor: colors.courseTeal,
     lisaBody: "arms",
     bubbleAbove: true,
+    targetId: "tab-Practice",
     getSpot: (w, h, _top, bottom) => tabSpot(1, w, h, bottom),
   },
   4: {
@@ -104,6 +126,7 @@ const STEP_DATA: Record<number, StepData> = {
     lisaSize: 230,
     lisaBottomExtra: 185,
     bubbleAbove: true,
+    targetId: "tab-Store",
     getSpot: (w, h, _top, bottom) => tabSpot(2, w, h, bottom),
   },
   5: {
@@ -114,6 +137,7 @@ const STEP_DATA: Record<number, StepData> = {
     lisaBody: "arms",
     lisaBottomExtra: 170,
     bubbleAbove: true,
+    targetId: "tab-Social",
     getSpot: (w, h, _top, bottom) => tabSpot(3, w, h, bottom),
   },
   6: {
@@ -123,6 +147,7 @@ const STEP_DATA: Record<number, StepData> = {
     accentColor: colors.primary,
     lisaBody: "waving",
     bubbleAbove: true,
+    targetId: "tab-Profile",
     getSpot: (w, h, _top, bottom) => tabSpot(4, w, h, bottom),
   },
 };
@@ -457,8 +482,12 @@ function CoachMarkStep({
 
 // ── TourOverlay ───────────────────────────────────────────────────────────────
 
-export function TourOverlay() {
-  const { tourVisible, tourStep, tourGoNext, tourGoPrev, tourSkip } = useTour();
+export function TourOverlay({
+  navigationRef,
+}: {
+  navigationRef: React.RefObject<NavigationContainerRef<any> | null>;
+}) {
+  const { tourVisible, tourStep, tourGoNext, tourGoPrev, tourSkip, measureTarget } = useTour();
   const { width: screenW, height: screenH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
@@ -467,9 +496,40 @@ export function TourOverlay() {
   const isCoachMark = tourStep >= 1 && tourStep <= 6;
 
   const stepData = isCoachMark ? STEP_DATA[tourStep] : null;
-  const spot = stepData
-    ? stepData.getSpot(screenW, screenH, insets.top, insets.bottom)
-    : null;
+
+  // The tour explains Inicio first (stats, current lesson): make sure it is the screen in front,
+  // otherwise the spotlight would point at a different screen's layout.
+  useEffect(() => {
+    if (!tourVisible || tourStep > 2) return;
+    const nav = navigationRef.current;
+    if (nav?.isReady()) nav.navigate("Tabs", { screen: "Home" });
+  }, [tourVisible, tourStep, navigationRef]);
+
+  // Measure the real element for the current step. The step stays dark (no spotlight) until it
+  // is measured so the hole never jumps from an estimated position to the real one.
+  const [measured, setMeasured] = useState<{ step: number; spot: Spot } | null>(null);
+  useEffect(() => {
+    if (!tourVisible || !stepData) {
+      setMeasured(null);
+      return;
+    }
+    let cancelled = false;
+    // Give the Home navigation above a moment to settle before measuring.
+    const timer = setTimeout(async () => {
+      const rect = await measureTarget(stepData.targetId);
+      if (cancelled) return;
+      const spot = rect
+        ? spotFromRect(rect, stepData.getSpot(screenW, screenH, insets.top, insets.bottom).circular)
+        : stepData.getSpot(screenW, screenH, insets.top, insets.bottom);
+      setMeasured({ step: tourStep, spot });
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [tourVisible, tourStep, stepData, measureTarget, screenW, screenH, insets.top, insets.bottom]);
+
+  const spot = measured && measured.step === tourStep ? measured.spot : null;
 
   return (
     <Modal
@@ -483,6 +543,8 @@ export function TourOverlay() {
         {isWelcome && (
           <WelcomeStep onStart={tourGoNext} onSkip={tourSkip} />
         )}
+
+        {isCoachMark && stepData && !spot && <View style={[styles.fullOverlay, { backgroundColor: OVERLAY }]} />}
 
         {isCoachMark && stepData && spot && (
           <CoachMarkStep

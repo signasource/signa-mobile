@@ -11,7 +11,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomTabNavigationProp, BottomTabScreenProps } from "@react-navigation/bottom-tabs";
-import { CompositeNavigationProp, useFocusEffect } from "@react-navigation/native";
+import { CompositeNavigationProp, useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { useTour } from "@/features/tour/TourContext";
 import { SectionWelcomeModal } from "@/features/tour/components/SectionWelcomeModal";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -108,10 +108,15 @@ function searchSub(result: UserSearchResult): string {
 export function SocialScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { socialModalVisible, dismissSocialModal, showSectionModal } = useTour();
+  const isFocused = useIsFocused();
 
   useFocusEffect(
     useCallback(() => {
-      showSectionModal("social");
+      let focused = true;
+      showSectionModal("social", () => focused);
+      return () => {
+        focused = false;
+      };
     }, [showSectionModal]),
   );
 
@@ -742,7 +747,7 @@ export function SocialScreen({ navigation }: Props) {
       />
 
       <SectionWelcomeModal
-        visible={socialModalVisible}
+        visible={socialModalVisible && isFocused}
         title="Social"
         subtitle="Seguí a tus amigos y mirá en qué andan."
         headerColor={colors.socialWine}

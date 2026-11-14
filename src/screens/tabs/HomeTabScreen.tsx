@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
   View,
   ScrollView,
@@ -38,6 +38,7 @@ import { LivesMode } from "@/api/shop";
 import { accentFor, progressFor } from "@/features/courses/roadmap";
 import { PaidCourseRow } from "@/features/store/PaidCourseRow";
 import { useTour } from "@/features/tour/TourContext";
+import { useTourTarget } from "@/features/tour/useTourTarget";
 import { challengesApi, Challenge, Challenges } from "@/api/challenges";
 import { ChallengesCard } from "@/features/challenges/components/ChallengesCard";
 import { mapChallengeClaimError } from "@/utils/challengeErrors";
@@ -210,6 +211,27 @@ export function HomeTabScreen({ navigation }: Props) {
 
   // The welcome tour spotlights elements of this screen: the card would shift them.
   const { tourVisible } = useTour();
+  const statsRef = useTourTarget("home-stats");
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollY = useRef(0);
+  const lessonCardRef = useTourTarget("home-current-lesson", revealCurrentLesson);
+
+  /** Scrolls the roadmap so the current lesson sits in the upper half, leaving room for the tour bubble. */
+  function revealCurrentLesson() {
+    return new Promise<void>((resolve) => {
+      const node = lessonCardRef.current;
+      if (!node || !scrollRef.current) return resolve();
+      node.measureInWindow((_x, y) => {
+        const desiredTop = insets.top + 190;
+        const delta = y - desiredTop;
+        if (Math.abs(delta) > 4) {
+          scrollRef.current?.scrollTo({ y: Math.max(0, scrollY.current + delta), animated: false });
+        }
+        // Give the scroll a frame to be applied before measuring again.
+        setTimeout(resolve, 80);
+      });
+    });
+  }
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -347,6 +369,7 @@ export function HomeTabScreen({ navigation }: Props) {
         description="Seguí la ruta lección por lección y sumá señas todos los días."
         paddingTop={insets.top + 14}
         tone={colors.primary}
+        statsRef={statsRef}
         top={
           currentCourse ? (
             <View style={styles.courseChipRow}>
@@ -412,9 +435,14 @@ export function HomeTabScreen({ navigation }: Props) {
         </View>
       ) : (
         <ScrollView
+          ref={scrollRef}
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          onScroll={(e) => {
+            scrollY.current = e.nativeEvent.contentOffset.y;
+          }}
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -455,6 +483,7 @@ export function HomeTabScreen({ navigation }: Props) {
               currentLessonId={currentLessonId}
               onInfo={(lesson) => setOpenLesson({ lesson, unitLabel: topic.title })}
               onNavigate={(lesson) => navigateToLesson(lesson, topic.title)}
+              currentCardRef={lessonCardRef}
             />
           ))}
           {roadmap && roadmap.topics.length > 0 && currentCourseIsFree && purchasableCourses.length > 0 && (
@@ -631,11 +660,14 @@ function TopicSection({
   currentLessonId,
   onInfo,
   onNavigate,
+  currentCardRef,
 }: {
   topic: RoadmapTopic;
   currentLessonId: string | null;
   onInfo: (lesson: RoadmapLesson) => void;
   onNavigate: (lesson: RoadmapLesson) => void;
+  /** Welcome-tour anchor: attached to the current lesson card only. */
+  currentCardRef: React.Ref<View>;
 }) {
   const accent = accentFor(topic);
   const progress = progressFor(topic);
@@ -683,6 +715,7 @@ function TopicSection({
             isCurrent={isCurrent}
             onInfo={() => onInfo(lesson)}
             onNavigate={() => onNavigate(lesson)}
+            cardRef={currentCardRef}
           />
         );
       })}
@@ -697,14 +730,18 @@ function LessonRow({
   isCurrent,
   onInfo,
   onNavigate,
+  cardRef,
 }: {
   lesson: RoadmapLesson;
   isCurrent: boolean;
   onInfo: () => void;
   onNavigate: () => void;
+  cardRef: React.Ref<View>;
 }) {
   if (isCurrent) {
-    return <CurrentLessonCard lesson={lesson} onInfo={onInfo} onNavigate={onNavigate} />;
+    return (
+      <CurrentLessonCard lesson={lesson} onInfo={onInfo} onNavigate={onNavigate} cardRef={cardRef} />
+    );
   }
   if (lesson.state === "COMPLETED") {
     return <CompletedLessonRow lesson={lesson} onNavigate={onNavigate} />;
@@ -742,10 +779,12 @@ function CurrentLessonCard({
   lesson,
   onInfo,
   onNavigate,
+  cardRef,
 }: {
   lesson: RoadmapLesson;
   onInfo: () => void;
   onNavigate: () => void;
+  cardRef: React.Ref<View>;
 }) {
   return (
     <View style={[styles.lessonRow, styles.lessonRowTop]}>
@@ -757,7 +796,7 @@ function CurrentLessonCard({
           </View>
         </View>
       </View>
-      <View style={styles.lessonCard}>
+      <View ref={cardRef} collapsable={false} style={styles.lessonCard}>
         <Text style={styles.cardKicker}>Seguí acá</Text>
         <Text style={styles.cardTitle}>{lesson.name}</Text>
         <View style={styles.cardActions}>

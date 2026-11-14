@@ -157,7 +157,7 @@ export function RootNavigator() {
           navigationRef={navigationRef}
         />
         <AchievementCelebrationConnected currentRouteName={currentRouteName} navigationRef={navigationRef} />
-        <TourOverlay />
+        <TourOverlay navigationRef={navigationRef} />
       </TourProvider>
       </AchievementCelebrationProvider>
     </FriendAcceptedProvider>

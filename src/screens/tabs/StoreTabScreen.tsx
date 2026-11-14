@@ -12,7 +12,7 @@ import {
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation, useRoute, RouteProp, useFocusEffect } from "@react-navigation/native";
+import { useNavigation, useRoute, RouteProp, useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { TabParamList } from "@/navigation/TabNavigator";
 import { AppStackParamList } from "@/navigation/AppNavigator";
@@ -318,10 +318,15 @@ export function StoreTabScreen() {
   const listRef = useRef<ScrollView>(null);
 
   const { storeModalVisible, dismissStoreModal, showSectionModal } = useTour();
+  const isFocused = useIsFocused();
 
   useFocusEffect(
     useCallback(() => {
-      showSectionModal("store");
+      let focused = true;
+      showSectionModal("store", () => focused);
+      return () => {
+        focused = false;
+      };
     }, [showSectionModal]),
   );
 
@@ -739,7 +744,7 @@ export function StoreTabScreen() {
       </Modal>
 
       <SectionWelcomeModal
-        visible={storeModalVisible}
+        visible={storeModalVisible && isFocused}
         title="Tienda"
         subtitle="Cambiá tus gemas por vidas, escudos y potenciadores."
         headerColor={colors.shopAmber}

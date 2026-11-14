@@ -26,10 +26,12 @@ A full-screen `Modal` (`TourOverlay`) mounted in `RootNavigator`, driven by `Tou
 
 - **Step 0** – Welcome modal: Lisa character greets the user. CTA: "Mostrame la app" / "Prefiero explorar solo".
 - **Steps 1–6** – Coach marks: dark overlay with a spotlight cutout and a floating bubble card.
-  - Step 1: Stats bar (racha, gemas, XP) on the Home screen.
+  - Step 1: Stats bar (racha, gemas, vidas) on the Home screen.
   - Step 2: Current lesson card on the Home roadmap.
   - Steps 3–6: Tab bar icons (Práctica, Tienda, Social, Perfil) in order.
 - **Step 7** – Closing: celebration card, "Tour completado", CTA to start first lesson or dismiss.
+
+**Spotlight positioning.** Nothing is hardcoded: each spotlighted element registers itself with `useTourTarget(id)` (`src/features/tour/useTourTarget.ts`) and `TourOverlay` measures it with `measureInWindow` via `measureTarget(id)` in `TourContext`. Targets: `home-stats` (`ScreenHeader` `statsRef`), `home-current-lesson` (current lesson card; its `reveal` scrolls the roadmap so the card sits in the upper half), `tab-Home|Practice|Store|Social|Profile` (`TabBarIcon` in `TabNavigator`). Until a step is measured the screen stays dark (no spotlight), so the hole never jumps; if a target can't be measured it falls back to the old estimated `getSpot`. Steps 1–2 first navigate to `Tabs → Home` (the overlay receives `navigationRef`), so a replay from another screen still points at Inicio. A new spotlighted element needs a `useTourTarget` id and a `targetId` in `STEP_DATA`.
 
 Trigger rules: once only, on first authenticated app open. Skippable via "Saltear". Replayable from Perfil → Configuración → Volver a ver el tour (calls `tourReplay()` from `useTour()`).
 
@@ -45,7 +47,7 @@ No longer a local checklist: the four steps are the **first set of daily challen
 - **Tienda** — rendered inside `StoreTabScreen`, triggered via `useFocusEffect`.
 - **Social** — rendered inside `SocialScreen`, triggered via `useFocusEffect`.
 
-At most one modal per session (`sessionModalShown` ref in `TourContext`).
+At most one modal per session (`sessionModalShown` ref in `TourContext`). A section modal only appears **on its own tab**: `showSectionModal(tab, isStillFocused)` re-checks focus after the async "already seen?" lookup, never fires while the welcome tour is visible, and each screen renders it with `visible={flag && isFocused}` so it can't show over another tab.
 
 ### Storage keys (`src/features/tour/storage.ts`)
 

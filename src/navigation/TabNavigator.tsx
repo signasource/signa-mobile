@@ -1,4 +1,5 @@
 import React from "react";
+import { View } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -8,6 +9,7 @@ import { StoreTabScreen } from "@/screens/tabs/StoreTabScreen";
 import { SocialScreen } from "@/features/social/screens/SocialScreen";
 import { ProfileScreen } from "@/screens/ProfileScreen";
 import { colors } from "@/theme";
+import { useTourTarget } from "@/features/tour/useTourTarget";
 
 const BASE_TAB_BAR_PADDING_BOTTOM = 24;
 const BASE_TAB_BAR_PADDING_TOP = 12;
@@ -22,6 +24,33 @@ export type TabParamList = {
 
 const Tab = createBottomTabNavigator<TabParamList>();
 
+const TAB_ICONS: Record<keyof TabParamList, { on: string; off: string }> = {
+  Home: { on: "home", off: "home-outline" },
+  Practice: { on: "hand-left", off: "hand-left-outline" },
+  Store: { on: "storefront", off: "storefront-outline" },
+  Social: { on: "people", off: "people-outline" },
+  Profile: { on: "person", off: "person-outline" },
+};
+
+/** Tab icon that the welcome tour can measure and spotlight (id `tab-<Route>`). */
+function TabBarIcon({
+  route,
+  focused,
+  color,
+}: {
+  route: keyof TabParamList;
+  focused: boolean;
+  color: string;
+}) {
+  const ref = useTourTarget(`tab-${route}`);
+  const icons = TAB_ICONS[route];
+  return (
+    <View ref={ref} collapsable={false}>
+      <Ionicons name={(focused ? icons.on : icons.off) as any} size={26} color={color} />
+    </View>
+  );
+}
+
 export function TabNavigator() {
   const insets = useSafeAreaInsets();
   // On devices with an on-screen nav bar (e.g. Moto E's 3-button bar) the app
@@ -33,16 +62,9 @@ export function TabNavigator() {
     <Tab.Navigator
       screenOptions={({ route }: any) => ({
         headerShown: false,
-        tabBarIcon: ({ focused, color }: any) => {
-          const iconMap: Record<string, string> = {
-            Home: focused ? "home" : "home-outline",
-            Practice: focused ? "hand-left" : "hand-left-outline",
-            Store: focused ? "storefront" : "storefront-outline",
-            Social: focused ? "people" : "people-outline",
-            Profile: focused ? "person" : "person-outline",
-          };
-          return <Ionicons name={iconMap[route.name] as any} size={26} color={color} />;
-        },
+        tabBarIcon: ({ focused, color }: any) => (
+          <TabBarIcon route={route.name} focused={focused} color={color} />
+        ),
         tabBarShowLabel: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.neutral600,
