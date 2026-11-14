@@ -1,0 +1,7 @@
+{
+  "name": "signa-vision",
+  "version": "0.1.0",
+  "description": "Espiga de reconocimiento nativo con MediaPipe Tasks",
+  "main": "index.ts",
+  "private": true
+}

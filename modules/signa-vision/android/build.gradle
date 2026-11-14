@@ -1,0 +1,59 @@
+apply plugin: 'com.android.library'
+apply plugin: 'org.jetbrains.kotlin.android'
+
+group = 'com.signa.vision'
+version = '0.1.0'
+
+android {
+  namespace "com.signa.vision"
+  compileSdk 36
+
+  defaultConfig {
+    minSdk 24
+  }
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+  kotlinOptions { jvmTarget = "17" }
+}
+
+dependencies {
+  implementation project(':expo-modules-core')
+  implementation "org.jetbrains.kotlin:kotlin-stdlib:${kotlinVersion}"
+  // Los MISMOS modelos que ya usamos, pero con el runtime nativo en vez del
+  // WASM dentro del WebView.
+  implementation 'com.google.mediapipe:tasks-vision:0.10.35'
+
+  // Cámara nativa: el frame va de la cámara al detector sin pasar por el
+  // puente de JS ni por un canvas intermedio, que es de donde salía buena
+  // parte del costo en la versión web.
+  def camerax = "1.4.2"
+  implementation "androidx.camera:camera-core:$camerax"
+  implementation "androidx.camera:camera-camera2:$camerax"
+  implementation "androidx.camera:camera-lifecycle:$camerax"
+  implementation "androidx.camera:camera-view:$camerax"
+
+  // La misma LSTM y el mismo modelo de abecedario que hoy corren en el WebView,
+  // pero con el runtime nativo. La inferencia era el 2% del cuadro, así que acá
+  // lo que se gana no es velocidad: es que el cuadro deje de cruzar el puente.
+  // LiteRT es el TFLite de siempre con otro nombre (misma API org.tensorflow.lite)
+  // pero con las .so alineadas a páginas de 16 KB: con tensorflow-lite 2.16.1
+  // Android avisaba "This app isn't 16 KB compatible" y Google Play lo exige.
+  implementation 'com.google.ai.edge.litert:litert:1.4.2'
+
+  // El avatar 3D, con el motor adentro de la app en vez de <model-viewer>
+  // dentro de un WebView bajando su runtime de un CDN.
+  //
+  // Se le saca la kotlin-stdlib que arrastra: pide la 2.4.0 y eso sube la
+  // versión para TODO el proyecto, incluidos los módulos de Expo, que después
+  // no compilan porque el compilador de acá no sabe leer esos metadatos. Las
+  // clases que usamos de Filament son Java.
+  def filament = "1.73.0"
+  def sinStdlib = { exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib" }
+  implementation("com.google.android.filament:filament-android:$filament", sinStdlib)
+  implementation("com.google.android.filament:gltfio-android:$filament", sinStdlib)
+  // Sin filament-utils: su ayudante de alto nivel viene compilado con otra
+  // versión de Kotlin que no convive con la del proyecto, y de todas formas
+  // acá la cámara se maneja a mano para copiar el encuadre de la versión web.
+}

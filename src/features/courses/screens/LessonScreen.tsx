@@ -263,7 +263,7 @@ export function LessonScreen({ route, navigation }: Props) {
           return (
             <View
               key={block.id}
-              style={[StyleSheet.absoluteFillObject, { opacity: i === blockIndex ? 1 : 0 }]}
+              style={[StyleSheet.absoluteFill, { opacity: i === blockIndex ? 1 : 0 }]}
               pointerEvents={i === blockIndex ? "auto" : "none"}
             >
               <BlockRenderer

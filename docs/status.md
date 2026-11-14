@@ -32,6 +32,28 @@ Per-feature detail is owned by each feature doc; this is the index.
 | ML (sign recognition) | real, **on-device and real time** (nothing leaves the phone) | [features/ml.md](./features/ml.md) |
 | Client telemetry (animation load latency, API errors) → signa-api `/telemetry/events` | real, fire-and-forget | [api/endpoints.md](./api/endpoints.md#telemetry-srctelemetrytelemetryts) |
 
+## Plataformas
+
+`modules/signa-vision` is a **local Expo module with an Android implementation only**
+(`expo-module.config.json` declares `"platforms": ["android"]`; there is no `ios/` directory).
+It provides both the camera recogniser and the Filament avatar.
+
+Because of that, the app degrades on any build without it — iOS, and Expo Go on every platform,
+since a local native module is never part of Expo Go:
+
+| | Android (dev build) | iOS / Expo Go |
+|---|---|---|
+| Sign recognition (`PERFORM_SIGN`, `SPELL_NAME`) | native, real time | exercise skipped (`BloqueSinCamara`) |
+| Sign avatar | native (Filament) | WebView with Google's `<model-viewer>` |
+| Startup bench (`BancoNativoPantalla`) | shown before the app | skipped |
+
+The switch is the `hayNativo` flag exported by `modules/signa-vision`, which is
+`requireOptionalNativeModule(...) !== null`. Its six consumers are `App.tsx`, `LessonScreen`,
+`AvatarGlbNativo`, `MultiAvatarNativo`, `ReconocedorSenasNativo` and `BancoNativoPantalla`.
+
+Running on iPhone is therefore useful for everything **except** recognition: auth, Inicio,
+lessons without camera, Tienda, Social, Perfil and Práctica all work.
+
 ## Cross-cutting tech debt
 
 - **Responsive pending**: only `AuthScreen` caps its width on tablets; the other screens (tabs, onboarding choice screens, lessons) stretch full width. Lesson sign animations use fixed heights (330dp in `SignCarouselBlock`). Not yet checked on small/short screens or at large font scale beyond Welcome/Achievement (which now fit via `useFitSquare`).
@@ -51,7 +73,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 - ~~No ESLint.~~ Fixed: `eslint` + `eslint-config-expo` (flat config, `eslint.config.js`), `npm run lint` = `expo lint`.
 - ~~**Legacy theme tokens** (`accent`, `morado`, `azulOscuro`, `headingSemiBold`, …).~~ Fixed: the 12 files that used them moved to current tokens and the aliases were deleted from `colors.ts` / `typography.ts`, so they can't come back. `white` → `surface` (backgrounds) / `onColor` (foreground, same `#FFFFFF`); `verde` → `connectionOk` (same `#34D339`).
 - ~~**~110 hardcoded hex colors and ~70 `rgba()` in 30 files.**~~ Fixed: every one maps to a token with the exact same value (new tokens where none existed), `rgba()` became `alpha(colors.x, a)`, the profile header palette duplicated in Perfil/Configuración moved to `@/theme` (`headerColors`), and `ConfigurationScreen`'s copy of the luminance helpers now uses `@/utils/color`. `npm run lint` now fails on any hardcoded color, so it can't come back. No color changed.
-- **Lateral video only in single-sign blocks.** Every block now renders `.glb` or `.mp4` signs (`SignAnimation` for one sign, `MultiSignView` for carousels/grids — `SignCarouselBlock`, `MatchBlock`, `VisualRecognitionBlock`), but the "Ver lateral"/"Ver de frente" toggle only exists in `SignAnimation`. The multi-option blocks play the frontal `.mp4` and offer no lateral take (it would clutter a carousel/match grid). If lateral is wanted there too, add it to `MultiSignView`.
+- **Lateral video only in single-sign blocks.** Every block renders `.glb` or `.mp4` signs (`SignAnimation` for one sign, `MultiAvatarNativo` for carousels/grids), but only `SignAnimation` offers the Frente / Lateral switch. On iOS the multi-sign blocks (`MultiGlbView`) do not play video yet.
 - **Sent gifts have no UI.** Sending and receiving/claiming gifts work from the Store, but `GET /store/gifts/sent` has no client, so a sender cannot see the status (pending / claimed / expired) of what they sent.
 - **Gem packs and store policy.** Google Play requires Play Billing for digital goods consumed inside the app, so selling gems through Mercado Pago can get the app rejected or removed from Google Play. Chosen because Play Console's payments profile blocked registering the products before production; revisit before a public release (alternative billing program, or ship Play Billing again once products can be registered).
 - **Gem shop polish.** The "Gemas gratis" row points to Inicio instead of a challenges screen. The diamond flight aims at an approximate height, not at the real position of the counter. The pending-order indicator depends on `GET /store/gem-orders/pending` (`signa-api`), unverified against a real in-process payment (cash).
@@ -73,6 +95,11 @@ Per-feature detail is owned by each feature doc; this is the index.
 - **Google sign-in fails in local debug builds (`npm run android`).** `expo run:android` signs with `android/app/debug.keystore` (Expo template, same on every machine): SHA-1 `5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25`. It needs its own Android OAuth client (package `com.signasource.signamobile` + that SHA-1) next to the EAS one; without it Google returns `DEVELOPER_ERROR` (code 10). Pending in Google Cloud (2026-11-13); also confirm the signa-api server's `GOOGLE_CLIENT_ID` equals the app's web client ID.
 - ~~signa-api: race on `user_lesson_progress` returns 500.~~ Fixed in signa-api (`develop`, not yet released): `CourseTrackingService.recordBlockInteraction` now takes a row lock on the user (`UserRepository.lockById`, `SELECT ... FOR UPDATE`) before reading/inserting progress, so concurrent interactions of the same user (double submit, retry) run one after another instead of both inserting the `(user_id, lesson_id)` row (the original 500 was a unique-constraint violation, prod logs 2026-11-13 21:07 UTC). Also covers the same race on `user_topic_progress`. The lesson player also sends interactions serially now (`LessonScreen.recordInteraction`) and reports each `INFO` block once, so the app no longer provokes the race.
 - **Lint at 3 errors / 2 warnings, predating the Google-debug change:** hardcoded hex in `src/components/VerifyEmailChip.tsx:45`; unescaped `"` in `src/features/store/screens/GemShopScreen.tsx:487`; unused imports (`Pressable` in `NotificationsScreen.tsx`, `alpha` in `PurchaseHistoryScreen.tsx`).
+- ~~**Not 16 KB page-size compatible.**~~ Fixed: `libtensorflowlite_jni.so` from `org.tensorflow:tensorflow-lite:2.16.1` was 4 KB-aligned (Android showed "This app isn't 16 KB compatible" on 16 KB devices and Google Play requires it). `signa-vision` now uses LiteRT (`com.google.ai.edge.litert:litert:1.4.2`, same `org.tensorflow.lite` API); every `.so` passes `zipalign -c -P 16`.
+- **`signa-vision` has no iOS implementation.** The recogniser and the Filament avatar are Kotlin
+  only, so iOS loses the camera exercises and falls back to the WebView avatar. Writing the Swift
+  side is what would unblock feature parity; until then an iPhone cannot be used to test
+  recognition.
 - **CI:** GitHub Actions (`.github/workflows/release.yml`, semantic-release on push to `master`). No GitLab pipeline.
 
 ## Next steps

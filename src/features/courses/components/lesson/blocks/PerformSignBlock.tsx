@@ -5,9 +5,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
 import { colors, fonts, alpha } from "@/theme";
 import { PerformSignConfig } from "@/features/courses/lessonContent.types";
-import { LiveSignRecognizer, LiveFrame } from "@/features/ml/components/LiveSignRecognizer";
+import type { LiveFrame } from "@/features/ml/components/LiveSignRecognizer";
+import { ReconocedorSenasNativo } from "@/features/ml/components/ReconocedorSenasNativo";
+import { hayNativo } from "../../../../../../modules/signa-vision";
 import { signMeaning } from "@/features/ml";
 import { trackCameraSkip } from "@/telemetry/telemetry";
+// TEMPORAL: rama de diagnóstico, ver src/features/ml/telemetria.ts
+import { cerrarMedicion, marcar, medir } from "@/features/ml/telemetria";
 import { SignPip } from "../SignPip";
 import {
   BadgeEstado,
@@ -110,12 +114,25 @@ export function PerformSignBlock({ config, active, ultimo, xp, onAnswer, onConti
     Animated.spring(pop, { toValue: 1, useNativeDriver: true, friction: 6, tension: 90 }).start();
   }, [terminado, saliendo, pop]);
 
+  // TEMPORAL: marca entrada y salida del ejercicio para poder separar sesiones.
+  useEffect(() => {
+    marcar("entra", { modo: "dinamico" });
+    return cerrarMedicion;
+  }, []);
+
   const handleFrame = useCallback((f: LiveFrame) => {
     setFps(f.fps);
     setMs(f.inferMs);
     setConf(f.targetConfidence);
     setVisto(f.sign && !f.resting ? { sign: f.sign, p: f.confidence } : null);
     setEstado(estadoDeFrame(f));
+    medir({
+      modo: "dinamico", fps: f.fps, poseMs: f.poseMs, handsMs: f.handsMs, inferMs: f.inferMs,
+      drawFps: f.drawFps, drawMs: f.drawMs, delegado: f.delegado,
+      body: f.body, hands: f.hands, resting: f.resting, progress: f.progress,
+      sign: f.sign, confidence: f.confidence, targetConfidence: f.targetConfidence,
+      memoriaKB: f.memoriaKB,
+    });
   }, []);
 
   const handleConfirmed = useCallback(
@@ -148,6 +165,26 @@ export function PerformSignBlock({ config, active, ultimo, xp, onAnswer, onConti
       onAnswer(false);
     }
     setRendido(true);
+  }
+
+  if (!hayNativo) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.permission}>
+          <View style={styles.permissionIcon}>
+            <Ionicons name="camera-outline" size={34} color={colors.primary} />
+          </View>
+          <Text style={styles.permissionTitle}>Reconocimiento no disponible</Text>
+          <Text style={styles.permissionText}>
+            Este dispositivo todavía no puede reconocer señas con la cámara. Podés seguir con el
+            resto de la lección.
+          </Text>
+        </View>
+        <View style={styles.footer}>
+          <LessonButton label={ultimo ? "Terminar" : "Continuar"} onPress={onContinue} />
+        </View>
+      </View>
+    );
   }
 
   if (!permission?.granted) {
@@ -197,9 +234,8 @@ export function PerformSignBlock({ config, active, ultimo, xp, onAnswer, onConti
       </View>
 
       <View style={styles.stage}>
-        <LiveSignRecognizer
+        <ReconocedorSenasNativo
           targets={target ? [target] : signs}
-          threshold={config.threshold}
           onFrame={handleFrame}
           onConfirmed={handleConfirmed}
           onReady={({ delegate }) => setDelegado(delegate)}
@@ -265,7 +301,7 @@ export function PerformSignBlock({ config, active, ultimo, xp, onAnswer, onConti
           <SignPip
             meaning={signMeaning(enPantalla)}
             label={signMeaning(enPantalla)}
-            paused={terminado}
+            paused={!pipBig}
             onExpandedChange={setPipBig}
           />
         )}
