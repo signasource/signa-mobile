@@ -34,6 +34,7 @@ import {
   RoadmapLessonState,
   RoadmapTopic,
 } from "@/features/courses/api";
+import { LivesMode } from "@/api/shop";
 import { accentFor, progressFor } from "@/features/courses/roadmap";
 import { PaidCourseRow } from "@/features/store/PaidCourseRow";
 import { useTour } from "@/features/tour/TourContext";
@@ -187,7 +188,8 @@ export function HomeTabScreen({ navigation }: Props) {
   const { height: screenHeight } = useWindowDimensions();
   const [streak, setStreak] = useState(0);
   const [gems, setGems] = useState(0);
-  const [xp, setXp] = useState(0);
+  const [lives, setLives] = useState<number | null>(null);
+  const [livesMode, setLivesMode] = useState<LivesMode>("LIMITED");
   const [roadmap, setRoadmap] = useState<CourseRoadmap | null>(null);
   const [enrollments, setEnrollments] = useState<EnrollmentSummary[]>([]);
   const [lessonCounts, setLessonCounts] = useState<PublicCourseProgress[]>([]);
@@ -216,8 +218,9 @@ export function HomeTabScreen({ navigation }: Props) {
     Promise.all([usersApi.getStats(), inventoryApi.getMyInventory()])
       .then(([stats, inventory]) => {
         setStreak(stats.data.currentStreak);
-        setXp(stats.data.totalXp);
         setGems(inventory.data.gems);
+        setLives(inventory.data.currentLives);
+        setLivesMode(inventory.data.livesMode);
       })
       .catch(() => {});
     challengesApi
@@ -386,7 +389,12 @@ export function HomeTabScreen({ navigation }: Props) {
             dot: pendingGemOrders.length > 0,
             accessibilityLabel: "Conseguir más gemas",
           },
-          { key: "xp", label: "XP", value: xp.toLocaleString("es-AR"), icon: "flash" },
+          {
+            key: "lives",
+            label: "Vidas",
+            value: livesMode === "INFINITE" ? "∞" : String(lives ?? 0),
+            icon: "heart",
+          },
         ]}
       />
 
