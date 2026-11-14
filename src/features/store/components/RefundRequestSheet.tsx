@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -98,9 +100,13 @@ export function RefundRequestSheet({ target, onClose, onSubmitted }: Props) {
       onRequestClose={() => { if (!submitting) { reset(); onClose(); } }}
       statusBarTranslucent
     >
-      <Pressable style={styles.backdrop} onPress={() => { if (!submitting) { reset(); onClose(); } }}>
-        <Pressable style={[styles.sheet, { paddingBottom: insets.bottom }]} onPress={() => {}}>
-          <View style={styles.grabber} />
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <Pressable style={styles.backdrop} onPress={() => { if (!submitting) { reset(); onClose(); } }}>
+          <Pressable style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 28) }]} onPress={() => {}}>
+            <View style={styles.grabber} />
 
           {sent ? (
             <View style={styles.sentContent}>
@@ -205,13 +211,17 @@ export function RefundRequestSheet({ target, onClose, onSubmitted }: Props) {
               </TouchableOpacity>
             </ScrollView>
           )}
+          </Pressable>
         </Pressable>
-      </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
   backdrop: {
     flex: 1,
     backgroundColor: alpha(colors.text, 0.55),
@@ -234,7 +244,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 40 },
+  scrollContent: { paddingBottom: 24 },
   sheetTitle: {
     fontFamily: fonts.displayBold,
     fontSize: 24,

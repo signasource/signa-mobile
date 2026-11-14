@@ -143,6 +143,29 @@ the sheet shows `mano-vacia.svg` instead of a list.
 - Gem-priced catalog items only; gem packs (real money) can't be gifted.
 - The friend-accepted modal's "send gift" button just navigates to this tab.
 
+## Purchase history and refund requests
+
+`PurchaseHistoryScreen` (`src/features/store/screens/`), route `PurchaseHistory`, shows all gem
+and course orders merged and sorted newest-first. Each card shows the icon, product name, date,
+amount, and a status badge (`PENDING` / `PAID` / `REFUNDED`).
+
+**"Pedir reembolso"** appears on `PAID` orders where `refundedAt == null` and no refund request has
+already been submitted this session. It opens `RefundRequestSheet`
+(`src/features/store/components/`), a bottom sheet modal with:
+
+- Product row (icon + name).
+- **Motivo**: chip grid of 6 reasons (`MISTAKE · DUPLICATE · NOT_RECEIVED · NOT_AS_EXPECTED · TECHNICAL · OTHER`).
+- **Comentario**: free-text area (10–2000 chars).
+- **"Enviar pedido"** → `gemOrdersApi.createRefundRequest` or `courseOrdersApi.createRefundRequest` (depending on order kind). On success: success state with a checkmark; the parent screen marks the order as "Pedido de reembolso enviado" for the session.
+
+A refund request does **not** refund automatically — it enters the admin queue for review. The
+backend enforces eligibility at submit time (not just client-side): rejects if the order is not
+`PAID`, already refunded, the user spent part of the gems (gem orders), or the user completed the
+first lesson (course orders). A second request on the same order is also rejected (409 equiv → 400).
+
+The sheet uses `KeyboardAvoidingView` so the TextInput stays visible when the soft keyboard is open,
+and `Math.max(insets.bottom, 28)` for the bottom padding so buttons clear virtual navigation bars.
+
 ### Receiving gifts
 
 `ReceivedGiftsSection` (`src/features/store/components/`) sits at the top of every tab as
