@@ -13,8 +13,10 @@ interface SignPlaceholderProps {
   tone?: Tone;
   icon?: keyof typeof Ionicons.glyphMap;
   badge?: string;
-  /** Muestra la ilustración de "animación preparándose" en vez del botón de play + label. */
+  /** Muestra la ilustración de "cargando" en vez del botón de play + label. */
   preparing?: boolean;
+  /** Tipo de media que se está cargando; afecta el texto del placeholder. */
+  preparingKind?: "glb" | "video";
   style?: ViewStyle;
 }
 
@@ -31,6 +33,7 @@ export function SignPlaceholder({
   icon = "play",
   badge,
   preparing,
+  preparingKind,
   style,
 }: SignPlaceholderProps) {
   const wrong = tone === "wrong";
@@ -46,7 +49,9 @@ export function SignPlaceholder({
         <>
           <PajarosGrupoPequeno width={130} height={65} />
           <View style={styles.labelChip}>
-            <Text style={styles.labelText}>La animación se está preparando</Text>
+            <Text style={styles.labelText}>
+            {preparingKind === "video" ? "El video se está cargando" : "La animación se está preparando"}
+          </Text>
           </View>
         </>
       ) : (

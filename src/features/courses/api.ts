@@ -43,6 +43,10 @@ export interface CourseDetail {
   hasCameraPractice: boolean;
   /** Tipos de ejercicio distintos (`BlockType`, sin `INFO` ni `INTRODUCE_SIGN`). */
   exerciseTypes: string[];
+  /** El curso usa animaciones 3D (`.glb`). Mutuamente excluyente con `hasVideos`. */
+  hasAnimations?: boolean;
+  /** El curso usa videos (`.mp4`). Mutuamente excluyente con `hasAnimations`. */
+  hasVideos?: boolean;
   /** Significado de la primera seña que enseña, o null si no enseña ninguna. */
   sampleSign: string | null;
   topics: CourseDetailTopic[];

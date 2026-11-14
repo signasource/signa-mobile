@@ -19,7 +19,6 @@ import { colors, fonts, alpha } from "@/theme";
 import { learningApi } from "@/api/learning";
 import { coursesApi, CourseDetail } from "@/features/courses/api";
 import { formatPrice } from "@/features/courses/price";
-import { describeExercises } from "@/features/courses/exerciseLabels";
 import { SignAnimation } from "@/features/courses/components/lesson/SignAnimation";
 import { useCoursePurchase } from "@/features/store/useCoursePurchase";
 import ManoConCaja from "@assets/ilus/mano-con-caja.svg";
@@ -238,7 +237,6 @@ export function CourseDetailScreen({ navigation, route }: Props) {
   }
 
   // ── Course sheet ──
-  const exercises = describeExercises(course.exerciseTypes);
   // Free courses always show the detail; owned=true means the user already enrolled.
   const isFree = course.isFree;
   const isFreeOwned = isFree && course.owned;
@@ -286,17 +284,18 @@ export function CourseDetailScreen({ navigation, route }: Props) {
               title="Señas"
               detail={`${course.signCount} señas distintas en ${course.lessonCount} ${course.lessonCount === 1 ? "lección" : "lecciones"}`}
             />
-            {course.exerciseTypes.length > 0 && (
+            {course.hasAnimations && (
               <FeatureRow
-                icon="extension-puzzle"
-                title="Ejercicios"
-                detail={exercises}
-                trailing={
-                  <Text style={styles.featureValue}>
-                    {course.exerciseTypes.length}{" "}
-                    {course.exerciseTypes.length === 1 ? "tipo" : "tipos"}
-                  </Text>
-                }
+                icon="cube"
+                title="Animaciones 3D"
+                detail="Las señas se muestran con un avatar 3D interactivo"
+              />
+            )}
+            {course.hasVideos && (
+              <FeatureRow
+                icon="film"
+                title="Videos"
+                detail="Las señas se muestran en video"
               />
             )}
             <FeatureRow
