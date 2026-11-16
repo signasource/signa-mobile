@@ -17,6 +17,8 @@ export interface HeaderStat {
   dot?: boolean;
   /** Accessibility label for the tappable card. */
   accessibilityLabel?: string;
+  /** Small line under the value (e.g. time until the next life). */
+  caption?: string;
   /** Override the card background (defaults to the computed tint from the header tone). */
   cardBackground?: string;
 }
@@ -127,6 +129,11 @@ export function ScreenHeader({
                     </View>
                   )}
                 </View>
+                {stat.caption != null && (
+                  <Text style={[styles.statCaption, { color: fg }]} numberOfLines={1}>
+                    {stat.caption}
+                  </Text>
+                )}
               </Card>
             );
           })}
@@ -216,6 +223,13 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 0.8,
     opacity: 0.75,
+  },
+  statCaption: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 10,
+    letterSpacing: 0.3,
+    opacity: 0.75,
+    marginTop: 3,
   },
   statValueRow: {
     flexDirection: "row",

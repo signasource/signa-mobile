@@ -56,6 +56,8 @@ lessons without camera, Tienda, Social, Perfil and Práctica all work.
 
 ## Cross-cutting tech debt
 
+- `npm run lint` reports 2 `import/no-unresolved` errors for `expo-notifications` (`usePushToken.ts`, `RootNavigator.tsx`) even though the package is installed and typecheck passes; predates the booster work (FCM commit). Pending: check the eslint import resolver / run `npm ci`.
+
 - **Responsive pending**: only `AuthScreen` caps its width on tablets; the other screens (tabs, onboarding choice screens, lessons) stretch full width. Lesson sign animations use fixed heights (330dp in `SignCarouselBlock`). Not yet checked on small/short screens or at large font scale beyond Welcome/Achievement (which now fit via `useFitSquare`).
 
 - **Profile partly from JWT + local cache.** `GET /users/me` *does* exist and `usersApi.getMe()` calls it; what is still cached in AsyncStorage is the name captured at registration, used as a fallback before the profile loads.
