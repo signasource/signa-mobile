@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { AppState, AppStateStatus } from "react-native";
 import { authApi } from "@/api/auth";
 import { usersApi } from "@/api/users";
-import { setOnRefreshFailure } from "@/api/client";
+import { refreshSession, SessionRejectedError, setOnRefreshFailure } from "@/api/client";
 import { tokenStorage } from "@/utils/storage";
 import { extractEmailFromToken, extractRoleFromToken, isTokenExpired } from "@/utils/jwt";
 import { signInWithGoogle } from "@/utils/googleAuth";
@@ -102,11 +102,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!isTokenExpired(token)) return;
 
       try {
-        const { data } = await authApi.refresh(refreshToken);
-        await tokenStorage.setTokens(data.accessToken, data.refreshToken);
-        setUser(await buildUserFromToken(data.accessToken));
-      } catch {
-        await expireSession();
+        setUser(await buildUserFromToken(await refreshSession()));
+      } catch (err) {
+        // Solo se cierra la sesión si el servidor rechazó el refresh token. Sin red al volver a
+        // primer plano (muy común) se conserva: el interceptor reintenta en el próximo request.
+        if (err instanceof SessionRejectedError) await expireSession();
       }
     }
 
@@ -123,9 +123,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       try {
         if (isTokenExpired(token)) {
-          const { data } = await authApi.refresh(refreshToken);
-          await tokenStorage.setTokens(data.accessToken, data.refreshToken);
-          setUser(await buildUserFromToken(data.accessToken));
+          try {
+            setUser(await buildUserFromToken(await refreshSession()));
+          } catch (err) {
+            if (err instanceof SessionRejectedError) throw err;
+            // Sin red / error del servidor: no cerrar la sesión. Se entra con el token vencido
+            // (el email se lee igual) y el interceptor refresca en el primer request.
+            setUser(await buildUserFromToken(token));
+          }
         } else {
           setUser(await buildUserFromToken(token));
         }
