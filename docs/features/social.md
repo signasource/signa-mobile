@@ -147,7 +147,8 @@ handle + streak), a primary "Ver su perfil" button, and a "Volver a notificacion
 ## FriendAcceptedModal (when someone accepts MY request)
 
 Overlay modal rendered by `FriendAcceptedProvider` (in `RootNavigator`) when a new
-`FRIEND_REQUEST_ACCEPTED` notification is detected. Suppressed while the user is in the `Lesson`
+unread `FRIEND_REQUEST_ACCEPTED` notification is detected; it is marked as read as soon as it is
+shown, so it never reappears after a re-login. Suppressed while the user is in the `Lesson`
 screen. Offers "Mandarle un regalo" (→ Store tab) and "Ver su perfil" (→ PublicProfile). Polling
 interval: 30 s + AppState foreground resume.
 
