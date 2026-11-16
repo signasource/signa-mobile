@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useCameraPermissions } from "expo-camera";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Animated, StyleSheet, TextInput, View } from "react-native";
+import { Animated, KeyboardAvoidingView, StyleSheet, TextInput, View } from "react-native";
 
 import { Text } from "@/components/Text";
 import { trackCameraSkip } from "@/telemetry/telemetry";
@@ -141,7 +141,7 @@ export function SpellNameBlock({ config, active, ultimo, xp, onAnswer, onContinu
 
   if (!empezado) {
     return (
-      <View style={styles.setup}>
+      <KeyboardAvoidingView behavior="padding" style={styles.setup}>
         <View style={styles.setupHead}>
           <Text style={styles.setupTitulo}>¿Cómo te llamás?</Text>
           <XpChip xp={xp} state="idle" />
@@ -173,7 +173,7 @@ export function SpellNameBlock({ config, active, ultimo, xp, onAnswer, onContinu
             onPress={() => setEmpezado(true)}
           />
         </View>
-      </View>
+      </KeyboardAvoidingView>
     );
   }
 

@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   DimensionValue,
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -803,7 +802,8 @@ export function ConfigurationScreen({ navigation, route }: Props) {
           <View style={styles.dialogOverlay}>
             <Pressable style={StyleSheet.absoluteFill} onPress={() => setDialog(null)} />
             <KeyboardAvoidingView
-              behavior={Platform.OS === "ios" ? "padding" : "height"}
+              behavior="padding"
+              pointerEvents="box-none"
               style={styles.dialogKAV}
             >
             <View style={styles.dialogCard} onStartShouldSetResponder={() => true}>
@@ -1229,12 +1229,12 @@ const styles = StyleSheet.create({
   // Dialog
   dialogOverlay: {
     flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: 20,
     backgroundColor: alpha(colors.black, 0.45),
   },
   dialogKAV: {
-    width: "100%",
+    ...StyleSheet.absoluteFill,
+    justifyContent: "center",
+    paddingHorizontal: 20,
   },
   dialogCard: {
     backgroundColor: colors.surface,

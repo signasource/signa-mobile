@@ -9,7 +9,6 @@ import {
   FlatList,
   TextInput,
   KeyboardAvoidingView,
-  Platform,
 } from "react-native";
 import { Text } from "@/components/Text";
 import ManoVacia from "@assets/ilus/mano-vacia.svg";
@@ -81,7 +80,7 @@ export function GiftSheet({ item, gems, onClose, onSent }: GiftSheetProps) {
     >
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior="padding"
       >
         <Pressable style={styles.backdrop} onPress={onClose}>
           <Pressable

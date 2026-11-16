@@ -3,6 +3,7 @@ import {
   StyleSheet,
   View,
   Modal,
+  KeyboardAvoidingView,
   Pressable,
   TouchableOpacity,
   TextInput,
@@ -100,7 +101,14 @@ export function IntroduceSignBlock({ config, onContinue }: IntroduceSignBlockPro
         <LessonButton label="La practico" onPress={onContinue} />
       </View>
 
-      <Modal visible={view !== null} transparent animationType="slide" onRequestClose={closeModal}>
+      <Modal
+        visible={view !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={closeModal}
+        statusBarTranslucent
+      >
+        <KeyboardAvoidingView behavior="padding" style={styles.kav}>
         <Pressable style={styles.backdrop} onPress={closeModal}>
           <Pressable style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 30) }]} onPress={(e) => e.stopPropagation()}>
             <View style={styles.grabber} />
@@ -207,6 +215,7 @@ export function IntroduceSignBlock({ config, onContinue }: IntroduceSignBlockPro
             )}
           </Pressable>
         </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -269,6 +278,7 @@ const styles = StyleSheet.create({
   footer: { padding: 20, paddingTop: 14 },
 
   // Modal
+  kav: { flex: 1 },
   backdrop: {
     flex: 1,
     backgroundColor: alpha(colors.text, 0.55),

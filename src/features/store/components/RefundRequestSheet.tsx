@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -98,7 +97,7 @@ export function RefundRequestSheet({ target, onClose, onSubmitted }: Props) {
     >
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior="padding"
       >
         <Pressable style={styles.backdrop} onPress={() => { if (!submitting) { reset(); onClose(); } }}>
           <Pressable style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 28) }]} onPress={() => {}}>
