@@ -21,7 +21,12 @@ interface AuthContextValue {
   /** Abre el selector de Google y entra (o crea la cuenta). Devuelve false si el usuario canceló. */
   loginWithGoogle: () => Promise<boolean>;
   changePassword: (payload: ChangePasswordRequest) => Promise<void>;
-  logout: () => Promise<void>;
+  /**
+   * Logs out the user. Pass an optional async callback that runs before the auth
+   * tokens are cleared — used to unregister the push notification device token
+   * while the session is still valid.
+   */
+  logout: (preLogout?: () => Promise<void>) => Promise<void>;
   /** El usuario eligió "Iniciar sesión" en el aviso de sesión expirada */
   resumeExpiredSession: () => void;
   /** El usuario eligió "Salir" en el aviso de sesión expirada */
@@ -213,7 +218,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const logout = useCallback(async () => {
+  const logout = useCallback(async (preLogout?: () => Promise<void>) => {
+    if (preLogout) {
+      try {
+        await preLogout();
+      } catch {
+        // non-blocking: proceed with logout even if the pre-step fails
+      }
+    }
     await tokenStorage.clear();
     setUser(null);
   }, []);

@@ -64,6 +64,14 @@
           "iosUrlScheme": "com.googleusercontent.apps.REEMPLAZAR-POR-CLIENT-ID-IOS"
         }
       ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#1D283C",
+          "iosDisplayInForeground": true
+        }
+      ],
       "expo-status-bar",
       [
         "expo-splash-screen",

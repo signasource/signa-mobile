@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   DimensionValue,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -19,6 +21,7 @@ import { isLightColor, luminance } from "@/utils/color";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { BackButton } from "@/components/BackButton";
 import { useAuth } from "@/context/AuthContext";
+import { unregisterPushToken } from "@/hooks/usePushToken";
 import { useSettings } from "@/context/SettingsContext";
 import { usersApi } from "@/api/users";
 import { signInWithGoogle } from "@/utils/googleAuth";
@@ -249,7 +252,7 @@ export function ConfigurationScreen({ navigation, route }: Props) {
 
   async function handleLogout() {
     setDialog(null);
-    await logout();
+    await logout(unregisterPushToken);
   }
 
   async function handleDeleteAccount() {
@@ -259,7 +262,7 @@ export function ConfigurationScreen({ navigation, route }: Props) {
     } catch {
       // proceed anyway
     }
-    await logout();
+    await logout(unregisterPushToken);
   }
 
   // ─── derived ──────────────────────────────────────────────────
@@ -797,7 +800,12 @@ export function ConfigurationScreen({ navigation, route }: Props) {
       {/* ── Dialogs ── */}
       {dialog !== null && (
         <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-          <Pressable style={styles.overlay} onPress={() => setDialog(null)}>
+          <View style={styles.dialogOverlay}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={() => setDialog(null)} />
+            <KeyboardAvoidingView
+              behavior={Platform.OS === "ios" ? "padding" : "height"}
+              style={styles.dialogKAV}
+            >
             <View style={styles.dialogCard} onStartShouldSetResponder={() => true}>
               <View
                 style={[
@@ -887,7 +895,8 @@ export function ConfigurationScreen({ navigation, route }: Props) {
                 </TouchableOpacity>
               </View>
             </View>
-          </Pressable>
+            </KeyboardAvoidingView>
+          </View>
         </View>
       )}
 
@@ -1218,6 +1227,15 @@ const styles = StyleSheet.create({
   },
 
   // Dialog
+  dialogOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    paddingHorizontal: 20,
+    backgroundColor: alpha(colors.black, 0.45),
+  },
+  dialogKAV: {
+    width: "100%",
+  },
   dialogCard: {
     backgroundColor: colors.surface,
     borderRadius: 24,

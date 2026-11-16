@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { NavigationContainer, NavigationContainerRef, NavigationState } from "@react-navigation/native";
+import * as Notifications from "expo-notifications";
 import { useAuth } from "@/context/AuthContext";
 import { useSessionTracker } from "@/hooks/useSessionTracker";
+import { usePushToken } from "@/hooks/usePushToken";
 import { AuthNavigator } from "./AuthNavigator";
 import { AppNavigator, AppStackParamList } from "./AppNavigator";
 import { SessionExpiredModal } from "@/components/SessionExpiredModal";
@@ -134,6 +136,19 @@ export function RootNavigator() {
 
   // App-usage session telemetry (foreground stretches while signed in) → "sesiones por usuario".
   useSessionTracker(isAuthenticated);
+
+  // Push notification token registration/cleanup.
+  usePushToken(isAuthenticated);
+
+  // Navigate to Notifications screen when the user taps a push notification.
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener(() => {
+      if (navigationRef.current?.isReady()) {
+        navigationRef.current.navigate("Notifications");
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   if (isLoading) {
     return (
