@@ -20,6 +20,7 @@ import { colors, fonts, alpha } from "@/theme";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SegmentedControl, Segment } from "@/components/SegmentedControl";
 import { EmptyState } from "@/components/EmptyState";
+import { useLives, livesValue, livesCaption } from "@/features/lives/useLives";
 import { shopApi, ShopItem, ShopItemType, ShopInventory, AppliedEffect, GiftClaimResult } from "@/api/shop";
 import type { Friend } from "@/api/social";
 import { gemOrdersApi, GemPack } from "@/api/gemOrders";
@@ -138,10 +139,12 @@ interface SuccessOverlayProps {
 function SuccessOverlay({ flow, gems, inventory, fromLesson, insets, onClose }: SuccessOverlayProps) {
   const isLives = LIVES_TYPES.includes(flow.item.itemType);
   const isMysteryChest = flow.item.itemType === "MYSTERY_CHEST";
-  const isGenericItem = !isLives && !isMysteryChest;
 
   const effectType = flow.effect?.type ?? flow.item.itemType;
+  // Boosters come back without `effect`: they are stored until activated from the profile.
+  const isStored = flow.effect == null && (effectType === "UNLIMITED_LIVES" || effectType === "XP_MULTIPLIER");
   const isUnlimited = effectType === "UNLIMITED_LIVES";
+  const isGenericItem = !isMysteryChest && (!isLives || isStored);
   const livesGranted = flow.effect?.livesGranted ?? flow.item.quantity;
 
   const cardIcon: keyof typeof Ionicons.glyphMap =
@@ -157,12 +160,16 @@ function SuccessOverlay({ flow, gems, inventory, fromLesson, insets, onClose }: 
 
   const screenTitle = isLives
     ? isUnlimited
-      ? "¡Vidas infinitas activadas!"
+      ? isStored
+        ? "¡Vidas infinitas compradas!"
+        : "¡Vidas infinitas activadas!"
       : `Sumaste ${livesGranted} ${livesGranted === 1 ? "vida" : "vidas"}`
     : "¡Ya es tuyo!";
 
   const screenSub = isGenericItem
-    ? "Lo guardamos en tu inventario y se activa cuando lo uses."
+    ? isStored
+      ? "Lo guardamos en tu inventario. Activalo desde Perfil → Inventario."
+      : "Lo guardamos en tu inventario y se activa cuando lo uses."
     : isMysteryChest
     ? "Ya está sumado a tu inventario."
     : undefined;
@@ -314,6 +321,7 @@ export function StoreTabScreen() {
   const [purchasing, setPurchasing] = useState(false);
   const [giftItem, setGiftItem] = useState<ShopItem | null>(null);
   const [giftDone, setGiftDone] = useState<GiftDone | null>(null);
+  const livesState = useLives(inventory);
   const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const listRef = useRef<ScrollView>(null);
 
@@ -425,8 +433,7 @@ export function StoreTabScreen() {
   }
 
   const gems = inventory?.gems ?? 0;
-  const livesLabel =
-    inventory?.livesMode === "INFINITE" ? "∞" : `${inventory?.currentLives ?? 0}/5`;
+  const livesLabel = livesValue(livesState);
   const shields = inventory?.streakShields ?? 0;
   const visibleItems = items.filter((i) => TAB_TYPES[tab].includes(i.itemType));
 
@@ -456,7 +463,7 @@ export function StoreTabScreen() {
             dot: pendingGemOrders.length > 0,
             accessibilityLabel: "Conseguir más gemas",
           },
-          { key: "lives", label: "Vidas", value: livesLabel, icon: "heart" },
+          { key: "lives", label: "Vidas", value: livesLabel, caption: livesCaption(livesState), icon: "heart" },
           { key: "shields", label: "Escudos", value: String(shields), icon: "shield-half" },
         ]}
       />

@@ -1,5 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { tokenStorage } from "@/utils/storage";
+import { syncServerClock } from "@/utils/serverClock";
 import { keysToCamelCase, keysToSnakeCase } from "@/utils/caseConverter";
 
 export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8080";
@@ -26,6 +27,7 @@ apiClient.interceptors.request.use(async (config: InternalAxiosRequestConfig) =>
 
 // Convierte cada response de snake_case a camelCase
 apiClient.interceptors.response.use((response) => {
+  syncServerClock(response.headers?.date);
   if (response.data) {
     response.data = keysToCamelCase(response.data);
   }

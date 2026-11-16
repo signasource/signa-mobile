@@ -57,7 +57,7 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   unmount, capped at 5 minutes per request to match the backend's `RecordActivityRequest` validation.
   This is what backs `minutesToday`/"Meta diaria" in `ProfileScreen` — see
   [../api/endpoints.md](../api/endpoints.md).
-- `components/lesson/`: `LessonHeader` (back + progress + lives), `XpChip`, `FeedbackBar`
+- `components/lesson/`: `LessonHeader` (back + progress + lives + `LivesTimerChip`), `XpChip`, `FeedbackBar`
   (correct/incorrect banner — icon is the `check.svg`/`denied.svg` spot illustration, not an
   Ionicon), `LessonButton`, `SignPlaceholder` (fallback when a model fails to load or a meaning has
   no animation; also used in a `preparing` mode — `pajaros-grupo-pequeno.svg` illustration +

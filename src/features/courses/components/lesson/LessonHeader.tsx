@@ -4,17 +4,19 @@ import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { BackButton } from "@/components/BackButton";
 import { colors, fonts } from "@/theme";
+import { LivesTimerChip } from "@/features/lives/LivesTimerChip";
+import type { LivesState } from "@/features/lives/useLives";
 
 interface LessonHeaderProps {
   unitLabel: string;
   lessonName: string;
   progress: number;
-  lives: number;
-  unlimitedLives?: boolean;
+  livesState: LivesState;
   onBack: () => void;
 }
 
-export function LessonHeader({ unitLabel, lessonName, progress, lives, unlimitedLives, onBack }: LessonHeaderProps) {
+export function LessonHeader({ unitLabel, lessonName, progress, livesState, onBack }: LessonHeaderProps) {
+  const { unlimited, lives } = livesState;
   return (
     <View style={styles.container}>
       <View style={styles.topRow}>
@@ -23,12 +25,13 @@ export function LessonHeader({ unitLabel, lessonName, progress, lives, unlimited
           <View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` }]} />
         </View>
         <View style={styles.livesRow}>
-          <Ionicons name={unlimitedLives || lives > 0 ? "heart" : "heart-outline"} size={19} color={colors.livesRed} />
-          {unlimitedLives ? (
+          <Ionicons name={unlimited || lives > 0 ? "heart" : "heart-outline"} size={19} color={colors.livesRed} />
+          {unlimited ? (
             <Ionicons name="infinite" size={17} color={colors.text} />
           ) : (
             <Text style={[styles.livesText, lives === 0 && { color: colors.livesRed }]}>{lives}</Text>
           )}
+          <LivesTimerChip state={livesState} />
         </View>
       </View>
       <View style={styles.breadcrumb}>

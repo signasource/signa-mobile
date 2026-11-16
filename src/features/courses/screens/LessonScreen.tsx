@@ -8,6 +8,8 @@ import { AppStackParamList } from "@/navigation/AppNavigator";
 import { lessonsApi } from "@/api/lessons";
 import { learningApi } from "@/api/learning";
 import { shopApi } from "@/api/shop";
+import { serverNow } from "@/utils/serverClock";
+import { useLives, LivesSource, LIFE_REGEN_MS } from "@/features/lives/useLives";
 import { useActivityTracker } from "@/hooks/useActivityTracker";
 import { trackLessonTime } from "@/telemetry/telemetry";
 import { BlockType, LessonContent, LessonContentBlock, parseBlockConfig } from "@/features/courses/lessonContent.types";
@@ -69,8 +71,11 @@ export function LessonScreen({ route, navigation }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const [blockIndex, setBlockIndex] = useState(0);
-  const [lives, setLives] = useState(STARTING_LIVES);
-  const [unlimitedLives, setUnlimitedLives] = useState(false);
+  const [livesSource, setLivesSource] = useState<LivesSource | null>(null);
+  const livesState = useLives(livesSource);
+  // Until the inventory loads (or if it fails) play with a full bar, as the backend would.
+  const lives = livesState.ready ? livesState.lives : STARTING_LIVES;
+  const unlimitedLives = livesState.unlimited;
   const [gems, setGems] = useState<number | undefined>(undefined);
   const [awardedXp, setAwardedXp] = useState<Record<string, number>>({});
   const [correctBlockIds, setCorrectBlockIds] = useState<Set<string>>(new Set());
@@ -96,8 +101,7 @@ export function LessonScreen({ route, navigation }: Props) {
         setLesson(lessonRes.data);
         startRef.current = Date.now();
         if (inventoryRes?.data) {
-          setUnlimitedLives(inventoryRes.data.livesMode === "INFINITE");
-          setLives(inventoryRes.data.currentLives ?? STARTING_LIVES);
+          setLivesSource(inventoryRes.data);
           setGems(inventoryRes.data.gems);
         }
       })
@@ -151,6 +155,17 @@ export function LessonScreen({ route, navigation }: Props) {
     navigation.goBack();
   }
 
+  /** Mirrors `UserStats.loseLife`: one less, and the regeneration timer starts if it was not running. */
+  function loseLifeLocally() {
+    const nextMs = livesState.nextLifeSecs != null ? livesState.nextLifeSecs * 1000 : LIFE_REGEN_MS;
+    setLivesSource((prev) => ({
+      livesMode: "LIMITED",
+      unlimitedLivesExpiresAt: prev?.unlimitedLivesExpiresAt ?? null,
+      currentLives: Math.max(0, lives - 1),
+      nextLifeAt: new Date(serverNow() + nextMs).toISOString(),
+    }));
+  }
+
   function handleAnswer(block: LessonContentBlock, correct: boolean) {
     recordInteraction(block, correct);
 
@@ -160,7 +175,7 @@ export function LessonScreen({ route, navigation }: Props) {
         prev[block.id] !== undefined ? prev : { ...prev, [block.id]: block.xpReward ?? 0 }
       );
     } else if (!unlimitedLives) {
-      setLives((prev) => Math.max(0, prev - 1));
+      loseLifeLocally();
     }
   }
 
@@ -246,8 +261,7 @@ export function LessonScreen({ route, navigation }: Props) {
         unitLabel={unitLabel ?? lesson.name}
         lessonName={lesson.name}
         progress={progress}
-        lives={lives}
-        unlimitedLives={unlimitedLives}
+        livesState={livesState}
         onBack={volver}
       />
 
@@ -286,6 +300,7 @@ export function LessonScreen({ route, navigation }: Props) {
           onGoToStore={() => navigation.navigate("Tabs", { screen: "Store", params: { fromLesson: true } })}
           onExit={() => navigation.goBack()}
           gems={gems}
+          livesState={livesState}
           onGetGems={() => navigation.navigate("GemShop", { returnTo: "la lección" })}
         />
       )}

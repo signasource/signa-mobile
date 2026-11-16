@@ -40,6 +40,27 @@ also shows the gems balance with a "+" that opens the gem shop (`returnTo: "la l
 The Store header's GEMAS card carries the same "+" (and so does Inicio's). The tab refetches
 `/inventories/me` on focus, so a purchase made in the gem shop shows up on return.
 
+## Boosters: stored, then activated
+
+`XP_MULTIPLIER` and `UNLIMITED_LIVES` purchases are **stored** by the backend (no `effect` in the
+response); the success overlay says so and points to Perfil → Inventario. There the stored counts
+(`GET /boosters`) and the "Usar"/"Activar" buttons (`POST /boosters/{type}/activate`) live; the
+active state and remaining time come from `/inventories/me` (`*ExpiresAt`).
+
+### Lives everywhere (`src/features/lives/`)
+
+Every lives placeholder reads the same inventory slice through `useLives` (ticks each second):
+Inicio and Tienda headers (`3/5` + caption `+1 en 24:10`, or `∞` + `29:59 restantes` while unlimited
+lives run), the lesson header and `NoLivesOverlay` ("Próxima vida en …"), and Perfil → Vidas.
+`LivesTimerChip` is the single pill (blue ∞ / neutral clock / green "Completas"); `ScreenHeader`
+stats take an optional `caption`. Regeneration is **server-side** (`UserStats.lifeStateAt`: one life
+per 30 min since `nextLifeAt`, persisted lazily); the client only mirrors the same rule to count
+down, on the **server's clock**: `apiClient` reads the `Date` header of every response
+(`src/utils/serverClock.ts`) so a phone with a wrong clock still shows the real time left. The
+counter rolls over by itself when a timer ends (no refresh needed). New users start with 5 lives (entity default + migration `V31`), never `null`.
+"Vida extra" in Perfil opens the Store tab (lives are bought there). Requires the `GET /boosters`
+endpoint of `signa-api`.
+
 ## Gem packs with real money (Mercado Pago Checkout Pro)
 
 All platforms. Packs are bought in their own screen, `GemShopScreen`

@@ -34,6 +34,10 @@ import { isLightColor } from "@/utils/color";
 import { useAuth } from "@/context/AuthContext";
 import { usersApi, WeeklyXpEntry, UserStats } from "@/api/users";
 import { inventoryApi, UserInventory } from "@/api/inventory";
+import { boostersApi, BoosterType } from "@/api/boosters";
+import { useSecondsLeft, formatCountdown } from "@/hooks/useSecondsLeft";
+import { useLives, MAX_LIVES } from "@/features/lives/useLives";
+import { LivesTimerChip } from "@/features/lives/LivesTimerChip";
 import { achievementsApi, Achievement } from "@/api/achievements";
 import { StreakMedal } from "@/features/achievements/components/StreakMedal";
 import { isStreakAchievement } from "@/features/achievements/streakTier";
@@ -59,9 +63,6 @@ interface DayXp {
 }
 
 // ─── constants ────────────────────────────────────────────────
-const MAX_LIVES = 5;
-const LIFE_GEM_COST = 350;
-const LIFE_REGEN_SECS = 30 * 60; // 30 min por vida
 const DAY_LABELS = ["L", "M", "M", "J", "V", "S", "D"];
 const DAY_NAMES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
@@ -97,12 +98,6 @@ function initials(name: string): string {
     .map((w) => w[0])
     .join("")
     .toUpperCase();
-}
-
-function formatLifeTimer(secs: number): string {
-  const m = Math.floor(secs / 60);
-  const s = secs % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 function getTodayIndex(): number {
@@ -191,18 +186,21 @@ export function ProfileScreen({ navigation }: Props) {
   const [minutesToday, setMinutesToday] = useState(0);
 
   // Local inventory actions (optimistic)
-  const [livesCount, setLivesCount] = useState<number>(DEFAULT_INVENTORY.currentLives ?? MAX_LIVES);
   const [gemsCount, setGemsCount] = useState(DEFAULT_INVENTORY.gems);
-  const [xpBoostActive, setXpBoostActive] = useState(false);
-  const [infiniteActive, setInfiniteActive] = useState(false);
   const [xpBoostQty, setXpBoostQty] = useState(0);
   const [infiniteQty, setInfiniteQty] = useState(0);
-  const [lifeSecsLeft, setLifeSecsLeft] = useState(LIFE_REGEN_SECS);
+  const [activating, setActivating] = useState<BoosterType | null>(null);
+  const [boosterError, setBoosterError] = useState<string | null>(null);
+  const xpSecs = useSecondsLeft(inventory.xpMultiplierExpiresAt);
+  const xpBoostActive = inventory.xpMultiplierActive && xpSecs > 0;
+  const livesState = useLives(inventory);
+  const infiniteActive = livesState.unlimited;
+  const infiniteSecs = livesState.unlimitedSecs;
 
   const loadProfile = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
-    const [profileRes, weekRes, goalRes, statsRes, invRes, unlockedRes, lockedRes, coursesRes, settingsRes] =
+    const [profileRes, weekRes, goalRes, statsRes, invRes, unlockedRes, lockedRes, coursesRes, settingsRes, boostersRes] =
       await Promise.allSettled([
         usersApi.getMe(),
         usersApi.getWeeklyXp(),
@@ -213,6 +211,7 @@ export function ProfileScreen({ navigation }: Props) {
         achievementsApi.getAchievements(false),
         learningApi.getProgress(),
         usersApi.getSettings(),
+        boostersApi.getStored(),
       ]);
 
     if (profileRes.status === "fulfilled") {
@@ -244,9 +243,12 @@ export function ProfileScreen({ navigation }: Props) {
     if (invRes.status === "fulfilled") {
       const inv = invRes.value.data;
       setInventory(inv);
-      setLivesCount(inv.currentLives ?? MAX_LIVES);
       setGemsCount(inv.gems);
-      // xpBoostQty e infiniteQty no tienen campo en la API todavía; quedan en 0
+    }
+
+    if (boostersRes.status === "fulfilled") {
+      setXpBoostQty(boostersRes.value.data.xpMultiplier);
+      setInfiniteQty(boostersRes.value.data.unlimitedLives);
     }
 
     if (unlockedRes.status === "fulfilled" || lockedRes.status === "fulfilled") {
@@ -307,28 +309,14 @@ export function ProfileScreen({ navigation }: Props) {
       // Las lecciones gastan vidas en el backend: sin esto el inventario queda con las de antes.
       inventoryApi.getMyInventory().then((res) => {
         setInventory(res.data);
-        setLivesCount(res.data.currentLives ?? MAX_LIVES);
         setGemsCount(res.data.gems);
+      }).catch(() => {});
+      boostersApi.getStored().then((res) => {
+        setXpBoostQty(res.data.xpMultiplier);
+        setInfiniteQty(res.data.unlimitedLives);
       }).catch(() => {});
     }, [])
   );
-
-  // Life regeneration countdown
-  useEffect(() => {
-    if (livesCount >= MAX_LIVES || infiniteActive) return;
-    let secs = LIFE_REGEN_SECS;
-    setLifeSecsLeft(secs);
-    const tick = setInterval(() => {
-      secs -= 1;
-      if (secs <= 0) {
-        clearInterval(tick);
-        setLivesCount((c) => Math.min(MAX_LIVES, c + 1));
-      } else {
-        setLifeSecsLeft(secs);
-      }
-    }, 1000);
-    return () => clearInterval(tick);
-  }, [livesCount, infiniteActive]);
 
   /** Picking a swatch applies it immediately and persists it — no confirm step. */
   async function applyHeaderColor(hex: string) {
@@ -398,8 +386,24 @@ export function ProfileScreen({ navigation }: Props) {
   const goalPct = Math.min(100, Math.round((minutesToday / dailyGoalMinutes) * 100));
   const goalDone = minutesToday >= dailyGoalMinutes;
 
-  const canBuyLife = gemsCount >= LIFE_GEM_COST && livesCount < MAX_LIVES;
-  const canUseInfinite = infiniteQty > 0 && !infiniteActive;
+  const canBuyLife = !livesState.unlimited && !livesState.full;
+  const canUseInfinite = infiniteQty > 0 && !infiniteActive && activating == null;
+
+  /** Consumes one stored booster on the backend and applies the returned inventory. */
+  async function activateBooster(type: BoosterType) {
+    setBoosterError(null);
+    setActivating(type);
+    try {
+      const { data } = await boostersApi.activate(type);
+      setInventory(data.inventory);
+      if (type === "XP_MULTIPLIER") setXpBoostQty((q) => Math.max(0, q - 1));
+      else setInfiniteQty((q) => Math.max(0, q - 1));
+    } catch (err: any) {
+      setBoosterError(err?.response?.data?.message ?? "No pudimos activar el potenciador.");
+    } finally {
+      setActivating(null);
+    }
+  }
 
   const selectedDay = weekDays[selectedDayIndex] ?? weekDays[todayIdx];
   const selectedDayName = selectedDayIndex === todayIdx ? "Hoy" : selectedDay.name;
@@ -736,22 +740,9 @@ export function ProfileScreen({ navigation }: Props) {
   }
 
   function renderInventario() {
-    const livesFull = livesCount >= MAX_LIVES;
     const hearts = Array.from({ length: MAX_LIVES }, (_, i) => ({
-      filled: i < livesCount || infiniteActive,
+      filled: i < livesState.lives || infiniteActive,
     }));
-    const livesTimerColor = infiniteActive
-      ? colors.primaryDark
-      : livesFull
-      ? colors.successDark
-      : colors.neutral600;
-    const livesTimerBg = infiniteActive
-      ? colors.primaryLight
-      : livesFull
-      ? colors.successLight
-      : colors.neutral100;
-    const livesTimer = infiniteActive ? "27:00" : livesFull ? "Completas" : formatLifeTimer(lifeSecsLeft);
-    const livesTimerIcon: any = infiniteActive ? "infinite" : livesFull ? "checkmark-circle" : "time-outline";
 
     const boosters = [
       {
@@ -759,14 +750,15 @@ export function ProfileScreen({ navigation }: Props) {
         icon: "flash",
         color: colors.warning,
         name: "Multiplicador de XP",
-        desc: xpBoostActive ? "Activo · 14 min restantes" : "Duplicá tu XP durante 15 minutos",
+        desc: xpBoostActive
+          ? `Activo · x${inventory.effectiveXpMultiplier} · ${formatCountdown(xpSecs)} restantes`
+          : "Multiplicá tu XP por un tiempo",
         qty: xpBoostQty,
         active: xpBoostActive,
         actionLabel: xpBoostActive ? "Activo" : "Usar",
         onAction: () => {
-          if (xpBoostQty > 0 && !xpBoostActive) {
-            setXpBoostActive(true);
-            setXpBoostQty((q) => q - 1);
+          if (xpBoostQty > 0 && !xpBoostActive && activating == null) {
+            activateBooster("XP_MULTIPLIER");
           }
         },
       },
@@ -774,15 +766,16 @@ export function ProfileScreen({ navigation }: Props) {
         key: "inf",
         icon: "infinite",
         color: colors.infinitePink,
-        name: "Vidas infinitas · 30 min",
-        desc: infiniteActive ? "Activo · 27 min restantes" : "Practicá media hora sin perder vidas",
+        name: "Vidas infinitas",
+        desc: infiniteActive
+          ? `Activo · ${formatCountdown(infiniteSecs)} restantes`
+          : "Practicá sin perder vidas por un tiempo",
         qty: infiniteQty,
         active: infiniteActive,
         actionLabel: infiniteActive ? "Activo" : "Activar",
         onAction: () => {
-          if (infiniteQty > 0 && !infiniteActive) {
-            setInfiniteActive(true);
-            setInfiniteQty((q) => q - 1);
+          if (infiniteQty > 0 && !infiniteActive && activating == null) {
+            activateBooster("UNLIMITED_LIVES");
           }
         },
       },
@@ -796,10 +789,7 @@ export function ProfileScreen({ navigation }: Props) {
         <View style={styles.invCard}>
           <View style={styles.invCardHeader}>
             <Text style={styles.invCardTitle}>Vidas</Text>
-            <View style={[styles.livesTimer, { backgroundColor: livesTimerBg }]}>
-              <Ionicons name={livesTimerIcon} size={13} color={livesTimerColor} />
-              <Text style={[styles.livesTimerText, { color: livesTimerColor }]}>{livesTimer}</Text>
-            </View>
+            <LivesTimerChip state={livesState} showFull />
           </View>
           <View style={styles.heartsRow}>
             {hearts.map((h, i) => (
@@ -815,10 +805,7 @@ export function ProfileScreen({ navigation }: Props) {
             <TouchableOpacity
               style={[styles.lifeBtn, !canBuyLife && styles.lifeBtnDisabled]}
               onPress={() => {
-                if (canBuyLife) {
-                  setLivesCount((l) => l + 1);
-                  setGemsCount((g) => g - LIFE_GEM_COST);
-                }
+                if (canBuyLife) navigation.navigate("Store");
               }}
               activeOpacity={canBuyLife ? 0.8 : 1}
             >
@@ -829,7 +816,7 @@ export function ProfileScreen({ navigation }: Props) {
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.infiniteBtn, !canUseInfinite && styles.infiniteBtnDisabled]}
-              onPress={() => { if (canUseInfinite) { setInfiniteActive(true); setInfiniteQty((q) => q - 1); } }}
+              onPress={() => { if (canUseInfinite) activateBooster("UNLIMITED_LIVES"); }}
               activeOpacity={canUseInfinite ? 0.8 : 1}
             >
               <Ionicons name="infinite" size={16} color={canUseInfinite ? colors.neutral900 : colors.neutral400} />
@@ -863,6 +850,7 @@ export function ProfileScreen({ navigation }: Props) {
         </View>
 
         <SectionTitle icon="rocket" label="Potenciadores" style={{ marginTop: 18 }} />
+        {boosterError != null && <Text style={styles.boosterDesc}>{boosterError}</Text>}
         {boosters.map((b) => {
           const ready = b.qty > 0 && !b.active;
           return (
@@ -1594,18 +1582,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.displayBold,
     fontSize: 16,
     color: colors.neutral900,
-  },
-  livesTimer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    borderRadius: 10,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-  },
-  livesTimerText: {
-    fontFamily: fonts.displayBold,
-    fontSize: 13,
   },
   heartsRow: {
     flexDirection: "row",

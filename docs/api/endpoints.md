@@ -63,6 +63,16 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 
 `GET /store/gifts/sent` exists on the backend but has no client or UI yet — see [../status.md](../status.md).
 
+## `boostersApi` (`src/api/boosters.ts`) — mirrors `BoosterController`
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| `getStored()` | `GET /boosters` | `StoredBoosters` | `{ xpMultiplier, unlimitedLives }`: boosters bought but not yet activated |
+| `activate(type)` | `POST /boosters/{type}/activate` | `PurchaseResult` | `type` is `XP_MULTIPLIER` or `UNLIMITED_LIVES`; consumes the oldest stored one and returns the updated `inventory`; 404 if none is stored |
+
+Buying an XP multiplier or unlimited lives (`shopApi.purchase`) only **stores** it (no `effect` in the result);
+the Profile → Inventario "Usar"/"Activar" buttons call `activate`.
+
 ## `gemOrdersApi` (`src/api/gemOrders.ts`) — mirrors `GemOrderController`
 
 Real-money gem packs through Mercado Pago Checkout Pro. Flow and edge cases → [features/store.md](../features/store.md).

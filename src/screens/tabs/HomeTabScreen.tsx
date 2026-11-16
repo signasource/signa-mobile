@@ -23,6 +23,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { TabParamList } from "@/navigation/TabNavigator";
 import { AppStackParamList } from "@/navigation/AppNavigator";
 import { usersApi } from "@/api/users";
+import { useLives, livesValue, livesCaption, LivesSource } from "@/features/lives/useLives";
 import { inventoryApi } from "@/api/inventory";
 import { learningApi, EnrollmentSummary } from "@/api/learning";
 import type { PublicCourseProgress } from "@/api/social";
@@ -34,7 +35,6 @@ import {
   RoadmapLessonState,
   RoadmapTopic,
 } from "@/features/courses/api";
-import { LivesMode } from "@/api/shop";
 import { accentFor, progressFor } from "@/features/courses/roadmap";
 import { PaidCourseRow } from "@/features/store/PaidCourseRow";
 import { useTour } from "@/features/tour/TourContext";
@@ -189,8 +189,8 @@ export function HomeTabScreen({ navigation }: Props) {
   const { height: screenHeight } = useWindowDimensions();
   const [streak, setStreak] = useState(0);
   const [gems, setGems] = useState(0);
-  const [lives, setLives] = useState<number | null>(null);
-  const [livesMode, setLivesMode] = useState<LivesMode>("LIMITED");
+  const [livesSource, setLivesSource] = useState<LivesSource | null>(null);
+  const livesState = useLives(livesSource);
   const [roadmap, setRoadmap] = useState<CourseRoadmap | null>(null);
   const [enrollments, setEnrollments] = useState<EnrollmentSummary[]>([]);
   const [lessonCounts, setLessonCounts] = useState<PublicCourseProgress[]>([]);
@@ -241,8 +241,7 @@ export function HomeTabScreen({ navigation }: Props) {
       .then(([stats, inventory]) => {
         setStreak(stats.data.currentStreak);
         setGems(inventory.data.gems);
-        setLives(inventory.data.currentLives);
-        setLivesMode(inventory.data.livesMode);
+        setLivesSource(inventory.data);
       })
       .catch(() => {});
     challengesApi
@@ -415,7 +414,8 @@ export function HomeTabScreen({ navigation }: Props) {
           {
             key: "lives",
             label: "Vidas",
-            value: livesMode === "INFINITE" ? "∞" : String(lives ?? 0),
+            value: livesValue(livesState),
+            caption: livesCaption(livesState),
             icon: "heart",
           },
         ]}
