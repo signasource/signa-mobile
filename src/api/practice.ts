@@ -44,22 +44,18 @@ export const practiceApi = {
   getMistakeExercises: (limit = 10) =>
     apiClient.get<LessonContentBlock[]>("/practice/mistakes/exercises", { params: { limit } }),
 
-  /** No XP, no vidas: sólo queda registrado para el repaso de errores. */
+  /**
+   * Records the attempt and grants XP immediately when correct — unlike lesson exercises
+   * which only pay out on lesson completion. Returns xpEarned = 0 when wrong or the
+   * block carries no reward.
+   */
   recordAttempt: (lessonBlockId: string, isCorrect: boolean) =>
-    apiClient.post<void>("/practice/attempts", { lessonBlockId, isCorrect }),
+    apiClient.post<{ xpEarned: number }>("/practice/attempts", { lessonBlockId, isCorrect }),
 
   /**
-   * Único caso de práctica libre que sí otorga XP real: terminar un lote de
-   * repaso de errores. Se autolimita porque siempre opera sobre los errores
-   * pendientes reales del usuario (ver docs/features/practice.md).
+   * Additional XP bonus for finishing a mistake-review batch. Se autolimita porque
+   * siempre opera sobre los errores pendientes reales del usuario (ver docs/features/practice.md).
    */
   completeMistakeReview: () =>
     apiClient.post<{ xpEarned: number }>("/practice/mistakes/complete"),
-
-  /**
-   * Small XP bonus for completing any free-practice session (30-min cooldown server-side).
-   * Returns 0 when the cooldown has not elapsed yet.
-   */
-  completePracticeSession: () =>
-    apiClient.post<{ xpEarned: number }>("/practice/complete"),
 };

@@ -9,17 +9,11 @@ import { LessonButton } from "@/features/courses/components/lesson/LessonButton"
 interface PracticeCompleteProps {
   correctBlocks: number;
   totalBlocks: number;
-  /** >0 only for a completed "Repaso de errores" batch — see docs/features/practice.md. */
+  /** Total XP earned across all correct exercises in the session, plus any batch bonus. */
   xpEarned?: number;
   onClose: () => void;
   onRepeat: () => void;
 }
-
-/**
- * Results screen for a practice session — same layout as LessonComplete.
- * Practice sessions never grant real XP (see docs/features/practice.md),
- * except finishing a "Repaso de errores" batch, which shows an XP card.
- */
 export function PracticeComplete({
   correctBlocks,
   totalBlocks,
