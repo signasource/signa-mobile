@@ -17,6 +17,8 @@ export interface HeaderStat {
   dot?: boolean;
   /** Accessibility label for the tappable card. */
   accessibilityLabel?: string;
+  /** Override the card background (defaults to the computed tint from the header tone). */
+  cardBackground?: string;
 }
 
 interface ScreenHeaderProps {
@@ -105,7 +107,7 @@ export function ScreenHeader({
             return (
               <Card
                 key={stat.key}
-                style={[styles.statCard, stat.onPress && styles.statCardAction, { backgroundColor: tint }]}
+                style={[styles.statCard, stat.onPress && styles.statCardAction, { backgroundColor: stat.cardBackground ?? tint }]}
                 {...(stat.onPress
                   ? { onPress: stat.onPress, activeOpacity: 0.8, accessibilityRole: "button" as const, accessibilityLabel: stat.accessibilityLabel }
                   : {})}

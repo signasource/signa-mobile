@@ -40,6 +40,7 @@ export const colors = {
   celebrationGifts: "#F59BC4",
   celebrationShop: "#F29A4F",
   celebrationGeneric: "#9B86FF",
+  celebrationShield: "#29B6E8",
   gemsBlue: "#29B6E8",
   gemsBlueDark: "#1B84AB",
   gemsHighlight: "#FFE27A",

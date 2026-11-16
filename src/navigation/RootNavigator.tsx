@@ -53,13 +53,17 @@ function FriendAcceptedModalConnected({
 /** Mid-lesson, or already on a celebration: nothing is shown on top. */
 function isCelebrationBlocked(routeName: string): boolean {
   return (
-    routeName === "" || routeName === "Lesson" || routeName === "StreakDay" || routeName === "AchievementCelebration"
+    routeName === "" ||
+    routeName === "Lesson" ||
+    routeName === "StreakShield" ||
+    routeName === "StreakDay" ||
+    routeName === "AchievementCelebration"
   );
 }
 
 /**
- * Shows the streak-day and achievement celebrations on top of whatever the user is doing, except
- * mid-lesson, and re-checks for them as soon as a lesson or practice session is left.
+ * Shows shield, streak-day and achievement celebrations on top of whatever the user is doing,
+ * except mid-lesson. Order: shield (what happened overnight) → streak day → achievements.
  */
 function AchievementCelebrationConnected({
   currentRouteName,
@@ -68,7 +72,7 @@ function AchievementCelebrationConnected({
   currentRouteName: string;
   navigationRef: React.RefObject<NavigationContainerRef<AppStackParamList> | null>;
 }) {
-  const { pending, consume, pendingStreakDay, consumeStreakDay, refresh } = useAchievementCelebration();
+  const { pending, consume, pendingStreakDay, consumeStreakDay, pendingStreakShield, consumeStreakShield, refresh } = useAchievementCelebration();
   const previousRoute = useRef("");
 
   useEffect(() => {
@@ -77,17 +81,26 @@ function AchievementCelebrationConnected({
     if (left === "Lesson" || left === "PracticeSession") refresh();
   }, [currentRouteName, refresh]);
 
-  // The streak day goes first: the achievement waits until that screen is dismissed.
+  // Shield goes first: shown when the user opens the app after missing a day with a shield.
   useEffect(() => {
-    if (pendingStreakDay === null || isCelebrationBlocked(currentRouteName)) return;
+    if (pendingStreakShield === null || isCelebrationBlocked(currentRouteName)) return;
+    if (!navigationRef.current?.isReady()) return;
+
+    navigationRef.current.navigate("StreakShield", { streak: pendingStreakShield });
+    consumeStreakShield();
+  }, [pendingStreakShield, currentRouteName, consumeStreakShield, navigationRef]);
+
+  // Streak day goes second: waits until the shield screen (if any) is dismissed.
+  useEffect(() => {
+    if (pendingStreakDay === null || pendingStreakShield !== null || isCelebrationBlocked(currentRouteName)) return;
     if (!navigationRef.current?.isReady()) return;
 
     navigationRef.current.navigate("StreakDay", { streak: pendingStreakDay });
     consumeStreakDay();
-  }, [pendingStreakDay, currentRouteName, consumeStreakDay, navigationRef]);
+  }, [pendingStreakDay, pendingStreakShield, currentRouteName, consumeStreakDay, navigationRef]);
 
   useEffect(() => {
-    if (!pending || pendingStreakDay !== null || isCelebrationBlocked(currentRouteName)) return;
+    if (!pending || pendingStreakShield !== null || pendingStreakDay !== null || isCelebrationBlocked(currentRouteName)) return;
     if (!navigationRef.current?.isReady()) return;
 
     navigationRef.current.navigate("AchievementCelebration", {
@@ -99,7 +112,7 @@ function AchievementCelebrationConnected({
       rewardGems: pending.rewardGems,
     });
     consume();
-  }, [pending, pendingStreakDay, currentRouteName, consume, navigationRef]);
+  }, [pending, pendingStreakShield, pendingStreakDay, currentRouteName, consume, navigationRef]);
 
   return null;
 }

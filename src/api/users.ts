@@ -24,11 +24,14 @@ export interface UserStats {
   weeklyRank: number;
 }
 
-/** Mirrors `StreakDayResponse`: today added a streak day the app has not celebrated yet. */
+/** Mirrors `StreakDayResponse`: pending streak notifications from the server. */
 export interface StreakDay {
+  /** Today added a streak day the app has not celebrated yet. */
   pending: boolean;
-  /** Streak length including today; 0 when nothing is pending. */
+  /** Streak length; non-zero when `pending` or `shieldPending` is true. */
   currentStreak: number;
+  /** The nightly scheduler burned a shield to keep the streak alive. */
+  shieldPending: boolean;
 }
 
 export interface DailyGoal {
@@ -72,6 +75,9 @@ export const usersApi = {
 
   /** Idempotent. Marks today's streak day as celebrated so it is not offered again. */
   markStreakDaySeen: () => apiClient.post<void>("/users/me/streak-day/seen"),
+
+  /** Idempotent. Clears the shield-used notification set by the nightly scheduler. */
+  markStreakShieldSeen: () => apiClient.post<void>("/users/me/streak-shield/seen"),
 
   getWeeklyXp: () => apiClient.get<WeeklyXpEntry[]>("/users/me/weekly-xp"),
 
