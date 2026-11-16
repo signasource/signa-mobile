@@ -19,6 +19,7 @@
     },
     "android": {
       "package": "com.signasource.signamobile",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#F7F7F7"
