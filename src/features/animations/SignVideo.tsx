@@ -6,6 +6,8 @@ import { colors } from "@/theme";
 interface Props {
   url: string;
   paused?: boolean;
+  /** Playback speed: 1 = normal, 0.5 = slow motion. */
+  rate?: 1 | 0.5;
   style?: ViewStyle;
   onLoaded?: () => void;
   onError?: (mensaje: string) => void;
@@ -19,7 +21,7 @@ interface Props {
  * sumar una dependencia nativa: la app ya usa react-native-webview y así el
  * cambio llega sin recompilar.
  */
-export function SignVideo({ url, paused, style, onLoaded, onError }: Props) {
+export function SignVideo({ url, paused, rate = 1, style, onLoaded, onError }: Props) {
   const html = useMemo(
     () => `<!doctype html>
 <html>
@@ -42,6 +44,7 @@ export function SignVideo({ url, paused, style, onLoaded, onError }: Props) {
       post({ type: 'error', message: 'video ' + (v.error ? v.error.code : '?') });
     });
     window.pausar = function (p) { if (p) v.pause(); else v.play().catch(function () {}); };
+    window.setRate = function (r) { v.playbackRate = r; };
     v.src = ${JSON.stringify(url)};
   </script>
 </body>
@@ -53,6 +56,10 @@ export function SignVideo({ url, paused, style, onLoaded, onError }: Props) {
   React.useEffect(() => {
     ref.current?.injectJavaScript(`window.pausar && window.pausar(${paused ? "true" : "false"}); true;`);
   }, [paused]);
+
+  React.useEffect(() => {
+    ref.current?.injectJavaScript(`window.setRate && window.setRate(${rate}); true;`);
+  }, [rate]);
 
   function onMessage(e: WebViewMessageEvent) {
     try {

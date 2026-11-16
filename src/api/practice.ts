@@ -55,4 +55,11 @@ export const practiceApi = {
    */
   completeMistakeReview: () =>
     apiClient.post<{ xpEarned: number }>("/practice/mistakes/complete"),
+
+  /**
+   * Small XP bonus for completing any free-practice session (30-min cooldown server-side).
+   * Returns 0 when the cooldown has not elapsed yet.
+   */
+  completePracticeSession: () =>
+    apiClient.post<{ xpEarned: number }>("/practice/complete"),
 };

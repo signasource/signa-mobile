@@ -81,14 +81,20 @@ export function PracticeSessionScreen({ route, navigation }: Props) {
     if (finished.current) return;
     finished.current = true;
     setCompleted(true);
-    if (mode.mode !== "mistakes") return;
 
     // Side effects live here, not in a state updater (React may run those twice). Waiting for the
     // attempts matters: the backend only pays out for mistakes it has seen resolved.
-    Promise.all(pendingAttempts.current)
-      .then(() => practiceApi.completeMistakeReview())
-      .then((res) => setXpEarned(res.data.xpEarned))
-      .catch(() => {});
+    if (mode.mode === "mistakes") {
+      Promise.all(pendingAttempts.current)
+        .then(() => practiceApi.completeMistakeReview())
+        .then((res) => setXpEarned(res.data.xpEarned))
+        .catch(() => {});
+    } else {
+      Promise.all(pendingAttempts.current)
+        .then(() => practiceApi.completePracticeSession())
+        .then((res) => setXpEarned(res.data.xpEarned))
+        .catch(() => {});
+    }
   }
 
   function goToNextBlock() {

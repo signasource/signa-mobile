@@ -4,7 +4,7 @@ import { authApi } from "@/api/auth";
 import { usersApi } from "@/api/users";
 import { setOnRefreshFailure } from "@/api/client";
 import { tokenStorage } from "@/utils/storage";
-import { extractEmailFromToken, isTokenExpired } from "@/utils/jwt";
+import { extractEmailFromToken, extractRoleFromToken, isTokenExpired } from "@/utils/jwt";
 import { signInWithGoogle } from "@/utils/googleAuth";
 import { profileCache } from "@/utils/profileCache";
 import { ChangePasswordRequest, LoginRequest, RegisterRequest, User } from "@/types";
@@ -43,8 +43,9 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 async function buildUserFromToken(accessToken: string): Promise<User> {
   const email = extractEmailFromToken(accessToken);
+  const role = extractRoleFromToken(accessToken);
   const cachedName = await profileCache.getName(email);
-  return { email, name: cachedName ?? undefined };
+  return { email, name: cachedName ?? undefined, role };
 }
 
 /**
@@ -162,6 +163,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await tokenStorage.setTokens(data.accessToken, data.refreshToken);
       // The account already has its own goal; the onboarding one must not override it.
       await discardOnboardingDailyGoal();
+      // Logging in means the user already went through onboarding before — skip it on this device.
+      await onboardingStorage.complete();
       setUser(await buildUserFromToken(data.accessToken));
     } catch (err: any) {
       setError(err?.response?.data?.message ?? "No se pudo iniciar sesion");
@@ -195,6 +198,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data } = await authApi.google({ idToken: google.idToken, dailyGoalMinutes });
       await tokenStorage.setTokens(data.accessToken, data.refreshToken);
       await discardOnboardingDailyGoal();
+      await onboardingStorage.complete();
       const built = await buildUserFromToken(data.accessToken);
       if (!built.name && google.name) await profileCache.setName(built.email, google.name);
       setUser(built.name ? built : { ...built, name: google.name ?? undefined });

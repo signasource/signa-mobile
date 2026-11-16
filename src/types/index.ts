@@ -12,13 +12,16 @@
 export interface User {
   email: string;
   name?: string;
+  /** Role from the JWT claim (USER | ADMIN | ORG_ADMIN). Present for sessions created after the JWT update. */
+  role?: string;
 }
 
-// AuthResponse.java: public record AuthResponse(String accessToken, String refreshToken)
+// AuthResponse.java: public record AuthResponse(String accessToken, String refreshToken, String role)
 // OJO: no trae datos del usuario. El perfil se arma decodificando el JWT.
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
+  role: string;
 }
 
 // LoginRequest.java

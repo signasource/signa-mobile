@@ -14,6 +14,7 @@ import { AchievementCelebrationProvider, useAchievementCelebration } from "@/fea
 import { TourProvider } from "@/features/tour/TourContext";
 import { TourOverlay } from "@/features/tour/components/TourOverlay";
 import { colors } from "@/theme";
+import { RoleBlockedScreen } from "@/screens/RoleBlockedScreen";
 
 function getActiveRouteName(state: NavigationState | undefined): string {
   if (!state) return "";
@@ -156,6 +157,10 @@ export function RootNavigator() {
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
+  }
+
+  if (isAuthenticated && user?.role && user.role !== "USER") {
+    return <RoleBlockedScreen role={user.role} />;
   }
 
   return (

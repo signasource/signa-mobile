@@ -15,12 +15,21 @@ import { jwtDecode } from "jwt-decode";
  */
 interface SignaJwtClaims {
   sub: string; // email
+  role?: string; // added in JwtService.generateToken
   iat: number;
   exp: number;
 }
 
 export function extractEmailFromToken(accessToken: string): string {
   return jwtDecode<SignaJwtClaims>(accessToken).sub;
+}
+
+export function extractRoleFromToken(accessToken: string): string | undefined {
+  try {
+    return jwtDecode<SignaJwtClaims>(accessToken).role;
+  } catch {
+    return undefined;
+  }
 }
 
 export function isTokenExpired(accessToken: string): boolean {

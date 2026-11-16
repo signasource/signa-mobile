@@ -57,6 +57,7 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
   const fuente = useSignSource(meaning);
   // Las señas en video pueden traer además una toma lateral.
   const [vista, setVista] = useState<"frente" | "lateral">("frente");
+  const [videoRate, setVideoRate] = useState<1 | 0.5>(1);
   const lateral = fuente?.format === "mp4" ? fuente.lateralUrl ?? null : null;
 
   // La seña cambió (p. ej. el PiP de deletrear pasa de letra en letra): un
@@ -65,6 +66,7 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
     setFailed(false);
     setReady(false);
     setVista("frente");
+    setVideoRate(1);
     setCaidoANavegador(false);
     desde.current = Date.now();
   }, [meaning]);
@@ -116,10 +118,23 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
           ))}
         </View>
       )}
+      {fuente.format === "mp4" && (
+        <Pressable
+          onPress={() => setVideoRate((r) => (r === 1 ? 0.5 : 1))}
+          style={[styles.speedBtn, lateral ? styles.speedBtnWithTabs : null]}
+          accessibilityRole="button"
+          accessibilityLabel={videoRate === 1 ? "Ver en cámara lenta" : "Ver a velocidad normal"}
+        >
+          <Text style={[styles.vistaTexto, videoRate !== 1 && styles.vistaTextoActivo]}>
+            {videoRate === 1 ? "0.5×" : "1×"}
+          </Text>
+        </Pressable>
+      )}
       {fuente.format === "mp4" ? (
         <SignVideo
           url={vista === "lateral" && lateral ? lateral : fuente.url}
           paused={paused}
+          rate={videoRate}
           onLoaded={() => listo()}
           onError={(motivo) => {
             marcar("video-falla", { sena: meaning, motivo });
@@ -221,5 +236,18 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodySemiBold,
     fontSize: 12.5,
     color: colors.onDark,
+  },
+  speedBtn: {
+    position: "absolute",
+    bottom: 12,
+    right: 12,
+    zIndex: 1,
+    padding: 2,
+    borderRadius: 9,
+    backgroundColor: alpha(colors.onColor, 0.94),
+  },
+  speedBtnWithTabs: {
+    bottom: 12,
+    right: 12,
   },
 });
