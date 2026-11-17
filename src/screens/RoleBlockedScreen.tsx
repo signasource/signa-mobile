@@ -4,6 +4,7 @@ import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, fonts } from "@/theme";
 import { useAuth } from "@/context/AuthContext";
+import Candado from "@assets/ilus/candado.svg";
 
 const ROLE_LABELS: Record<string, string> = {
   ADMIN: "Administrador de Signa",
@@ -22,7 +23,7 @@ export function RoleBlockedScreen({ role }: Props) {
   return (
     <View style={[styles.container, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>
       <View style={styles.iconWrap}>
-        <Text style={styles.icon}>🔒</Text>
+        <Candado width={42} height={56} />
       </View>
       <Text style={styles.title}>Esta app es para estudiantes</Text>
       <Text style={styles.body}>
@@ -60,7 +61,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 8,
   },
-  icon: { fontSize: 36 },
   title: {
     fontFamily: fonts.displayBold,
     fontSize: 26,
