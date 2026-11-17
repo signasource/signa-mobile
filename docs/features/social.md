@@ -162,7 +162,7 @@ the header comes from `@/components/ScreenHeader`.
 ## Ranking tab — `RankingTab.tsx`
 
 Third tab in the Social `SegmentedControl`. Self-contained component that:
-- Fetches `GET /ranking/global` and `GET /ranking/friends` in parallel (plus `GET /users/me` for the user's own name/initials), all at mount time.
+- Fetches `GET /ranking/global` and `GET /ranking/friends` in parallel (plus `GET /users/me` for the user's own name/initials), on every focus (`useFocusEffect`; later fetches refresh silently, keeping the current ranking on screen) since lessons change weekly XP.
 - Shows a **scope toggle** (Global · Mis amigos) backed by local state; no re-fetch on switch.
 - **Countdown** banner ("Se reinicia el lunes a las 00:00") with a live 1-second timer based on device local time (users are assumed to be in ART).
 - **Podium** card: top 3 in 2nd–1st–3rd visual order, avatar rings in gold/silver/bronze, bar heights proportional to rank.

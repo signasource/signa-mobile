@@ -74,7 +74,12 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   error. State resets when `meaning` changes (the spell-name PiP swaps letters). When the sign is a
   video **and** has a lateral take, a Frente / Lateral switch swaps between both),
   `NoLivesOverlay`, `LessonComplete` (its three tiles — XP, aciertos, señas nuevas — are filtered to
-  the ones actually **earned**, `> 0`; the row disappears when none is), and `blocks/` with one
+  the ones actually **earned**, `> 0`; the row disappears when none is). The XP tile is the
+  **backend's delta**, not the sum of `xpReward`: `LessonScreen` reads `GET /users/me/stats`
+  (`totalXp`) when the lesson loads and again — after the answer queue drains — when it
+  completes, and shows the difference (multiplier included; `0` on a replay, since the backend
+  grants a block's XP only once). The tile stays hidden while that request is in flight and
+  falls back to the local `xpReward` sum only if the stats can't be read. Also `blocks/` with one
   component per `BlockType` (`InfoBlock`, `IntroduceSignBlock`, `SelectMeaningBlock`,
   `SelectSignBlock`, `ContextResponseBlock` and `SelectSignBlock` share `SignCarouselBlock`,
   `MatchBlock`, `VisualRecognitionBlock`). `IntroduceSignBlock` presents a new sign with its

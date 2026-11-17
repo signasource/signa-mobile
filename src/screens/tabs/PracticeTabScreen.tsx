@@ -69,15 +69,23 @@ export function PracticeTabScreen({ navigation }: Props) {
     }, [showSectionModal]),
   );
 
-  useEffect(() => {
-    practiceApi
-      .getSummary()
-      .then((res) => {
-        setSignsLearnedCount(res.data.signsLearnedCount);
-        setExercisesDoneCount(res.data.exercisesDoneCount);
-      })
-      .catch(() => {});
-  }, []);
+  // Refetched on every focus: lessons and practice sessions change both counters in the backend.
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      practiceApi
+        .getSummary()
+        .then((res) => {
+          if (!active) return;
+          setSignsLearnedCount(res.data.signsLearnedCount);
+          setExercisesDoneCount(res.data.exercisesDoneCount);
+        })
+        .catch(() => {});
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
 
   if (detail) {
     return (

@@ -197,9 +197,12 @@ export function ProfileScreen({ navigation }: Props) {
   const infiniteActive = livesState.unlimited;
   const infiniteSecs = livesState.unlimitedSecs;
 
-  const loadProfile = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+  /** `silent` re-fetches in place (on focus) without the loading/refreshing spinners. */
+  const loadProfile = useCallback(async (isRefresh = false, silent = false) => {
+    if (!silent) {
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+    }
     const [profileRes, weekRes, goalRes, statsRes, invRes, unlockedRes, lockedRes, coursesRes, settingsRes, boostersRes] =
       await Promise.allSettled([
         usersApi.getMe(),
@@ -293,29 +296,10 @@ export function ProfileScreen({ navigation }: Props) {
         firstFocus.current = false;
         return;
       }
-      usersApi.getMe().then((res) => {
-        setDisplayName(res.data.name);
-        setUsername(res.data.username);
-        setAvatarUrl(res.data.avatarUrl ?? null);
-        setEmailUnverified(res.data.verified === false);
-      }).catch(() => {});
-      usersApi.getSettings().then((res) => {
-        const color = res.data.profileHeaderColor;
-        setHeaderColor(color);
-      }).catch(() => {});
-      usersApi.getDailyGoal().then((res) => {
-        setMinutesToday(res.data.minutesToday);
-      }).catch(() => {});
-      // Las lecciones gastan vidas en el backend: sin esto el inventario queda con las de antes.
-      inventoryApi.getMyInventory().then((res) => {
-        setInventory(res.data);
-        setGemsCount(res.data.gems);
-      }).catch(() => {});
-      boostersApi.getStored().then((res) => {
-        setXpBoostQty(res.data.xpMultiplier);
-        setInfiniteQty(res.data.unlimitedLives);
-      }).catch(() => {});
-    }, [])
+      // Las lecciones dan XP, rachas y logros y gastan vidas en el backend: el perfil sigue
+      // montado en su tab, así que sin recargar todo muestra los números de antes.
+      loadProfile(false, true);
+    }, [loadProfile])
   );
 
   /** Picking a swatch applies it immediately and persists it — no confirm step. */

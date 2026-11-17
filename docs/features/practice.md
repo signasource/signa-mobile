@@ -8,7 +8,7 @@ Status: **real**. Built from `Practica Libre.dc.html` (Claude Design), wired to 
 `/practice/*` endpoints (`PracticeController`).
 
 `PracticeTabScreen` is a `courseTeal`-toned `ScreenHeader` (2 stats: señas aprendidas / ejercicios
-hechos, from `practiceApi.getSummary()`), a 3-way `SegmentedControl` (Ejercicios / Señas /
+hechos, from `practiceApi.getSummary()`, refetched on every focus), a 3-way `SegmentedControl` (Ejercicios / Señas /
 Errores), and a sign-detail view that replaces the tab body when a sign is tapped (local `detail`
 state, not a stack route — same pattern `SocialScreen` uses for its modals).
 

@@ -8,6 +8,7 @@ import { AppStackParamList } from "@/navigation/AppNavigator";
 import { lessonsApi } from "@/api/lessons";
 import { learningApi } from "@/api/learning";
 import { shopApi } from "@/api/shop";
+import { usersApi } from "@/api/users";
 import { serverNow } from "@/utils/serverClock";
 import { useLives, LivesSource, LIFE_REGEN_MS } from "@/features/lives/useLives";
 import { useActivityTracker } from "@/hooks/useActivityTracker";
@@ -89,6 +90,10 @@ export function LessonScreen({ route, navigation }: Props) {
   const infoReportados = useRef<Set<string>>(new Set());
   // When the lesson opened, to report time-on-lesson once (null after it's been sent).
   const startRef = useRef<number | null>(null);
+  // `UserStats.totalXp` before the lesson: the XP shown at the end is the backend's delta.
+  const xpBaseline = useRef<number | null>(null);
+  const [serverXp, setServerXp] = useState<number | null>(null);
+  const [xpPending, setXpPending] = useState(false);
 
   const loadLesson = useCallback(() => {
     if (!lessonId) {
@@ -99,10 +104,15 @@ export function LessonScreen({ route, navigation }: Props) {
     setError(null);
 
     setLoading(true);
-    Promise.all([lessonsApi.getLesson(lessonId), shopApi.getMyInventory().catch(() => null)])
-      .then(([lessonRes, inventoryRes]) => {
+    Promise.all([
+      lessonsApi.getLesson(lessonId),
+      shopApi.getMyInventory().catch(() => null),
+      usersApi.getStats().catch(() => null),
+    ])
+      .then(([lessonRes, inventoryRes, statsRes]) => {
         setLesson(lessonRes.data);
         startRef.current = Date.now();
+        xpBaseline.current = statsRes?.data.totalXp ?? null;
         if (inventoryRes?.data) {
           setLivesSource(inventoryRes.data);
           setGems(inventoryRes.data.gems);
@@ -121,7 +131,29 @@ export function LessonScreen({ route, navigation }: Props) {
     setAwardedXp({});
     setCorrectBlockIds(new Set());
     setCompleted(false);
+    setServerXp(null);
+    setXpPending(false);
     infoReportados.current = new Set();
+  }
+
+  /**
+   * The XP the backend actually granted, not the sum of `block.xpReward`: it applies the
+   * active multiplier and grants nothing for blocks already earned (a replay), so the local
+   * sum disagreed with the XP the Profile showed. Waits for the answer queue to drain first;
+   * if the stats can't be read, the local estimate stays.
+   */
+  function confirmServerXp() {
+    const base = xpBaseline.current;
+    if (base == null) return;
+    setXpPending(true);
+    cola.current
+      .then(() => usersApi.getStats())
+      .then((res) => {
+        setServerXp(Math.max(0, res.data.totalXp - base));
+        xpBaseline.current = res.data.totalXp;
+      })
+      .catch(() => {})
+      .finally(() => setXpPending(false));
   }
 
   /**
@@ -196,6 +228,7 @@ export function LessonScreen({ route, navigation }: Props) {
         startRef.current = null;
       }
       setCompleted(true);
+      confirmServerXp();
     } else {
       setBlockIndex((prev) => prev + 1);
     }
@@ -231,7 +264,9 @@ export function LessonScreen({ route, navigation }: Props) {
   const noLives = lives <= 0 && !unlimitedLives && !completed;
 
   if (completed) {
-    const xpEarned = Object.values(awardedXp).reduce((sum, v) => sum + v, 0);
+    const localXp = Object.values(awardedXp).reduce((sum, v) => sum + v, 0);
+    // Hidden (0) while the backend's figure is in flight, so it never flashes a wrong number.
+    const xpEarned = xpPending ? 0 : serverXp ?? localXp;
     // Omitir un ejercicio de cámara no se reporta (el backend lo daría por hecho),
     // así que la lección no está completa si alguno no se acertó.
     const incomplete = blocks.some(
