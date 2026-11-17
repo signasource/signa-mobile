@@ -7,6 +7,7 @@ import { MultiGlbView } from "./MultiGlbView";
 import { getGlbUrlOficial } from "./glbUrl";
 import { esVideo } from "./signMedia";
 import { SignVideo } from "./SignVideo";
+import { SpeedToggle, VideoRate } from "./SpeedToggle";
 
 export interface MultiAvatarNativoProps {
   /** Un `.glb` por seña, en orden. Vacío = ese lugar queda en blanco. */
@@ -56,6 +57,7 @@ export function MultiAvatarNativo({
 }: MultiAvatarNativoProps) {
   // Antes de cualquier return: los hooks van siempre en el mismo orden.
   const [falló, setFalló] = useState(false);
+  const [rate, setRate] = useState<VideoRate>(1);
 
   // Sin modulo nativo (iOS) se vuelve al render por WebView con <model-viewer>.
   if (!hayNativo) {
@@ -79,7 +81,7 @@ export function MultiAvatarNativo({
       alto === "todo" ? { flex: 1, backgroundColor: colors.fill } : { height: alto, backgroundColor: colors.fill };
     if (!url) return <View key={key} style={caja} />;
     // Seña subida como video desde el panel de admins.
-    if (esVideo(url)) return <SignVideo key={key} url={url} paused={enPausa} style={caja} />;
+    if (esVideo(url)) return <SignVideo key={key} url={url} paused={enPausa} rate={rate} style={caja} />;
     return (
       <AvatarNativo
         key={key}
@@ -96,10 +98,15 @@ export function MultiAvatarNativo({
     );
   }
 
+  // Los controles van afuera del contenedor con pointerEvents="none", que
+  // si no se tragaría el toque.
   if (layout === "rows") {
     return (
-      <View style={[styles.filas, { gap: rowGap }, style]} pointerEvents="none">
-        {urls.map((url, i) => avatar(url, rowHeight, `${i}-${url}`, paused))}
+      <View style={[styles.completo, style]}>
+        <View style={[styles.filas, { gap: rowGap }]} pointerEvents="none">
+          {urls.map((url, i) => avatar(url, rowHeight, `${i}-${url}`, paused))}
+        </View>
+        {urls.some(esVideo) && <SpeedToggle rate={rate} onChange={setRate} />}
       </View>
     );
   }
@@ -108,8 +115,11 @@ export function MultiAvatarNativo({
   // acá pasa lo mismo y sólo se dibuja la seña que se está mirando.
   const url = urls[activeIndex] ?? "";
   return (
-    <View style={[styles.completo, style]} pointerEvents="none">
-      {avatar(url, "todo", `activo-${activeIndex}`, paused)}
+    <View style={[styles.completo, style]}>
+      <View style={styles.completo} pointerEvents="none">
+        {avatar(url, "todo", `activo-${activeIndex}`, paused)}
+      </View>
+      {esVideo(url) && <SpeedToggle rate={rate} onChange={setRate} />}
     </View>
   );
 }
