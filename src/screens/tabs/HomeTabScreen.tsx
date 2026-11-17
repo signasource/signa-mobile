@@ -217,21 +217,26 @@ export function HomeTabScreen({ navigation }: Props) {
   const lessonCardRef = useTourTarget("home-current-lesson", revealCurrentLesson);
 
   /**
-   * Scrolls the roadmap so the current lesson sits in the upper part, leaving room below it for
-   * the tour bubble. Proportional to the screen height so it holds on short and tall phones.
+   * Scrolls the roadmap so the current lesson sits right under the fixed header, leaving the rest
+   * of the screen for the tour bubble. The reference is the ScrollView's own top edge (where the
+   * header ends), not a fraction of the screen: the header's height varies per device and font
+   * scale, and anchoring above it would hide the card behind the header.
    */
   function revealCurrentLesson() {
     return new Promise<void>((resolve) => {
       const node = lessonCardRef.current;
-      if (!node || !scrollRef.current) return resolve();
-      node.measureInWindow((_x, y) => {
-        const desiredTop = Math.max(insets.top + 90, screenHeight * 0.22);
-        const delta = y - desiredTop;
-        if (Math.abs(delta) > 4) {
-          scrollRef.current?.scrollTo({ y: Math.max(0, scrollY.current + delta), animated: false });
-        }
-        // Give the scroll a frame to be applied before measuring again.
-        setTimeout(resolve, 80);
+      const scroll = scrollRef.current;
+      if (!node || !scroll) return resolve();
+      // ScrollView is a native host component and has measureInWindow at runtime; its typings omit it.
+      (scroll as unknown as View).measureInWindow((_sx, scrollTop) => {
+        node.measureInWindow((_x, y) => {
+          const delta = y - (scrollTop + 16);
+          if (Math.abs(delta) > 4) {
+            scroll.scrollTo({ y: Math.max(0, scrollY.current + delta), animated: false });
+          }
+          // Give the scroll a frame to be applied before measuring again.
+          setTimeout(resolve, 80);
+        });
       });
     });
   }
