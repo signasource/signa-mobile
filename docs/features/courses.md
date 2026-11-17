@@ -145,9 +145,13 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   device) took the whole host app process down with it instead of just that one card.
 - `features/animations/SignVideo.tsx`: renders a `.mp4` in a WebView `<video>` (looping, muted,
   inline) — no extra native dependency (`expo-av` is gone in SDK 57). Same contract as the avatar
-  views (`url`, `paused`, `onLoaded`, `onError`).
+  views (`url`, `paused`, `onLoaded`, `onError`) plus `rate` (1 | 0.5, slow motion).
+- `features/animations/SpeedToggle.tsx`: floating 1× / 0.5× button (bottom-right) that drives
+  `SignVideo`'s `rate`. Shown by `SignAnimation` for `.mp4` signs and by `MultiAvatarNativo`
+  whenever a visible slot is a video (one shared rate for all its slots).
 - `features/animations/MultiAvatarNativo.tsx`: several signs with the native avatar (one Filament
-  view per visible slot), `SignVideo` for `.mp4` slots; on iOS falls back to `MultiGlbView`.
+  view per visible slot), `SignVideo` for `.mp4` slots (with the `SpeedToggle`); on iOS falls back
+  to `MultiGlbView`.
 
 To advance: once `signa-api` #60 merges, consider trusting the server as the sole source of truth for `lives` (e.g. refetch
 `shopApi.getMyInventory()` after each wrong answer, or surface the fire-and-forget interaction

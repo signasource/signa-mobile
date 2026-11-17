@@ -182,6 +182,8 @@ memoria y re-dibuja cuando llega la respuesta.
   sonido; no suma dependencias nativas). Lo usan `SignAnimation` y, en Android,
   `MultiAvatarNativo` (Emparejar, carrusel, reconocimiento visual). En iOS los
   bloques de varias señas siguen con `MultiGlbView`, que no reproduce video.
+- Los videos tienen un botón 1× / 0.5× (`SpeedToggle`, abajo a la derecha) para
+  verlos en cámara lenta; está en `SignAnimation` y en `MultiAvatarNativo`.
 
 ## Qué implicaría reemplazar los archivos del servidor
 
