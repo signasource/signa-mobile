@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
   ScrollView,
@@ -241,9 +242,12 @@ export function RankingTab({ onPressProfile }: RankingTabProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const hasData = useRef(false);
+
   const load = useCallback(async () => {
     setError(null);
-    setLoading(true);
+    // Re-fetches on focus keep the current ranking on screen instead of flashing a spinner.
+    if (!hasData.current) setLoading(true);
     try {
       const [globalRes, friendsRes, profileRes] = await Promise.all([
         rankingApi.getGlobal(),
@@ -253,16 +257,20 @@ export function RankingTab({ onPressProfile }: RankingTabProps) {
       setGlobalRanking(globalRes.data);
       setFriendsRanking(friendsRes.data);
       setMyProfile(profileRes.data);
+      hasData.current = true;
     } catch (err: any) {
-      setError(err?.response?.data?.message ?? "No pudimos cargar el ranking.");
+      if (!hasData.current) setError(err?.response?.data?.message ?? "No pudimos cargar el ranking.");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  // Weekly XP moves with every lesson, so the ranking is refetched whenever the tab regains focus.
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   const data = scope === "global" ? globalRanking : friendsRanking;
   const globalTotal = globalRanking?.total ?? 0;

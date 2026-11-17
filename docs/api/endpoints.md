@@ -40,7 +40,7 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 | `getSettings()` | `GET /users/settings` | `UserSettings` | returns full settings; front-end uses `profileHeaderColor` |
 | `updateSettings(payload)` | `PATCH /users/settings` | `UserSettings` | partial patch; all fields optional |
 
-> `usersApi.getStats()` (`GET /users/me/stats`) exists in `UserController.java`.
+> `usersApi.getStats()` (`GET /users/me/stats`) exists in `UserController.java`. It is the source of truth for XP: Perfil, Inicio and `LessonScreen` (XP delta at lesson end) read `totalXp` from it.
 
 ## `inventoryApi` (`src/api/inventory.ts`)
 
