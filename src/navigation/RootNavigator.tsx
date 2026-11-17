@@ -167,6 +167,9 @@ export function RootNavigator() {
     <FriendAcceptedProvider isAuthenticated={isAuthenticated}>
       <AchievementCelebrationProvider isAuthenticated={isAuthenticated}>
       <TourProvider isAuthenticated={isAuthenticated} userId={user?.email ?? null}>
+        {/* The tour overlay is a sibling of the navigator inside this box (not a Modal), so it
+            shares the app's coordinate space and always sits on top of what it explains. */}
+        <View style={{ flex: 1 }}>
         <NavigationContainer
           ref={navigationRef}
           onStateChange={(state) => setCurrentRouteName(getActiveRouteName(state))}
@@ -191,6 +194,7 @@ export function RootNavigator() {
         />
         <AchievementCelebrationConnected currentRouteName={currentRouteName} navigationRef={navigationRef} />
         <TourOverlay navigationRef={navigationRef} />
+        </View>
       </TourProvider>
       </AchievementCelebrationProvider>
     </FriendAcceptedProvider>

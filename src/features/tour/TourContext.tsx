@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { View } from "react-native";
 import { tourStorage } from "./storage";
+import { TOUR_CLOSING_STEP, TOUR_WELCOME_STEP } from "./steps";
 
 /** Position of an element in window coordinates (what `measureInWindow` returns). */
 export interface TourRect {
@@ -18,7 +19,7 @@ export interface TourTarget {
 }
 
 interface TourContextValue {
-  // Tour overlay (0=welcome, 1-6=coach marks, 7=closing)
+  // Tour overlay (0=welcome, 1..TOUR_STEP_COUNT=coach marks, TOUR_CLOSING_STEP=closing; see steps.ts)
   tourVisible: boolean;
   tourStep: number;
   tourGoNext: () => void;
@@ -27,8 +28,10 @@ interface TourContextValue {
   tourReplay: () => void;
   /** Registers a spotlight target; returns the unregister function. */
   registerTarget: (id: string, target: TourTarget) => () => void;
-  /** Measures a registered target in window coordinates, or `null` if it is not on screen. */
+  /** One measurement of a registered target in window coordinates; `null` if absent or zero-sized. */
   measureTarget: (id: string) => Promise<TourRect | null>;
+  /** Asks a target to bring itself into view (e.g. scroll a list). Best-effort. */
+  revealTarget: (id: string) => Promise<void>;
 
   // Section modals (first-visit per tab)
   practiceModalVisible: boolean;
@@ -83,28 +86,35 @@ export function TourProvider({
     };
   }, []);
 
-  const measureTarget = useCallback(async (id: string): Promise<TourRect | null> => {
-    const target = targetsRef.current.get(id);
-    if (!target) return null;
+  // Single-shot: the overlay's engine (`useTourSpot`) owns retrying, settling and tracking.
+  const measureTarget = useCallback((id: string): Promise<TourRect | null> => {
+    const node = targetsRef.current.get(id)?.ref.current;
+    if (!node) return Promise.resolve(null);
+    return new Promise((resolve) => {
+      // measureInWindow may never call back for a detached native view: don't hang the engine.
+      const timer = setTimeout(() => resolve(null), 400);
+      node.measureInWindow((x, y, width, height) => {
+        clearTimeout(timer);
+        const valid =
+          [x, y, width, height].every(Number.isFinite) && width > 0 && height > 0;
+        resolve(valid ? { x, y, width, height } : null);
+      });
+    });
+  }, []);
+
+  const revealTarget = useCallback(async (id: string): Promise<void> => {
     try {
-      await target.reveal?.();
+      await targetsRef.current.get(id)?.reveal?.();
     } catch {
-      // Revealing is best-effort: measure wherever the element is.
+      // Revealing is best-effort: the target is measured wherever it is.
     }
-    // Layout may still be settling (scroll, fonts, data): retry a few times.
-    for (let attempt = 0; attempt < 6; attempt++) {
-      const node = target.ref.current;
-      if (node) {
-        const rect = await new Promise<TourRect | null>((resolve) => {
-          node.measureInWindow((x, y, width, height) =>
-            resolve(width > 0 && height > 0 ? { x, y, width, height } : null),
-          );
-        });
-        if (rect) return rect;
-      }
-      await new Promise((r) => setTimeout(r, 120));
-    }
-    return null;
+  }, []);
+
+  // The step lives in a ref too, so rapid double taps advance one step each, never skip one.
+  const tourStepRef = useRef(0);
+  const goToStep = useCallback((step: number) => {
+    tourStepRef.current = step;
+    setTourStep(step);
   }, []);
 
   // Keep userId in a ref so callbacks always see the latest value.
@@ -131,11 +141,11 @@ export function TourProvider({
       const tourDone = await tourStorage.isTourCompleted(userId);
       // Only trigger the tour when the user actually logs in during this session.
       if (!tourDone && justLoggedIn) {
-        setTourStep(0);
+        goToStep(TOUR_WELCOME_STEP);
         setTourVisible(true);
       }
     })();
-  }, [isAuthenticated, userId]);
+  }, [isAuthenticated, userId, goToStep]);
 
   const finishTour = useCallback(() => {
     if (userIdRef.current) tourStorage.completeTour(userIdRef.current);
@@ -143,28 +153,13 @@ export function TourProvider({
   }, []);
 
   const tourGoNext = useCallback(() => {
-    setTourStep((s) => {
-      if (s >= 7) {
-        finishTour();
-        return s;
-      }
-      const next = s + 1;
-      if (next > 7) {
-        finishTour();
-        return s;
-      }
-      return next;
-    });
-  }, [finishTour]);
-
-  // Called by the closing step "Listo" button
-  useEffect(() => {
-    if (tourStep === 8) finishTour();
-  }, [tourStep, finishTour]);
+    if (tourStepRef.current >= TOUR_CLOSING_STEP) finishTour();
+    else goToStep(tourStepRef.current + 1);
+  }, [finishTour, goToStep]);
 
   const tourGoPrev = useCallback(() => {
-    setTourStep((s) => (s > 1 ? s - 1 : s));
-  }, []);
+    if (tourStepRef.current > 1) goToStep(tourStepRef.current - 1);
+  }, [goToStep]);
 
   const tourSkip = useCallback(() => finishTour(), [finishTour]);
 
@@ -172,9 +167,9 @@ export function TourProvider({
     if (!userIdRef.current) return;
     await tourStorage.resetTour(userIdRef.current);
     sessionModalShown.current = false;
-    setTourStep(0);
+    goToStep(TOUR_WELCOME_STEP);
     setTourVisible(true);
-  }, []);
+  }, [goToStep]);
 
   const showSectionModal = useCallback(
     async (tab: "practice" | "store" | "social", isStillFocused: () => boolean = () => true) => {
@@ -219,6 +214,7 @@ export function TourProvider({
         tourReplay,
         registerTarget,
         measureTarget,
+        revealTarget,
         practiceModalVisible,
         storeModalVisible,
         socialModalVisible,

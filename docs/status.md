@@ -56,7 +56,8 @@ lessons without camera, Tienda, Social, Perfil and Práctica all work.
 
 ## Cross-cutting tech debt
 
-- `npm run lint` reports 2 `import/no-unresolved` errors for `expo-notifications` (`usePushToken.ts`, `RootNavigator.tsx`) even though the package is installed and typecheck passes; predates the booster work (FCM commit). Pending: check the eslint import resolver / run `npm ci`.
+- ~~`npm run lint` reports `import/no-unresolved` for `expo-notifications`.~~ It was a stale ESLint cache (`.expo/cache/eslint`, git-ignored), not a code problem: the package is installed and resolves. If it reappears, run `npx eslint src --no-cache` (or delete `.expo/cache/eslint`) before suspecting the code.
+- **Welcome tour not yet verified on a device/emulator.** The rewrite (native engine in `src/features/tour/`, see [features/onboarding.md](./features/onboarding.md#post-login-tour-srcfeaturestour)) passes `typecheck` + `lint`, and its placement logic was checked at 320×568, 390×844, 412×915 and 820×1180. Pending: walk it on a real Android phone (3-button nav and gesture nav), an iPhone with notch, and a small/short phone; also with large font scale. Replay it from Perfil → Configuración → Volver a ver el tour.
 
 - **Responsive pending**: only `AuthScreen` caps its width on tablets; the other screens (tabs, onboarding choice screens, lessons) stretch full width. Lesson sign animations use fixed heights (330dp in `SignCarouselBlock`). Not yet checked on small/short screens or at large font scale beyond Welcome/Achievement (which now fit via `useFitSquare`).
 
