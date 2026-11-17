@@ -22,18 +22,28 @@ Status: **real**. Three-part feature that runs after first login (the first-step
 
 ### A · Welcome tour (first login only)
 
-A full-screen `Modal` (`TourOverlay`) mounted in `RootNavigator`, driven by `TourContext`.
+`TourOverlay` is an absolutely-positioned `View` (not a `Modal`) rendered as the last child of the root box in `RootNavigator`, driven by `TourContext`. driver.js was ruled out: it is a DOM library and does not run in React Native; the tour is native but modelled on it (steps as configuration, highlight + popover).
 
-- **Step 0** – Welcome modal: Lisa character greets the user. CTA: "Mostrame la app" / "Prefiero explorar solo".
-- **Steps 1–6** – Coach marks: dark overlay with a spotlight cutout and a floating bubble card.
+- **Step 0** – Welcome card: Lisa greets the user. CTA: "Mostrame la app" / "Prefiero explorar solo".
+- **Steps 1–6** – Coach marks (`TOUR_STEPS` in `steps.ts`): dark scrim with a cutout and a popover.
   - Step 1: Stats bar (racha, gemas, vidas) on the Home screen.
   - Step 2: Current lesson card on the Home roadmap.
   - Steps 3–6: Tab bar icons (Práctica, Tienda, Social, Perfil) in order.
-- **Step 7** – Closing: celebration card, "Tour completado", CTA to start first lesson or dismiss.
+- **Step `TOUR_CLOSING_STEP`** (7) – Closing: celebration card, "Tour completado", CTA to start first lesson or dismiss.
 
-**Spotlight positioning.** Nothing is hardcoded: each spotlighted element registers itself with `useTourTarget(id)` (`src/features/tour/useTourTarget.ts`) and `TourOverlay` measures it with `measureInWindow` via `measureTarget(id)` in `TourContext`. Targets: `home-stats` (`ScreenHeader` `statsRef`), `home-current-lesson` (current lesson card; its `reveal` scrolls the roadmap so the card sits in the upper half), `tab-Home|Practice|Store|Social|Profile` (`TabBarIcon` in `TabNavigator`). Until a step is measured the screen stays dark (no spotlight), so the hole never jumps; if a target can't be measured it falls back to the old estimated `getSpot`. Steps 1–2 first navigate to `Tabs → Home` (the overlay receives `navigationRef`), so a replay from another screen still points at Inicio. A new spotlighted element needs a `useTourTarget` id and a `targetId` in `STEP_DATA`.
+**Steps are data.** `src/features/tour/steps.ts` holds each step's `screen`, `targetId`, `shape` (`circle` for icons, `rect` otherwise), copy, accent and `preferredSide`. No coordinates anywhere. A new spotlighted element needs a `useTourTarget(id)` in its screen plus a `TourStepConfig`; the step count and dots follow `TOUR_STEPS.length`.
 
-Trigger rules: once only, on first authenticated app open. Skippable via "Saltear". Replayable from Perfil → Configuración → Volver a ver el tour (calls `tourReplay()` from `useTour()`).
+**How the highlight stays on target** (`useTourSpot.ts`, `placement.ts`):
+1. *Screen first.* Before measuring, the engine navigates to `Tabs → step.screen` and waits until `navigationRef.getCurrentRoute()` is that screen, so it never measures a hidden screen (this was the "highlight of another screen" bug).
+2. *Overlay's own coordinate space.* Target and overlay root are both measured with `measureInWindow` and subtracted; status bar, notch, edge-to-edge and any container offset cancel out on every device.
+3. *Settle, then show.* A position is trusted only after 3 identical samples (navigation and scroll animations are still moving otherwise). While searching the screen is fully dark, so the hole never jumps. The target's optional `reveal` (e.g. scrolling the roadmap, proportional to screen height) is re-requested if the element mounts late or is off-screen.
+4. *Keeps tracking.* While the step is active it re-samples every 200 ms, so rotation, font scale and late layout move the highlight with the element.
+5. *No guessing.* If the element never appears (e.g. roadmap still loading, >6 s) the popover is shown centered **without** a highlight, and upgrades to a real highlight if the element shows up later.
+6. *Adaptive popover.* The popover is measured, then placed on the side of the highlight with room (flipping from `preferredSide` when it doesn't fit), clamped to the safe area; long copy scrolls inside it while the buttons stay visible. Lisa only appears when there is room above the popover.
+
+Targets: `home-stats` (`ScreenHeader` `statsRef`), `home-current-lesson` (current lesson card), `tab-Home|Practice|Store|Social|Profile` (`TabBarIcon` in `TabNavigator`). Android back = skip.
+
+Trigger rules: once only, on first authenticated app open. Skippable via "Saltear". Replayable from Perfil → Configuración → Volver a ver el tour (`ConfigurationScreen` calls `tourReplay()` from `useTour()`).
 
 ### B · Primeros pasos (Inicio screen)
 

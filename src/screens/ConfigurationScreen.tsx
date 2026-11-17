@@ -22,6 +22,7 @@ import { BackButton } from "@/components/BackButton";
 import { useAuth } from "@/context/AuthContext";
 import { unregisterPushToken } from "@/hooks/usePushToken";
 import { useSettings } from "@/context/SettingsContext";
+import { useTour } from "@/features/tour/TourContext";
 import { usersApi } from "@/api/users";
 import { signInWithGoogle } from "@/utils/googleAuth";
 import { mapAuthError } from "@/utils/authErrors";
@@ -78,6 +79,7 @@ function fillAccent(hex: string): string {
 export function ConfigurationScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const { logout } = useAuth();
+  const { tourReplay: replayTour } = useTour();
   const { fontSizeId: fontSize, setFontSizeId: setFontSize } = useSettings();
 
   const [loading, setLoading] = useState(true);
@@ -519,6 +521,21 @@ export function ConfigurationScreen({ navigation, route }: Props) {
               <Ionicons name="chevron-forward" size={16} color={colors.neutral600} />
             </TouchableOpacity>
           ) : null}
+
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => {
+              // The tour is drawn over the navigator and brings Inicio to the front by itself.
+              navigation.navigate("Tabs", { screen: "Home" });
+              replayTour();
+            }}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+          >
+            <Ionicons name="compass-outline" size={20} color={colors.neutral600} />
+            <Text style={[styles.settingLabel, { flex: 1 }]}>Volver a ver el tour</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.neutral600} />
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.settingRow}

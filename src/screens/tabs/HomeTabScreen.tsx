@@ -216,13 +216,16 @@ export function HomeTabScreen({ navigation }: Props) {
   const scrollY = useRef(0);
   const lessonCardRef = useTourTarget("home-current-lesson", revealCurrentLesson);
 
-  /** Scrolls the roadmap so the current lesson sits in the upper half, leaving room for the tour bubble. */
+  /**
+   * Scrolls the roadmap so the current lesson sits in the upper part, leaving room below it for
+   * the tour bubble. Proportional to the screen height so it holds on short and tall phones.
+   */
   function revealCurrentLesson() {
     return new Promise<void>((resolve) => {
       const node = lessonCardRef.current;
       if (!node || !scrollRef.current) return resolve();
       node.measureInWindow((_x, y) => {
-        const desiredTop = insets.top + 190;
+        const desiredTop = Math.max(insets.top + 90, screenHeight * 0.22);
         const delta = y - desiredTop;
         if (Math.abs(delta) > 4) {
           scrollRef.current?.scrollTo({ y: Math.max(0, scrollY.current + delta), animated: false });
