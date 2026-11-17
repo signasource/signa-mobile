@@ -54,7 +54,7 @@ Inicio and Tienda headers (`3/5` + caption `+1 en 24:10`, or `∞` + `29:59 rest
 lives run), the lesson header and `NoLivesOverlay` ("Próxima vida en …"), and Perfil → Vidas.
 `LivesTimerChip` is the single pill (blue ∞ / neutral clock / green "Completas"); `ScreenHeader`
 stats take an optional `caption`. Regeneration is **server-side** (`UserStats.lifeStateAt`: one life
-per 30 min since `nextLifeAt`, persisted lazily); the client only mirrors the same rule to count
+per 10 min since `nextLifeAt`, persisted lazily); the client only mirrors the same rule to count
 down, on the **server's clock**: `apiClient` reads the `Date` header of every response
 (`src/utils/serverClock.ts`) so a phone with a wrong clock still shows the real time left. The
 counter rolls over by itself when a timer ends (no refresh needed). New users start with 5 lives (entity default + migration `V31`), never `null`.

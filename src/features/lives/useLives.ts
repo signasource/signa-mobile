@@ -4,7 +4,7 @@ import { serverNow } from "@/utils/serverClock";
 
 export const MAX_LIVES = 5;
 /** Mirrors `UserStats.LIFE_REGEN_MINUTES` in signa-api. */
-export const LIFE_REGEN_MS = 30 * 60 * 1000;
+export const LIFE_REGEN_MS = 10 * 60 * 1000;
 
 /** The slice of `/inventories/me` that drives every lives placeholder. */
 export interface LivesSource {
