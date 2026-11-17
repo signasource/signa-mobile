@@ -35,6 +35,9 @@ const ESPERA_MAX_SALIDA = 2500;
 /** Bloques informativos: nunca llaman a `onAnswer`, así que no entran en "Aciertos". */
 const NON_GRADED_BLOCKS: ReadonlySet<BlockType> = new Set<BlockType>(["INFO", "INTRODUCE_SIGN"]);
 
+/** Ejercicios de cámara: se pueden omitir, y omitirlos deja la lección incompleta. */
+const CAMERA_BLOCKS: ReadonlySet<BlockType> = new Set<BlockType>(["PERFORM_SIGN", "SPELL_NAME"]);
+
 /**
  * Tipos que el reproductor sabe mostrar (un `Record` para que agregar un tipo a
  * `BlockType` obligue a decidir acá). El backend también manda bloques que no
@@ -229,11 +232,17 @@ export function LessonScreen({ route, navigation }: Props) {
 
   if (completed) {
     const xpEarned = Object.values(awardedXp).reduce((sum, v) => sum + v, 0);
+    // Omitir un ejercicio de cámara no se reporta (el backend lo daría por hecho),
+    // así que la lección no está completa si alguno no se acertó.
+    const incomplete = blocks.some(
+      (b) => CAMERA_BLOCKS.has(b.type as BlockType) && !correctBlockIds.has(b.id)
+    );
     return (
       <View style={[styles.container, { paddingTop: insets.top + 12, paddingBottom: insets.bottom }]}>
         <LessonComplete
           lessonName={lesson.name}
           unitLabel={unitLabel ?? lesson.name}
+          incomplete={incomplete}
           xpEarned={xpEarned}
           correctBlocks={correctBlockIds.size}
           totalBlocks={blocks.filter((b) => !NON_GRADED_BLOCKS.has(b.type as BlockType)).length}
@@ -241,7 +250,7 @@ export function LessonScreen({ route, navigation }: Props) {
           onClose={volver}
           onRestart={resetProgress}
           suggestion={
-            suggestedCourse
+            suggestedCourse && !incomplete
               ? {
                   name: suggestedCourse.name,
                   onOpen: () => navigation.replace("CourseDetail", { courseId: suggestedCourse.id }),

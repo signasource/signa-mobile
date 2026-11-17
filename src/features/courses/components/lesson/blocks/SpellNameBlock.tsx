@@ -91,12 +91,15 @@ export function SpellNameBlock({ config, active, ultimo, xp, onAnswer, onContinu
     return () => clearTimeout(t);
   }, [completo, ultimo, onContinue]);
 
+  // Sólo se reporta el acierto. Rendirse NO se manda al backend: signa-api da por
+  // hecho un bloque de cámara con sólo intentarlo, y la lección quedaría
+  // completada (con su XP) aunque el ejercicio se haya omitido.
   useEffect(() => {
-    if (terminado && !answered.current) {
+    if (completo && !answered.current) {
       answered.current = true;
-      onAnswer(completo);
+      onAnswer(true);
     }
-  }, [terminado, completo, onAnswer]);
+  }, [completo, onAnswer]);
 
   // La tarjeta entra con un pop y se retira sola, igual que en la demo.
   useEffect(() => {

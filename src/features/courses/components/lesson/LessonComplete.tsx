@@ -10,6 +10,8 @@ import ManoLeccionFinalizada from "@assets/ilus/mano-leccion-finalizada.svg";
 interface LessonCompleteProps {
   lessonName: string;
   unitLabel: string;
+  /** Se omitió algún ejercicio: no se celebra y "Repasar" pasa a ser la acción principal. */
+  incomplete?: boolean;
   xpEarned: number;
   correctBlocks: number;
   totalBlocks: number;
@@ -23,6 +25,7 @@ interface LessonCompleteProps {
 export function LessonComplete({
   lessonName,
   unitLabel,
+  incomplete = false,
   xpEarned,
   correctBlocks,
   totalBlocks,
@@ -69,7 +72,7 @@ export function LessonComplete({
         <View style={styles.illustration}>
           <ManoLeccionFinalizada width={190} height={190} />
         </View>
-        <Text style={styles.title}>¡Lección completada!</Text>
+        <Text style={styles.title}>{incomplete ? "Lección incompleta" : "¡Lección completada!"}</Text>
         <Text style={styles.subtitle}>
           {lessonName} · {unitLabel}
         </Text>
@@ -109,8 +112,17 @@ export function LessonComplete({
       </View>
 
       <View style={styles.footer}>
-        <LessonButton label="Volver al camino" onPress={onClose} />
-        <LessonButton label="Repasar la lección" variant="muted" onPress={onRestart} />
+        {incomplete ? (
+          <>
+            <LessonButton label="Repasar la lección" onPress={onRestart} />
+            <LessonButton label="Volver al camino" variant="muted" onPress={onClose} />
+          </>
+        ) : (
+          <>
+            <LessonButton label="Volver al camino" onPress={onClose} />
+            <LessonButton label="Repasar la lección" variant="muted" onPress={onRestart} />
+          </>
+        )}
       </View>
     </View>
   );
