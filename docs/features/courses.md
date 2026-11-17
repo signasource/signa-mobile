@@ -29,7 +29,13 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   (`isCorrect: null` for an `INFO` view; `INTRODUCE_SIGN` reports nothing, it just advances). Reports are queued and sent **one at a time** (a promise chain in `recordInteraction`; `volver()` waits on its tail, capped by `ESPERA_MAX_SALIDA`), and an `INFO` block is reported once even on a double tap of "Continuar" — concurrent POSTs used to race on `user_lesson_progress` in signa-api (500).
   Blocks whose `type` isn't in `RENDERABLE_BLOCKS` (e.g. `INVISIBLE_SIGNS`, which only seeds the
   sign catalog) are dropped on load — they used to render `null` and leave a blank step with no
-  way forward. `signa-api` doesn't require `INTRODUCE_SIGN`/`INVISIBLE_SIGNS` to complete a lesson. That same call is now also where the backend spends a
+  way forward. `signa-api` doesn't require `INTRODUCE_SIGN`/`INVISIBLE_SIGNS` to complete a lesson.
+  **Skipping a camera exercise** (`PERFORM_SIGN` / `SPELL_NAME`, "No me sale, seguir") reports
+  **nothing**: `signa-api` treats a camera block as done once *attempted* (`countsAsDoneWhenAttempted`),
+  so reporting `false` completed the lesson and its XP. Only successes are sent (so a skip costs no life
+  either). At the end, `LessonScreen` passes `incomplete` to `LessonComplete` when any camera block wasn't
+  answered correctly: title "Lección incompleta", "Repasar la lección" becomes the primary button, and the
+  suggested-course card is hidden. That same call is now also where the backend spends a
   life server-side: `signa-api` PR #60 (`feature/rest-lives-errors` → `develop`, open as of
   2026-09-02) makes `CourseTrackingService.recordBlockInteraction` publish a `LifeLostEvent`
   whenever a non-`INFO` block is answered incorrectly, and `UserStatsEventListener` decrements

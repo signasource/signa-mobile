@@ -160,10 +160,9 @@ export function PerformSignBlock({ config, active, ultimo, xp, onAnswer, onConti
   );
 
   function rendirse() {
-    if (!answered.current) {
-      answered.current = true;
-      onAnswer(false);
-    }
+    // No se reporta al backend: cuenta como hecho con sólo intentarlo y
+    // completaría la lección. LessonScreen la muestra como incompleta.
+    answered.current = true;
     setRendido(true);
   }
 
