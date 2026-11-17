@@ -45,7 +45,22 @@ function spotFromRect(rect: TourRect, circular: boolean): Spot {
       circular: true,
     };
   }
-  return { x: rect.x, y: rect.y, width: rect.width, height: rect.height, circular: false };
+  // Breathing room around the element so the highlight hugs it without clipping its shadow.
+  const pad = 6;
+  return {
+    x: rect.x - pad,
+    y: rect.y - pad,
+    width: rect.width + pad * 2,
+    height: rect.height + pad * 2,
+    circular: false,
+  };
+}
+
+/** Keeps the spot fully inside the overlay (e.g. a target partially scrolled off-screen). */
+function clampSpot(spot: Spot, w: number, h: number): Spot {
+  const x = Math.max(4, Math.min(spot.x, w - spot.width - 4));
+  const y = Math.max(4, Math.min(spot.y, h - spot.height - 4));
+  return { ...spot, x, y };
 }
 
 function tabSpot(tabIndex: number, screenW: number, screenH: number, bottomInset: number): Spot {
@@ -170,8 +185,8 @@ function circlePath(cx: number, cy: number, r: number): string {
   );
 }
 
-function SpotlightHole({ spot }: { spot: Spot }) {
-  const { width: sw, height: sh } = useWindowDimensions();
+function SpotlightHole({ spot, size }: { spot: Spot; size: { width: number; height: number } }) {
+  const { width: sw, height: sh } = size;
   const pulseAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -391,7 +406,9 @@ function CoachMarkStep({
   onNext,
   onSkip,
   bottomInset,
+  size,
 }: {
+  size: { width: number; height: number };
   step: number;
   stepData: StepData;
   spot: Spot;
@@ -402,10 +419,16 @@ function CoachMarkStep({
   bottomInset: number;
 }) {
   const bubbleAbove = stepData.bubbleAbove;
+  // The bubble spans 20px margins; keep the arrow over the bubble and centered on the spot
+  // (arrow is positioned relative to the bubble wrapper, hence the -20).
+  const arrowLeft = Math.max(
+    18,
+    Math.min(spot.x + spot.width / 2 - 20 - 9, size.width - 40 - 18 - 18),
+  );
 
   return (
     <>
-      <SpotlightHole spot={spot} />
+      <SpotlightHole spot={spot} size={size} />
 
       {/* Skip button */}
       <TouchableOpacity style={styles.skipBtn} onPress={onSkip} activeOpacity={0.8}>
@@ -451,7 +474,7 @@ function CoachMarkStep({
           ]}
         >
           {/* Arrow pointing down */}
-          <View style={[styles.arrowDown, { left: spot.x + spot.width / 2 - 9 }]} />
+          <View style={[styles.arrowDown, { left: arrowLeft }]} />
           <CoachBubble
             step={step}
             stepData={stepData}
@@ -467,7 +490,7 @@ function CoachMarkStep({
           ]}
         >
           {/* Arrow pointing up */}
-          <View style={[styles.arrowUp, { left: spot.x + spot.width / 2 - 9 }]} />
+          <View style={[styles.arrowUp, { left: arrowLeft }]} />
           <CoachBubble
             step={step}
             stepData={stepData}
@@ -488,8 +511,17 @@ export function TourOverlay({
   navigationRef: React.RefObject<NavigationContainerRef<any> | null>;
 }) {
   const { tourVisible, tourStep, tourGoNext, tourGoPrev, tourSkip, measureTarget } = useTour();
-  const { width: screenW, height: screenH } = useWindowDimensions();
+  const { width: winW, height: winH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+
+  // Anchor to the overlay's *own* coordinate space. `measureInWindow` reports window coords, but a
+  // Modal (esp. statusBarTranslucent on Android) can start at a different origin than the window and
+  // have a different size than `useWindowDimensions`. Measuring the overlay root too and subtracting
+  // its origin makes the hole land exactly on the element on any device.
+  const rootRef = useRef<View>(null);
+  const [rootSize, setRootSize] = useState<{ width: number; height: number } | null>(null);
+  const screenW = rootSize?.width ?? winW;
+  const screenH = rootSize?.height ?? winH;
 
   const isWelcome = tourStep === 0;
   const isClosing = tourStep === 7;
@@ -513,21 +545,28 @@ export function TourOverlay({
       setMeasured(null);
       return;
     }
+    if (!rootSize) return; // wait for the overlay's first layout
     let cancelled = false;
     // Give the Home navigation above a moment to settle before measuring.
     const timer = setTimeout(async () => {
       const rect = await measureTarget(stepData.targetId);
+      const origin = await new Promise<{ x: number; y: number }>((resolve) => {
+        const node = rootRef.current;
+        if (!node) return resolve({ x: 0, y: 0 });
+        node.measureInWindow((x, y) => resolve({ x: x || 0, y: y || 0 }));
+      });
       if (cancelled) return;
+      const fallback = stepData.getSpot(screenW, screenH, insets.top, insets.bottom);
       const spot = rect
-        ? spotFromRect(rect, stepData.getSpot(screenW, screenH, insets.top, insets.bottom).circular)
-        : stepData.getSpot(screenW, screenH, insets.top, insets.bottom);
-      setMeasured({ step: tourStep, spot });
+        ? spotFromRect({ ...rect, x: rect.x - origin.x, y: rect.y - origin.y }, fallback.circular)
+        : fallback;
+      setMeasured({ step: tourStep, spot: clampSpot(spot, screenW, screenH) });
     }, 250);
     return () => {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [tourVisible, tourStep, stepData, measureTarget, screenW, screenH, insets.top, insets.bottom]);
+  }, [tourVisible, tourStep, stepData, measureTarget, rootSize, screenW, screenH, insets.top, insets.bottom]);
 
   const spot = measured && measured.step === tourStep ? measured.spot : null;
 
@@ -539,7 +578,17 @@ export function TourOverlay({
       statusBarTranslucent
       onRequestClose={tourSkip}
     >
-      <View style={styles.root}>
+      <View
+        ref={rootRef}
+        collapsable={false}
+        style={styles.root}
+        onLayout={(e) => {
+          const { width, height } = e.nativeEvent.layout;
+          setRootSize((prev) =>
+            prev && prev.width === width && prev.height === height ? prev : { width, height },
+          );
+        }}
+      >
         {isWelcome && (
           <WelcomeStep onStart={tourGoNext} onSkip={tourSkip} />
         )}
@@ -555,6 +604,7 @@ export function TourOverlay({
             onNext={tourGoNext}
             onSkip={tourSkip}
             screenH={screenH}
+            size={{ width: screenW, height: screenH }}
             bottomInset={insets.bottom}
           />
         )}
