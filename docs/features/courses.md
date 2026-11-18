@@ -33,8 +33,9 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   **nothing**: `signa-api` treats a camera block as done once *attempted* (`countsAsDoneWhenAttempted`),
   so reporting `false` completed the lesson and its XP. Only successes are sent (so a skip costs no life
   either). At the end, `LessonScreen` passes `incomplete` to `LessonComplete` when any camera block wasn't
-  answered correctly: title "Lección incompleta", "Repasar la lección" becomes the primary button, and the
-  suggested-course card is hidden. `recordBlockInteraction` is also where the backend spends a
+  answered correctly: title "Lección incompleta", "Repasar la lección" becomes the primary button, the
+  suggested-course card is hidden, and the XP stat card reframes as pending ("XP al completar", no `+`
+  prefix) because an incomplete lesson doesn't credit XP to the total. `recordBlockInteraction` is also where the backend spends a
   life: `signa-api` publishes a `LifeLostEvent` whenever a non-`INFO` block is answered incorrectly
   (no-op when `livesMode = INFINITE` or already at 0), and regenerates one life every 10 minutes.
   The screen mirrors that rule locally through `features/lives/useLives.ts` (`loseLifeLocally()`:
