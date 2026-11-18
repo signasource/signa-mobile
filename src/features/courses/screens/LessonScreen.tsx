@@ -64,6 +64,28 @@ function isRenderable(block: LessonContentBlock): boolean {
 
 const STARTING_LIVES = 5;
 
+const REINTENTOS = 3;
+const ESPERA_REINTENTO_MS = 700;
+
+/**
+ * Manda una respuesta y la reintenta ante un fallo de red o un 5xx: perderla en silencio
+ * dejaba al usuario sin el XP de ese bloque (el fin de la lección decía una cifra y el
+ * perfil otra). Un 4xx no se reintenta, no se arregla repitiéndolo. Nunca lanza.
+ */
+async function enviarConReintentos(blockId: string, isCorrect: boolean | null): Promise<void> {
+  for (let intento = 1; intento <= REINTENTOS; intento++) {
+    try {
+      await learningApi.recordBlockInteraction(blockId, isCorrect);
+      return;
+    } catch (err: any) {
+      const status: number | undefined = err?.response?.status;
+      if (status !== undefined && status < 500 && status !== 429) return;
+      if (intento === REINTENTOS) return;
+      await new Promise((listo) => setTimeout(listo, ESPERA_REINTENTO_MS * intento));
+    }
+  }
+}
+
 export function LessonScreen({ route, navigation }: Props) {
   const { lessonId, unitLabel, signsCount, suggestedCourse } = route.params;
   const insets = useSafeAreaInsets();
@@ -81,7 +103,6 @@ export function LessonScreen({ route, navigation }: Props) {
   const lives = livesState.ready ? livesState.lives : STARTING_LIVES;
   const unlimitedLives = livesState.unlimited;
   const [gems, setGems] = useState<number | undefined>(undefined);
-  const [awardedXp, setAwardedXp] = useState<Record<string, number>>({});
   const [correctBlockIds, setCorrectBlockIds] = useState<Set<string>>(new Set());
   const [completed, setCompleted] = useState(false);
   // Cola de respuestas: cada POST espera al anterior (el último eslabón de la cadena).
@@ -128,7 +149,6 @@ export function LessonScreen({ route, navigation }: Props) {
 
   function resetProgress() {
     setBlockIndex(0);
-    setAwardedXp({});
     setCorrectBlockIds(new Set());
     setCompleted(false);
     setServerXp(null);
@@ -164,9 +184,7 @@ export function LessonScreen({ route, navigation }: Props) {
    * se conserva y el juego no espera a la red (no se hace `await` al responder).
    */
   function recordInteraction(block: LessonContentBlock, isCorrect: boolean | null) {
-    cola.current = cola.current.then(() =>
-      learningApi.recordBlockInteraction(block.id, isCorrect).catch(() => {})
-    );
+    cola.current = cola.current.then(() => enviarConReintentos(block.id, isCorrect));
   }
 
   /**
@@ -206,9 +224,6 @@ export function LessonScreen({ route, navigation }: Props) {
 
     if (correct) {
       setCorrectBlockIds((prev) => new Set(prev).add(block.id));
-      setAwardedXp((prev) =>
-        prev[block.id] !== undefined ? prev : { ...prev, [block.id]: block.xpReward ?? 0 }
-      );
     } else if (!unlimitedLives) {
       loseLifeLocally();
     }
@@ -235,10 +250,9 @@ export function LessonScreen({ route, navigation }: Props) {
   }
 
   function handleInfoContinue(block: LessonContentBlock) {
-    if (awardedXp[block.id] === undefined && !infoReportados.current.has(block.id)) {
+    if (!infoReportados.current.has(block.id)) {
       infoReportados.current.add(block.id);
       recordInteraction(block, null);
-      setAwardedXp((prev) => ({ ...prev, [block.id]: block.xpReward ?? 0 }));
     }
     goToNextBlock();
   }
@@ -264,9 +278,9 @@ export function LessonScreen({ route, navigation }: Props) {
   const noLives = lives <= 0 && !unlimitedLives && !completed;
 
   if (completed) {
-    const localXp = Object.values(awardedXp).reduce((sum, v) => sum + v, 0);
-    // Hidden (0) while the backend's figure is in flight, so it never flashes a wrong number.
-    const xpEarned = xpPending ? 0 : serverXp ?? localXp;
+    // Only the backend's figure is shown (hidden while in flight or if it can't be read): a
+    // local estimate used to promise XP the Profile then didn't have.
+    const xpEarned = xpPending ? 0 : serverXp ?? 0;
     // Omitir un ejercicio de cámara no se reporta (el backend lo daría por hecho),
     // así que la lección no está completa si alguno no se acertó.
     const incomplete = blocks.some(

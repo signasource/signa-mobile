@@ -614,7 +614,7 @@ export function HomeTabScreen({ navigation }: Props) {
             <Pressable style={styles.modalCard} onPress={() => {}}>
               <View style={styles.modalTitleRow}>
                 <Text style={styles.modalKicker}>Seguí acá</Text>
-                {openLesson.lesson.xpTotal > 0 && (
+                {openLesson.lesson.xpTotal > 0 && openLesson.lesson.state !== "COMPLETED" && (
                   <View style={styles.modalXpPill}>
                     <Text style={styles.modalXpText}>+{openLesson.lesson.xpTotal} XP</Text>
                   </View>
@@ -810,7 +810,7 @@ function CurrentLessonCard({
         <View style={styles.cardActions}>
           <TouchableOpacity style={styles.cardCta} onPress={onNavigate} activeOpacity={0.86}>
             <Ionicons name="play" size={17} color={colors.onDark} />
-            <Text style={styles.cardCtaText}>Seguir</Text>
+            <Text style={styles.cardCtaText}>{ctaFor(lesson.state).label}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.cardInfoBtn} onPress={onInfo} activeOpacity={0.8}>
             <Ionicons name="information-circle-outline" size={20} color={colors.neutral900} />

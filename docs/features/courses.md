@@ -78,8 +78,11 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   **backend's delta**, not the sum of `xpReward`: `LessonScreen` reads `GET /users/me/stats`
   (`totalXp`) when the lesson loads and again — after the answer queue drains — when it
   completes, and shows the difference (multiplier included; `0` on a replay, since the backend
-  grants a block's XP only once). The tile stays hidden while that request is in flight and
-  falls back to the local `xpReward` sum only if the stats can't be read. Also `blocks/` with one
+  grants a block's XP only once). The tile stays hidden while that request is in flight or if the stats can't be read (no local
+  `xpReward` estimate any more: it promised XP the Profile didn't have). Answer reports are retried
+  (3 attempts, on network errors / 5xx / 429) so a transient failure doesn't silently drop a block's
+  XP; the backend grants each block's XP only on its first completion, so a lesson's XP is earned
+  once and a replay shows none. Also `blocks/` with one
   component per `BlockType` (`InfoBlock`, `IntroduceSignBlock`, `SelectMeaningBlock`,
   `SelectSignBlock`, `ContextResponseBlock` and `SelectSignBlock` share `SignCarouselBlock`,
   `MatchBlock`, `VisualRecognitionBlock`). `IntroduceSignBlock` presents a new sign with its
@@ -206,7 +209,9 @@ error) instead of the local optimistic decrement, to remove the drift risk on a 
     info button (→ modal).
   - **AVAILABLE** (non-current) — hollow purple-bordered circle, lesson name; tapping opens modal.
   - **LOCKED** — gray dot, muted name; not tappable.
-- **Lesson modal** (centered fade overlay, not bottom sheet): "Seguí acá" kicker + "+N XP" pill,
+- **CTA label** (`ctaFor(state)`, shared by the current-lesson card and the modal): `AVAILABLE` →
+  "Empezar", `IN_PROGRESS` → "Seguir" (only once started), `COMPLETED` → "Repasar".
+- **Lesson modal** (centered fade overlay, not bottom sheet): "Seguí acá" kicker + "+N XP" pill (hidden when completed),
   lesson name (Bricolage 800 22px), description, primary CTA. CTA navigates to `LessonScreen`.
 - `roadmap.ts`: **presentation helpers** — `accentFor(topic)` (per-topic color+icon, keyed by
   `topic.order`) and `progressFor(topic)`. `LESSON_STATE_VIS` is no longer used by the Home screen
