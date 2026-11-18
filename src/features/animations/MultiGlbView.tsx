@@ -111,6 +111,8 @@ export interface MultiGlbViewProps {
   rowGap?: number;
   style?: ViewStyle;
   onError?: (index: number) => void;
+  /** A model finished loading (all models preload at once, in any order). */
+  onLoaded?: (index: number) => void;
 }
 
 /**
@@ -127,6 +129,7 @@ export function MultiGlbView({
   rowGap = 10,
   style,
   onError,
+  onLoaded,
 }: MultiGlbViewProps) {
   const webviewRef = useRef<WebView>(null);
 
@@ -178,6 +181,7 @@ export function MultiGlbView({
     try {
       const msg = JSON.parse(event.nativeEvent.data);
       if (msg.type === "error") onError?.(msg.index as number);
+      if (msg.type === "loaded") onLoaded?.(msg.index as number);
     } catch {}
   }
 
