@@ -22,6 +22,8 @@ export interface MultiAvatarNativoProps {
   style?: ViewStyle;
   label?: string;
   onError?: (mensaje: string) => void;
+  /** Una seña terminó de cargar (índice en `urls`). */
+  onLoaded?: (index: number) => void;
 }
 
 /** "…/lsa/por%20favor.glb?v=3" → "por favor": el nombre para armar el respaldo. */
@@ -54,6 +56,7 @@ export function MultiAvatarNativo({
   rowGap = 10,
   style,
   onError,
+  onLoaded,
 }: MultiAvatarNativoProps) {
   // Antes de cualquier return: los hooks van siempre en el mismo orden.
   const [falló, setFalló] = useState(false);
@@ -70,18 +73,22 @@ export function MultiAvatarNativo({
         rowHeight={rowHeight}
         rowGap={rowGap}
         style={style}
+        onLoaded={onLoaded}
       />
     );
   }
 
   if (falló) return <View style={style} />;
 
-  function avatar(url: string, alto: number | "todo", key: string, enPausa: boolean) {
+  function avatar(url: string, alto: number | "todo", key: string, enPausa: boolean, index: number) {
     const caja: ViewStyle =
       alto === "todo" ? { flex: 1, backgroundColor: colors.fill } : { height: alto, backgroundColor: colors.fill };
     if (!url) return <View key={key} style={caja} />;
     // Seña subida como video desde el panel de admins.
-    if (esVideo(url)) return <SignVideo key={key} url={url} paused={enPausa} rate={rate} style={caja} />;
+    if (esVideo(url))
+      return (
+        <SignVideo key={key} url={url} paused={enPausa} rate={rate} style={caja} onLoaded={() => onLoaded?.(index)} />
+      );
     return (
       <AvatarNativo
         key={key}
@@ -90,6 +97,7 @@ export function MultiAvatarNativo({
         urlRespaldo={getGlbUrlOficial(nombreDeUrl(url))}
         pausado={enPausa}
         rotable={false}
+        onCargado={() => onLoaded?.(index)}
         onFalla={(e) => {
           setFalló(true);
           onError?.(e.nativeEvent.error);
@@ -104,7 +112,7 @@ export function MultiAvatarNativo({
     return (
       <View style={[styles.completo, style]}>
         <View style={[styles.filas, { gap: rowGap }]} pointerEvents="none">
-          {urls.map((url, i) => avatar(url, rowHeight, `${i}-${url}`, paused))}
+          {urls.map((url, i) => avatar(url, rowHeight, `${i}-${url}`, paused, i))}
         </View>
         {urls.some(esVideo) && <SpeedToggle rate={rate} onChange={setRate} />}
       </View>
@@ -117,7 +125,7 @@ export function MultiAvatarNativo({
   return (
     <View style={[styles.completo, style]}>
       <View style={styles.completo} pointerEvents="none">
-        {avatar(url, "todo", `activo-${activeIndex}`, paused)}
+        {avatar(url, "todo", `activo-${activeIndex}`, paused, activeIndex)}
       </View>
       {esVideo(url) && <SpeedToggle rate={rate} onChange={setRate} />}
     </View>

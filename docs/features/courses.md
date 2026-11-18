@@ -95,7 +95,9 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   (`SignCarouselBlock` — so `SelectSignBlock`/`ContextResponseBlock` —, `MatchBlock`,
   `VisualRecognitionBlock`) render their signs through `MultiAvatarNativo` (a carousel shows one at a
   time, a match grid shows all at once; URLs from `useSignSources`). Both paths handle `.glb`/`.mp4`
-  per sign. Answer-option
+  per sign. `VisualRecognitionBlock` starts each sign's 2.6 s countdown only after sources resolve and
+  `MultiAvatarNativo`/`MultiGlbView` report `onLoaded` for it (8 s safety timeout), so slow loads
+  can't skip signs; Repetir resets the loaded set. Answer-option
   buttons across
   `SelectMeaningBlock`/`VisualRecognitionBlock`/`MatchBlock` share the same idle look — flat
   `colors.fill` background, no border — and the same `check.svg`/`denied.svg` icons for the
