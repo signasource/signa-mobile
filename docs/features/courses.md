@@ -123,10 +123,12 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   in memory — so animations uploaded from the admin panel (`.glb`, or `.mp4` + optional lateral
   `.mp4`) show up at once; re-uploads carry `?v=` so the on-disk avatar cache refreshes. The API is the **only** place that knows
   file names (case/accent-insensitive matching, aliases such as `niño`→`nene`, `.mp4`-only signs): the app has
-  no alias map and does not probe the bucket. No answer within 2.5 s, no entry for the sign, or API down: the
-  usual `{meaning}.glb` by name (`getGlbUrl`); if that 404s the component shows `SignPlaceholder`. A sign that
-  shows nothing therefore means signa-api has no file for it — run `POST /admin/signs/rebuild-media` or upload
-  it from the panel. (The API's opt-in `include_missing` flag is not used: the 404 path already ends in the
+  no alias map and does not probe the bucket. signa-api also looks up in the bucket the signs it has no catalog
+  entry for (`SignMediaResolver`), so a sign with a file in R2 comes back whether or not it is registered. No answer
+  within 2.5 s or API down: the usual `{meaning}.glb` by name (`getGlbUrl`) — the one case where a video-only or
+  aliased sign can't be found, because without the API the app doesn't know the file name; if that 404s the
+  component shows `SignPlaceholder`. A sign that shows nothing with the API up means there is no file for it in R2:
+  upload it from the panel. (The API's opt-in `include_missing` flag is not used: the 404 path already ends in the
   placeholder.)
   Bucket keys follow the same convention as before (`lsa/{meaning}.mp4`, `lsa/{meaning}_lateral.mp4`).
   Only `SignAnimation` exposes the lateral switch (see [../status.md](../status.md)). `extractLessonSignNames(lesson)`
