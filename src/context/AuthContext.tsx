@@ -31,6 +31,9 @@ interface AuthContextValue {
   resumeExpiredSession: () => void;
   /** El usuario eligió "Salir" en el aviso de sesión expirada */
   dismissExpiredSession: () => void;
+  /** true justo después de registrarse: la app ofrece verificar el email (opcional) una sola vez */
+  verificationPrompt: boolean;
+  clearVerificationPrompt: () => void;
   /** Ruta inicial del stack de auth: "Login" si se venía de una sesión expirada, "Welcome" si no */
   authInitialRoute: "Login" | "Welcome";
   error: string | null;
@@ -72,6 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [authInitialRoute, setAuthInitialRoute] = useState<"Login" | "Welcome">("Welcome");
+  const [verificationPrompt, setVerificationPrompt] = useState(false);
   const appState = useRef<AppStateStatus>(AppState.currentState);
 
   useEffect(() => {
@@ -181,6 +185,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await tokenStorage.setTokens(data.accessToken, data.refreshToken);
       await profileCache.setName(payload.email, payload.name);
       await discardOnboardingDailyGoal();
+      setVerificationPrompt(true);
       setUser(await buildUserFromToken(data.accessToken));
     } catch (err: any) {
       setError(err?.response?.data?.message ?? "No se pudo registrar el usuario");
@@ -234,6 +239,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
+  const clearVerificationPrompt = useCallback(() => setVerificationPrompt(false), []);
+
   const resumeExpiredSession = useCallback(() => {
     setAuthInitialRoute("Login");
     setSessionExpired(false);
@@ -260,6 +267,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       resumeExpiredSession,
       dismissExpiredSession,
       authInitialRoute,
+      verificationPrompt,
+      clearVerificationPrompt,
       error,
     }),
     [
@@ -274,6 +283,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       resumeExpiredSession,
       dismissExpiredSession,
       authInitialRoute,
+      verificationPrompt,
+      clearVerificationPrompt,
       error,
     ]
   );

@@ -26,7 +26,6 @@ import { useTour } from "@/features/tour/TourContext";
 import { usersApi } from "@/api/users";
 import { signInWithGoogle } from "@/utils/googleAuth";
 import { mapAuthError } from "@/utils/authErrors";
-import Constants from "expo-constants";
 
 type Props = NativeStackScreenProps<AppStackParamList, "Configuration">;
 type Sheet = null | "color" | "vis" | "time";
@@ -599,7 +598,7 @@ export function ConfigurationScreen({ navigation, route }: Props) {
             <Text style={styles.deleteText}>Eliminar cuenta</Text>
           </TouchableOpacity>
 
-          <Text style={styles.versionText}>Signa {Constants.expoConfig?.version ?? ""}</Text>
+          <Text style={styles.versionText}>Signa 1.4.0</Text>
         </ScrollView>
       )}
 

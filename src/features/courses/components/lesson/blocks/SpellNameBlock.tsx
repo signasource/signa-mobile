@@ -20,7 +20,7 @@ import {
   estadoDeFrame,
 } from "../recognizer/EstadoCamara";
 import { XpChip } from "../XpChip";
-import type { LiveFrame } from "@/features/ml/types";
+import type { LiveFrame } from "@/features/ml/components/LiveSignRecognizer";
 import type { SpellNameConfig } from "@/features/courses/lessonContent.types";
 
 interface Props {

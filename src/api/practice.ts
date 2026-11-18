@@ -7,7 +7,7 @@ export interface PracticeSummary {
   exercisesDoneCount: number;
 }
 
-/** Mirrors LearnedSignResponse.java. No animation URL — the sign's file is resolved with signMedia (POST /signs/media). */
+/** Mirrors LearnedSignResponse.java. No animation URL — see signsApi.getSignAnimations. */
 export interface LearnedSign {
   sign: string;
 }
