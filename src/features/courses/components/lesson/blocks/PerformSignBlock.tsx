@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
 import { colors, fonts, alpha } from "@/theme";
 import { PerformSignConfig } from "@/features/courses/lessonContent.types";
-import type { LiveFrame } from "@/features/ml/components/LiveSignRecognizer";
+import type { LiveFrame } from "@/features/ml/types";
 import { ReconocedorSenasNativo } from "@/features/ml/components/ReconocedorSenasNativo";
 import { hayNativo } from "../../../../../../modules/signa-vision";
 import { signMeaning } from "@/features/ml";
