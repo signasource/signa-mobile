@@ -219,7 +219,7 @@ function SuccessOverlay({ flow, gems, inventory, fromLesson, insets, onClose }: 
       <View style={[styles.successButtonRow, { paddingBottom: Math.max(insets.bottom, 28) }]}>
         <TouchableOpacity style={styles.successCloseButton} onPress={onClose} activeOpacity={0.86}>
           <Text style={styles.darkButtonText}>
-            {fromLesson ? "Volver a la lección" : "Volver a la tienda"}
+            {fromLesson ? "Seguir aprendiendo" : "Volver a la tienda"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -745,7 +745,10 @@ export function StoreTabScreen() {
             inventory={inventory}
             fromLesson={fromLesson}
             insets={insets}
-            onClose={closeFlow}
+            onClose={() => {
+              closeFlow();
+              if (fromLesson) navigation.navigate("Tabs", { screen: "Home" });
+            }}
           />
         )}
       </Modal>

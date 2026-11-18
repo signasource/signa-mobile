@@ -310,12 +310,17 @@ function SignsTab({
 function MistakesTab({ navigation }: { navigation: PracticeNavigation }) {
   const [mistakes, setMistakes] = useState<PracticeMistake[] | null>(null);
 
-  useEffect(() => {
-    practiceApi
-      .getMistakes()
-      .then((res) => setMistakes(res.data.filter((m) => isPracticableType(m.type))))
-      .catch(() => setMistakes([]));
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      setMistakes(null);
+      practiceApi
+        .getMistakes()
+        .then((res) => { if (active) setMistakes(res.data.filter((m) => isPracticableType(m.type))); })
+        .catch(() => { if (active) setMistakes([]); });
+      return () => { active = false; };
+    }, []),
+  );
 
   if (mistakes === null) {
     return (
@@ -345,7 +350,7 @@ function MistakesTab({ navigation }: { navigation: PracticeNavigation }) {
           </View>
         </View>
         <Text style={styles.mistakesDescription}>
-          Armamos una lección corta con las señas que falliste en tus últimas prácticas. Completala
+          Armamos una lección corta con las señas que fallaste en tus últimas prácticas. Completala
           y ganá XP.
         </Text>
         <View style={styles.mistakesMetaRow}>

@@ -1,10 +1,9 @@
 import React from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts, alpha } from "@/theme";
-import { LivesTimerChip } from "@/features/lives/LivesTimerChip";
 import type { LivesState } from "@/features/lives/useLives";
 import ManoCelularSinVidas from "@assets/ilus/mano-celular-sin-vidas.svg";
 
@@ -16,10 +15,24 @@ interface NoLivesOverlayProps {
   onGetGems?: () => void;
   /** Shows "Próxima vida en mm:ss" under the title. */
   livesState?: LivesState;
+  /** How many UNLIMITED_LIVES boosters the user has stored (not yet activated). */
+  storedInfiniteLives?: number;
+  onActivateInfiniteLives?: () => void;
+  activatingInfinite?: boolean;
 }
 
-export function NoLivesOverlay({ onGoToStore, onExit, gems, onGetGems, livesState }: NoLivesOverlayProps) {
+export function NoLivesOverlay({
+  onGoToStore,
+  onExit,
+  gems,
+  onGetGems,
+  livesState,
+  storedInfiniteLives = 0,
+  onActivateInfiniteLives,
+  activatingInfinite = false,
+}: NoLivesOverlayProps) {
   const insets = useSafeAreaInsets();
+  const hasInfinite = storedInfiniteLives > 0 && !!onActivateInfiniteLives;
   return (
     <View style={styles.overlay}>
       <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 40) }]}>
@@ -34,16 +47,44 @@ export function NoLivesOverlay({ onGoToStore, onExit, gems, onGetGems, livesStat
         )}
         <ManoCelularSinVidas width={140} height={140} />
         <Text style={styles.title}>Te quedaste sin vidas</Text>
-        {livesState && <LivesTimerChip state={livesState} labeled />}
         <Text style={styles.subtitle}>
-          Podés esperar a que se recarguen o pasar por la tienda a buscar vidas y potenciadores para seguir con la
-          lección.
+          {hasInfinite
+            ? "Tenés vidas infinitas guardadas. Activálas para seguir con la lección sin interrupciones."
+            : "Podés esperar a que se recarguen o pasar por la tienda a buscar vidas y potenciadores para seguir con la lección."}
         </Text>
         <View style={styles.actions}>
-          <TouchableOpacity style={styles.primary} onPress={onGoToStore} activeOpacity={0.85}>
-            <Ionicons name="storefront" size={18} color={colors.onDark} />
-            <Text style={styles.primaryText}>Ir a la tienda</Text>
-          </TouchableOpacity>
+          {hasInfinite ? (
+            <TouchableOpacity
+              style={[styles.primary, styles.primaryInfinite]}
+              onPress={onActivateInfiniteLives}
+              activeOpacity={0.85}
+              disabled={activatingInfinite}
+            >
+              {activatingInfinite ? (
+                <ActivityIndicator size="small" color={colors.onColor} />
+              ) : (
+                <>
+                  <Ionicons name="infinite" size={20} color={colors.onColor} />
+                  <Text style={styles.primaryText}>Activar vidas infinitas</Text>
+                  {storedInfiniteLives > 1 && (
+                    <View style={styles.qtyBadge}>
+                      <Text style={styles.qtyBadgeText}>{storedInfiniteLives}</Text>
+                    </View>
+                  )}
+                </>
+              )}
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.primary} onPress={onGoToStore} activeOpacity={0.85}>
+              <Ionicons name="storefront" size={18} color={colors.onDark} />
+              <Text style={styles.primaryText}>Ir a la tienda</Text>
+            </TouchableOpacity>
+          )}
+          {hasInfinite && (
+            <TouchableOpacity style={styles.ghost} onPress={onGoToStore} activeOpacity={0.85}>
+              <Text style={styles.ghostText}>Ir a la tienda</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={styles.ghost} onPress={onExit} activeOpacity={0.85}>
             <Text style={styles.ghostText}>Salir de la lección</Text>
           </TouchableOpacity>
@@ -119,10 +160,27 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
   },
+  primaryInfinite: {
+    backgroundColor: colors.primary,
+  },
   primaryText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 16.5,
     color: colors.onDark,
+  },
+  qtyBadge: {
+    backgroundColor: alpha(colors.onColor, 0.25),
+    borderRadius: 999,
+    minWidth: 22,
+    height: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6,
+  },
+  qtyBadgeText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 12,
+    color: colors.onColor,
   },
   ghost: {
     minHeight: 52,

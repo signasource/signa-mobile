@@ -25,8 +25,8 @@ type Props = NativeStackScreenProps<AppStackParamList, "PracticeSession">;
  * Standalone practice session: exercises by type, by a learned sign, or a
  * mistake-review queue (see docs/features/practice.md). Reuses the real
  * lesson block components, but — unlike LessonScreen — never calls
- * learningApi.recordBlockInteraction: no lives, no real XP, no lesson
- * progress. Attempts go to practiceApi.recordAttempt instead.
+ * learningApi.recordBlockInteraction: no lives and no lesson progress.
+ * Attempts go to practiceApi.recordAttempt instead, which pays XP per answer.
  */
 export function PracticeSessionScreen({ route, navigation }: Props) {
   const { mode } = route.params;
@@ -68,7 +68,17 @@ export function PracticeSessionScreen({ route, navigation }: Props) {
           : practiceApi.getMistakeExercises();
 
     request
-      .then((res) => setBlocks(res.data.filter((block) => isPracticableType(block.type as BlockType))))
+      .then((res) =>
+        setBlocks(
+          res.data.filter((block) => {
+            if (!isPracticableType(block.type as BlockType)) return false;
+            // When practising a specific sign the user already knows its meaning —
+            // SELECT_MEANING would be trivially obvious, so skip those blocks.
+            if (mode.mode === "sign" && block.type === "SELECT_MEANING") return false;
+            return true;
+          })
+        )
+      )
       .catch(() => setError("No pudimos cargar los ejercicios."))
       .finally(() => setLoading(false));
   }, [mode]);

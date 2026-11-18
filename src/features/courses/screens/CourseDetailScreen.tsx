@@ -306,11 +306,11 @@ export function CourseDetailScreen({ navigation, route }: Props) {
               icon="camera"
               title="Práctica con cámara"
               detail={
-                course.hasCameraPractice
+                course.hasCameraRecognition
                   ? "Hacés la seña frente a la cámara y la app la reconoce"
                   : "Este curso no tiene ejercicios de reconocimiento"
               }
-              included={course.hasCameraPractice}
+              included={course.hasCameraRecognition}
               last
             />
           </View>

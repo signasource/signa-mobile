@@ -12,7 +12,7 @@ import { Text } from "@/components/Text";
 import { EmptyState } from "@/components/EmptyState";
 import { colors, fonts } from "@/theme";
 import { rankingApi, RankingEntry, WeeklyRanking } from "@/api/ranking";
-import { usersApi, UserProfile } from "@/api/users";
+import { usersApi, UserProfile, UserSettings } from "@/api/users";
 import { avatarColors, initialsOf, formatXp } from "@/features/social/people";
 import { AvatarPhoto } from "@/components/AvatarPhoto";
 import { avatarUri } from "@/utils/avatar";
@@ -225,20 +225,45 @@ function MeBar({ me, myName, myUsername, myAvatarUrl }: {
   );
 }
 
+// ─── Private account banner ───────────────────────────────────────────────────
+
+function PrivateBanner({ onNavigateToSettings }: { onNavigateToSettings: () => void }) {
+  return (
+    <View style={styles.privateBanner}>
+      <View style={styles.privateBannerIcon}>
+        <Ionicons name="lock-closed" size={22} color={colors.socialWine} />
+      </View>
+      <Text style={styles.privateBannerTitle}>Tu cuenta es privada</Text>
+      <Text style={styles.privateBannerDesc}>
+        Para participar en el ranking global tenés que tener la cuenta pública.
+      </Text>
+      <TouchableOpacity
+        style={styles.privateBannerBtn}
+        onPress={onNavigateToSettings}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.privateBannerBtnText}>Ir a Configuración</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 type Scope = "global" | "friends";
 
 interface RankingTabProps {
   onPressProfile: (username: string) => void;
+  onNavigateToSettings: () => void;
 }
 
-export function RankingTab({ onPressProfile }: RankingTabProps) {
+export function RankingTab({ onPressProfile, onNavigateToSettings }: RankingTabProps) {
   const countdown = useCountdown();
   const [scope, setScope] = useState<Scope>("global");
   const [globalRanking, setGlobalRanking] = useState<WeeklyRanking | null>(null);
   const [friendsRanking, setFriendsRanking] = useState<WeeklyRanking | null>(null);
   const [myProfile, setMyProfile] = useState<UserProfile | null>(null);
+  const [accountVisibility, setAccountVisibility] = useState<UserSettings["accountVisibility"]>("PUBLIC");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -249,14 +274,16 @@ export function RankingTab({ onPressProfile }: RankingTabProps) {
     // Re-fetches on focus keep the current ranking on screen instead of flashing a spinner.
     if (!hasData.current) setLoading(true);
     try {
-      const [globalRes, friendsRes, profileRes] = await Promise.all([
+      const [globalRes, friendsRes, profileRes, settingsRes] = await Promise.all([
         rankingApi.getGlobal(),
         rankingApi.getFriends(),
         usersApi.getMe(),
+        usersApi.getSettings(),
       ]);
       setGlobalRanking(globalRes.data);
       setFriendsRanking(friendsRes.data);
       setMyProfile(profileRes.data);
+      setAccountVisibility(settingsRes.data.accountVisibility ?? "PUBLIC");
       hasData.current = true;
     } catch (err: any) {
       if (!hasData.current) setError(err?.response?.data?.message ?? "No pudimos cargar el ranking.");
@@ -301,6 +328,7 @@ export function RankingTab({ onPressProfile }: RankingTabProps) {
   const podiumEntries = data.entries.slice(0, podiumCount);
   const restEntries = data.entries.slice(podiumCount);
   const scopeLabel = scope === "global" ? "TOP 100 GLOBAL" : "MIS AMIGOS";
+  const isPrivateGlobal = scope === "global" && accountVisibility === "PRIVATE";
 
   return (
     <View style={styles.container}>
@@ -347,6 +375,9 @@ export function RankingTab({ onPressProfile }: RankingTabProps) {
         {/* Section label */}
         <Text style={styles.sectionLabel}>XP DE ESTA SEMANA · {scopeLabel}</Text>
 
+        {/* Private account notice */}
+        {isPrivateGlobal && <PrivateBanner onNavigateToSettings={onNavigateToSettings} />}
+
         {/* Podium */}
         <Podium entries={podiumEntries} onPressProfile={onPressProfile} />
 
@@ -363,13 +394,15 @@ export function RankingTab({ onPressProfile }: RankingTabProps) {
         </Text>
       </ScrollView>
 
-      {/* Sticky me bar */}
-      <MeBar
-        me={data.me}
-        myName={myName}
-        myUsername={myUsername}
-        myAvatarUrl={myProfile?.avatarUrl}
-      />
+      {/* Sticky me bar — hidden when user is private (not in global ranking) */}
+      {!isPrivateGlobal && (
+        <MeBar
+          me={data.me}
+          myName={myName}
+          myUsername={myUsername}
+          myAvatarUrl={myProfile?.avatarUrl}
+        />
+      )}
     </View>
   );
 }
@@ -648,6 +681,51 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     lineHeight: 17,
+  },
+
+  // Private banner
+  privateBanner: {
+    backgroundColor: colors.socialWineLight,
+    borderRadius: 16,
+    padding: 20,
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  privateBannerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+  privateBannerTitle: {
+    fontFamily: fonts.displayBold,
+    fontSize: 16,
+    color: colors.socialWine,
+    marginBottom: 6,
+    textAlign: "center",
+  },
+  privateBannerDesc: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.socialWine,
+    textAlign: "center",
+    lineHeight: 19,
+    marginBottom: 14,
+    opacity: 0.85,
+  },
+  privateBannerBtn: {
+    backgroundColor: colors.socialWine,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  privateBannerBtnText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+    color: colors.surface,
   },
 
   // Me bar

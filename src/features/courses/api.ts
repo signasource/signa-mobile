@@ -39,12 +39,14 @@ export interface CourseDetail {
   lessonCount: number;
   /** Señas distintas que enseña el curso. */
   signCount: number;
-  /** Algún ejercicio usa reconocimiento con cámara. */
+  /** Algún ejercicio usa reconocimiento con cámara (derivado de los bloques). */
   hasCameraPractice: boolean;
+  /** Declarado explícitamente en el YAML del curso: tiene práctica de reconocimiento por cámara. */
+  hasCameraRecognition: boolean;
   /** El curso usa animaciones 3D (`.glb`). Mutuamente excluyente con `hasVideos`. */
-  hasAnimations?: boolean;
+  hasAnimations: boolean;
   /** El curso usa videos (`.mp4`). Mutuamente excluyente con `hasAnimations`. */
-  hasVideos?: boolean;
+  hasVideos: boolean;
   /** Significado de la primera seña que enseña, o null si no enseña ninguna. */
   sampleSign: string | null;
   topics: CourseDetailTopic[];

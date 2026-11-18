@@ -391,20 +391,6 @@ export function HomeTabScreen({ navigation }: Props) {
                 </Text>
                 <Ionicons name="chevron-down" size={14} color={colors.onDark} />
               </TouchableOpacity>
-              {purchasableCourses.length > 0 && (
-                <TouchableOpacity
-                  style={styles.moreCoursesChip}
-                  onPress={() => setSelectorOpen(true)}
-                  activeOpacity={0.85}
-                  accessibilityLabel="Ver más cursos"
-                >
-                  <Ionicons name="add" size={14} color={colors.onDark} />
-                  <Text style={styles.courseChipText}>
-                    {purchasableCourses.length}{" "}
-                    {purchasableCourses.length === 1 ? "curso" : "cursos"}
-                  </Text>
-                </TouchableOpacity>
-              )}
             </View>
           ) : null
         }
@@ -886,16 +872,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     marginBottom: 10,
-  },
-  moreCoursesChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    borderWidth: 1.5,
-    borderColor: alpha(colors.onColor, 0.45),
-    borderRadius: 999,
-    paddingVertical: 4.5,
-    paddingHorizontal: 10,
   },
   afterCourse: { marginTop: 8, gap: 6 },
   endMark: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14 },

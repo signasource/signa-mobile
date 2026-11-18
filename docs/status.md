@@ -108,7 +108,7 @@ lessons without camera, Tienda, Social, Perfil and Práctica all work.
   side is what would unblock feature parity; until then an iPhone cannot be used to test
   recognition.
 - **Dead code left from the native migration.** The WebView recogniser (`LiveSignRecognizer`, `engine/`, `assets/mediapipe/`, `assets/tflite/`, `scripts/build-recognizer.mjs`, the `tfjs` / MediaPipe web dependencies), `Banco3D`, `CoursesTabScreen`, `CoursesListScreen` and the stub half of `coursesApi` are still in the repo. Deleting them (2026-11-18) broke sign recognition, so it was reverted; find out why (the native path still imports the `LiveFrame` type from `LiveSignRecognizer`, and `metro.config.js` / `package.json` changed in the same commit) before removing them again.
-- **`AuthContext.verificationPrompt` is dead state.** Still present after the revert; `VerifyEmail` is reached only from the Perfil chip and Configuración.
+- **`AuthContext.verificationPrompt` is dead state.** Still present (kept on purpose); `VerifyEmail` is reached only from the Perfil chip and Configuración.
 - ~~Hard-coded app version in Configuración.~~ The footer now reads `Constants.expoConfig.version` (`expo-constants`).
 - **Unused telemetry helpers.** `trackInference`, `trackConfidence`, `trackFps`, `trackScreenLoad` and `trackClientError` in `src/telemetry/telemetry.ts` have no caller since the native recogniser replaced the WebView one; wire the native recogniser's `onFrame` data to them or delete them.
 - **CI:** GitHub Actions (`.github/workflows/release.yml`, semantic-release on push to `master`). No GitLab pipeline.

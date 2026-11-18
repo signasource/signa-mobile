@@ -16,7 +16,13 @@ import {
   PasswordChecklist,
   StatusText,
 } from "@/components/auth";
-import { checkPassword, isPasswordValid, isValidEmail, isValidUsername } from "@/utils/validation";
+import {
+  checkPassword,
+  isPasswordValid,
+  isValidEmail,
+  isValidName,
+  isValidUsername,
+} from "@/utils/validation";
 import { mapAuthError } from "@/utils/authErrors";
 import { colors, fonts } from "@/theme";
 
@@ -44,6 +50,14 @@ export function RegisterScreen({ navigation }: Props) {
   function validate() {
     if (!name.trim() || !lastName.trim() || !username.trim() || !email.trim() || !password) {
       setError("Completá todos los campos para continuar");
+      return false;
+    }
+    if (!isValidName(name)) {
+      setError("El nombre solo puede contener letras");
+      return false;
+    }
+    if (!isValidName(lastName)) {
+      setError("El apellido solo puede contener letras");
       return false;
     }
     if (!isValidEmail(email)) {

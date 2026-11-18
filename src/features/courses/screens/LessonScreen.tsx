@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, View } from "react-native";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -8,6 +8,7 @@ import { AppStackParamList } from "@/navigation/AppNavigator";
 import { lessonsApi } from "@/api/lessons";
 import { learningApi } from "@/api/learning";
 import { shopApi } from "@/api/shop";
+import { boostersApi } from "@/api/boosters";
 import { usersApi } from "@/api/users";
 import { serverNow } from "@/utils/serverClock";
 import { useLives, LivesSource, LIFE_REGEN_MS } from "@/features/lives/useLives";
@@ -103,6 +104,8 @@ export function LessonScreen({ route, navigation }: Props) {
   const lives = livesState.ready ? livesState.lives : STARTING_LIVES;
   const unlimitedLives = livesState.unlimited;
   const [gems, setGems] = useState<number | undefined>(undefined);
+  const [storedInfiniteLives, setStoredInfiniteLives] = useState(0);
+  const [activatingInfinite, setActivatingInfinite] = useState(false);
   const [correctBlockIds, setCorrectBlockIds] = useState<Set<string>>(new Set());
   const [completed, setCompleted] = useState(false);
   // Cola de respuestas: cada POST espera al anterior (el último eslabón de la cadena).
@@ -129,14 +132,18 @@ export function LessonScreen({ route, navigation }: Props) {
       lessonsApi.getLesson(lessonId),
       shopApi.getMyInventory().catch(() => null),
       usersApi.getStats().catch(() => null),
+      boostersApi.getStored().catch(() => null),
     ])
-      .then(([lessonRes, inventoryRes, statsRes]) => {
+      .then(([lessonRes, inventoryRes, statsRes, boostersRes]) => {
         setLesson(lessonRes.data);
         startRef.current = Date.now();
         xpBaseline.current = statsRes?.data.totalXp ?? null;
         if (inventoryRes?.data) {
           setLivesSource(inventoryRes.data);
           setGems(inventoryRes.data.gems);
+        }
+        if (boostersRes?.data) {
+          setStoredInfiniteLives(boostersRes.data.unlimitedLives);
         }
       })
       .catch((err: any) => setError(err?.response?.data?.message ?? "No pudimos cargar la lección."))
@@ -146,6 +153,40 @@ export function LessonScreen({ route, navigation }: Props) {
   useEffect(() => {
     loadLesson();
   }, [loadLesson]);
+
+  useEffect(() => {
+    return navigation.addListener("beforeRemove", (e) => {
+      // Sin interacciones enviadas: salida limpia, nada que drenar ni confirmar.
+      if (blockIndex === 0) return;
+
+      e.preventDefault();
+
+      const noLives = lives <= 0 && !unlimitedLives;
+
+      async function drainAndDispatch() {
+        await Promise.race([
+          cola.current,
+          new Promise<void>((r) => setTimeout(r, ESPERA_MAX_SALIDA)),
+        ]);
+        navigation.dispatch(e.data.action);
+      }
+
+      // Sin vidas o lección completa: solo drenar la cola y salir, sin confirmar.
+      if (noLives || completed) {
+        drainAndDispatch();
+        return;
+      }
+
+      Alert.alert(
+        "¿Salir de la lección?",
+        "Se perderá el progreso de esta sesión.",
+        [
+          { text: "Continuar lección", style: "cancel" },
+          { text: "Salir", style: "destructive", onPress: drainAndDispatch },
+        ]
+      );
+    });
+  }, [navigation, blockIndex, completed, lives, unlimitedLives]);
 
   function resetProgress() {
     setBlockIndex(0);
@@ -190,21 +231,11 @@ export function LessonScreen({ route, navigation }: Props) {
   /**
    * Volver al camino recién cuando el backend tenga la última respuesta.
    *
-   * Las interacciones se mandan sin esperarlas, que es lo correcto mientras se
-   * juega: nadie quiere que el ejercicio se trabe por la red. Pero al salir esa
-   * carrera se pierde — el camino se recarga al enfocarse y pide el progreso
-   * antes de que llegue la respuesta del último bloque, así que muestra la
-   * lección como estaba. Entrar de nuevo la mostraba ya avanzada, que es
-   * exactamente el síntoma.
-   *
-   * Se espera con tope: si la red no contesta, salir igual es mejor que quedar
-   * encerrado en la lección.
+   * Cuando hay progreso activo, `beforeRemove` muestra primero un diálogo de
+   * confirmación y hace el drain de la cola antes de despachar la acción. En los
+   * demás casos (bloque 0, lección completa, sin vidas) se sale directamente.
    */
-  async function volver() {
-    await Promise.race([
-      cola.current,
-      new Promise((listo) => setTimeout(listo, ESPERA_MAX_SALIDA)),
-    ]);
+  function volver() {
     navigation.goBack();
   }
 
@@ -345,6 +376,7 @@ export function LessonScreen({ route, navigation }: Props) {
                 // esto, el ejercicio de cámara encendía la cámara un bloque antes.
                 active={i === blockIndex}
                 ultimo={i === blocks.length - 1}
+                unlimitedLives={unlimitedLives}
                 onAnswer={(correct) => handleAnswer(block, correct)}
                 onContinue={block.type === "INFO" ? () => handleInfoContinue(block) : goToNextBlock}
               />
@@ -360,6 +392,20 @@ export function LessonScreen({ route, navigation }: Props) {
           gems={gems}
           livesState={livesState}
           onGetGems={() => navigation.navigate("GemShop", { returnTo: "la lección" })}
+          storedInfiniteLives={storedInfiniteLives}
+          activatingInfinite={activatingInfinite}
+          onActivateInfiniteLives={async () => {
+            setActivatingInfinite(true);
+            try {
+              const { data } = await boostersApi.activate("UNLIMITED_LIVES");
+              setLivesSource(data.inventory);
+              setStoredInfiniteLives((q) => Math.max(0, q - 1));
+            } catch {
+              // Si falla no hacemos nada; el overlay sigue visible.
+            } finally {
+              setActivatingInfinite(false);
+            }
+          }}
         />
       )}
     </View>
@@ -372,11 +418,12 @@ interface BlockRendererProps {
   active: boolean;
   /** Último de la lección: al terminarlo no hay bloque siguiente que mostrar. */
   ultimo: boolean;
+  unlimitedLives: boolean;
   onAnswer: (correct: boolean) => void;
   onContinue: () => void;
 }
 
-function BlockRenderer({ block, active, ultimo, onAnswer, onContinue }: BlockRendererProps) {
+function BlockRenderer({ block, active, ultimo, unlimitedLives, onAnswer, onContinue }: BlockRendererProps) {
   const xp = block.xpReward ?? 0;
 
   switch (block.type as BlockType) {
@@ -386,17 +433,18 @@ function BlockRenderer({ block, active, ultimo, onAnswer, onContinue }: BlockRen
       return <IntroduceSignBlock config={parseBlockConfig<"INTRODUCE_SIGN">(block)} onContinue={onContinue} />;
     case "SELECT_MEANING":
       return (
-        <SelectMeaningBlock config={parseBlockConfig<"SELECT_MEANING">(block)} xp={xp} onAnswer={onAnswer} onContinue={onContinue} />
+        <SelectMeaningBlock config={parseBlockConfig<"SELECT_MEANING">(block)} xp={xp} unlimitedLives={unlimitedLives} onAnswer={onAnswer} onContinue={onContinue} />
       );
     case "SELECT_SIGN":
       return (
-        <SelectSignBlock config={parseBlockConfig<"SELECT_SIGN">(block)} xp={xp} onAnswer={onAnswer} onContinue={onContinue} />
+        <SelectSignBlock config={parseBlockConfig<"SELECT_SIGN">(block)} xp={xp} unlimitedLives={unlimitedLives} onAnswer={onAnswer} onContinue={onContinue} />
       );
     case "CONTEXT_RESPONSE":
       return (
         <ContextResponseBlock
           config={parseBlockConfig<"CONTEXT_RESPONSE">(block)}
           xp={xp}
+          unlimitedLives={unlimitedLives}
           onAnswer={onAnswer}
           onContinue={onContinue}
         />

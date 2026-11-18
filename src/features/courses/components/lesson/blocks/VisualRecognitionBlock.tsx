@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { useKeepAwake } from "expo-keep-awake";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts, alpha } from "@/theme";
@@ -27,6 +28,7 @@ const SEQUENCE_HEIGHT = 250;
 const LOAD_TIMEOUT_MS = 8000;
 
 export function VisualRecognitionBlock({ config, xp, onAnswer, onContinue }: VisualRecognitionBlockProps) {
+  useKeepAwake();
   const total = config.sign_sequence.length;
   const [marked, setMarked] = useState<Set<string>>(new Set());
   const [wrongOption, setWrongOption] = useState<string | null>(null);

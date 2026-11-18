@@ -15,6 +15,7 @@ interface SignCarouselBlockProps {
   options: string[];
   answer: string;
   xp: number;
+  unlimitedLives?: boolean;
   confirmLabel: string;
   confirmIcon: keyof typeof Ionicons.glyphMap;
   correctDetail: string;
@@ -107,6 +108,7 @@ export function SignCarouselBlock({
   options,
   answer,
   xp,
+  unlimitedLives,
   confirmLabel,
   confirmIcon,
   correctDetail,
@@ -153,6 +155,7 @@ export function SignCarouselBlock({
                   ? "incorrect"
                   : "idle"
             }
+            unlimitedLives={unlimitedLives}
           />
         </View>
 

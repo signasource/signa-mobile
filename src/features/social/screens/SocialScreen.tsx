@@ -525,7 +525,10 @@ export function SocialScreen({ navigation }: Props) {
       />
 
       {isRanking ? (
-        <RankingTab onPressProfile={openProfile} />
+        <RankingTab
+          onPressProfile={openProfile}
+          onNavigateToSettings={() => navigation.navigate("Configuration")}
+        />
       ) : loading ? (
         <View style={styles.centered}>
           <ActivityIndicator color={colors.socialWine} />

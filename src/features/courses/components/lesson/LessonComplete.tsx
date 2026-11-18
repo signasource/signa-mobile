@@ -40,8 +40,9 @@ export function LessonComplete({
       key: "xp",
       icon: "flash" as const,
       color: colors.primary,
-      value: `+${xpEarned}`,
-      label: "XP ganado",
+      // Una lección incompleta no acredita XP al total: el XP queda a la espera de completarla.
+      value: incomplete ? `${xpEarned}` : `+${xpEarned}`,
+      label: incomplete ? "XP al completar" : "XP ganado",
       earned: xpEarned > 0,
     },
     {
