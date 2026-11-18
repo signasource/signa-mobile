@@ -240,7 +240,7 @@ export function SpellNameBlock({ config, active, ultimo, xp, onAnswer, onContinu
             </>
           )}
         </Text>
-        <XpChip xp={xp} state={terminado ? (completo ? "correct" : "incorrect") : "idle"} />
+        <XpChip xp={xp} state={completo ? "correct" : rendido ? "skipped" : "idle"} />
       </View>
 
       <View style={styles.stage}>

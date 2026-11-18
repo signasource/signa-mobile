@@ -4,7 +4,7 @@ import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "@/theme";
 
-type State = "idle" | "correct" | "incorrect";
+type State = "idle" | "correct" | "incorrect" | "skipped";
 
 interface XpChipProps {
   xp: number;
@@ -17,6 +17,15 @@ export function XpChip({ xp, state }: XpChipProps) {
       <View style={[styles.chip, { backgroundColor: colors.dangerLight }]}>
         <Ionicons name="heart-dislike" size={12} color={colors.danger} />
         <Text style={[styles.text, { color: colors.danger }]}>−1 vida</Text>
+      </View>
+    );
+  }
+
+  if (state === "skipped") {
+    return (
+      <View style={[styles.chip, { backgroundColor: colors.fill }]}>
+        <Ionicons name="arrow-forward-circle-outline" size={12} color={colors.textMuted} />
+        <Text style={[styles.text, { color: colors.textMuted }]}>Omitida</Text>
       </View>
     );
   }

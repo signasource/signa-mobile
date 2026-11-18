@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, StyleSheet, View } from "react-native";
+import { useKeepAwake } from "expo-keep-awake";
 import { useCameraPermissions } from "expo-camera";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
@@ -77,6 +78,7 @@ export function PerformSignBlock({ config, active, ultimo, xp, onAnswer, onConti
   const answered = useRef(false);
 
   const target = signs[doneCount] ?? null;
+  useKeepAwake();
   // Al terminar ya no hay "próxima seña", pero el avatar no debe desaparecer:
   // se queda mostrando la última, en pausa, como en el resto de los ejercicios.
   const enPantalla = target ?? signs[signs.length - 1] ?? null;
@@ -229,7 +231,7 @@ export function PerformSignBlock({ config, active, ultimo, xp, onAnswer, onConti
             </>
           )}
         </Text>
-        <XpChip xp={xp} state={terminado ? (completo ? "correct" : "incorrect") : "idle"} />
+        <XpChip xp={xp} state={completo ? "correct" : rendido ? "skipped" : "idle"} />
       </View>
 
       <View style={styles.stage}>
