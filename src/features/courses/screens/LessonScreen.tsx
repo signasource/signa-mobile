@@ -266,6 +266,20 @@ export function LessonScreen({ route, navigation }: Props) {
     [lesson]
   );
 
+  function goToPrevBlock() {
+    if (blockIndex <= 0) return;
+    const prevBlock = blocks[blockIndex - 1];
+    // Clear the previous block's state so the user can redo it; the backend
+    // won't re-grant XP for a block already earned (see confirmServerXp comment).
+    setCorrectBlockIds((prev) => {
+      const next = new Set(prev);
+      next.delete(prevBlock.id);
+      return next;
+    });
+    infoReportados.current.delete(prevBlock.id);
+    setBlockIndex((prev) => prev - 1);
+  }
+
   function goToNextBlock() {
     if (!lesson) return;
     if (blockIndex + 1 >= blocks.length) {
@@ -351,7 +365,7 @@ export function LessonScreen({ route, navigation }: Props) {
         lessonName={lesson.name}
         progress={progress}
         livesState={livesState}
-        onBack={volver}
+        onBack={blockIndex > 0 ? goToPrevBlock : volver}
       />
 
       {/*
