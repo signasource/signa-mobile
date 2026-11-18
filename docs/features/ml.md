@@ -47,8 +47,10 @@ show "Reconocimiento no disponible" with a "Continuar" button, and `LessonScreen
 as not answered (lesson shown as incomplete). See [../status.md](../status.md#plataformas).
 
 The rest of this document describes the **models and the recognition rules**. The old WebView
-engine (MediaPipe WASM + TFLite Web in a `WebView`) was **removed** once the native runtime shipped;
-its story and measurements are in [../migracion-nativa.md](../migracion-nativa.md) and
+engine (MediaPipe WASM + TFLite Web in a `WebView`: `LiveSignRecognizer`, `engine/`,
+`assets/mediapipe/`, `assets/tflite/`, `scripts/build-recognizer.mjs`) is **still in the repo**: it was
+removed once and sign recognition stopped working, so the removal was reverted (see
+[../status.md](../status.md)). Its story and measurements are in [../migracion-nativa.md](../migracion-nativa.md) and
 [../rendimiento.md](../rendimiento.md).
 
 ## The two pipelines

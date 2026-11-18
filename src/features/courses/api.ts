@@ -1,4 +1,5 @@
 import { apiClient } from "@/api/client";
+import { Course, Lesson } from "./types";
 
 /** Lengua de señas (`GET /sign-languages`). LSA tiene `code: "LSA"`. */
 export interface SignLanguage {
@@ -103,6 +104,15 @@ export interface CourseRoadmap {
 }
 
 export const coursesApi = {
+  /**
+   * STUB - paths tentativos de contenido plano, usados por `CoursesListScreen`. No confirmados
+   * contra el back real; el contenido real de la pantalla de Inicio va por `getRoadmap`.
+   */
+  list: () => apiClient.get<Course[]>("/courses"),
+  getById: (courseId: string) => apiClient.get<Course>(`/courses/${courseId}`),
+  getLesson: (courseId: string, lessonId: string) =>
+    apiClient.get<Lesson>(`/courses/${courseId}/lessons/${lessonId}`),
+
   /** Lenguas de señas sembradas en el back (para resolver el `signLanguageId` de LSA). */
   getSignLanguages: () => apiClient.get<SignLanguage[]>("/sign-languages"),
 

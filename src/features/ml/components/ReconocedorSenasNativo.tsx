@@ -4,7 +4,7 @@ import { StyleSheet, View, ViewStyle } from "react-native";
 import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
 import { FrameNativo, ReconocedorNativo, SenaNativa } from "../../../../modules/signa-vision";
-import type { LiveFrame } from "../types";
+import type { LiveFrame } from "./LiveSignRecognizer";
 
 interface Props {
   targets: string[];
@@ -23,7 +23,7 @@ interface Props {
 /**
  * El mismo reconocedor de los dos ejercicios de cámara, sin WebView.
  *
- * Expone la interfaz que tuvo el reconocedor en WebView —mismos props, mismo LiveFrame— para
+ * Expone la interfaz de LiveSignRecognizer —mismos props, mismo LiveFrame— para
  * que los ejercicios no tengan que enterarse de cuál está abajo. Lo que cambia
  * es dónde corre todo: cámara, MediaPipe, ventana de 258 números y LSTM viven
  * en Kotlin, y por el puente sólo cruzan el resumen del cuadro y la seña

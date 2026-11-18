@@ -5,6 +5,8 @@
  * la inferencia corre local: no hay servidor de por medio. Ver
  * docs/features/ml.md.
  */
-export type { LiveFrame } from "./types";
+export { LiveSignRecognizer } from "./components/LiveSignRecognizer";
+export type { LiveFrame } from "./components/LiveSignRecognizer";
 export { SIGNS_MODEL, REST_LABEL, modelKnows, prettySign, signMeaning } from "./models/registry";
 export type { ModelDescriptor } from "./models/registry";
+export { stageRecognizerAssets } from "./engine/assets";
