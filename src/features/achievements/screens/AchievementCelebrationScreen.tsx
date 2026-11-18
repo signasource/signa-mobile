@@ -82,7 +82,7 @@ export function AchievementCelebrationScreen({ navigation, route }: Props) {
         </View>
       </View>
 
-      <Button label="¡Genial!" onPress={() => navigation.goBack()} />
+      <Button label={rewardGems > 0 ? "Reclamar gemas" : "¡Genial!"} onPress={() => navigation.goBack()} />
     </View>
   );
 }

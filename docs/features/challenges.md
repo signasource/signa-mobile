@@ -49,6 +49,10 @@ The first-steps rewards are **not** in the spreadsheet (it only defines the dail
 chosen so the set totals 100 gems. The weekly set isn't in the sheet either: targets are ~5x the daily
 ones and rewards ~3x (placeholder numbers, tune in the seed). Course challenges are not implemented.
 
+Challenge rewards **stack with achievement rewards** (`achievements.md`): e.g. the first lesson pays
++10 from the *Primera lección* achievement (celebration screen, before Home) plus the +20 of its
+challenge (claimed on Home) = 30 gems. The card only shows the challenge's own reward.
+
 Criteria definitions:
 
 - **Camera exercises** = correct answers on `VISUAL_RECOGNITION`, `PERFORM_SIGN` or `SPELL_NAME`, in a
