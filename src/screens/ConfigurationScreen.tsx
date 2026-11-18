@@ -30,7 +30,7 @@ import Constants from "expo-constants";
 
 type Props = NativeStackScreenProps<AppStackParamList, "Configuration">;
 type Sheet = null | "color" | "vis" | "time";
-type Dialog = null | "logout" | "delete";
+type Dialog = null | "logout" | "delete" | "privacy";
 type FontSizeId = "SMALL" | "MEDIUM" | "LARGE";
 type VisibilityId = "PUBLIC" | "PRIVATE";
 
@@ -679,10 +679,15 @@ export function ConfigurationScreen({ navigation, route }: Props) {
                           { backgroundColor: selected ? accentSoft : "transparent" },
                         ]}
                         onPress={() => {
-                          setAccountVisibility(v.id);
-                          setSheet(null);
-                          saveSetting({ accountVisibility: v.id });
-                          showToast("Cambios guardados");
+                          if (v.id === "PRIVATE" && accountVisibility !== "PRIVATE") {
+                            setSheet(null);
+                            setDialog("privacy");
+                          } else {
+                            setAccountVisibility(v.id);
+                            setSheet(null);
+                            saveSetting({ accountVisibility: v.id });
+                            showToast("Cambios guardados");
+                          }
                         }}
                         activeOpacity={0.7}
                       >
@@ -834,24 +839,46 @@ export function ConfigurationScreen({ navigation, route }: Props) {
                   styles.dialogIcon,
                   {
                     backgroundColor:
-                      dialog === "delete" ? colors.dangerLight : accentSoft,
+                      dialog === "delete"
+                        ? colors.dangerLight
+                        : dialog === "privacy"
+                          ? colors.warningLight
+                          : accentSoft,
                   },
                 ]}
               >
                 <Ionicons
-                  name={dialog === "delete" ? "trash-outline" : "log-out-outline"}
+                  name={
+                    dialog === "delete"
+                      ? "trash-outline"
+                      : dialog === "privacy"
+                        ? "eye-off-outline"
+                        : "log-out-outline"
+                  }
                   size={26}
-                  color={dialog === "delete" ? colors.danger : accent}
+                  color={
+                    dialog === "delete"
+                      ? colors.danger
+                      : dialog === "privacy"
+                        ? colors.warning
+                        : accent
+                  }
                 />
               </View>
 
               <Text style={styles.dialogTitle}>
-                {dialog === "delete" ? "Eliminar tu cuenta" : "¿Cerrar sesión?"}
+                {dialog === "delete"
+                  ? "Eliminar tu cuenta"
+                  : dialog === "privacy"
+                    ? "¿Poner la cuenta en privado?"
+                    : "¿Cerrar sesión?"}
               </Text>
               <Text style={styles.dialogDesc}>
                 {dialog === "delete"
                   ? "Se borran tu progreso, racha, logros e inventario. Esta acción no se puede deshacer."
-                  : "Vas a volver a la pantalla de inicio. Tu progreso queda guardado en tu cuenta."}
+                  : dialog === "privacy"
+                    ? "No vas a poder participar en el ranking global mientras tu cuenta sea privada. Podés cambiar esto cuando quieras."
+                    : "Vas a volver a la pantalla de inicio. Tu progreso queda guardado en tu cuenta."}
               </Text>
 
               {dialog === "delete" && (
@@ -895,7 +922,14 @@ export function ConfigurationScreen({ navigation, route }: Props) {
                       ? deleteReady
                         ? handleDeleteAccount
                         : undefined
-                      : handleLogout
+                      : dialog === "privacy"
+                        ? () => {
+                            setAccountVisibility("PRIVATE");
+                            setDialog(null);
+                            saveSetting({ accountVisibility: "PRIVATE" });
+                            showToast("Cambios guardados");
+                          }
+                        : handleLogout
                   }
                   activeOpacity={dialog === "delete" && !deleteReady ? 1 : 0.85}
                 >
@@ -912,7 +946,11 @@ export function ConfigurationScreen({ navigation, route }: Props) {
                       },
                     ]}
                   >
-                    {dialog === "delete" ? "Eliminar" : "Cerrar sesión"}
+                    {dialog === "delete"
+                      ? "Eliminar"
+                      : dialog === "privacy"
+                        ? "Poner privada"
+                        : "Cerrar sesión"}
                   </Text>
                 </TouchableOpacity>
               </View>
