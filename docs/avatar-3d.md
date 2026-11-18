@@ -1,6 +1,16 @@
 # El avatar 3D de `<model-viewer>` a Filament
 
-> Por qué se cambió el motor 3D, qué se ganó y qué se perdió.
+> Responsabilidad: por qué se cambió el motor 3D, qué se ganó y qué se perdió, y cómo se elige el motor hoy.
+> Actualizar cuando: cambia el motor, el origen de los `.glb`/`.mp4` o la lógica de respaldo.
+> Fuentes: modules/signa-vision/ (`AvatarView.kt`, `MotorFilament.kt`, `Glb.kt`, `Reflejos.kt`), src/features/animations/, src/features/courses/components/lesson/SignAnimation.tsx
+
+## Cómo se elige el motor hoy
+
+- Android con el módulo `signa-vision` (`hayNativo`): **Filament** (`AvatarGlbNativo`, `MultiAvatarNativo`). Es el predeterminado.
+- `EXPO_PUBLIC_AVATAR_WEBVIEW=1` (al compilar) fuerza el WebView; la prop `motor="nativo" | "webview"` de `SignAnimation` fuerza uno solo en esa instancia (la usa el banco `BancoNativoPantalla`).
+- iOS y Expo Go (`hayNativo` falso): siempre `<model-viewer>` en WebView (`GlbAnimationView`, `MultiGlbView`).
+- Si Filament no puede con un modelo (p. ej. avatares con más de 256 huesos), `SignAnimation` cae al visor web en vez de mostrar la lámina fija.
+- Las señas `.mp4` no usan avatar: `SignVideo` (WebView `<video>`).
 
 ## Qué había antes
 

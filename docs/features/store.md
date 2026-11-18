@@ -75,7 +75,7 @@ Screens (all inside `GemShopScreen`, driven by the hook's `status`):
 1. **Shop**: header + 2-column grid of packs (more gems → more diamonds in the art; "MÁS ELEGIDO" on
    `gems_pack_850`, "MEJOR PRECIO" on the last; "+N%" bonus computed client-side against the
    smallest pack's gems-per-peso). With `missingGems`, the smallest covering pack gets a ring. Below:
-   "Gemas gratis" row (goes to Inicio, where the challenges live) and payment notes.
+   "GEMAS GRATIS" block with a "Desafíos diarios" row (goes to Inicio, where the challenges live) and payment notes.
 2. **Confirm sheet** (tap a pack): before/after balance, total, "Pagar con Mercado Pago". The order is
    created only here (`buy(pack)`).
 3. **Checking** (`status: "checking"`): full-screen "Confirmando tu pago" instead of a spinner in the button.
@@ -170,14 +170,16 @@ the sheet shows `mano-vacia.svg` instead of a list.
 and course orders merged and sorted newest-first. Each card shows the icon, product name, date,
 amount, and a status badge (`PENDING` / `PAID` / `REFUNDED`).
 
-**"Pedir reembolso"** appears on `PAID` orders where `refundedAt == null` and no refund request has
-already been submitted this session. It opens `RefundRequestSheet`
+**"Pedir reembolso"** appears on `PAID` orders where `refundedAt == null` and the backend reports no
+refund request yet (`refundRequestStatus == null`, so the state survives restarts; a request sent in this
+session is also tracked locally in `submittedIds`). While the request is `PENDING` the card shows
+"Pedido de reembolso en revisión"; once `RESOLVED` without a refund, "Solicitud de reembolso procesada". It opens `RefundRequestSheet`
 (`src/features/store/components/`), a bottom sheet modal with:
 
 - Product row (icon + name).
 - **Motivo**: chip grid of 6 reasons (`MISTAKE · DUPLICATE · NOT_RECEIVED · NOT_AS_EXPECTED · TECHNICAL · OTHER`).
-- **Comentario**: free-text area (10–2000 chars).
-- **"Enviar pedido"** → `gemOrdersApi.createRefundRequest` or `courseOrdersApi.createRefundRequest` (depending on order kind). On success: success state with a checkmark; the parent screen marks the order as "Pedido de reembolso enviado" for the session.
+- **Comentario**: optional free-text area (max 2000 chars, with a counter); only the reason is required.
+- **"Enviar pedido"** → `gemOrdersApi.createRefundRequest` or `courseOrdersApi.createRefundRequest` (depending on order kind). On success: success state with a checkmark; the order shows "Pedido de reembolso en revisión".
 
 A refund request does **not** refund automatically — it enters the admin queue for review. The
 backend enforces eligibility at submit time (not just client-side): rejects if the order is not

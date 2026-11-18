@@ -2,9 +2,9 @@
 
 > Responsibility: DTOs mirrored 1:1 from `signa-api` records.
 > Update when: a backend DTO changes or a request/response type is added.
-> Sources: src/types/index.ts, src/api/social.ts, src/api/notifications.ts, src/api/shop.ts, src/api/gemOrders.ts
+> Sources: src/types/index.ts, src/api/signs.ts, src/api/social.ts, src/api/notifications.ts, src/api/shop.ts, src/api/gemOrders.ts
 
-- `AuthResponse { accessToken, refreshToken }` — **carries no user data**.
+- `AuthResponse { accessToken, refreshToken, role }` — **carries no other user data**.
 - `GoogleAuthRequest { idToken, dailyGoalMinutes? }` — body of `POST /auth/google`.
 - `LoginRequest { identifier, password }` — `identifier` is email or username.
 - `RegisterRequest { email, username, password, name, lastName, dailyGoalMinutes? }`.
@@ -14,7 +14,7 @@
 - `ResendVerificationEmailRequest { email }`.
 - `ChangePasswordRequest { currentPassword, newPassword }`.
 - `ApiErrorResponse { message, status, timestamp }` — backend error shape; UI error messages come from `err?.response?.data?.message`.
-- `User { email, name? }` — `name` is best-effort local cache (see [session-persistence.md](./session-persistence.md)).
+- `User { email, name?, role? }` — `role` is the JWT claim; `name` is best-effort local cache (see [session-persistence.md](./session-persistence.md)).
 - `UserSettings { profileHeaderColor }` — subset of backend `UserSettings` exposed to the front-end; `profileHeaderColor` is a 6-digit hex string (e.g. `#7857FF`), default `#FFFFFF`.
 - `ShopItem { id, code, title, description, itemType, priceGems, quantity, durationMinutes, multiplierValue, active }` — mirrors `ShopItemResponse`. `itemType` is `STREAK_SHIELD | LIFE | XP_MULTIPLIER | UNLIMITED_LIVES | MYSTERY_CHEST | GEMS`.
 - `ShopInventory { gems, streakShields, livesMode, currentLives, nextLifeAt, effectiveXpMultiplier, xpMultiplierExpiresAt, xpMultiplierActive, unlimitedLivesExpiresAt, unlimitedLivesActive, learnedSignsCount }` — mirrors `UserInventoryResponse`; `livesMode` is `INFINITE | LIMITED`. `UserInventory` (`inventoryApi`) is an alias of it.
@@ -43,7 +43,7 @@
 - `FriendEvent { friendId, friendUsername, friendName, eventType, eventRefId, subject, context, liked, createdAt }` — mirrors `FriendEventResponse`. Feed events are **derived, not stored**, so `(eventType, eventRefId)` is their identity: `eventRefId` is the id of the `user_achievements` / `user_learned_signs` row behind it. `subject`/`context` are the raw pieces (achievement title + its description, or the sign + its course); the sentence is composed client-side by `eventSentence()` so the copy stays in the UI language.
 - `UserSearchResult { id, username, name, relation, mutualFriends }` — mirrors `UserSearchResultResponse`; already resolved against the caller.
 - `PublicUserProfile { id, username, name, profileHeaderColor, relation, visible, stats, weeklyXp, achievements, courses }` — mirrors `PublicUserProfileResponse`. When `visible` is `false` the account is private and the viewer isn't a friend: identity and `relation` are real, every progress field is empty.
-- `StreakDay { pending, currentStreak }` (`src/api/users.ts`) — mirrors `StreakDayResponse`; `currentStreak` is 0 when nothing is pending.
+- `StreakDay { pending, currentStreak, shieldPending }` (`src/api/users.ts`) — mirrors `StreakDayResponse`; `shieldPending` = the nightly scheduler burned a shield; `currentStreak` is 0 when neither flag is set.
 - `PublicUserStats { currentStreak, longestStreak, totalXp, weeklyXp, learnedSignsCount }` — mirrors `PublicUserStatsResponse`; progress only, no wallet.
 - `PublicCourseProgress` / `PublicAchievement` — mirror `CourseProgressResponse` and `AchievementResponse` **as the backend actually sends them**. `Achievement` (`src/api/achievements.ts`) is an alias of `PublicAchievement`, and `learningApi.getProgress()` returns `PublicCourseProgress[]`. `PublicAchievement.rewardStreakShields` is the number of streak shields credited when the achievement is earned (0 for non-streak achievements); `rewardGems` is the gems credited.
 - `Challenge` / `Challenges` / `ChallengeClaim` (`src/api/challenges.ts`) — mirror `ChallengeResponse`, `ChallengesResponse` and `ChallengeClaimResponse`. `Challenge.id` is the user's own row, not the catalog entry; `progress` is already capped at `target`. `Challenges.daily` and `Challenges.weekly` are empty until `firstStepsDone`. Rules → [../features/challenges.md](../features/challenges.md).
@@ -59,6 +59,9 @@
   - `CONTEXT_RESPONSE`: `{ question, answer, options: string[] }` — same sign-carousel UI as `SELECT_SIGN`, but prompted by `question` with a single correct `answer`.
   - `MATCH`: `{ concepts: string[] }` — pairs a shuffled sign column with a shuffled word column, both listing the same `concepts`.
   - `VISUAL_RECOGNITION`: `{ sign_sequence: string[], options: string[], keep_order: boolean }` — user marks which of `options` appeared in `sign_sequence`. **Note:** the mobile app renders these keys as `sign_sequence`/`keep_order` because that's what's actually on the wire; `signa-api`'s own `BlockSignExtractor` reads them as `signSequence` (camelCase) and so never finds them — a pre-existing backend bug, out of scope here.
+- `SignSummary { id, meaning, description, handedness, animationUrl, youtubeUrl }` (`src/api/signs.ts`) — mirrors `SignSummaryResponse`.
+- `SignMedia { meaning, url, format: "glb" | "mp4", lateralUrl }` (`src/api/signs.ts`) — mirrors `SignMediaResponse`; the file each sign plays.
+- `CreateSignReportRequest { signMeaning, reason, description? }` — `reason` is `ReportReason` (see [endpoints.md](./endpoints.md)).
 - `PracticeSummary { signsLearnedCount, exercisesDoneCount }` — mirrors `PracticeSummaryResponse`, from `src/api/practice.ts`.
 - `LearnedSign { sign }` — mirrors `LearnedSignResponse`. No animation URL: `Sign.animationUrl` on the backend is a raw R2 object key, not a fetchable URL (same caveat as `SignSummary.animationUrl`, see above) — resolve real animation URLs via `signsApi.getSignAnimations`.
 - `PracticeMistake { lessonBlockId, type, misses }` — mirrors `PracticeMistakeResponse`. `type` is `BlockType`; keyed by `lessonBlockId` rather than a sign meaning because `MATCH`/`VISUAL_RECOGNITION` blocks don't have a single one.

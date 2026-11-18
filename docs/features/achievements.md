@@ -118,11 +118,21 @@ Not an achievement: `features/achievements/screens/StreakDayScreen.tsx` (route `
   could be skipped or shown out of order). Each one waits until the previous screen is closed.
 - Copy: `streakDayHeadline` / `streakDaySubtitle` in `celebrations.ts`.
 
+## Streak shield screen
+
+`features/achievements/screens/StreakShieldScreen.tsx` (route `StreakShield`, theme `shield`,
+background `colors.celebrationShield`) tells the user the nightly scheduler **burned a shield to keep the
+streak alive**. It rides on the same call as the streak day: `GET /users/me/streak-day` also returns
+`shieldPending`; `refresh()` exposes `pendingStreakShield` / `consumeStreakShield`, and the screen marks it
+seen **on mount** with `POST /users/me/streak-shield/seen`. Copy: `streakShieldHeadline` /
+`streakShieldSubtitle` in `celebrations.ts`; the button ("¡Seguir aprendiendo!") just goes back. It is
+always shown first (shield → streak day → achievement).
+
 ## Mobile pieces
 
 | Piece | File |
 |---|---|
-| Polling + queue (`useAchievementCelebration`: `pending`, `consume`, `refresh`) | `features/achievements/AchievementCelebrationContext.tsx` |
+| Polling + queue (`useAchievementCelebration`: `pending`, `consume`, `pendingStreakDay`, `pendingStreakShield`, `refresh`) | `features/achievements/AchievementCelebrationContext.tsx` |
 | Celebration screen | `features/achievements/screens/AchievementCelebrationScreen.tsx` |
 | Themes, kind mapping, headlines | `features/achievements/celebrations.ts` |
 | Animation or its mock | `features/achievements/components/CelebrationAnimation.tsx` |

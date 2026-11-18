@@ -22,7 +22,9 @@ Detailed implementation docs for `signa-mobile`. Entry point and mandatory rules
 | What color tokens exist? | [design-system/colors.md](./design-system/colors.md) |
 | What fonts / sizes exist? | [design-system/typography.md](./design-system/typography.md) |
 | What UI primitives exist? | [design-system/components.md](./design-system/components.md) |
-| State of onboarding / courses / practice / store / challenges / social / ml / achievements? | [features/onboarding.md](./features/onboarding.md) · [features/courses.md](./features/courses.md) · [features/practice.md](./features/practice.md) · [features/store.md](./features/store.md) · [features/challenges.md](./features/challenges.md) · [features/social.md](./features/social.md) · [features/ml.md](./features/ml.md) · [features/achievements.md](./features/achievements.md) |
+| State of onboarding / courses / practice / profile / store / challenges / social / ml / achievements? | [features/onboarding.md](./features/onboarding.md) · [features/courses.md](./features/courses.md) · [features/practice.md](./features/practice.md) · [features/profile.md](./features/profile.md) · [features/store.md](./features/store.md) · [features/challenges.md](./features/challenges.md) · [features/social.md](./features/social.md) · [features/ml.md](./features/ml.md) · [features/achievements.md](./features/achievements.md) |
+| Why the 3D avatar moved from `<model-viewer>` to Filament? | [avatar-3d.md](./avatar-3d.md) |
+| How did sign recognition move from WebView to native, and what did each stage measure? | [migracion-nativa.md](./migracion-nativa.md) (story) · [rendimiento.md](./rendimiento.md) (raw numbers) |
 | What is real vs stub? What is the tech debt? | [status.md](./status.md) |
 
 ## Rules for these docs

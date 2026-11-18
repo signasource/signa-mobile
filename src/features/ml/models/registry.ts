@@ -1,14 +1,14 @@
 /**
  * Qué modelo de señas lleva la app y qué sabe reconocer.
  *
- * El manifiesto vive en `assets/models/lsa-signs-v9/` y el .tflite en
- * `assets/tflite/`; son copia
+ * El manifiesto vive en `assets/models/lsa-signs-v9/` y los modelos en
+ * `modules/signa-vision/android/src/main/assets/`; son copia
  * de lo que entrena `signa-ml`. Están dentro de la app —y no detrás de un
  * endpoint— porque el reconocimiento corre on-device: no hay servidor de
  * inferencia que hostear ni video que enviar a ningún lado.
  *
  * Este archivo es sólo el metadato: qué señas existen y con qué versión. El
- * motor de inferencia está en `../engine/`.
+ * motor de inferencia es nativo (`modules/signa-vision`).
  *
  * Para actualizar el modelo: regenerar `weights.bin` + `manifest.json` desde
  * signa-ml y ajustar `labels` y `version` acá.

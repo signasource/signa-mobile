@@ -2,7 +2,11 @@
 
 > Responsabilidad: registro de mediciones, etapa por etapa, para poder comparar.
 > Actualizar: cada vez que se mide algo en un teléfono real.
-> Fuentes: scripts/colector-metricas.py, src/features/ml/telemetria.ts, modules/signa-vision/
+> Fuentes: scripts/colector-metricas.py, scripts/comparar-metricas.py, src/features/ml/telemetria.ts, src/features/ml/BancoNativoPantalla.tsx, modules/signa-vision/
+
+> Estado actual (2026-11-18): en Android corre el reconocedor nativo (`modules/signa-vision`) y el
+> avatar es Filament por omisión (`EXPO_PUBLIC_AVATAR_WEBVIEW=1` fuerza el WebView). El motor web del
+> reconocimiento y `Banco3D` ya no existen; las tablas de abajo son el registro histórico de cada etapa.
 
 Todas las mediciones son del **mismo teléfono**. Comparar entre aparatos no
 significa nada, y comparar contra el emulador tampoco: ahí MediaPipe corre por
@@ -141,7 +145,8 @@ cargador venía suponiendo. Los accessors de Draco también vienen sin bufferVie
 pero ésos los rellena la extensión al descomprimir, así que se saltean.
 
 El avatar nativo queda como predeterminado; `EXPO_PUBLIC_AVATAR_WEBVIEW=1`
-vuelve al WebView sin tocar nada más.
+vuelve al WebView sin tocar nada más. *(Sigue siendo así hoy; la etapa 3 lo
+discute abajo.)*
 
 ## Etapa 3: el abecedario
 
@@ -224,8 +229,9 @@ el del WebView —sin luz— y se mueven a tirones. Tiene sentido: la iluminaci�
 es un ambiente plano de armónicos esféricos, no el entorno que arma
 `model-viewer`, y encima compite por la GPU con MediaPipe.
 
-Así que el avatar vuelve al WebView por omisión. `EXPO_PUBLIC_AVATAR_NATIVO=1`
-enciende Filament para seguir trabajándolo: lo que falta es una imagen de
+Así que el avatar vuelve al WebView por omisión *(decisión superada: la segunda
+vuelta, abajo, devuelve el predeterminado a Filament; la variable
+`EXPO_PUBLIC_AVATAR_NATIVO` ya no existe)*. Se encendía Filament con ella para seguir trabajándolo: lo que falta es una imagen de
 entorno de verdad y limitarle los cuadros por segundo mientras la cámara esté
 encendida.
 
@@ -259,7 +265,8 @@ Lo que sí baja el costo sin cambiar de modelo:
 
 - **Una sola mano en el abecedario.** Ese ejercicio mira una; pedirle dos a
   MediaPipe era pagar el seguimiento de una que después se descartaba.
-- **Pose 1 de cada 8 cuadros** en vez de 1 de cada 5. Cada pose cuesta 55 ms en
+  *(Revertido: hoy se piden las dos manos siempre; ver `migracion-nativa.md`.)*
+- **Pose 1 de cada 8 cuadros** en vez de 1 de cada 5 *(revertido: hoy es 1 de cada 5, `Detectores.kt`)*. Cada pose cuesta 55 ms en
   el teléfono y de ella sólo dependen la referencia de hombros y el bloque de
   cara, que se mueven lento.
 - **El bitmap de detección se reusa.** Antes se creaba uno de medio megapíxel
@@ -290,8 +297,9 @@ tener que elegir a mano.
 Lo que queda adentro después de eso: 39 MB de librerías nativas, ~22 MB de
 modelos (abecedario, manos, pose) y **otros ~33 MB del motor web del
 reconocimiento**, que lleva su propia copia de los tres modelos más el runtime
-de MediaPipe en WASM. Ese motor ya no lo usa ningún ejercicio en Android: sacarlo
-es la decisión pendiente de iOS.
+de MediaPipe en WASM. Ese motor ya no lo usa ningún ejercicio en Android. *(Resuelto el
+2026-11-18: se borró del repo; en iOS el ejercicio de cámara se saltea, ver
+`status.md#plataformas`.)*
 
 ## Cómo medir
 
@@ -309,6 +317,6 @@ segundos de cada sesión, que son calentamiento. Como la marca de compilación
 viaja en cada lote, las corridas de distintas etapas se pueden acumular en el
 mismo archivo y comparar después.
 
-El banco tiene una pantalla con el MISMO avatar dibujado por los dos motores,
-uno al lado del otro: es la única forma de comparar tiempos de carga sin cambiar
+El banco (`BancoNativoPantalla`) tiene una pantalla con el MISMO avatar dibujado por los dos motores,
+uno al lado del otro (`SignAnimation motor="nativo" | "webview"`): es la única forma de comparar tiempos de carga sin cambiar
 de teléfono, y sale en la misma corrida que todo lo demás.

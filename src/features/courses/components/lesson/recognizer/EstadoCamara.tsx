@@ -4,7 +4,7 @@ import { Animated, StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { Text } from "@/components/Text";
 import { colors, fonts, alpha } from "@/theme";
-import type { LiveFrame } from "@/features/ml/components/LiveSignRecognizer";
+import type { LiveFrame } from "@/features/ml/types";
 
 /**
  * Piezas comunes a los dos ejercicios de cámara.

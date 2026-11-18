@@ -2,8 +2,10 @@
 
 React Native (Expo + TypeScript) scaffold connecting Signa's mobile frontend — an app for
 learning Argentine Sign Language (LSA) with camera recognition — to the `signa-api` backend
-(Spring Boot). Solved: auth, session, navigation, theming, onboarding. Reserved: courses (stub)
-and ML (placeholder).
+(Spring Boot). Real today: auth and session, onboarding and welcome tour, the lesson roadmap and
+player (with lives, XP and streaks), free practice, store (gems and paid courses through Mercado
+Pago), challenges, achievements, social (feed, friends, ranking), profile, push notifications, and
+on-device sign recognition + 3D avatars (Android only). The flat course browse stub was retired.
 
 Developed with Claude Code / Claude Design. The knowledge base is the source of truth:
 
@@ -14,7 +16,7 @@ Developed with Claude Code / Claude Design. The knowledge base is the source of 
 
 - Node.js 20+
 - npm
-- Expo Go on a device, or an Android/iOS emulator (a dev build is required once native camera/ML is added)
+- A **development build** (`npm run android`, or EAS `development`) for the full app: sign recognition and the native 3D avatar live in the local Android module `signa-vision`. Expo Go and iOS run everything else (see `docs/status.md#plataformas`).
 
 ## Setup
 
