@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300" fill="none">
+  <title>Signa achievement coin — FIRST_LESSON (bronze)</title>
+  <!-- COIN: outer rim + face. Recolour per tier here. -->
+  <g id="coin">
+    <circle cx="150" cy="150" r="134.82" fill="#efb88a"/>
+    <circle cx="150" cy="150" r="126" fill="#d98c4f"/>
+  </g>
+
+  <!-- EMBLEM: the carved icon. REPLACE the contents of this group for each achievement.
+       Keep it centred on (150,150) and ~55% of the face diameter (about 140 units wide). -->
+  <g id="emblem">
+    <path transform="translate(77.5 78) scale(0.578125)" d="M240,56V200a8,8,0,0,1-8,8H160a24,24,0,0,0-24,23.94,7.9,7.9,0,0,1-5.12,7.55A8,8,0,0,1,120,232a24,24,0,0,0-24-24H24a8,8,0,0,1-8-8V56a8,8,0,0,1,8-8H88a32,32,0,0,1,32,32v87.73a8.17,8.17,0,0,0,7.47,8.25,8,8,0,0,0,8.53-8V80a32,32,0,0,1,32-32h64A8,8,0,0,1,240,56Z" fill="#8a4b1f"/>
+    <path transform="translate(79.5 80.5) scale(0.578125)" d="M240,56V200a8,8,0,0,1-8,8H160a24,24,0,0,0-24,23.94,7.9,7.9,0,0,1-5.12,7.55A8,8,0,0,1,120,232a24,24,0,0,0-24-24H24a8,8,0,0,1-8-8V56a8,8,0,0,1,8-8H88a32,32,0,0,1,32,32v87.73a8.17,8.17,0,0,0,7.47,8.25,8,8,0,0,0,8.53-8V80a32,32,0,0,1,32-32h64A8,8,0,0,1,240,56Z" fill="#8a4b1f"/>
+    <path transform="translate(76 76) scale(0.578125)" d="M240,56V200a8,8,0,0,1-8,8H160a24,24,0,0,0-24,23.94,7.9,7.9,0,0,1-5.12,7.55A8,8,0,0,1,120,232a24,24,0,0,0-24-24H24a8,8,0,0,1-8-8V56a8,8,0,0,1,8-8H88a32,32,0,0,1,32,32v87.73a8.17,8.17,0,0,0,7.47,8.25,8,8,0,0,0,8.53-8V80a32,32,0,0,1,32-32h64A8,8,0,0,1,240,56Z" fill="#efb88a"/>
+  </g>
+
+  <!-- GLOSS: static 20% white veil over the whole coin (as in the current medal). -->
+  <g id="gloss">
+    <circle cx="150" cy="150" r="134.82" fill="#FFFFFF" fill-opacity="0.2"/>
+  </g>
+
+</svg>

@@ -39,8 +39,8 @@ import { useSecondsLeft, formatCountdown } from "@/hooks/useSecondsLeft";
 import { useLives, MAX_LIVES } from "@/features/lives/useLives";
 import { LivesTimerChip } from "@/features/lives/LivesTimerChip";
 import { achievementsApi, Achievement } from "@/api/achievements";
-import { StreakMedal } from "@/features/achievements/components/StreakMedal";
-import { isStreakAchievement } from "@/features/achievements/streakTier";
+import { AchievementArt } from "@/features/achievements/components/AchievementArt";
+import { hasAchievementArt } from "@/features/achievements/coins";
 import { learningApi } from "@/api/learning";
 import type { PublicCourseProgress } from "@/api/social";
 import { PaidCourseRow } from "@/features/store/PaidCourseRow";
@@ -904,8 +904,8 @@ export function ProfileScreen({ navigation }: Props) {
               activeOpacity={0.7}
             >
               <View style={styles.achBadge}>
-                {a.earned && isStreakAchievement(a) ? (
-                  <StreakMedal days={a.criteriaValue} size={64} />
+                {a.earned && hasAchievementArt(a) ? (
+                  <AchievementArt achievement={a} size={64} />
                 ) : (
                   <Ionicons
                     name={a.earned ? "trophy" : "lock-closed-outline"}
@@ -1131,8 +1131,8 @@ export function ProfileScreen({ navigation }: Props) {
               </View>
               <View style={styles.achDetailBody}>
                 <View style={styles.achDetailBadge}>
-                  {achievementDetail.earned && isStreakAchievement(achievementDetail) ? (
-                    <StreakMedal days={achievementDetail.criteriaValue} size={84} animated />
+                  {achievementDetail.earned && hasAchievementArt(achievementDetail) ? (
+                    <AchievementArt achievement={achievementDetail} size={84} animated />
                   ) : (
                     <Ionicons
                       name={achievementDetail.earned ? "trophy" : "lock-closed-outline"}

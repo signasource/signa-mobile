@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300" fill="none">
+  <title>Signa achievement coin — XP_100000 (ruby)</title>
+  <!-- COIN: outer rim + face. Recolour per tier here. -->
+  <g id="coin">
+    <circle cx="150" cy="150" r="134.82" fill="#fbb0b0"/>
+    <circle cx="150" cy="150" r="126" fill="#f87171"/>
+  </g>
+
+  <!-- EMBLEM: the carved icon. REPLACE the contents of this group for each achievement.
+       Keep it centred on (150,150) and ~55% of the face diameter (about 140 units wide). -->
+  <g id="emblem">
+    <path transform="translate(77.5 78) scale(0.578125)" d="M248,80a28,28,0,1,0-51.12,15.77l-26.79,33L146,73.4a28,28,0,1,0-36.06,0L85.91,128.74l-26.79-33a28,28,0,1,0-26.6,12L47,194.63A16,16,0,0,0,62.78,208H193.22A16,16,0,0,0,209,194.63l14.47-86.85A28,28,0,0,0,248,80ZM128,40a12,12,0,1,1-12,12A12,12,0,0,1,128,40ZM24,80A12,12,0,1,1,36,92,12,12,0,0,1,24,80ZM220,92a12,12,0,1,1,12-12A12,12,0,0,1,220,92Z" fill="#b91c1c"/>
+    <path transform="translate(79.5 80.5) scale(0.578125)" d="M248,80a28,28,0,1,0-51.12,15.77l-26.79,33L146,73.4a28,28,0,1,0-36.06,0L85.91,128.74l-26.79-33a28,28,0,1,0-26.6,12L47,194.63A16,16,0,0,0,62.78,208H193.22A16,16,0,0,0,209,194.63l14.47-86.85A28,28,0,0,0,248,80ZM128,40a12,12,0,1,1-12,12A12,12,0,0,1,128,40ZM24,80A12,12,0,1,1,36,92,12,12,0,0,1,24,80ZM220,92a12,12,0,1,1,12-12A12,12,0,0,1,220,92Z" fill="#b91c1c"/>
+    <path transform="translate(76 76) scale(0.578125)" d="M248,80a28,28,0,1,0-51.12,15.77l-26.79,33L146,73.4a28,28,0,1,0-36.06,0L85.91,128.74l-26.79-33a28,28,0,1,0-26.6,12L47,194.63A16,16,0,0,0,62.78,208H193.22A16,16,0,0,0,209,194.63l14.47-86.85A28,28,0,0,0,248,80ZM128,40a12,12,0,1,1-12,12A12,12,0,0,1,128,40ZM24,80A12,12,0,1,1,36,92,12,12,0,0,1,24,80ZM220,92a12,12,0,1,1,12-12A12,12,0,0,1,220,92Z" fill="#fbb0b0"/>
+  </g>
+
+  <!-- GLOSS: static 20% white veil over the whole coin (as in the current medal). -->
+  <g id="gloss">
+    <circle cx="150" cy="150" r="134.82" fill="#FFFFFF" fill-opacity="0.2"/>
+  </g>
+
+</svg>

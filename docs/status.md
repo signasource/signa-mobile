@@ -28,7 +28,7 @@ Per-feature detail is owned by each feature doc; this is the index.
 | Courses flat browse (`CoursesListScreen`) | stub | [features/courses.md](./features/courses.md#course-catalog--stub) |
 | Práctica libre (`PracticeTabScreen` + `PracticeSessionScreen`) | real, wired to `signa-api` | [features/practice.md](./features/practice.md) |
 | Primeros pasos + daily and weekly challenges (server-side progress, claimable gem rewards; the main source of gems) | real; needs `signa-api` with `/challenges` and the `challenges.sql` seed | [features/challenges.md](./features/challenges.md) |
-| Achievements (catalog, unlocked by the backend, celebration screen per group, streak medals) | real; animations are real for streak, lessons and courses and **mocked** for the rest until their Lottie files are added; needs `signa-api` with the achievement catalog and a dev-build rebuild for Lottie | [features/achievements.md](./features/achievements.md) |
+| Achievements (catalog, unlocked by the backend, celebration screen per group, streak medals, 17 SVG coins with an animated shine) | real; animations are real for streak, lessons and courses and **mocked** for the rest until their Lottie files are added; needs `signa-api` with the achievement catalog and a dev-build rebuild for Lottie | [features/achievements.md](./features/achievements.md) |
 | ML (sign recognition) | real, **on-device and real time** (nothing leaves the phone) | [features/ml.md](./features/ml.md) |
 | Client telemetry (animation load latency, API errors) → signa-api `/telemetry/events` | real, fire-and-forget | [api/endpoints.md](./api/endpoints.md#telemetry-srctelemetrytelemetryts) |
 

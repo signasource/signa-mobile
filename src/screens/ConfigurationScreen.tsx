@@ -80,13 +80,17 @@ export function ConfigurationScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const { logout } = useAuth();
   const { tourReplay: replayTour } = useTour();
-  const { fontSizeId: fontSize, setFontSizeId: setFontSize } = useSettings();
+  const {
+    fontSizeId: fontSize,
+    setFontSizeId: setFontSize,
+    vibrationEnabled,
+    setVibrationEnabled,
+  } = useSettings();
 
   const [loading, setLoading] = useState(true);
 
   // Settings state
   const [headerColor, setHeaderColor] = useState(colors.primary);
-  const [vibrationEnabled, setVibrationEnabled] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [dailyNotificationEnabled, setDailyNotificationEnabled] = useState(false);
   const [accountVisibility, setAccountVisibility] = useState<VisibilityId>("PUBLIC");
@@ -160,7 +164,7 @@ export function ConfigurationScreen({ navigation, route }: Props) {
     }
 
     setLoading(false);
-  }, [setFontSize]);
+  }, [setFontSize, setVibrationEnabled]);
 
   const showToast = useCallback((text: string) => {
     setToast(text);

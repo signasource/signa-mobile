@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300" fill="none">
+  <title>Signa achievement coin — WEEKLY_XP_1000 (silver)</title>
+  <!-- COIN: outer rim + face. Recolour per tier here. -->
+  <g id="coin">
+    <circle cx="150" cy="150" r="134.82" fill="#e1e7ee"/>
+    <circle cx="150" cy="150" r="126" fill="#c5ced8"/>
+  </g>
+
+  <!-- EMBLEM: the carved icon. REPLACE the contents of this group for each achievement.
+       Keep it centred on (150,150) and ~55% of the face diameter (about 140 units wide). -->
+  <g id="emblem">
+    <path transform="translate(77.5 78) scale(0.578125)" d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM169.66,133.66l-48,48a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L116,164.69l42.34-42.35a8,8,0,0,1,11.32,11.32ZM48,80V48H72v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24V80Z" fill="#7d8794"/>
+    <path transform="translate(79.5 80.5) scale(0.578125)" d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM169.66,133.66l-48,48a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L116,164.69l42.34-42.35a8,8,0,0,1,11.32,11.32ZM48,80V48H72v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24V80Z" fill="#7d8794"/>
+    <path transform="translate(76 76) scale(0.578125)" d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM169.66,133.66l-48,48a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L116,164.69l42.34-42.35a8,8,0,0,1,11.32,11.32ZM48,80V48H72v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24V80Z" fill="#e1e7ee"/>
+  </g>
+
+  <!-- GLOSS: static 20% white veil over the whole coin (as in the current medal). -->
+  <g id="gloss">
+    <circle cx="150" cy="150" r="134.82" fill="#FFFFFF" fill-opacity="0.2"/>
+  </g>
+
+</svg>

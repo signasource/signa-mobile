@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300" fill="none">
+  <title>Signa achievement coin — WEEKLY_XP_3000 (gold)</title>
+  <defs>
+    <!-- Exact silhouette of the coin: reuse it to clip anything that must stay inside the coin -->
+    <clipPath id="coin-clip"><circle cx="150" cy="150" r="134.82"/></clipPath>
+    <linearGradient id="shine-grad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- COIN: outer rim + face. Recolour per tier here. -->
+  <g id="coin">
+    <circle cx="150" cy="150" r="134.82" fill="#ffeba3"/>
+    <circle cx="150" cy="150" r="126" fill="#ffda00"/>
+  </g>
+
+  <!-- EMBLEM: the carved icon. REPLACE the contents of this group for each achievement.
+       Keep it centred on (150,150) and ~55% of the face diameter (about 140 units wide). -->
+  <g id="emblem">
+    <path transform="translate(77.5 78) scale(0.578125)" d="M221.87,83.16A104.1,104.1,0,1,1,195.67,49l22.67-22.68a8,8,0,0,1,11.32,11.32L167.6,99.71h0l-37.71,37.71-23.95,23.95a40,40,0,0,0,62-35.67,8,8,0,1,1,16-.9,56,56,0,0,1-95.5,42.79h0a56,56,0,0,1,73.13-84.43L184.3,60.39a87.88,87.88,0,1,0,23.13,29.67,8,8,0,0,1,14.44-6.9Z" fill="#ff9800"/>
+    <path transform="translate(79.5 80.5) scale(0.578125)" d="M221.87,83.16A104.1,104.1,0,1,1,195.67,49l22.67-22.68a8,8,0,0,1,11.32,11.32L167.6,99.71h0l-37.71,37.71-23.95,23.95a40,40,0,0,0,62-35.67,8,8,0,1,1,16-.9,56,56,0,0,1-95.5,42.79h0a56,56,0,0,1,73.13-84.43L184.3,60.39a87.88,87.88,0,1,0,23.13,29.67,8,8,0,0,1,14.44-6.9Z" fill="#ff9800"/>
+    <path transform="translate(76 76) scale(0.578125)" d="M221.87,83.16A104.1,104.1,0,1,1,195.67,49l22.67-22.68a8,8,0,0,1,11.32,11.32L167.6,99.71h0l-37.71,37.71-23.95,23.95a40,40,0,0,0,62-35.67,8,8,0,1,1,16-.9,56,56,0,0,1-95.5,42.79h0a56,56,0,0,1,73.13-84.43L184.3,60.39a87.88,87.88,0,1,0,23.13,29.67,8,8,0,0,1,14.44-6.9Z" fill="#ffeba3"/>
+  </g>
+
+  <!-- GLOSS: static 20% white veil over the whole coin (as in the current medal). -->
+  <g id="gloss">
+    <circle cx="150" cy="150" r="134.82" fill="#FFFFFF" fill-opacity="0.2"/>
+  </g>
+
+  <!-- SHINE: diagonal light band, clipped to the coin. The app animates ONLY this group,
+       sliding it with translateX from -260 (off the left edge) to +260 (off the right edge).
+       Keep the id and the clip-path. -->
+  <g id="shine" clip-path="url(#coin-clip)">
+    <g id="shine-band" transform="translate(-60 0)">
+      <rect x="110" y="-20" width="70" height="340" fill="url(#shine-grad)" transform="rotate(20 150 150)"/>
+    </g>
+  </g>
+</svg>
