@@ -6,7 +6,7 @@
 
 > Estado actual (2026-11-18): en Android corre el reconocedor nativo (`modules/signa-vision`) y el
 > avatar es Filament por omisión (`EXPO_PUBLIC_AVATAR_WEBVIEW=1` fuerza el WebView). El motor web del
-> reconocimiento y `Banco3D` ya no existen; las tablas de abajo son el registro histórico de cada etapa.
+> reconocimiento y `Banco3D` siguen en el repo pero sin uso; las tablas de abajo son el registro histórico de cada etapa.
 
 Todas las mediciones son del **mismo teléfono**. Comparar entre aparatos no
 significa nada, y comparar contra el emulador tampoco: ahí MediaPipe corre por

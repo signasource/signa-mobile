@@ -6,7 +6,7 @@
 
 Status: **real**. The **Inicio (Home) roadmap** is wired to real `signa-api` content, and the
 lesson player (`LessonScreen`) is real and wired to `signa-api`. The old flat course browse stub
-(`CoursesListScreen`) was removed; Inicio is the only way into a lesson.
+(`CoursesListScreen`, `CoursesTabScreen`) is unused but still in the repo; Inicio is the only way into a lesson.
 
 ## Lesson player — real
 

@@ -5,7 +5,7 @@ learning Argentine Sign Language (LSA) with camera recognition — to the `signa
 (Spring Boot). Real today: auth and session, onboarding and welcome tour, the lesson roadmap and
 player (with lives, XP and streaks), free practice, store (gems and paid courses through Mercado
 Pago), challenges, achievements, social (feed, friends, ranking), profile, push notifications, and
-on-device sign recognition + 3D avatars (Android only). The flat course browse stub was retired.
+on-device sign recognition + 3D avatars (Android only). The flat course browse stub is unused.
 
 Developed with Claude Code / Claude Design. The knowledge base is the source of truth:
 
