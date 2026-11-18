@@ -4,7 +4,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts, alpha } from "@/theme";
-import { LivesTimerChip } from "@/features/lives/LivesTimerChip";
 import type { LivesState } from "@/features/lives/useLives";
 import ManoCelularSinVidas from "@assets/ilus/mano-celular-sin-vidas.svg";
 
@@ -34,7 +33,6 @@ export function NoLivesOverlay({ onGoToStore, onExit, gems, onGetGems, livesStat
         )}
         <ManoCelularSinVidas width={140} height={140} />
         <Text style={styles.title}>Te quedaste sin vidas</Text>
-        {livesState && <LivesTimerChip state={livesState} labeled />}
         <Text style={styles.subtitle}>
           Podés esperar a que se recarguen o pasar por la tienda a buscar vidas y potenciadores para seguir con la
           lección.

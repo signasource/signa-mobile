@@ -4,7 +4,6 @@ import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { BackButton } from "@/components/BackButton";
 import { colors, fonts } from "@/theme";
-import { LivesTimerChip } from "@/features/lives/LivesTimerChip";
 import type { LivesState } from "@/features/lives/useLives";
 
 interface LessonHeaderProps {
@@ -31,7 +30,6 @@ export function LessonHeader({ unitLabel, lessonName, progress, livesState, onBa
           ) : (
             <Text style={[styles.livesText, lives === 0 && { color: colors.livesRed }]}>{lives}</Text>
           )}
-          <LivesTimerChip state={livesState} />
         </View>
       </View>
       <View style={styles.breadcrumb}>
