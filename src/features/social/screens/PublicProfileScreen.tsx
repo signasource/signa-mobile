@@ -13,8 +13,8 @@ import PictureIllustration from "@assets/ilus/picture.svg";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { StreakMedal } from "@/features/achievements/components/StreakMedal";
-import { isStreakAchievement } from "@/features/achievements/streakTier";
+import { AchievementArt } from "@/features/achievements/components/AchievementArt";
+import { hasAchievementArt } from "@/features/achievements/coins";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AppStackParamList } from "@/navigation/AppNavigator";
 import { colors, fonts } from "@/theme";
@@ -499,8 +499,8 @@ export function PublicProfileScreen({ route, navigation }: Props) {
             {achievementsShown.map((a) => (
               <View key={a.id} style={styles.achItem}>
                 <View style={styles.achBadge}>
-                  {a.earned && isStreakAchievement(a) ? (
-                    <StreakMedal days={a.criteriaValue} size={64} />
+                  {a.earned && hasAchievementArt(a) ? (
+                    <AchievementArt achievement={a} size={64} />
                   ) : (
                     <Ionicons
                       name={a.earned ? "trophy" : "lock-closed-outline"}

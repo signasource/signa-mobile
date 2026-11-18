@@ -13,6 +13,9 @@ interface SettingsContextValue {
   fontSizeId: FontSizeId;
   fontScale: number;
   setFontSizeId: (id: FontSizeId) => void;
+  /** Mirrors the "Vibración" setting; `useHaptics` reads it. On until the server says otherwise. */
+  vibrationEnabled: boolean;
+  setVibrationEnabled: (enabled: boolean) => void;
   loadFontSize: () => Promise<void>;
 }
 
@@ -20,6 +23,7 @@ const SettingsContext = createContext<SettingsContextValue | undefined>(undefine
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [fontSizeId, setFontSizeIdState] = useState<FontSizeId>("MEDIUM");
+  const [vibrationEnabled, setVibrationEnabled] = useState(true);
 
   const setFontSizeId = useCallback((id: FontSizeId) => {
     setFontSizeIdState(id);
@@ -29,6 +33,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await usersApi.getSettings();
       if (res.data.fontSize) setFontSizeIdState(res.data.fontSize as FontSizeId);
+      if (res.data.vibrationEnabled !== undefined) setVibrationEnabled(res.data.vibrationEnabled);
     } catch {
       // keep default
     }
@@ -36,7 +41,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <SettingsContext.Provider
-      value={{ fontSizeId, fontScale: FONT_SCALES[fontSizeId], setFontSizeId, loadFontSize }}
+      value={{
+        fontSizeId,
+        fontScale: FONT_SCALES[fontSizeId],
+        setFontSizeId,
+        vibrationEnabled,
+        setVibrationEnabled,
+        loadFontSize,
+      }}
     >
       {children}
     </SettingsContext.Provider>

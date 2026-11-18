@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import { StatusBar, StyleSheet, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { Animated, Easing, StatusBar, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,6 +9,9 @@ import { colors, fonts } from "@/theme";
 import { achievementsApi } from "@/api/achievements";
 import { AppStackParamList } from "@/navigation/AppNavigator";
 import { StreakMedal } from "@/features/achievements/components/StreakMedal";
+import { GemReward } from "@/features/achievements/components/GemReward";
+import { CoinCelebration, LANDING_HAPTICS_DONE_MS } from "@/features/achievements/components/CoinCelebration";
+import { coinFor } from "@/features/achievements/coins";
 import { CelebrationAnimation } from "@/features/achievements/components/CelebrationAnimation";
 import {
   CELEBRATION_THEMES,
@@ -18,6 +21,9 @@ import {
   subtitleFor,
 } from "@/features/achievements/celebrations";
 
+/** The coin spins in for ~0.9 s; the text and reward card wait for it to land. */
+const COIN_REVEAL_DELAY_MS = 1000;
+
 type Props = NativeStackScreenProps<AppStackParamList, "AchievementCelebration">;
 
 export function AchievementCelebrationScreen({ navigation, route }: Props) {
@@ -25,6 +31,20 @@ export function AchievementCelebrationScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const kind = kindFor(criteriaType);
   const theme = CELEBRATION_THEMES[kind];
+  // Achievements with a coin celebrate with the big coin; streaks keep the fire and the medal.
+  const hasCoin = kind !== "streak" && coinFor({ criteriaType, criteriaValue }) !== null;
+  const reveal = useRef(new Animated.Value(hasCoin ? 0 : 1)).current;
+
+  // Text and reward card appear once the coin has landed.
+  useEffect(() => {
+    if (!hasCoin) return;
+    const anim = Animated.sequence([
+      Animated.delay(COIN_REVEAL_DELAY_MS),
+      Animated.timing(reveal, { toValue: 1, duration: 450, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+    ]);
+    anim.start();
+    return () => anim.stop();
+  }, [hasCoin, reveal]);
 
   // The reward is already credited server-side; marking it seen up front keeps a
   // killed app from replaying the same celebration forever.
@@ -42,17 +62,28 @@ export function AchievementCelebrationScreen({ navigation, route }: Props) {
       <StatusBar barStyle="dark-content" />
 
       <View style={styles.animationWrap}>
-        <CelebrationAnimation theme={theme} />
+        {hasCoin ? (
+          <CoinCelebration achievement={{ criteriaType, criteriaValue }} />
+        ) : (
+          <CelebrationAnimation theme={theme} />
+        )}
       </View>
 
-      <View style={styles.body}>
+      <Animated.View
+        style={[
+          styles.body,
+          { opacity: reveal, transform: [{ translateY: reveal.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) }] },
+        ]}
+      >
         <Text style={styles.title}>{headlineFor(kind, criteriaValue)}</Text>
         <Text style={styles.subtitle}>{subtitleFor(kind)}</Text>
+
+        {rewardGems > 0 && <GemReward gems={rewardGems} delayMs={hasCoin ? LANDING_HAPTICS_DONE_MS : 350} />}
 
         <View style={styles.rewardCard}>
           {kind === "streak" ? (
             <StreakMedal days={criteriaValue} size={72} animated />
-          ) : (
+          ) : hasCoin ? null : (
             <View style={[styles.iconBadge, { backgroundColor: theme.background }]}>
               <Ionicons name={theme.icon} size={34} color={colors.onColor} />
             </View>
@@ -63,12 +94,6 @@ export function AchievementCelebrationScreen({ navigation, route }: Props) {
               {title}
             </Text>
             <View style={styles.pills}>
-              {rewardGems > 0 && (
-                <View style={[styles.pill, styles.gemsPill]}>
-                  <Ionicons name="diamond" size={13} color={colors.gemsBlueDark} />
-                  <Text style={[styles.pillText, { color: colors.gemsBlueDark }]}>+{formatCount(rewardGems)} gemas</Text>
-                </View>
-              )}
               {rewardStreakShields > 0 && (
                 <View style={[styles.pill, styles.gemsPill]}>
                   <Ionicons name="snow" size={13} color={colors.gemsBlueDark} />
@@ -80,9 +105,12 @@ export function AchievementCelebrationScreen({ navigation, route }: Props) {
             </View>
           </View>
         </View>
-      </View>
+      </Animated.View>
 
-      <Button label={rewardGems > 0 ? "Reclamar gemas" : "¡Genial!"} onPress={() => navigation.goBack()} />
+      <Button
+        label={rewardGems > 0 ? `Reclamar ${formatCount(rewardGems)} ${rewardGems === 1 ? "gema" : "gemas"}` : "¡Genial!"}
+        onPress={() => navigation.goBack()}
+      />
     </View>
   );
 }
