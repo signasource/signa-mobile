@@ -78,11 +78,10 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   **backend's delta**, not the sum of `xpReward`: `LessonScreen` reads `GET /users/me/stats`
   (`totalXp`) when the lesson loads and again — after the answer queue drains — when it
   completes, and shows the difference (multiplier included; `0` on a replay, since the backend
-  grants a block's XP only once). The tile stays hidden while that request is in flight or if the stats can't be read (no local
+  grants a lesson's XP only once, **when the whole lesson completes** — blocks pay nothing on their own, so the streak only moves on lesson completion). The tile stays hidden while that request is in flight or if the stats can't be read (no local
   `xpReward` estimate any more: it promised XP the Profile didn't have). Answer reports are retried
-  (3 attempts, on network errors / 5xx / 429) so a transient failure doesn't silently drop a block's
-  XP; the backend grants each block's XP only on its first completion, so a lesson's XP is earned
-  once and a replay shows none. Also `blocks/` with one
+  (3 attempts, on network errors / 5xx / 429) so a transient failure doesn't silently drop the block that
+  completes the lesson (and its XP); the backend pays the lesson's XP once, on completion, so a replay shows none. Also `blocks/` with one
   component per `BlockType` (`InfoBlock`, `IntroduceSignBlock`, `SelectMeaningBlock`,
   `SelectSignBlock`, `ContextResponseBlock` and `SelectSignBlock` share `SignCarouselBlock`,
   `MatchBlock`, `VisualRecognitionBlock`). `IntroduceSignBlock` presents a new sign with its
