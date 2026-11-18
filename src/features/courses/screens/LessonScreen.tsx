@@ -8,6 +8,7 @@ import { AppStackParamList } from "@/navigation/AppNavigator";
 import { lessonsApi } from "@/api/lessons";
 import { learningApi } from "@/api/learning";
 import { shopApi } from "@/api/shop";
+import { boostersApi } from "@/api/boosters";
 import { usersApi } from "@/api/users";
 import { serverNow } from "@/utils/serverClock";
 import { useLives, LivesSource, LIFE_REGEN_MS } from "@/features/lives/useLives";
@@ -103,6 +104,8 @@ export function LessonScreen({ route, navigation }: Props) {
   const lives = livesState.ready ? livesState.lives : STARTING_LIVES;
   const unlimitedLives = livesState.unlimited;
   const [gems, setGems] = useState<number | undefined>(undefined);
+  const [storedInfiniteLives, setStoredInfiniteLives] = useState(0);
+  const [activatingInfinite, setActivatingInfinite] = useState(false);
   const [correctBlockIds, setCorrectBlockIds] = useState<Set<string>>(new Set());
   const [completed, setCompleted] = useState(false);
   // Cola de respuestas: cada POST espera al anterior (el último eslabón de la cadena).
@@ -129,14 +132,18 @@ export function LessonScreen({ route, navigation }: Props) {
       lessonsApi.getLesson(lessonId),
       shopApi.getMyInventory().catch(() => null),
       usersApi.getStats().catch(() => null),
+      boostersApi.getStored().catch(() => null),
     ])
-      .then(([lessonRes, inventoryRes, statsRes]) => {
+      .then(([lessonRes, inventoryRes, statsRes, boostersRes]) => {
         setLesson(lessonRes.data);
         startRef.current = Date.now();
         xpBaseline.current = statsRes?.data.totalXp ?? null;
         if (inventoryRes?.data) {
           setLivesSource(inventoryRes.data);
           setGems(inventoryRes.data.gems);
+        }
+        if (boostersRes?.data) {
+          setStoredInfiniteLives(boostersRes.data.unlimitedLives);
         }
       })
       .catch((err: any) => setError(err?.response?.data?.message ?? "No pudimos cargar la lección."))
@@ -385,6 +392,20 @@ export function LessonScreen({ route, navigation }: Props) {
           gems={gems}
           livesState={livesState}
           onGetGems={() => navigation.navigate("GemShop", { returnTo: "la lección" })}
+          storedInfiniteLives={storedInfiniteLives}
+          activatingInfinite={activatingInfinite}
+          onActivateInfiniteLives={async () => {
+            setActivatingInfinite(true);
+            try {
+              const { data } = await boostersApi.activate("UNLIMITED_LIVES");
+              setLivesSource(data.inventory);
+              setStoredInfiniteLives((q) => Math.max(0, q - 1));
+            } catch {
+              // Si falla no hacemos nada; el overlay sigue visible.
+            } finally {
+              setActivatingInfinite(false);
+            }
+          }}
         />
       )}
     </View>
