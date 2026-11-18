@@ -5,17 +5,19 @@ import { SignCarouselBlock } from "./SignCarouselBlock";
 interface SelectSignBlockProps {
   config: SelectSignConfig;
   xp: number;
+  unlimitedLives?: boolean;
   onAnswer: (correct: boolean) => void;
   onContinue: () => void;
 }
 
-export function SelectSignBlock({ config, xp, onAnswer, onContinue }: SelectSignBlockProps) {
+export function SelectSignBlock({ config, xp, unlimitedLives, onAnswer, onContinue }: SelectSignBlockProps) {
   return (
     <SignCarouselBlock
       question={`¿Cuál es la seña de «${config.word}»?`}
       options={config.options}
       answer={config.word}
       xp={xp}
+      unlimitedLives={unlimitedLives}
       confirmLabel="Elegir esta seña"
       confirmIcon="hand-left"
       correctDetail={`«${config.word}» es la seña que elegiste.`}

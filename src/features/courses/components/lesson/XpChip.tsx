@@ -9,10 +9,11 @@ type State = "idle" | "correct" | "incorrect" | "skipped";
 interface XpChipProps {
   xp: number;
   state: State;
+  unlimitedLives?: boolean;
 }
 
-export function XpChip({ xp, state }: XpChipProps) {
-  if (state === "incorrect") {
+export function XpChip({ xp, state, unlimitedLives }: XpChipProps) {
+  if (state === "incorrect" && !unlimitedLives) {
     return (
       <View style={[styles.chip, { backgroundColor: colors.dangerLight }]}>
         <Ionicons name="heart-dislike" size={12} color={colors.danger} />

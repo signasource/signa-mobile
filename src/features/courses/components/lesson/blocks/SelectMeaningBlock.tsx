@@ -13,11 +13,12 @@ import Denied from "@assets/ilus/denied.svg";
 interface SelectMeaningBlockProps {
   config: SelectMeaningConfig;
   xp: number;
+  unlimitedLives?: boolean;
   onAnswer: (correct: boolean) => void;
   onContinue: () => void;
 }
 
-export function SelectMeaningBlock({ config, xp, onAnswer, onContinue }: SelectMeaningBlockProps) {
+export function SelectMeaningBlock({ config, xp, unlimitedLives, onAnswer, onContinue }: SelectMeaningBlockProps) {
   const [selected, setSelected] = useState<string | null>(null);
 
   const answered = selected !== null;
@@ -34,7 +35,7 @@ export function SelectMeaningBlock({ config, xp, onAnswer, onContinue }: SelectM
       <View style={styles.body}>
         <View style={styles.headerRow}>
           <Text style={styles.question}>¿Qué significa esta seña?</Text>
-          <XpChip xp={xp} state={answered ? (correct ? "correct" : "incorrect") : "idle"} />
+          <XpChip xp={xp} state={answered ? (correct ? "correct" : "incorrect") : "idle"} unlimitedLives={unlimitedLives} />
         </View>
 
         <SignAnimation

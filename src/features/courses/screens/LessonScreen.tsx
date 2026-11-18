@@ -369,6 +369,7 @@ export function LessonScreen({ route, navigation }: Props) {
                 // esto, el ejercicio de cámara encendía la cámara un bloque antes.
                 active={i === blockIndex}
                 ultimo={i === blocks.length - 1}
+                unlimitedLives={unlimitedLives}
                 onAnswer={(correct) => handleAnswer(block, correct)}
                 onContinue={block.type === "INFO" ? () => handleInfoContinue(block) : goToNextBlock}
               />
@@ -396,11 +397,12 @@ interface BlockRendererProps {
   active: boolean;
   /** Último de la lección: al terminarlo no hay bloque siguiente que mostrar. */
   ultimo: boolean;
+  unlimitedLives: boolean;
   onAnswer: (correct: boolean) => void;
   onContinue: () => void;
 }
 
-function BlockRenderer({ block, active, ultimo, onAnswer, onContinue }: BlockRendererProps) {
+function BlockRenderer({ block, active, ultimo, unlimitedLives, onAnswer, onContinue }: BlockRendererProps) {
   const xp = block.xpReward ?? 0;
 
   switch (block.type as BlockType) {
@@ -410,17 +412,18 @@ function BlockRenderer({ block, active, ultimo, onAnswer, onContinue }: BlockRen
       return <IntroduceSignBlock config={parseBlockConfig<"INTRODUCE_SIGN">(block)} onContinue={onContinue} />;
     case "SELECT_MEANING":
       return (
-        <SelectMeaningBlock config={parseBlockConfig<"SELECT_MEANING">(block)} xp={xp} onAnswer={onAnswer} onContinue={onContinue} />
+        <SelectMeaningBlock config={parseBlockConfig<"SELECT_MEANING">(block)} xp={xp} unlimitedLives={unlimitedLives} onAnswer={onAnswer} onContinue={onContinue} />
       );
     case "SELECT_SIGN":
       return (
-        <SelectSignBlock config={parseBlockConfig<"SELECT_SIGN">(block)} xp={xp} onAnswer={onAnswer} onContinue={onContinue} />
+        <SelectSignBlock config={parseBlockConfig<"SELECT_SIGN">(block)} xp={xp} unlimitedLives={unlimitedLives} onAnswer={onAnswer} onContinue={onContinue} />
       );
     case "CONTEXT_RESPONSE":
       return (
         <ContextResponseBlock
           config={parseBlockConfig<"CONTEXT_RESPONSE">(block)}
           xp={xp}
+          unlimitedLives={unlimitedLives}
           onAnswer={onAnswer}
           onContinue={onContinue}
         />

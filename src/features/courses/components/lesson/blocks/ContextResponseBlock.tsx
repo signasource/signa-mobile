@@ -5,17 +5,19 @@ import { SignCarouselBlock } from "./SignCarouselBlock";
 interface ContextResponseBlockProps {
   config: ContextResponseConfig;
   xp: number;
+  unlimitedLives?: boolean;
   onAnswer: (correct: boolean) => void;
   onContinue: () => void;
 }
 
-export function ContextResponseBlock({ config, xp, onAnswer, onContinue }: ContextResponseBlockProps) {
+export function ContextResponseBlock({ config, xp, unlimitedLives, onAnswer, onContinue }: ContextResponseBlockProps) {
   return (
     <SignCarouselBlock
       question={config.question}
       options={config.options}
       answer={config.answer}
       xp={xp}
+      unlimitedLives={unlimitedLives}
       confirmLabel="Elegir esta seña"
       confirmIcon="hand-left"
       correctDetail={`«${config.answer}» es la respuesta correcta.`}
