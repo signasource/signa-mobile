@@ -11,7 +11,7 @@ Status: **real**. Module under `src/features/onboarding/` (`screens/`, `types.ts
 - **6 screens**: `Welcome`, `Intro`, `DailyGoal`, `Experience`, `Motivation`, `Achievement`. Registered in `AuthNavigator` (pre-login).
 - `Welcome` shows the **real app icon** (`@assets/images/icon.png`, the same file `app.json` ships as the launcher icon (1024×1024 PNG; Android adaptive icon = `adaptive-icon.png` foreground, transparent, hand inside the 66% safe zone, over `#F7F7F7`)) in the top-left corner next to the "Signa" wordmark.
 - `types.ts`: `OnboardingData`, `ExperienceLevel`, `DailyGoalMinutes`, `MotivationReason`, `ONBOARDING_TOTAL_STEPS` (used by the progress bar).
-- `storage.ts`: persists the onboarding-completed flag in AsyncStorage.
+- `storage.ts`: persists the onboarding-completed flag and the survey answers (`dailyGoal`, `level`, `reasons`) in AsyncStorage; `login()` / `loginWithGoogle()` mark it completed.
 - Progress bar is a fixed overlay of `AuthNavigator` (`Intro`→1 … `Motivation`→4). See [../navigation.md](../navigation.md).
 
 The **daily goal** is kept in AsyncStorage until there is an account, then sent as `dailyGoalMinutes` in `POST /auth/register` and `POST /auth/google` (read/cleared by `AuthContext`). The backend applies it only when the call creates the account, so a returning Google user keeps their goal; email login discards it without sending it. Known gap: experience and motivation answers are not persisted to the backend — no place to store them. See [../status.md](../status.md).
@@ -61,7 +61,9 @@ At most one modal per session (`sessionModalShown` ref in `TourContext`). A sect
 
 ### Storage keys (`src/features/tour/storage.ts`)
 
+Keys are **per user** (`<uid>` = the account email, passed by `RootNavigator` as `userId`), so two accounts on one phone don't share them.
+
 | Key | Purpose |
 |---|---|
-| `tour_completed` | Tour has been finished/skipped |
-| `tour_tab_practice` / `_store` / `_social` | Section modal seen flags |
+| `tour_<uid>_completed` | Tour has been finished/skipped (`resetTour` removes all four keys, which is what "Volver a ver el tour" does) |
+| `tour_<uid>_tab_practice` / `_store` / `_social` | Section modal seen flags |

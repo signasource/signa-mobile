@@ -29,9 +29,11 @@ Types → [types.md](./types.md). Client behavior → [http-client.md](./http-cl
 | `setAvatar(avatar)` | `PUT /users/me/avatar` | `UserProfile` | `avatar` = JPEG/PNG/WebP data URL (≤150 000 chars; `pickAvatar` makes a 256 px JPEG, ~15–25 KB). Returns the profile with the new `avatarUrl`; 400 if malformed |
 | `removeAvatar()` | `DELETE /users/me/avatar` | `UserProfile` | back to initials |
 | `linkGoogle(idToken)` | `POST /users/me/google` | `void` (204) | Links a Google account (by its stable id) to the signed-in user, even if its email differs. 409 `Google account already linked` / `Google account already in use`; 401 `Invalid Google token`. After it, `POST /auth/google` with that account signs into this user |
+| `deleteMe()` | `DELETE /users/me` | `void` (204) | deletes the signed-in account; Configuración → "Eliminar cuenta" calls it and then logs out (even if the call fails) |
 | `updateProfile({ username, name, lastName })` | `PATCH /users/me` | `void` (204) | persists username, name and last name; name/lastName optional server-side. 409 if username taken |
-| `getStreakDay()` | `GET /users/me/streak-day` | `StreakDay` | `{ pending, currentStreak }`: today added a streak day not celebrated yet (`pending`), with the streak length including today. Polled by `AchievementCelebrationContext.refresh()` |
+| `getStreakDay()` | `GET /users/me/streak-day` | `StreakDay` | `{ pending, currentStreak, shieldPending }` (`shieldPending`: a shield was burned overnight, see `markStreakShieldSeen`): today added a streak day not celebrated yet (`pending`), with the streak length including today. Polled by `AchievementCelebrationContext.refresh()` |
 | `markStreakDaySeen()` | `POST /users/me/streak-day/seen` | `void` (204) | idempotent; called by `StreakDayScreen` on mount |
+| `markStreakShieldSeen()` | `POST /users/me/streak-shield/seen` | `void` (204) | idempotent; clears the "shield used" notice the nightly scheduler sets; called by `StreakShieldScreen` |
 | `getWeeklyXp()` | `GET /users/me/weekly-xp` | `WeeklyXpEntry[]` | `[{ date, xpEarned }]` Mon–today; zeros for inactive days |
 | `getDailyGoal()` | `GET /users/daily-goal` | `{ dailyGoalMinutes, minutesToday }` | `minutesToday` comes from `UserDailyActivity` (today's row, Argentina date, `America/Argentina/Cordoba`) |
 | `updateDailyGoal(minutes)` | `PATCH /users/daily-goal` | `void` | body: `{ daily_goal_minutes }` (snake_case via interceptor) |
@@ -132,7 +134,7 @@ Powers the Social tab (see [features/social.md](../features/social.md)).
 
 ## `notificationsApi` (`src/api/notifications.ts`) — mirrors `NotificationController.java`
 
-Read-only: notifications are produced server-side by whatever triggers them.
+Notifications are produced server-side by whatever triggers them; the app reads them and registers its push token.
 
 | Method | Path | Returns | Notes |
 |---|---|---|---|
@@ -140,6 +142,8 @@ Read-only: notifications are produced server-side by whatever triggers them.
 | `getUnreadCount()` | `GET /notifications/unread-count` | `{ unreadCount: number }` | drives the bell badge |
 | `markAsRead(id)` | `PATCH /notifications/{id}/read` | 204 | |
 | `markAllAsRead()` | `PATCH /notifications/read-all` | 204 | called when the inbox is opened |
+| `registerDeviceToken(token, platform)` | `POST /device-tokens` | 204 | body `{ token, platform: "ANDROID" \| "IOS" }` (FCM token); called by `usePushToken` (`src/hooks/usePushToken.ts`) once signed in |
+| `removeDeviceToken(token, platform)` | `DELETE /device-tokens` | 204 | same body (sent as `data`); called on logout so the device stops receiving pushes |
 
 ## `achievementsApi` (`src/api/achievements.ts`)
 
@@ -193,9 +197,12 @@ block-renderer components `LessonScreen` uses — see [features/practice.md](../
 
 | Method | Path | Returns | Notes |
 |---|---|---|---|
-| `getSigns(signLanguageId, query?)` | `GET /signs?signLanguageId=&query=` | `Page<SignSummary>` | `SignSummary`: `{ id, meaning, description, handedness, animationUrl }`. `query` is a **contains**, case-insensitive match against `meaning` (`findBySignLanguageIdAndMeaningContainingIgnoreCase`), not exact. `animationUrl` here is the raw R2 **object key**, not a fetchable URL — don't render it directly. |
+| `getSigns(signLanguageId, query?)` | `GET /signs?signLanguageId=&query=` | `Page<SignSummary>` | `SignSummary`: `{ id, meaning, description, handedness, animationUrl, youtubeUrl }`. `query` is a **contains**, case-insensitive match against `meaning` (`findBySignLanguageIdAndMeaningContainingIgnoreCase`), not exact. `animationUrl` here is the raw R2 **object key**, not a fetchable URL — don't render it directly. |
+| `getMedia(meanings)` | `POST /signs/media` | `SignMedia[]` | body `{ meanings: string[] }` (batched, ≤200). `SignMedia` = `{ meaning, url, format: "glb" \| "mp4", lateralUrl }`: the file each sign uses, as uploaded from the admin panel; signs without a file are absent from the list. Consumed only by `signMedia.ts` (see [features/courses.md](../features/courses.md)) |
 
-> **GLB animation URLs** are no longer fetched from the backend. `getGlbUrl(meaning)` (`src/features/animations/glbUrl.ts`) builds the public R2 URL deterministically: `https://pub-f40a1de4d1fc46b0b6f07299847c66e0.r2.dev/lsa/{meaning}.glb`. `POST /signs/animations` is removed from the mobile client.
+`signReportsApi.createReport({ signMeaning, reason, description? })` → `POST /sign-reports` (`src/api/signs.ts`): `reason` is one of `INCORRECT_SIGN`, `UNCLEAR_ANIMATION`, `WRONG_MEANING`, `MISSING_CONTEXT`, `REGIONAL_VARIANT`, `TECHNICAL_PROBLEM`, `OTHER`. Used by `IntroduceSignBlock`; resolving it later produces a `SIGN_REPORT_RESOLVED` notification.
+
+> **Fallback URLs.** When `POST /signs/media` has no answer, `getGlbUrl(meaning)` (`src/features/animations/glbUrl.ts`) builds the public R2 URL deterministically: `https://pub-f40a1de4d1fc46b0b6f07299847c66e0.r2.dev/lsa/{meaning}.glb`. `POST /signs/animations` is not used by the mobile client.
 
 ## `rankingApi` (`src/api/ranking.ts`) — mirrors `RankingController.java`
 
@@ -220,13 +227,11 @@ Real endpoints that power the Inicio (Home) lesson roadmap:
 |---|---|---|---|
 | `getSignLanguages()` | `GET /sign-languages` | `SignLanguage[]` | `{ id, code, name, countryCode }`; LSA has `code: "LSA"`. Used to resolve the `signLanguageId` the catalog needs. |
 | `getCatalog(signLanguageId)` | `GET /courses?signLanguageId=` | `Page<CourseSummary>` | Spring page. `CourseSummary` carries `isFree`, `price` (ARS, null for free) and `owned` (user has active access). Drives the home selector's buyable courses and the profile catalog sheet. `signLanguageId` is a **query param** (stays camelCase — the client snake_cases only bodies). |
-| `getDetail(courseId)` | `GET /courses/{id}` | `CourseDetail` | Public course sheet (works for courses the user doesn't own): `unitCount`, `lessonCount`, `signCount`, `hasCameraPractice`, `exerciseTypes`, `sampleSign`, and per topic `lessons[] { name, signs }`, all computed server-side from the published content (needs `signa-api` ≥ the `feat/course-detail-preview` change). Drives `CourseDetailScreen`. |
+| `getDetail(courseId)` | `GET /courses/{id}` | `CourseDetail` | Public course sheet (works for courses the user doesn't own): `unitCount`, `lessonCount`, `signCount`, `hasCameraPractice`, `hasAnimations` / `hasVideos` (mutually exclusive), `sampleSign`, and per topic `lessons[] { name, signs }`, all computed server-side from the published content (needs `signa-api` ≥ the `feat/course-detail-preview` change). Drives `CourseDetailScreen`. |
 | `getRoadmap(courseId)` | `GET /learning/tracking/courses/{courseId}/roadmap` | `CourseRoadmap` | Per-user roadmap of the course's published version: `topics[]` (each with `title`, optional `subtitle`) each with ordered `lessons[]` carrying `blockCount`, `xpTotal`, `signsCount`, `signsLearned` and `state` (`COMPLETED` / `IN_PROGRESS` / `AVAILABLE` / `LOCKED`). `signsLearned: string[]` lists the sign meanings taught by each lesson, computed by `BlockSignExtractor` on the backend — used by `HomeTabScreen` to show sign chips in the lesson-detail modal without an extra request. |
 
-Inicio load chain: `getSignLanguages()` → pick LSA → `getCatalog(lsa.id)` → first course → `getRoadmap(course.id)`. Header stats (streak/gems/XP) come from `usersApi.getStats()` + `inventoryApi.getMyInventory()`.
-
-Still **STUB** on the same file (used only by `CoursesListScreen`): `list()` / `getById()` / `getLesson()` — tentative flat-content paths, not confirmed. See [features/courses.md](../features/courses.md).
+Inicio load chain: `getSignLanguages()` → pick LSA → `getCatalog(lsa.id)` → first course → `getRoadmap(course.id)`. Header stats (streak/gems/lives) come from `usersApi.getStats()` + `inventoryApi.getMyInventory()`.
 
 ## Telemetry (`src/telemetry/telemetry.ts`)
 
-Fire-and-forget client telemetry for the admin usage dashboard, **not** routed through `apiClient` (no auth, no 401-refresh, snake_case on the wire): batches events and `POST`s them to `/telemetry/events` (public, 202 always), flushing every 30 s and when the app backgrounds. Emits `animation_load` (GLB load latency + ok/error, from `GlbAnimationView`), `api_error` (4xx/5xx, from the `apiClient` error interceptor), `ml_inference`/`ml_confidence`/`ml_fps` (on-device sign-recognition latency, model confidence and camera FPS, sampled together at most every 5 s in `LiveSignRecognizer`), plus `screen_load`/`client_error` helpers. `initTelemetry()` runs once in `App.tsx`. The backend bounds all tag cardinality.
+Fire-and-forget client telemetry for the admin usage dashboard, **not** routed through `apiClient` (no auth, no 401-refresh, snake_case on the wire): batches events and `POST`s them to `/telemetry/events` (public, 202 always), flushing every 30 s and when the app backgrounds. Emits `animation_load` (GLB load latency + ok/error, from the WebView `GlbAnimationView` only — the native Filament avatar does not report it), `api_error` (4xx/5xx, from the `apiClient` error interceptor), `camera_skip` (the learner skipped a camera exercise, from `PerformSignBlock` / `SpellNameBlock`) and `lesson_time` (ms on a lesson, from `LessonScreen`). `trackInference` / `trackConfidence` / `trackFps` (`ml_*` events) and `trackScreenLoad` / `trackClientError` exist but nothing calls them today. `initTelemetry()` runs once in `App.tsx`. The backend bounds all tag cardinality.

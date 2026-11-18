@@ -2,11 +2,11 @@
 
 > Responsibility: courses module scope and state.
 > Update when: course screens/types change, or the backend content API changes.
-> Sources: src/features/courses/, src/features/courses/screens/CourseDetailScreen.tsx, src/api/lessons.ts, src/api/learning.ts, src/api/courseOrders.ts, src/api/signs.ts, src/features/animations/signMedia.ts, src/screens/tabs/HomeTabScreen.tsx, src/features/store/useCoursePurchase.ts, src/features/store/CourseCatalogSheet.tsx, src/features/store/PaidCourseRow.tsx
+> Sources: src/features/courses/, src/features/courses/screens/CourseDetailScreen.tsx, src/api/lessons.ts, src/api/learning.ts, src/api/courseOrders.ts, src/api/signs.ts, src/features/animations/signMedia.ts, src/screens/tabs/HomeTabScreen.tsx, src/features/store/useCoursePurchase.ts, src/features/store/PaidCourseRow.tsx, src/features/lives/
 
-Status: **mixed**. The **Inicio (Home) roadmap** is wired to real `signa-api` content, and the
-lesson player (`LessonScreen`) is real and wired to `signa-api`. Flat course/lesson browsing
-(`CoursesListScreen`) is still a **stub** — nothing navigates to `Lesson` from it yet.
+Status: **real**. The **Inicio (Home) roadmap** is wired to real `signa-api` content, and the
+lesson player (`LessonScreen`) is real and wired to `signa-api`. The old flat course browse stub
+(`CoursesListScreen`) was removed; Inicio is the only way into a lesson.
 
 ## Lesson player — real
 
@@ -18,15 +18,14 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
 `config` is the yaml's `config:` section, serialized to JSON with the same key casing (see
 [../api/types.md](../api/types.md) for the exact per-type shape).
 
-- `lessonContent.types.ts`: `LessonContent`, `LessonContentBlock`, the nine `BlockType`s and their
+- `lessonContent.types.ts`: `LessonContent`, `LessonContentBlock`, the nine `BlockType`s (`INFO`, `INTRODUCE_SIGN`, `SELECT_MEANING`, `SELECT_SIGN`, `CONTEXT_RESPONSE`, `MATCH`, `VISUAL_RECOGNITION`, `PERFORM_SIGN`, `SPELL_NAME`) and their
   config interfaces, plus `parseBlockConfig<T>(block)` to `JSON.parse` a block's `config` string.
-- `screens/LessonScreen.tsx`: orchestrates the player — loads the lesson
-  (`lessonsApi.getLesson`; it resolves `devLessons.ts` first, but **it does not read
-  `lessonCache.ts`** — the cache is written by `HomeTabScreen` and currently read by nobody, so
-  entering a lesson always shows the spinner) and the caller's lives
-  (`shopApi.getMyInventory()`, always fresh), walks `blocks` in `order`, renders the matching block
+- `screens/LessonScreen.tsx`: orchestrates the player — loads, in parallel, the lesson
+  (`lessonsApi.getLesson`, no client cache: entering a lesson always shows the spinner), the
+  caller's inventory (`shopApi.getMyInventory()`, always fresh; feeds `useLives`) and
+  `usersApi.getStats()` (the XP baseline), walks `blocks` in `order`, renders the matching block
   component, and reports every answer to `learningApi.recordBlockInteraction(blockId, isCorrect)`
-  (`isCorrect: null` for an `INFO` view; `INTRODUCE_SIGN` reports nothing, it just advances). Reports are queued and sent **one at a time** (a promise chain in `recordInteraction`; `volver()` waits on its tail, capped by `ESPERA_MAX_SALIDA`), and an `INFO` block is reported once even on a double tap of "Continuar" — concurrent POSTs used to race on `user_lesson_progress` in signa-api (500).
+  (`isCorrect: null` for an `INFO` view; `INTRODUCE_SIGN` reports nothing, it just advances). Reports are queued and sent **one at a time** (a promise chain in `recordInteraction`; `volver()` waits on its tail, capped by `ESPERA_MAX_SALIDA`), and an `INFO` block is reported once even on a double tap of "Continuar" — concurrent POSTs used to race on `user_lesson_progress` in signa-api (500). Each send goes through `enviarConReintentos` (3 attempts, on network errors / 5xx / 429; a 4xx is not retried).
   Blocks whose `type` isn't in `RENDERABLE_BLOCKS` (e.g. `INVISIBLE_SIGNS`, which only seeds the
   sign catalog) are dropped on load — they used to render `null` and leave a blank step with no
   way forward. `signa-api` doesn't require `INTRODUCE_SIGN`/`INVISIBLE_SIGNS` to complete a lesson.
@@ -35,21 +34,15 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   so reporting `false` completed the lesson and its XP. Only successes are sent (so a skip costs no life
   either). At the end, `LessonScreen` passes `incomplete` to `LessonComplete` when any camera block wasn't
   answered correctly: title "Lección incompleta", "Repasar la lección" becomes the primary button, and the
-  suggested-course card is hidden. That same call is now also where the backend spends a
-  life server-side: `signa-api` PR #60 (`feature/rest-lives-errors` → `develop`, open as of
-  2026-09-02) makes `CourseTrackingService.recordBlockInteraction` publish a `LifeLostEvent`
-  whenever a non-`INFO` block is answered incorrectly, and `UserStatsEventListener` decrements
-  `UserStats.currentLives` through it — no-op when `livesMode = INFINITE` or already at 0,
-  defaulting to 5 (`MAX_LIVES`) if never initialized. No new endpoint or app change was needed:
-  the client already calls `recordBlockInteraction` on every answer. The screen's own `lives` state
-  is a **local optimistic mirror** of the same rule (starts from `shopApi.getMyInventory()`'s
-  `currentLives`, decrements by 1 on a wrong non-`INFO` answer, floors at 0, skips when
-  `unlimitedLives`) — it stays in sync as long as the fire-and-forget `recordInteraction` call
-  (errors are swallowed, see below) actually reaches the server; a dropped request leaves the
-  local counter one life ahead of the backend until the lesson is reopened and inventory is
-  refetched. `signsLearned` on the completion screen comes from `route.params.signsCount`, which
+  suggested-course card is hidden. `recordBlockInteraction` is also where the backend spends a
+  life: `signa-api` publishes a `LifeLostEvent` whenever a non-`INFO` block is answered incorrectly
+  (no-op when `livesMode = INFINITE` or already at 0), and regenerates one life every 10 minutes.
+  The screen mirrors that rule locally through `features/lives/useLives.ts` (`loseLifeLocally()`:
+  one less, floor at 0, starts the regeneration timer if it wasn't running; skipped when the lives
+  are unlimited) — see *Lives* below. If a report is dropped the local counter stays one life
+  ahead of the backend until the lesson is reopened and the inventory refetched. `signsLearned` on the completion screen comes from `route.params.signsCount`, which
   is sourced from the roadmap (`RoadmapLesson.signsCount`) — computed server-side by
-  `BlockSignExtractor`. `route.params`: `{ lessonId: string; unitLabel?: string; signsCount?: number }` —
+  `BlockSignExtractor`. `route.params`: `{ lessonId: string; unitLabel?: string; signsCount?: number; suggestedCourse?: { id; name } }` —
   `unitLabel` is supplied by the caller; `signsCount` is passed from `HomeTabScreen` via the
   roadmap response (falls back to `0` if absent for backward compatibility). Only the current block
   and the next one are mounted at a time (a windowed `blockIndex`/`blockIndex + 1` render, not the
@@ -79,9 +72,7 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   (`totalXp`) when the lesson loads and again — after the answer queue drains — when it
   completes, and shows the difference (multiplier included; `0` on a replay, since the backend
   grants a lesson's XP only once, **when the whole lesson completes** — blocks pay nothing on their own, so the streak only moves on lesson completion). The tile stays hidden while that request is in flight or if the stats can't be read (no local
-  `xpReward` estimate any more: it promised XP the Profile didn't have). Answer reports are retried
-  (3 attempts, on network errors / 5xx / 429) so a transient failure doesn't silently drop the block that
-  completes the lesson (and its XP); the backend pays the lesson's XP once, on completion, so a replay shows none. Also `blocks/` with one
+  `xpReward` estimate any more: it promised XP the Profile didn't have). Also `blocks/` with one
   component per `BlockType` (`InfoBlock`, `IntroduceSignBlock`, `SelectMeaningBlock`,
   `SelectSignBlock`, `ContextResponseBlock` and `SelectSignBlock` share `SignCarouselBlock`,
   `MatchBlock`, `VisualRecognitionBlock`). `IntroduceSignBlock` presents a new sign with its
@@ -115,9 +106,10 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
 - **Media URL construction** (`src/features/animations/glbUrl.ts`): `getGlbUrl(meaning)`,
   `getMp4Url(meaning)` and `getLateralMp4Url(meaning)` build public R2 URLs deterministically —
   `https://pub-f40a1de4d1fc46b0b6f07299847c66e0.r2.dev/lsa/{meaning}.glb` / `.mp4` /
-  `_lateral.mp4`. No backend round-trip; no presigned URLs; no cache layer in JS. The WebView/native
-  player handle HTTP caching. File names are the lowercase meaning, URL-encoded by
-  `encodeURIComponent`.
+  `_lateral.mp4`. They are only the **fallback** (see *Media resolution*); no presigned URLs, no cache layer in JS.
+  File names are the lowercase meaning, URL-encoded by `encodeURIComponent`.
+  `EXPO_PUBLIC_GLB_BASE` (optional) points `getGlbUrl` at another origin to try other `.glb` builds
+  (e.g. KTX2 textures) without touching the bucket; `getGlbUrlOficial` always returns the bucket one.
 - **Media resolution** (`src/features/animations/signMedia.ts`): the app asks signa-api which file
   each sign uses — `POST /signs/media` → `[{meaning, url, format, lateralUrl}]`, batched and cached
   in memory — so animations uploaded from the admin panel (`.glb`, or `.mp4` + optional lateral
@@ -142,16 +134,6 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   nearest corner, expanding on tap (which also pauses recognition). Recognition never blocks
   progress: there is always an escape, because a model that won't fire must not trap someone
   inside a lesson. Mechanics live in `@/features/ml` — see [ml.md](./ml.md).
-- **Dev-only lessons** (`devLessons.ts`): `LessonScreen` resolves a handful of local lesson ids
-  *before* calling the API, so a new block type can be played end to end while its YAML is still
-  waiting for a `signa-api` deploy. Gated on `__DEV__`; `recordBlockInteraction` is skipped for
-  them (their block ids don't exist server-side). `DEV_CAMERA_LESSON_ID` mirrors
-  `signa-api/.../content/LSA/basic-course/topic-02.yml` and is opened from `SignRecognitionScreen`.
-- `lessonCache.ts`: module-level `Map<lessonId, LessonContent>`. `HomeTabScreen` populates it
-  after fetching the current lesson in the background; `LessonScreen` checks it on mount before
-  calling the API (cache hit → no loading spinner on lesson entry). The cache is invalidated
-  naturally: each time `HomeTabScreen` regains focus it re-fetches the roadmap and overwrites
-  the cache with fresh lesson content. Cache lifetime = process lifetime.
 - `features/animations/GlbAnimationView.tsx`: renders a `.glb` inside a `WebView` using Google's
   `<model-viewer>` (loaded from a CDN `<script type="module">`; the GLB itself is fetched by the
   web engine, so the R2 bucket must allow CORS `GET`). Same strategy and encuadre as the
@@ -175,9 +157,15 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   view per visible slot), `SignVideo` for `.mp4` slots (with the `SpeedToggle`); on iOS falls back
   to `MultiGlbView`.
 
-To advance: once `signa-api` #60 merges, consider trusting the server as the sole source of truth for `lives` (e.g. refetch
-`shopApi.getMyInventory()` after each wrong answer, or surface the fire-and-forget interaction
-error) instead of the local optimistic decrement, to remove the drift risk on a dropped request.
+### Lives
+
+`features/lives/useLives.ts` is the single mirror of the backend's lives rule (`MAX_LIVES = 5`,
+`LIFE_REGEN_MS` = 10 min, one life per elapsed interval since `nextLifeAt`, unlimited while
+`livesMode = INFINITE` and the expiry hasn't passed). It takes a `LivesSource` (the slice of
+`GET /inventories/me`) and ticks each second while a timer runs; `serverNow()` (`@/utils/serverClock`)
+corrects for device clock drift. `LivesTimerChip` renders the countdown. Consumers: `LessonScreen`
+(`LessonHeader`, `NoLivesOverlay`), `HomeTabScreen` (the "Vidas" stat tile via `livesValue` / `livesCaption`),
+the Store and Profile.
 
 ### Inicio (Home) roadmap screen
 
@@ -205,9 +193,9 @@ error) instead of the local optimistic decrement, to remove the drift risk on a 
   loading and an error + "Reintentar" on failure. Units = topics; each unit header shows `topic.title`
   as the (uppercase) kicker, `topic.subtitle` as the bold line, and `X de Y` progress.
 - **Header**: the shared `ScreenHeader` with `tone={colors.primary}`, the "Tu recorrido" title, a
-  description and 3 stat tiles (racha / gemas / XP) in the common uppercase-label + icon + value
+  description and 3 stat tiles (racha / gemas / vidas — lives replaced XP; the gems tile opens `GemShop`, with a dot while a gem order is pending) in the common uppercase-label + icon + value
   format. The old course-name kicker ("CURSO BÁSICO") was removed. Stats come from
-  `usersApi.getStats()` + `inventoryApi.getMyInventory()`, loaded in parallel and non-blocking.
+  `usersApi.getStats()` + `inventoryApi.getMyInventory()`, loaded in parallel and non-blocking, and refetched on focus.
 - **Editorial rail**: single continuous 2px vertical line (`#DCD2C8`) running behind all rows.
   Each row has `position: relative` with an absolute rail segment spanning full row height
   (including `paddingBottom`) so lines connect without gaps. Node types:
@@ -230,23 +218,6 @@ error) instead of the local optimistic decrement, to remove the drift risk on a 
   `CourseSummary`, `RoadmapTopic`/`RoadmapLesson` (`state`: `COMPLETED` / `IN_PROGRESS` /
   `AVAILABLE` / `LOCKED`; `signsCount`: unique signs in the lesson, computed server-side by
   `BlockSignExtractor`), `CourseRoadmap`. See [../api/endpoints.md](../api/endpoints.md).
-- After `fetchRoadmap()` resolves, `HomeTabScreen` fires a **background prefetch** for the current
-  lesson: `lessonsApi.getLesson(currentId)` → `setCachedLesson()` → `preloadLessonAnimations()`.
-  All fire-and-forget; the home UI is never blocked by this.
-
-## Course catalog — stub
-
-- `screens/CoursesListScreen.tsx`: calls `GET /courses` via `api.ts` (shows loading → error until
-  wired to the real `CourseController`/`CourseSummaryResponse` shape).
-- `types.ts`: `Course`, `Lesson` (summary), `LessonBlock` (summary), `LessonProgress` — a
-  provisional shape, distinct from `lessonContent.types.ts` above.
-- `api.ts` (stub portion) — `list()` / `getById()` / `getLesson()`: tentative flat-content paths
-  (`/courses`, `/courses/{id}`, `/courses/{courseId}/lessons/{lessonId}`), used only by
-  `CoursesListScreen`; not aligned with the real `CourseController` / `CourseDetailResponse` yet.
-
-To advance: confirm `CourseSummaryResponse`/`CourseDetailResponse` against `api.ts` + `types.ts`,
-then either retire `CoursesListScreen` in favor of the Inicio roadmap, or navigate it → a
-lesson-path screen → `Lesson` with a real `lessonId`.
 
 ## Buying a paid course — real
 

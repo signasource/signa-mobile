@@ -27,11 +27,12 @@ Wine `ScreenHeader` (`tone={colors.socialWine}`) with the background-less bell (
 the shared one — same title size, description, top-right bubble and `minHeight` as every other
 top-level screen.
 
-> The mockup's second tile was a **Ranking** (`#3`). The backend has no leaderboard at all, and
-> ranking was explicitly deferred to a later iteration, so the tile shows pending requests instead.
+> The mockup's second tile was a **Ranking** (`#3`); the tile shows pending requests instead, and
+> the ranking lives in its own tab (see *Ranking tab* below).
 
-Two tabs below the header, rendered by the shared `SegmentedControl` (full width, black active
-state); the **Mis amigos / Solicitudes** sub-selector uses `SubTabs`:
+Three tabs below the header — **Feed**, **Amigos** (badge = incoming requests) and **Ranking** —
+rendered by the shared `SegmentedControl` (full width, black active state); the
+**Mis amigos / Solicitudes** sub-selector uses `SubTabs`:
 
 ### Feed
 
@@ -140,7 +141,7 @@ colours are derived from list position since the backend sends none.
 
 ## FriendAcceptedScreen
 
-Full-screen celebration shown after accepting an incoming request. Sky-blue background (`#C2E8F5`)
+Full-screen celebration shown after accepting an incoming request. Sky-blue background (`colors.skyLight`)
 with the sheep illustration (`assets/ilus/ovejas.svg`), the new friend's avatar card (name +
 handle + streak), a primary "Ver su perfil" button, and a "Volver a notificaciones" back link.
 
@@ -170,12 +171,6 @@ Third tab in the Social `SegmentedControl`. Self-contained component that:
 - **Sticky me bar** at the bottom (outside the `ScrollView`): wine-tinted background, user's rank, initials, gap-to-next text, delta, weekly XP.
 
 Delta (position change since last Monday) comes from the backend's `delta` field on each entry and on `me`. It is null until the first weekly reset runs.
-
-## Components — `features/social/components/`
-
-`Avatar`, `PersonRow` (+ `RowAction`), `FeedCard`, `ConfirmSheet`, `Toast`, `FriendAcceptedModal`.
-`EmptyState` / `EmptyNote` now live in `@/components/EmptyState` (the local file only re-exports them);
-the header comes from `@/components/ScreenHeader`.
 
 ## Not implemented
 

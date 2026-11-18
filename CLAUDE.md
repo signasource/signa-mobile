@@ -4,8 +4,10 @@ Entry point and mandatory rules for developing `signa-mobile` with Claude / Clau
 Detailed docs (retrieval map): [`docs/README.md`](./docs/README.md).
 
 `signa-mobile` is a React Native (Expo, TypeScript strict) app for Signa — learning Argentine
-Sign Language (LSA) with camera recognition. Backend: `signa-api` (Spring Boot). Solved today:
-auth, navigation, theming, onboarding. Reserved: courses (stub), ML (placeholder).
+Sign Language (LSA) with camera recognition. Backend: `signa-api` (Spring Boot). Real today: auth,
+onboarding + tour, lesson roadmap and player, practice, store, challenges, achievements, social,
+profile, push notifications, and on-device recognition + 3D avatar (Android native module
+`signa-vision`). Per-area state → [docs/status.md](./docs/status.md).
 
 ## Docs are code
 
@@ -26,7 +28,8 @@ If reality already diverged from a doc, **the code wins**: fix the doc first (re
 | Change an auth screen flow | [docs/authentication/screens.md](./docs/authentication/screens.md) |
 | Change a validation rule | [docs/authentication/validation.md](./docs/authentication/validation.md) |
 | Add/change a color, font, size, or UI primitive | [docs/design-system/colors.md](./docs/design-system/colors.md) |
-| Advance a feature or flip stub↔real | the feature's doc under [docs/features/](./docs/features/) ([onboarding](./docs/features/onboarding.md) · [courses](./docs/features/courses.md) · [store](./docs/features/store.md) · [challenges](./docs/features/challenges.md) · [social](./docs/features/social.md) · [ml](./docs/features/ml.md) · [achievements](./docs/features/achievements.md)) + [docs/status.md](./docs/status.md) |
+| Advance a feature or flip stub↔real | the feature's doc under [docs/features/](./docs/features/) ([onboarding](./docs/features/onboarding.md) · [courses](./docs/features/courses.md) · [practice](./docs/features/practice.md) · [profile](./docs/features/profile.md) · [store](./docs/features/store.md) · [challenges](./docs/features/challenges.md) · [social](./docs/features/social.md) · [ml](./docs/features/ml.md) · [achievements](./docs/features/achievements.md)) + [docs/status.md](./docs/status.md) |
+| Touch `modules/signa-vision` (recogniser or 3D avatar) | [docs/features/ml.md](./docs/features/ml.md) · [docs/avatar-3d.md](./docs/avatar-3d.md) · measurements in [docs/rendimiento.md](./docs/rendimiento.md) |
 | Change folder structure, alias, or app startup | [docs/architecture.md](./docs/architecture.md) |
 | Add/resolve tech debt | [docs/status.md](./docs/status.md) |
 
