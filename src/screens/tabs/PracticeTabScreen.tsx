@@ -350,7 +350,7 @@ function MistakesTab({ navigation }: { navigation: PracticeNavigation }) {
           </View>
         </View>
         <Text style={styles.mistakesDescription}>
-          Armamos una lección corta con las señas que falliste en tus últimas prácticas. Completala
+          Armamos una lección corta con las señas que fallaste en tus últimas prácticas. Completala
           y ganá XP.
         </Text>
         <View style={styles.mistakesMetaRow}>

@@ -41,7 +41,7 @@ import { LivesTimerChip } from "@/features/lives/LivesTimerChip";
 import { achievementsApi, Achievement } from "@/api/achievements";
 import { AchievementArt } from "@/features/achievements/components/AchievementArt";
 import { hasAchievementArt } from "@/features/achievements/coins";
-import { learningApi } from "@/api/learning";
+import { learningApi, EnrollmentSummary } from "@/api/learning";
 import type { PublicCourseProgress } from "@/api/social";
 import { PaidCourseRow } from "@/features/store/PaidCourseRow";
 import { fetchCatalog } from "@/features/courses/catalog";
@@ -180,6 +180,7 @@ export function ProfileScreen({ navigation }: Props) {
   const [inventory, setInventory] = useState<UserInventory>(DEFAULT_INVENTORY);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [courses, setCourses] = useState<PublicCourseProgress[]>([]);
+  const [enrollments, setEnrollments] = useState<EnrollmentSummary[]>([]);
   const [buyableCourses, setBuyableCourses] = useState<CourseSummary[]>([]);
   const [savingGoal, setSavingGoal] = useState(false);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
@@ -203,7 +204,7 @@ export function ProfileScreen({ navigation }: Props) {
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
     }
-    const [profileRes, weekRes, goalRes, statsRes, invRes, unlockedRes, lockedRes, coursesRes, settingsRes, boostersRes] =
+    const [profileRes, weekRes, goalRes, statsRes, invRes, unlockedRes, lockedRes, coursesRes, enrollmentsRes, settingsRes, boostersRes] =
       await Promise.allSettled([
         usersApi.getMe(),
         usersApi.getWeeklyXp(),
@@ -213,6 +214,7 @@ export function ProfileScreen({ navigation }: Props) {
         achievementsApi.getAchievements(true),
         achievementsApi.getAchievements(false),
         learningApi.getProgress(),
+        learningApi.getEnrollments(),
         usersApi.getSettings(),
         boostersApi.getStored(),
       ]);
@@ -262,6 +264,10 @@ export function ProfileScreen({ navigation }: Props) {
 
     if (coursesRes.status === "fulfilled") {
       setCourses(coursesRes.value.data);
+    }
+
+    if (enrollmentsRes.status === "fulfilled") {
+      setEnrollments(enrollmentsRes.value.data);
     }
 
     if (settingsRes.status === "fulfilled") {
@@ -688,6 +694,13 @@ export function ProfileScreen({ navigation }: Props) {
                 <TouchableOpacity
                   style={styles.courseCtaBtn}
                   activeOpacity={0.8}
+                  onPress={async () => {
+                    const enrollment = enrollments.find((e) => e.courseName === c.courseName);
+                    if (enrollment && !enrollment.isCurrent) {
+                      try { await learningApi.setCurrentCourse(enrollment.courseId); } catch { /* navigate anyway */ }
+                    }
+                    navigation.navigate("Home");
+                  }}
                 >
                   <Text style={styles.courseCtaText}>Seguir</Text>
                   <Ionicons name="arrow-forward" size={13} color={colors.onDark} />
