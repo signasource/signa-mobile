@@ -68,7 +68,17 @@ export function PracticeSessionScreen({ route, navigation }: Props) {
           : practiceApi.getMistakeExercises();
 
     request
-      .then((res) => setBlocks(res.data.filter((block) => isPracticableType(block.type as BlockType))))
+      .then((res) =>
+        setBlocks(
+          res.data.filter((block) => {
+            if (!isPracticableType(block.type as BlockType)) return false;
+            // When practising a specific sign the user already knows its meaning —
+            // SELECT_MEANING would be trivially obvious, so skip those blocks.
+            if (mode.mode === "sign" && block.type === "SELECT_MEANING") return false;
+            return true;
+          })
+        )
+      )
       .catch(() => setError("No pudimos cargar los ejercicios."))
       .finally(() => setLoading(false));
   }, [mode]);
