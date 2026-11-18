@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, View } from "react-native";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -147,6 +147,40 @@ export function LessonScreen({ route, navigation }: Props) {
     loadLesson();
   }, [loadLesson]);
 
+  useEffect(() => {
+    return navigation.addListener("beforeRemove", (e) => {
+      // Sin interacciones enviadas: salida limpia, nada que drenar ni confirmar.
+      if (blockIndex === 0) return;
+
+      e.preventDefault();
+
+      const noLives = lives <= 0 && !unlimitedLives;
+
+      async function drainAndDispatch() {
+        await Promise.race([
+          cola.current,
+          new Promise<void>((r) => setTimeout(r, ESPERA_MAX_SALIDA)),
+        ]);
+        navigation.dispatch(e.data.action);
+      }
+
+      // Sin vidas o lección completa: solo drenar la cola y salir, sin confirmar.
+      if (noLives || completed) {
+        drainAndDispatch();
+        return;
+      }
+
+      Alert.alert(
+        "¿Salir de la lección?",
+        "Se perderá el progreso de esta sesión.",
+        [
+          { text: "Continuar lección", style: "cancel" },
+          { text: "Salir", style: "destructive", onPress: drainAndDispatch },
+        ]
+      );
+    });
+  }, [navigation, blockIndex, completed, lives, unlimitedLives]);
+
   function resetProgress() {
     setBlockIndex(0);
     setCorrectBlockIds(new Set());
@@ -190,21 +224,11 @@ export function LessonScreen({ route, navigation }: Props) {
   /**
    * Volver al camino recién cuando el backend tenga la última respuesta.
    *
-   * Las interacciones se mandan sin esperarlas, que es lo correcto mientras se
-   * juega: nadie quiere que el ejercicio se trabe por la red. Pero al salir esa
-   * carrera se pierde — el camino se recarga al enfocarse y pide el progreso
-   * antes de que llegue la respuesta del último bloque, así que muestra la
-   * lección como estaba. Entrar de nuevo la mostraba ya avanzada, que es
-   * exactamente el síntoma.
-   *
-   * Se espera con tope: si la red no contesta, salir igual es mejor que quedar
-   * encerrado en la lección.
+   * Cuando hay progreso activo, `beforeRemove` muestra primero un diálogo de
+   * confirmación y hace el drain de la cola antes de despachar la acción. En los
+   * demás casos (bloque 0, lección completa, sin vidas) se sale directamente.
    */
-  async function volver() {
-    await Promise.race([
-      cola.current,
-      new Promise((listo) => setTimeout(listo, ESPERA_MAX_SALIDA)),
-    ]);
+  function volver() {
     navigation.goBack();
   }
 
