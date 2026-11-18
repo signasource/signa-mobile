@@ -122,7 +122,7 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   each sign uses — `POST /signs/media` → `[{meaning, url, format, lateralUrl}]`, batched and cached
   in memory — so animations uploaded from the admin panel (`.glb`, or `.mp4` + optional lateral
   `.mp4`) show up at once; re-uploads carry `?v=` so the on-disk avatar cache refreshes. No answer
-  within 2.5 s, no uploaded file, or API down: the usual `{meaning}.glb` by name (`getGlbUrl`).
+  within 2.5 s, no uploaded file, or API down: the app **probes the bucket** (`HEAD`) for `{meaning}.glb`, then `{meaning}.mp4` (+ `_lateral.mp4`) — and the same under the file-name alias (`niño`→`nene`, `niña`→`nena`, `hoy`→`hoy-ahora`…, a mirror of `FILE_NAME_ALIASES` in signa-api's `SignCatalogImporter`; keep both in sync) — because some signs (hombre, mujer, bebé) exist only as video and the by-name `.glb` would 404. The sign stays "loading" until the probe ends; if neither exists it falls back to the `.glb` URL (placeholder on error).
   Bucket keys follow the same convention as before (`lsa/{meaning}.mp4`, `lsa/{meaning}_lateral.mp4`).
   Only `SignAnimation` exposes the lateral switch (see [../status.md](../status.md)). `extractLessonSignNames(lesson)`
   (in `lessonContent.types.ts`) returns the *taught* meanings (correct answers only, no
