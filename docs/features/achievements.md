@@ -84,8 +84,10 @@ Not an achievement: `features/achievements/screens/StreakDayScreen.tsx` (route `
   mid-lesson or already on a celebration. `StreakDayScreen` marks it seen **on mount**, so a killed
   app can't replay it; a handed-out streak value is ignored until the backend reports it as no longer
   pending.
-- **Order:** a pending streak day always goes before a pending achievement (the achievement effect
-  waits while `pendingStreakDay !== null`, and while `StreakDay` is on screen).
+- **Order:** shield → streak day → achievement, one at a time. `RootNavigator` runs a single effect
+  with an `inFlight` ref (the route just navigated to): until the navigator reports that route,
+  `currentRouteName` is stale, so a second `navigate` would stack celebrations (and the achievement
+  could be skipped or shown out of order). Each one waits until the previous screen is closed.
 - Copy: `streakDayHeadline` / `streakDaySubtitle` in `celebrations.ts`.
 
 ## Mobile pieces
@@ -104,7 +106,11 @@ Not an achievement: `features/achievements/screens/StreakDayScreen.tsx` (route `
   `RootNavigator` (`AchievementCelebrationConnected`) re-checks as soon as the user **leaves `Lesson` or
   `PracticeSession`**, and navigates to `AchievementCelebration` unless the user is mid-lesson.
 - The screen marks the achievement as seen **on mount**, so a killed app can't replay it. The reward
-  is already credited server-side; the screen is purely cosmetic.
+  is already credited server-side; the screen is purely cosmetic, and its button reads **Reclamar gemas**
+  when the achievement pays gems (otherwise "¡Genial!").
+- **Achievements stack with challenges.** Finishing the first lesson pays the `FIRST_LESSON` achievement
+  (+10 gemas, this screen) *and* the first-steps challenge (+20, claimed on Home) → 30 in total. Same
+  for "Primer amigo" (+20 when the request is accepted) and the XP achievements vs. the XP challenges.
 - `ProfileScreen` and `PublicProfileScreen` show the tier medal for earned streak achievements (still
   frame in the grid, animated in the detail modal); everything else keeps the trophy / lock icon.
 

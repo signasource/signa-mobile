@@ -84,38 +84,48 @@ function AchievementCelebrationConnected({
     if (left === "Lesson" || left === "PracticeSession") refresh();
   }, [currentRouteName, refresh]);
 
-  // Shield goes first: shown when the user opens the app after missing a day with a shield.
-  useEffect(() => {
-    if (pendingStreakShield === null || isCelebrationBlocked(currentRouteName)) return;
-    if (!navigationRef.current?.isReady()) return;
-
-    navigationRef.current.navigate("StreakShield", { streak: pendingStreakShield });
-    consumeStreakShield();
-  }, [pendingStreakShield, currentRouteName, consumeStreakShield, navigationRef]);
-
-  // Streak day goes second: waits until the shield screen (if any) is dismissed.
-  useEffect(() => {
-    if (pendingStreakDay === null || pendingStreakShield !== null || isCelebrationBlocked(currentRouteName)) return;
-    if (!navigationRef.current?.isReady()) return;
-
-    navigationRef.current.navigate("StreakDay", { streak: pendingStreakDay });
-    consumeStreakDay();
-  }, [pendingStreakDay, pendingStreakShield, currentRouteName, consumeStreakDay, navigationRef]);
+  // One celebration at a time, in order: shield (what happened overnight) → streak day → achievement.
+  // `inFlight` holds the route we just navigated to: until the navigator reports it, `currentRouteName`
+  // is stale, and a second `navigate` would stack another celebration on top of the first one.
+  const inFlight = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!pending || pendingStreakShield !== null || pendingStreakDay !== null || isCelebrationBlocked(currentRouteName)) return;
-    if (!navigationRef.current?.isReady()) return;
+    if (inFlight.current !== null) {
+      if (currentRouteName === inFlight.current) inFlight.current = null;
+      return;
+    }
+    if (isCelebrationBlocked(currentRouteName) || !navigationRef.current?.isReady()) return;
 
-    navigationRef.current.navigate("AchievementCelebration", {
-      achievementId: pending.id,
-      criteriaType: pending.criteriaType,
-      criteriaValue: pending.criteriaValue,
-      title: pending.title,
-      rewardStreakShields: pending.rewardStreakShields,
-      rewardGems: pending.rewardGems,
-    });
-    consume();
-  }, [pending, pendingStreakShield, pendingStreakDay, currentRouteName, consume, navigationRef]);
+    if (pendingStreakShield !== null) {
+      inFlight.current = "StreakShield";
+      navigationRef.current.navigate("StreakShield", { streak: pendingStreakShield });
+      consumeStreakShield();
+    } else if (pendingStreakDay !== null) {
+      inFlight.current = "StreakDay";
+      navigationRef.current.navigate("StreakDay", { streak: pendingStreakDay });
+      consumeStreakDay();
+    } else if (pending) {
+      inFlight.current = "AchievementCelebration";
+      navigationRef.current.navigate("AchievementCelebration", {
+        achievementId: pending.id,
+        criteriaType: pending.criteriaType,
+        criteriaValue: pending.criteriaValue,
+        title: pending.title,
+        rewardStreakShields: pending.rewardStreakShields,
+        rewardGems: pending.rewardGems,
+      });
+      consume();
+    }
+  }, [
+    pending,
+    pendingStreakDay,
+    pendingStreakShield,
+    currentRouteName,
+    consume,
+    consumeStreakDay,
+    consumeStreakShield,
+    navigationRef,
+  ]);
 
   return null;
 }
