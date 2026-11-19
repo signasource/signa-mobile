@@ -46,7 +46,7 @@ function buildHtml(url: string, autoRotate: boolean, cameraControls: boolean): s
   <script type="module" src="${MODEL_VIEWER_CDN}"></script>
 </head>
 <body>
-  <model-viewer id="mv" autoplay loading="eager" ${cameraControls ? "camera-controls" : ""} ${autoRotate ? "auto-rotate" : ""}
+  <model-viewer id="mv" autoplay loading="eager" ${cameraControls ? "camera-controls" : ""} ${autoRotate ? 'auto-rotate rotation-per-second="-30deg"' : ""}
     camera-orbit="0deg 85deg 100%"
     min-camera-orbit="auto 60deg 60%"
     max-camera-orbit="auto 110deg 160%"

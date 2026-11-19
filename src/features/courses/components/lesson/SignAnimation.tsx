@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, View, ViewStyle } from "react-native";
+import { Pressable, StyleSheet, StyleProp, View, ViewStyle } from "react-native";
 import { Text } from "@/components/Text";
 import { colors, fonts, alpha } from "@/theme";
 import { AvatarGlbNativo } from "@/features/animations/AvatarGlbNativo";
@@ -25,7 +25,7 @@ interface SignAnimationProps {
   cameraControls?: boolean;
   /** Forzar un motor. Sólo lo usa el banco, para compararlos lado a lado. */
   motor?: "nativo" | "webview";
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 /**
