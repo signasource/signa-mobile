@@ -42,7 +42,7 @@ import { LivesTimerChip } from "@/features/lives/LivesTimerChip";
 import { achievementsApi, Achievement } from "@/api/achievements";
 import { AchievementArt } from "@/features/achievements/components/AchievementArt";
 import { hasAchievementArt } from "@/features/achievements/coins";
-import { learningApi, EnrollmentSummary } from "@/api/learning";
+import { learningApi, enrollmentOf, EnrollmentSummary } from "@/api/learning";
 import type { PublicCourseProgress } from "@/api/social";
 import { PaidCourseRow } from "@/features/store/PaidCourseRow";
 import { fetchCatalog } from "@/features/courses/catalog";
@@ -649,7 +649,7 @@ export function ProfileScreen({ navigation }: Props) {
           const courseColor = colors.primary;
           const unit = c.currentTopic;
           return (
-            <View key={c.courseName} style={styles.courseCard}>
+            <View key={c.courseId ?? c.courseName} style={styles.courseCard}>
               <View style={styles.courseCardTop}>
                 <View style={[styles.courseChip, { backgroundColor: courseColor + "1F" }]}>
                   <Ionicons name="school" size={22} color={courseColor} />
@@ -702,7 +702,7 @@ export function ProfileScreen({ navigation }: Props) {
                   style={styles.courseCtaBtn}
                   activeOpacity={0.8}
                   onPress={async () => {
-                    const enrollment = enrollments.find((e) => e.courseName === c.courseName);
+                    const enrollment = enrollmentOf(enrollments, c);
                     if (enrollment && !enrollment.isCurrent) {
                       try { await learningApi.setCurrentCourse(enrollment.courseId); } catch { /* navigate anyway */ }
                     }

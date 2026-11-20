@@ -165,7 +165,7 @@ Notifications are produced server-side by whatever triggers them; the app reads 
 
 | Method | Path | Returns | Notes |
 |---|---|---|---|
-| `getProgress()` | `GET /learning/tracking/progress` | `PublicCourseProgress[]` | per-course progress of **active enrollments** (`courseName`, `completedLessons`, `totalLessons`, `progressPercentage`, `signsLearned`, `currentTopic`); no `courseId`/icon/color. Feeds the profile's Cursos tab and the Home selector |
+| `getProgress()` | `GET /learning/tracking/progress` | `PublicCourseProgress[]` | per-course progress of **active enrollments**, **one row per course** in the version the learner takes (`courseId`, `courseName`, `completedLessons`, `totalLessons`, `progressPercentage`, `signsLearned`, `currentTopic`); no icon/color. Match it to an enrollment with `progressOf`/`enrollmentOf` (`src/api/learning.ts`): by `courseId`, by name only against an older API without it. Feeds the profile's Cursos tab and the Home selector |
 | `joinCourse(courseId)` | `POST /learning/tracking/courses/{courseId}/join` | `void` | idempotent self-enrolment in a **free** course by course id (403 if not free). Called by `HomeTabScreen` for free catalog courses the user isn't enrolled in |
 | `getEnrollments()` | `GET /learning/tracking/enrollments` | `EnrollmentSummary[]` | active enrollments (dropped/expired filtered server-side); `isCurrent` marks the selected course; `organizationName` / `accessExpiresAt` set for organization-granted access |
 | `setCurrentCourse(courseId)` | `PATCH /learning/tracking/current-course` | `void` | persists the selected course on the user; 404 if not actively enrolled |

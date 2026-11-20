@@ -108,8 +108,14 @@ export const socialApi = {
     apiClient.get<UserSearchResult[]>("/users/search", { params: { query }, signal }),
 };
 
-/** Mirrors `CourseProgressResponse`; also what `learningApi.getProgress()` returns. */
+/**
+ * Mirrors `CourseProgressResponse`; also what `learningApi.getProgress()` returns. One row per
+ * course, in the version the learner takes (an archived one if a newer version was published after
+ * they started).
+ */
 export interface PublicCourseProgress {
+  /** Absent on signa-api builds older than the one-enrollment-per-course fix. */
+  courseId?: string;
   courseName: string;
   status: "ENROLLED" | "COMPLETED" | "DROPPED";
   totalLessons: number;
