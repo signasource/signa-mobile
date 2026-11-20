@@ -38,12 +38,6 @@ export const EXERCISE_TYPES: ExerciseTypeInfo[] = [
     hint: "Respondé una situación real.",
     icon: "chatbubble-ellipses",
   },
-  {
-    key: "VISUAL_RECOGNITION",
-    title: "Reconocimiento visual",
-    hint: "Identificá una secuencia de señas.",
-    icon: "videocam",
-  },
 ];
 
 export const EXERCISE_TYPE_BY_KEY: Record<BlockType, ExerciseTypeInfo> = EXERCISE_TYPES.reduce(
