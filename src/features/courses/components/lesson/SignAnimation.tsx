@@ -27,6 +27,8 @@ interface SignAnimationProps {
   motor?: "nativo" | "webview";
   /** Ocultar los controles de frente/lateral y velocidad. */
   hideControls?: boolean;
+  /** Usar flex: 1 en lugar de height fijo. */
+  fillParent?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -47,7 +49,7 @@ interface SignAnimationProps {
  */
 const NATIVO = process.env.EXPO_PUBLIC_AVATAR_WEBVIEW !== "1";
 
-export function SignAnimation({ meaning, label, height = 320, tone = "neutral", paused, badge, cameraControls, motor, hideControls, style }: SignAnimationProps) {
+export function SignAnimation({ meaning, label, height = 320, tone = "neutral", paused, badge, cameraControls, motor, hideControls, fillParent, style }: SignAnimationProps) {
   // Si el motor nativo no puede con este modelo, se cae al visor web en vez de
   // mostrar la lámina fija: hay avatares —M y N— con un esqueleto de 574 huesos
   // contra el tope de 256 de Filament, y el web los dibuja igual.
@@ -98,7 +100,7 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
   }
 
   return (
-    <View style={[styles.container, { height }, wrong && styles.containerWrong, style]}>
+    <View style={[styles.container, fillParent ? styles.containerFill : { height }, wrong && styles.containerWrong, style]}>
       {badge && (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{badge}</Text>
@@ -176,6 +178,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.fill,
     overflow: "hidden",
   },
+  containerFill: { flex: 1 },
   containerWrong: {
     borderWidth: 2,
     borderColor: colors.danger,

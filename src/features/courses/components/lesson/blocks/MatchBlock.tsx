@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Modal, Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/Text";
 import { colors, fonts, alpha } from "@/theme";
@@ -21,13 +21,12 @@ function StateIcon({ state }: { state: TileState }) {
 interface MatchSignCellProps {
   concept: string;
   state: TileState;
-  height: number;
   paused?: boolean;
   onSelect: () => void;
   onLongPress: () => void;
 }
 
-function MatchSignCell({ concept, state, height, paused, onSelect, onLongPress }: MatchSignCellProps) {
+function MatchSignCell({ concept, state, paused, onSelect, onLongPress }: MatchSignCellProps) {
   return (
     <TouchableOpacity
       onPress={onSelect}
@@ -35,11 +34,12 @@ function MatchSignCell({ concept, state, height, paused, onSelect, onLongPress }
       delayLongPress={400}
       disabled={state === "matched"}
       activeOpacity={0.85}
+      style={styles.signCellTouch}
     >
       <SignAnimation
         meaning={concept}
         label={concept}
-        height={height}
+        fillParent
         paused={paused}
         hideControls
         style={[
@@ -129,7 +129,7 @@ const ROW_GAP = 16;
  * aire para distinguir dónde termina una y empieza la siguiente. Con cinco
  * entran holgados en cualquier teléfono.
  */
-const MAX_PARES = 5;
+const MAX_PARES = 4;
 
 export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps) {
   const clave = config.concepts.join("|");
@@ -196,26 +196,24 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        style={styles.body}
-        contentContainerStyle={styles.bodyContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.headerRow}>
-          <Text style={styles.question}>Uní cada seña con su palabra</Text>
-          <XpChip xp={xp} state={done ? "correct" : "idle"} />
-        </View>
-
-        <View style={styles.progressRow}>
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${(matched.size / total) * 100}%` }]} />
+      <View style={styles.body}>
+        <View style={styles.bodyHeader}>
+          <View style={styles.headerRow}>
+            <Text style={styles.question}>Uní cada seña con su palabra</Text>
+            <XpChip xp={xp} state={done ? "correct" : "idle"} />
           </View>
-          <Text style={styles.progressLabel}>
-            {matched.size} de {total} pares
-          </Text>
-        </View>
 
-        <Text style={styles.hint}>Tocá una seña y luego su palabra. Mantené presionada una seña para verla más grande. El par correcto se apaga; si no coinciden, perdés una vida.</Text>
+          <View style={styles.progressRow}>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${(matched.size / total) * 100}%` }]} />
+            </View>
+            <Text style={styles.progressLabel}>
+              {matched.size} de {total} pares
+            </Text>
+          </View>
+
+          <Text style={styles.hint}>Tocá una seña y luego su palabra. Mantené presionada una seña para verla más grande. El par correcto se apaga; si no coinciden, perdés una vida.</Text>
+        </View>
 
         <View style={styles.grid}>
           <View style={styles.column}>
@@ -224,7 +222,6 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
                 key={concept}
                 concept={concept}
                 state={tileState("sign", concept)}
-                height={ROW_HEIGHT}
                 paused={done}
                 onSelect={() => {
                   if (matched.has(concept) || wrongPair) return;
@@ -248,7 +245,7 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
             ))}
           </View>
         </View>
-      </ScrollView>
+      </View>
 
       <View style={styles.footer}>
         {done ? (
@@ -304,8 +301,8 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  body: { flex: 1 },
-  bodyContent: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 8, gap: 14 },
+  body: { flex: 1, paddingHorizontal: 20, paddingTop: 22, paddingBottom: 8, gap: 14 },
+  bodyHeader: { gap: 14 },
   headerRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 10 },
   question: {
     flex: 1,
@@ -320,10 +317,11 @@ const styles = StyleSheet.create({
   progressFill: { height: "100%", backgroundColor: colors.primary, borderRadius: 99 },
   progressLabel: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.textMuted, flexShrink: 0 },
   hint: { fontFamily: fonts.bodyRegular, fontSize: 13, lineHeight: 18, color: colors.textMuted },
-  grid: { flexDirection: "row", gap: ROW_GAP },
+  grid: { flex: 1, flexDirection: "row", gap: ROW_GAP },
   column: { flex: 1, gap: ROW_GAP },
+  signCellTouch: { flex: 1 },
   tile: {
-    height: ROW_HEIGHT,
+    flex: 1,
     borderRadius: 16,
     borderWidth: 0,
     backgroundColor: colors.fill,
