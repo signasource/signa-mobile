@@ -414,7 +414,7 @@ export function PublicProfileScreen({ route, navigation }: Props) {
         {courses.map((c, i) => {
           const courseColor = COURSE_COLORS[i % COURSE_COLORS.length];
           return (
-            <View key={`${c.courseName}:${i}`} style={styles.courseCard}>
+            <View key={c.courseId ?? `${c.courseName}:${i}`} style={styles.courseCard}>
               <View style={styles.courseCardTop}>
                 <View style={[styles.courseChip, { backgroundColor: courseColor + "1F" }]}>
                   <Ionicons name="school" size={22} color={courseColor} />

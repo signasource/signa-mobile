@@ -25,7 +25,7 @@ import { AppStackParamList } from "@/navigation/AppNavigator";
 import { usersApi } from "@/api/users";
 import { useLives, livesValue, livesCaption, LivesSource } from "@/features/lives/useLives";
 import { inventoryApi } from "@/api/inventory";
-import { learningApi, EnrollmentSummary } from "@/api/learning";
+import { learningApi, progressOf, EnrollmentSummary } from "@/api/learning";
 import type { PublicCourseProgress } from "@/api/social";
 import {
   coursesApi,
@@ -168,7 +168,7 @@ function formatDate(iso: string): string {
 
 function courseSubtitle(course: EnrollmentSummary, counts: PublicCourseProgress[]): string {
   const owner = course.organizationName ?? "Tu curso personal";
-  const progress = counts.find((c) => c.courseName === course.courseName);
+  const progress = progressOf(counts, course);
   return progress ? `${owner} · ${progress.completedLessons} de ${progress.totalLessons}` : owner;
 }
 
