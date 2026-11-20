@@ -467,16 +467,27 @@ export function HomeTabScreen({ navigation }: Props) {
               </View>
             </View>
           )}
-          {roadmap?.topics.map((topic) => (
+          {roadmap?.topics.map((topic, i, arr) => (
             <TopicSection
               key={topic.id}
               topic={topic}
+              isLastUnit={i === arr.length - 1}
               currentLessonId={currentLessonId}
               onInfo={(lesson) => setOpenLesson({ lesson, unitLabel: topic.title })}
               onNavigate={(lesson) => navigateToLesson(lesson, topic.title)}
               currentCardRef={lessonCardRef}
             />
           ))}
+          {roadmap && roadmap.topics.length > 0 && (
+            <TouchableOpacity
+              style={styles.moreCoursesBtnWrap}
+              onPress={() => setSelectorOpen(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="grid-outline" size={16} color={colors.primary} />
+              <Text style={styles.moreCoursesBtn}>Ver más cursos</Text>
+            </TouchableOpacity>
+          )}
           {roadmap && roadmap.topics.length > 0 && currentCourseIsFree && purchasableCourses.length > 0 && (
             <View style={styles.afterCourse}>
               <View style={styles.endMark}>
@@ -648,12 +659,14 @@ export function HomeTabScreen({ navigation }: Props) {
 
 function TopicSection({
   topic,
+  isLastUnit,
   currentLessonId,
   onInfo,
   onNavigate,
   currentCardRef,
 }: {
   topic: RoadmapTopic;
+  isLastUnit: boolean;
   currentLessonId: string | null;
   onInfo: (lesson: RoadmapLesson) => void;
   onNavigate: (lesson: RoadmapLesson) => void;
@@ -697,13 +710,15 @@ function TopicSection({
       </View>
 
       {/* Lesson rows */}
-      {topic.lessons.map((lesson) => {
+      {topic.lessons.map((lesson, li, lessons) => {
         const isCurrent = lesson.id === currentLessonId;
+        const isLastLesson = isLastUnit && li === lessons.length - 1;
         return (
           <LessonRow
             key={lesson.id}
             lesson={lesson}
             isCurrent={isCurrent}
+            isLastLesson={isLastLesson}
             onInfo={() => onInfo(lesson)}
             onNavigate={() => onNavigate(lesson)}
             cardRef={currentCardRef}
@@ -719,40 +734,44 @@ function TopicSection({
 function LessonRow({
   lesson,
   isCurrent,
+  isLastLesson,
   onInfo,
   onNavigate,
   cardRef,
 }: {
   lesson: RoadmapLesson;
   isCurrent: boolean;
+  isLastLesson: boolean;
   onInfo: () => void;
   onNavigate: () => void;
   cardRef: React.Ref<View>;
 }) {
   if (isCurrent) {
     return (
-      <CurrentLessonCard lesson={lesson} onInfo={onInfo} onNavigate={onNavigate} cardRef={cardRef} />
+      <CurrentLessonCard lesson={lesson} isLastLesson={isLastLesson} onInfo={onInfo} onNavigate={onNavigate} cardRef={cardRef} />
     );
   }
   if (lesson.state === "COMPLETED") {
-    return <CompletedLessonRow lesson={lesson} onNavigate={onNavigate} />;
+    return <CompletedLessonRow lesson={lesson} isLastLesson={isLastLesson} onNavigate={onNavigate} />;
   }
   if (lesson.state === "AVAILABLE") {
-    return <AvailableLessonRow lesson={lesson} onInfo={onInfo} />;
+    return <AvailableLessonRow lesson={lesson} isLastLesson={isLastLesson} onInfo={onInfo} />;
   }
-  return <LockedLessonRow lesson={lesson} />;
+  return <LockedLessonRow lesson={lesson} isLastLesson={isLastLesson} />;
 }
 
 function CompletedLessonRow({
   lesson,
+  isLastLesson,
   onNavigate,
 }: {
   lesson: RoadmapLesson;
+  isLastLesson: boolean;
   onNavigate: () => void;
 }) {
   return (
     <View style={styles.lessonRow}>
-      <View style={styles.railSegment} />
+      {!isLastLesson && <View style={styles.railSegment} />}
       <View style={styles.dotCol}>
         <View style={[styles.dot, { backgroundColor: colors.success }]} />
       </View>
@@ -768,18 +787,20 @@ function CompletedLessonRow({
 
 function CurrentLessonCard({
   lesson,
+  isLastLesson,
   onInfo,
   onNavigate,
   cardRef,
 }: {
   lesson: RoadmapLesson;
+  isLastLesson: boolean;
   onInfo: () => void;
   onNavigate: () => void;
   cardRef: React.Ref<View>;
 }) {
   return (
     <View style={[styles.lessonRow, styles.lessonRowTop]}>
-      <View style={styles.railSegment} />
+      {!isLastLesson && <View style={styles.railSegment} />}
       <View style={[styles.dotCol, styles.dotColTop]}>
         <View style={styles.currentDotOuter}>
           <View style={styles.currentDotMid}>
@@ -806,14 +827,16 @@ function CurrentLessonCard({
 
 function AvailableLessonRow({
   lesson,
+  isLastLesson,
   onInfo,
 }: {
   lesson: RoadmapLesson;
+  isLastLesson: boolean;
   onInfo: () => void;
 }) {
   return (
     <TouchableOpacity style={styles.lessonRow} onPress={onInfo} activeOpacity={0.85}>
-      <View style={styles.railSegment} />
+      {!isLastLesson && <View style={styles.railSegment} />}
       <View style={styles.dotCol}>
         <View style={[styles.dot, styles.dotAvailable]} />
       </View>
@@ -822,10 +845,10 @@ function AvailableLessonRow({
   );
 }
 
-function LockedLessonRow({ lesson }: { lesson: RoadmapLesson }) {
+function LockedLessonRow({ lesson, isLastLesson }: { lesson: RoadmapLesson; isLastLesson: boolean }) {
   return (
     <View style={styles.lessonRow}>
-      <View style={styles.railSegment} />
+      {!isLastLesson && <View style={styles.railSegment} />}
       <View style={styles.dotCol}>
         <View style={[styles.dot, { backgroundColor: colors.fillDark }]} />
       </View>
@@ -869,6 +892,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     marginBottom: 10,
+  },
+  moreCoursesBtnWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 24,
+    marginBottom: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+  },
+  moreCoursesBtn: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    color: colors.primary,
   },
   afterCourse: { marginTop: 8, gap: 6 },
   endMark: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14 },
