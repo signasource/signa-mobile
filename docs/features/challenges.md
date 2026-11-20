@@ -37,11 +37,9 @@ Daily challenges are the app's **main source of gems** (design source: `Gamifica
 | | Sumá tu primer amigo en Social | `FRIEND_REQUESTS_SENT` 1 | 30 gemas |
 | | Volvé mañana y hacé racha de 2 días | `STREAK_DAYS` 2 | 30 gemas |
 | Diarios | Estudiante constante | `COMPLETE_LESSONS` 3 | 50 gemas |
-| | Practicá con cámara | `CAMERA_PRACTICES` 5 | 40 gemas |
 | | Sesión perfecta | `PERFECT_LESSONS` 3 | XP x3 · 30 min |
 | | Experto del día | `EARN_XP` 500 | 60 gemas |
 | Semanales | Maratón de lecciones | `COMPLETE_LESSONS` 15 | 150 gemas |
-| | Semana con cámara | `CAMERA_PRACTICES` 30 | 120 gemas |
 | | Semana impecable | `PERFECT_LESSONS` 7 | 1 escudo de racha |
 | | Experto de la semana | `EARN_XP` 2500 | 200 gemas |
 

@@ -329,9 +329,6 @@ export function HomeTabScreen({ navigation }: Props) {
 
   function handleChallengePress(challenge: Challenge) {
     switch (challenge.criteriaType) {
-      case "CAMERA_PRACTICES":
-        navigation.navigate("Tabs", { screen: "Practice" });
-        break;
       case "FRIEND_REQUESTS_SENT":
         navigation.navigate("Tabs", { screen: "Social" });
         break;
