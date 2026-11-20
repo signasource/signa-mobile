@@ -32,6 +32,7 @@ import { avatarUri } from "@/utils/avatar";
 import { pickAvatar, AvatarSource } from "@/features/profile/avatarPhoto";
 import { isLightColor } from "@/utils/color";
 import { useAuth } from "@/context/AuthContext";
+import { MetricsRange } from "@/features/profile/MetricsRange";
 import { usersApi, WeeklyXpEntry, UserStats } from "@/api/users";
 import { inventoryApi, UserInventory } from "@/api/inventory";
 import { boostersApi, BoosterType } from "@/api/boosters";
@@ -520,6 +521,12 @@ export function ProfileScreen({ navigation }: Props) {
             </View>
           ))}
         </View>
+
+        <View style={styles.divider} />
+
+        {/* Metrics for a from/to range */}
+        <SectionTitle icon="calendar" label="Métricas por período" style={{ marginBottom: 10 }} />
+        <MetricsRange />
 
         <View style={styles.divider} />
 

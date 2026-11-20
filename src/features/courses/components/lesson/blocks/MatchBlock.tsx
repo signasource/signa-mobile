@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Modal, Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/Text";
 import { colors, fonts, alpha } from "@/theme";
@@ -9,6 +9,95 @@ import { LessonButton } from "../LessonButton";
 import { SignAnimation } from "../SignAnimation";
 import Check from "@assets/ilus/check.svg";
 import Denied from "@assets/ilus/denied.svg";
+
+type TileState = "idle" | "selected" | "wrong" | "matched";
+
+function StateIcon({ state }: { state: TileState }) {
+  if (state !== "matched" && state !== "wrong") return null;
+  const Icon = state === "matched" ? Check : Denied;
+  return <Icon width={18} height={18} />;
+}
+
+interface MatchSignCellProps {
+  concept: string;
+  state: TileState;
+  paused?: boolean;
+  onSelect: () => void;
+  onLongPress: () => void;
+}
+
+function MatchSignCell({ concept, state, paused, onSelect, onLongPress }: MatchSignCellProps) {
+  return (
+    <TouchableOpacity
+      onPress={onSelect}
+      onLongPress={onLongPress}
+      delayLongPress={400}
+      disabled={state === "matched"}
+      activeOpacity={0.85}
+      style={styles.signCellTouch}
+    >
+      <SignAnimation
+        meaning={concept}
+        label={concept}
+        fillParent
+        paused={paused}
+        hideControls
+        style={[
+          styles.signCellAnim,
+          state === "selected" && styles.signCellSelected,
+          state === "wrong" && styles.signCellWrong,
+          state === "matched" && styles.signCellMatched,
+        ]}
+      />
+      {(state === "matched" || state === "wrong") && (
+        <View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            styles.signCellOverlay,
+            state === "matched" && styles.signCellOverlayMatched,
+            state === "wrong" && styles.signCellOverlayWrong,
+          ]}
+        >
+          <StateIcon state={state} />
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+}
+
+interface MatchWordTileProps {
+  concept: string;
+  state: TileState;
+  onSelect: () => void;
+}
+
+function MatchWordTile({ concept, state, onSelect }: MatchWordTileProps) {
+  return (
+    <TouchableOpacity
+      onPress={onSelect}
+      disabled={state === "matched"}
+      activeOpacity={0.85}
+      style={[
+        styles.tile,
+        state === "matched" && styles.tileMatched,
+        state === "wrong" && styles.tileWrong,
+        state === "selected" && styles.tileSelected,
+      ]}
+    >
+      <Text
+        style={[
+          styles.wordText,
+          state === "matched" && { color: colors.successDark },
+          state === "wrong" && { color: colors.danger },
+        ]}
+      >
+        {concept}
+      </Text>
+      <StateIcon state={state} />
+    </TouchableOpacity>
+  );
+}
 
 interface MatchBlockProps {
   config: MatchConfig;
@@ -28,8 +117,6 @@ function shuffled<T>(items: T[]): T[] {
 
 type Kind = "sign" | "word";
 
-/** Shared by both columns so sign cells line up with word tiles. */
-const ROW_HEIGHT = 96;
 const ROW_GAP = 16;
 
 /**
@@ -40,7 +127,7 @@ const ROW_GAP = 16;
  * aire para distinguir dónde termina una y empieza la siguiente. Con cinco
  * entran holgados en cualquier teléfono.
  */
-const MAX_PARES = 5;
+const MAX_PARES = 4;
 
 export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps) {
   const clave = config.concepts.join("|");
@@ -96,125 +183,67 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
     }
   }
 
-  function tileState(kind: Kind, concept: string) {
-    if (matched.has(concept)) return "matched" as const;
+  function tileState(kind: Kind, concept: string): TileState {
+    if (matched.has(concept)) return "matched";
     if (wrongPair && ((kind === "sign" && wrongPair.sign === concept) || (kind === "word" && wrongPair.word === concept))) {
-      return "wrong" as const;
+      return "wrong";
     }
-    if (selected?.kind === kind && selected.concept === concept) return "selected" as const;
-    return "idle" as const;
-  }
-
-  function StateIcon({ state }: { state: ReturnType<typeof tileState> }) {
-    if (state !== "matched" && state !== "wrong") return null;
-    const Icon = state === "matched" ? Check : Denied;
-    return <Icon width={18} height={18} />;
-  }
-
-  function SignCell({ concept }: { concept: string }) {
-    const state = tileState("sign", concept);
-    return (
-      <TouchableOpacity
-        onPress={() => {
-          if (matched.has(concept) || wrongPair) return;
-          setSignModal(concept);
-        }}
-        disabled={state === "matched"}
-        activeOpacity={0.85}
-      >
-        <SignAnimation
-          meaning={concept}
-          label={concept}
-          height={ROW_HEIGHT}
-          paused={done}
-          style={[
-            styles.signCellAnim,
-            state === "selected" && styles.signCellSelected,
-            state === "wrong" && styles.signCellWrong,
-            state === "matched" && styles.signCellMatched,
-          ]}
-        />
-        {(state === "matched" || state === "wrong") && (
-          <View
-            pointerEvents="none"
-            style={[
-              StyleSheet.absoluteFill,
-              styles.signCellOverlay,
-              state === "matched" && styles.signCellOverlayMatched,
-              state === "wrong" && styles.signCellOverlayWrong,
-            ]}
-          >
-            <StateIcon state={state} />
-          </View>
-        )}
-      </TouchableOpacity>
-    );
-  }
-
-  function WordTile({ concept }: { concept: string }) {
-    const state = tileState("word", concept);
-    return (
-      <TouchableOpacity
-        onPress={() => handleTap("word", concept)}
-        disabled={state === "matched"}
-        activeOpacity={0.85}
-        style={[
-          styles.tile,
-          state === "matched" && styles.tileMatched,
-          state === "wrong" && styles.tileWrong,
-          state === "selected" && styles.tileSelected,
-        ]}
-      >
-        <Text
-          style={[
-            styles.wordText,
-            state === "matched" && { color: colors.successDark },
-            state === "wrong" && { color: colors.danger },
-          ]}
-        >
-          {concept}
-        </Text>
-        <StateIcon state={state} />
-      </TouchableOpacity>
-    );
+    if (selected?.kind === kind && selected.concept === concept) return "selected";
+    return "idle";
   }
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        style={styles.body}
-        contentContainerStyle={styles.bodyContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.headerRow}>
-          <Text style={styles.question}>Uní cada seña con su palabra</Text>
-          <XpChip xp={xp} state={done ? "correct" : "idle"} />
-        </View>
-
-        <View style={styles.progressRow}>
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${(matched.size / total) * 100}%` }]} />
+      <View style={styles.body}>
+        <View style={styles.bodyHeader}>
+          <View style={styles.headerRow}>
+            <Text style={styles.question}>Uní cada seña con su palabra</Text>
+            <XpChip xp={xp} state={done ? "correct" : "idle"} />
           </View>
-          <Text style={styles.progressLabel}>
-            {matched.size} de {total} pares
-          </Text>
-        </View>
 
-        <Text style={styles.hint}>Tocá una seña y luego su palabra. El par correcto se apaga; si no coinciden, perdés una vida.</Text>
+          <View style={styles.progressRow}>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${(matched.size / total) * 100}%` }]} />
+            </View>
+            <Text style={styles.progressLabel}>
+              {matched.size} de {total} pares
+            </Text>
+          </View>
+
+          <Text style={styles.hint}>Tocá una seña y luego su palabra. Mantené presionada una seña para verla más grande. El par correcto se apaga; si no coinciden, perdés una vida.</Text>
+        </View>
 
         <View style={styles.grid}>
           <View style={styles.column}>
             {signOrder.map((concept) => (
-              <SignCell key={concept} concept={concept} />
+              <MatchSignCell
+                key={concept}
+                concept={concept}
+                state={tileState("sign", concept)}
+                paused={done}
+                onSelect={() => {
+                  if (matched.has(concept) || wrongPair) return;
+                  handleTap("sign", concept);
+                }}
+                onLongPress={() => {
+                  if (matched.has(concept) || wrongPair) return;
+                  setSignModal(concept);
+                }}
+              />
             ))}
           </View>
           <View style={styles.column}>
             {wordOrder.map((concept) => (
-              <WordTile key={concept} concept={concept} />
+              <MatchWordTile
+                key={concept}
+                concept={concept}
+                state={tileState("word", concept)}
+                onSelect={() => handleTap("word", concept)}
+              />
             ))}
           </View>
         </View>
-      </ScrollView>
+      </View>
 
       <View style={styles.footer}>
         {done ? (
@@ -270,8 +299,8 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  body: { flex: 1 },
-  bodyContent: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 8, gap: 14 },
+  body: { flex: 1, paddingHorizontal: 20, paddingTop: 22, paddingBottom: 8, gap: 14 },
+  bodyHeader: { gap: 14 },
   headerRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 10 },
   question: {
     flex: 1,
@@ -286,10 +315,11 @@ const styles = StyleSheet.create({
   progressFill: { height: "100%", backgroundColor: colors.primary, borderRadius: 99 },
   progressLabel: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.textMuted, flexShrink: 0 },
   hint: { fontFamily: fonts.bodyRegular, fontSize: 13, lineHeight: 18, color: colors.textMuted },
-  grid: { flexDirection: "row", gap: ROW_GAP },
+  grid: { flex: 1, flexDirection: "row", gap: ROW_GAP },
   column: { flex: 1, gap: ROW_GAP },
+  signCellTouch: { flex: 1 },
   tile: {
-    height: ROW_HEIGHT,
+    flex: 1,
     borderRadius: 16,
     borderWidth: 0,
     backgroundColor: colors.fill,

@@ -126,8 +126,9 @@ agregar / cancelar solicitud / aceptar solicitud / desbloquear, and for an exist
 *Amigos* button that opens the same `ConfirmSheet` used elsewhere.
 
 A private account the viewer isn't friends with comes back with `visible: false`. The screen then
-shows identity plus the friendship action over an "esta cuenta es privada" state — deliberately not
-a 404, so someone found through search can still be added.
+shows identity (name, username, avatar — header without stats) plus the friendship action over an
+"esta cuenta es privada" state — deliberately not a 404, so someone found through search can still
+be added. The stats strip in `ScreenHeader` is omitted when `!profile.visible`.
 
 Courses and achievements are typed against the **real** backend shapes (`PublicCourseProgress`,
 `PublicAchievement`), the same shapes `learningApi` and `achievementsApi` now return. Course
@@ -162,7 +163,9 @@ the header comes from `@/components/ScreenHeader`.
 
 ## Ranking tab — `RankingTab.tsx`
 
-Third tab in the Social `SegmentedControl`. Self-contained component that:
+Third tab in the Social `SegmentedControl`. Only public accounts appear in the global ranking
+(enforced server-side; `GET /ranking/global` excludes `PRIVATE` accounts from the list and from
+the total count). Self-contained component that:
 - Fetches `GET /ranking/global` and `GET /ranking/friends` in parallel (plus `GET /users/me` for the user's own name/initials), on every focus (`useFocusEffect`; later fetches refresh silently, keeping the current ranking on screen) since lessons change weekly XP.
 - Shows a **scope toggle** (Global · Mis amigos) backed by local state; no re-fetch on switch.
 - **Countdown** banner ("Se reinicia el lunes a las 00:00") with a live 1-second timer based on device local time (users are assumed to be in ART).

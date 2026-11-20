@@ -30,8 +30,10 @@ maps 1:1 to one `LessonContent.blocks[]` here; each block's `type` is the yaml's
   sign catalog) are dropped on load — they used to render `null` and leave a blank step with no
   way forward. `signa-api` doesn't require `INTRODUCE_SIGN`/`INVISIBLE_SIGNS` to complete a lesson.
   **Skipping a camera exercise** (`PERFORM_SIGN` / `SPELL_NAME`, "No me sale, seguir") reports
-  **nothing**: `signa-api` treats a camera block as done once *attempted* (`countsAsDoneWhenAttempted`),
-  so reporting `false` completed the lesson and its XP. Only successes are sent (so a skip costs no life
+  **nothing**: `signa-api` treats every block as done once *attempted*, right or wrong
+  (`CourseTrackingService.isCompletedByUser`) — a lesson only has to be finished, not aced — so
+  reporting `false` would complete the lesson and its XP. A lesson closed midway leaves its later
+  blocks unattempted and stays `IN_PROGRESS`, so the next one stays locked. Only successes are sent (so a skip costs no life
   either). At the end, `LessonScreen` passes `incomplete` to `LessonComplete` when any camera block wasn't
   answered correctly: title "Lección incompleta", "Repasar la lección" becomes the primary button, the
   suggested-course card is hidden, and the XP stat card reframes as pending ("XP al completar", no `+`

@@ -70,8 +70,12 @@ export type AppStackParamList = {
   StreakDay: { streak: number };
   /** The nightly scheduler burned a shield to protect the streak; `streak` is the current count. */
   StreakShield: { streak: number };
-  /** Gem packs shop. `missingGems` marks the smallest pack that covers them; `returnTo` (name of where the user came from) relabels the success button "Volver a ...". */
-  GemShop: { missingGems?: number; returnTo?: string } | undefined;
+  /**
+   * Gem packs shop. `missingGems` marks the smallest pack that covers them; `returnTo` (name of where
+   * the user came from) relabels the success button "Volver a ..."; `fromLesson` (opened from a lesson
+   * without lives) turns it into "Seguir aprendiendo", which leads Home.
+   */
+  GemShop: { missingGems?: number; returnTo?: string; fromLesson?: boolean } | undefined;
   PurchaseHistory: undefined;
   ConnectionTest: undefined;
 };
