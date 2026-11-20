@@ -19,7 +19,6 @@ import { gemOrdersApi, GemOrderHistoryItem } from "@/api/gemOrders";
 import { courseOrdersApi, CourseOrderHistoryItem } from "@/api/courseOrders";
 import { AppStackParamList } from "@/navigation/AppNavigator";
 import { RefundRequestSheet, RefundTarget } from "@/features/store/components/RefundRequestSheet";
-import type { UserRefundRequest } from "@/api/gemOrders";
 
 type Props = NativeStackScreenProps<AppStackParamList, "PurchaseHistory">;
 
@@ -75,7 +74,6 @@ export function PurchaseHistoryScreen({ navigation }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refundTarget, setRefundTarget] = useState<RefundTarget | null>(null);
-  const [submittedIds, setSubmittedIds] = useState<Set<string>>(new Set());
 
   const load = useCallback(async (isRefresh = false) => {
     setError(null);
@@ -114,14 +112,14 @@ export function PurchaseHistoryScreen({ navigation }: Props) {
   }, [load]);
 
   function canRequestRefund(entry: HistoryEntry): boolean {
-    if (submittedIds.has(entry.order.id)) return false;
     if (entry.order.refundRequestStatus != null) return false;
     return entry.order.status === "PAID" && entry.order.refundedAt == null;
   }
 
-  function handleRefundSubmitted(request: UserRefundRequest) {
-    setSubmittedIds((prev) => new Set([...prev, request.purchaseId]));
-    setRefundTarget(null);
+  // Gem and course refunds are processed on the spot, so reload to show the order as
+  // REFUNDED (or the request as pending, if Mercado Pago failed after it was saved).
+  function handleRefundSettled() {
+    load(true);
   }
 
   return (
@@ -202,13 +200,13 @@ export function PurchaseHistoryScreen({ navigation }: Props) {
                     </Text>
                   </View>
                 )}
-                {(submittedIds.has(entry.order.id) || entry.order.refundRequestStatus === "PENDING") && entry.order.status !== "REFUNDED" && (
+                {entry.order.refundRequestStatus === "PENDING" && entry.order.status !== "REFUNDED" && (
                   <View style={styles.requestedNote}>
                     <Ionicons name="time-outline" size={14} color={colors.shopAmberDark} />
                     <Text style={styles.requestedNoteText}>Pedido de reembolso en revisión</Text>
                   </View>
                 )}
-                {entry.order.refundRequestStatus === "RESOLVED" && entry.order.status !== "REFUNDED" && !submittedIds.has(entry.order.id) && (
+                {entry.order.refundRequestStatus === "RESOLVED" && entry.order.status !== "REFUNDED" && (
                   <View style={styles.requestedNote}>
                     <Ionicons name="checkmark-circle-outline" size={14} color={colors.textMuted} />
                     <Text style={styles.resolvedNoteText}>Solicitud de reembolso procesada</Text>
@@ -239,7 +237,8 @@ export function PurchaseHistoryScreen({ navigation }: Props) {
       <RefundRequestSheet
         target={refundTarget}
         onClose={() => setRefundTarget(null)}
-        onSubmitted={handleRefundSubmitted}
+        onSubmitted={handleRefundSettled}
+        onFailed={handleRefundSettled}
       />
     </View>
   );

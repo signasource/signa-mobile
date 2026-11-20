@@ -25,7 +25,10 @@ export type RefundTarget =
 interface Props {
   target: RefundTarget | null;
   onClose: () => void;
+  /** The refund went through; the sheet stays open on its success state until closed. */
   onSubmitted: (request: UserRefundRequest) => void;
+  /** The call failed; the request may still have been saved as pending. */
+  onFailed: () => void;
 }
 
 const REASONS: { value: string; label: string }[] = [
@@ -37,7 +40,7 @@ const REASONS: { value: string; label: string }[] = [
   { value: "OTHER", label: "Otro motivo" },
 ];
 
-export function RefundRequestSheet({ target, onClose, onSubmitted }: Props) {
+export function RefundRequestSheet({ target, onClose, onSubmitted, onFailed }: Props) {
   const insets = useSafeAreaInsets();
   const [reason, setReason] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -54,13 +57,16 @@ export function RefundRequestSheet({ target, onClose, onSubmitted }: Props) {
   }
 
   async function submit() {
-    if (!target || !reason) return;
+    if (!target) return;
     setError(null);
     setSubmitting(true);
     try {
       let res;
       const trimmed = message.trim();
-      const body = { reason, ...(trimmed ? { message: trimmed } : {}) };
+      const body = {
+        ...(reason ? { reason } : {}),
+        ...(trimmed ? { message: trimmed } : {}),
+      };
       if (target.kind === "gems") {
         res = await gemOrdersApi.createRefundRequest(target.order.id, body);
       } else {
@@ -71,8 +77,11 @@ export function RefundRequestSheet({ target, onClose, onSubmitted }: Props) {
     } catch (err: any) {
       const msg = err?.response?.data?.message;
       setError(
-        msg ?? "No pudimos enviar el pedido. Puede que ya haya uno pendiente o que las condiciones hayan cambiado.",
+        msg ??
+          "No pudimos procesar el reembolso. Si el pedido quedó registrado, nuestro equipo lo va a revisar.",
       );
+      // The request may have been saved before the refund failed: let the list show it.
+      onFailed();
     } finally {
       setSubmitting(false);
     }
@@ -104,10 +113,10 @@ export function RefundRequestSheet({ target, onClose, onSubmitted }: Props) {
               <View style={styles.sentIcon}>
                 <Ionicons name="checkmark-circle" size={48} color={colors.success} />
               </View>
-              <Text style={styles.sentTitle}>Pedido enviado</Text>
+              <Text style={styles.sentTitle}>Reembolso realizado</Text>
               <Text style={styles.sentSub}>
-                Recibimos tu pedido de reembolso. Nuestro equipo lo analizará y te va a responder
-                por email.
+                Te devolvimos el pago por Mercado Pago. Puede tardar unos días en verse según tu
+                medio de pago.
               </Text>
               <TouchableOpacity
                 style={styles.closeButton}
@@ -126,8 +135,9 @@ export function RefundRequestSheet({ target, onClose, onSubmitted }: Props) {
             >
               <Text style={styles.sheetTitle}>Pedir reembolso</Text>
               <Text style={styles.sheetSub}>
-                Si cancelás la compra antes de usar el producto, nuestro equipo revisa el pedido y
-                te responde por email. No se devuelve dinero automáticamente.
+                {target?.kind === "course"
+                  ? "Al confirmar, te devolvemos el pago por Mercado Pago y se quita tu acceso al curso."
+                  : "Al confirmar, te devolvemos el pago por Mercado Pago y se descuentan las gemas de tu saldo."}
               </Text>
 
               {target && (
@@ -143,13 +153,13 @@ export function RefundRequestSheet({ target, onClose, onSubmitted }: Props) {
                 </View>
               )}
 
-              <Text style={styles.fieldLabel}>Motivo</Text>
+              <Text style={styles.fieldLabel}>Motivo <Text style={styles.optionalLabel}>(opcional)</Text></Text>
               <View style={styles.reasonsGrid}>
                 {REASONS.map((r) => (
                   <TouchableOpacity
                     key={r.value}
                     style={[styles.reasonChip, reason === r.value && styles.reasonChipSelected]}
-                    onPress={() => setReason(r.value)}
+                    onPress={() => setReason(reason === r.value ? null : r.value)}
                     activeOpacity={0.8}
                   >
                     <Text
@@ -183,15 +193,15 @@ export function RefundRequestSheet({ target, onClose, onSubmitted }: Props) {
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
               <TouchableOpacity
-                style={[styles.submitButton, (!reason || submitting) && styles.submitButtonDisabled]}
+                style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
                 onPress={submit}
-                disabled={!reason || submitting}
+                disabled={submitting}
                 activeOpacity={0.86}
               >
                 {submitting ? (
                   <ActivityIndicator color={colors.onDark} />
                 ) : (
-                  <Text style={styles.submitButtonText}>Enviar pedido</Text>
+                  <Text style={styles.submitButtonText}>Confirmar reembolso</Text>
                 )}
               </TouchableOpacity>
               <TouchableOpacity

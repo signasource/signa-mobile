@@ -176,17 +176,20 @@ and course orders merged and sorted newest-first. Each card shows the icon, prod
 amount, and a status badge (`PENDING` / `PAID` / `REFUNDED`).
 
 **"Pedir reembolso"** appears on `PAID` orders where `refundedAt == null` and the backend reports no
-refund request yet (`refundRequestStatus == null`, so the state survives restarts; a request sent in this
-session is also tracked locally in `submittedIds`). While the request is `PENDING` the card shows
-"Pedido de reembolso en revisión"; once `RESOLVED` without a refund, "Solicitud de reembolso procesada". It opens `RefundRequestSheet`
-(`src/features/store/components/`), a bottom sheet modal with:
+refund request yet (`refundRequestStatus == null`). A `REFUNDED` order shows "Reembolso procesado";
+a `PENDING` request (only left when Mercado Pago failed after the request was saved) shows "Pedido de
+reembolso en revisión"; a `RESOLVED` one on a non-refunded order, "Solicitud de reembolso procesada".
+It opens `RefundRequestSheet` (`src/features/store/components/`), a bottom sheet modal with:
 
-- Product row (icon + name).
-- **Motivo**: chip grid of 6 reasons (`MISTAKE · DUPLICATE · NOT_RECEIVED · NOT_AS_EXPECTED · TECHNICAL · OTHER`).
-- **Comentario**: optional free-text area (max 2000 chars, with a counter); only the reason is required.
-- **"Enviar pedido"** → `gemOrdersApi.createRefundRequest` or `courseOrdersApi.createRefundRequest` (depending on order kind). On success: success state with a checkmark; the order shows "Pedido de reembolso en revisión".
+- Product row (icon + name) and a line saying the payment is given back through Mercado Pago and the gems are taken from the balance / course access is removed.
+- **Motivo** (optional): chip grid of 6 reasons (`MISTAKE · DUPLICATE · NOT_RECEIVED · NOT_AS_EXPECTED · TECHNICAL · OTHER`); tapping the selected chip clears it.
+- **Comentario** (optional): free-text area (max 2000 chars, with a counter). Neither field is required — the button is always enabled; empty fields are omitted from the body.
+- **"Confirmar reembolso"** → `gemOrdersApi.createRefundRequest` or `courseOrdersApi.createRefundRequest` (depending on order kind). On success: "Reembolso realizado" state (the money may take a few days to show depending on the payment method). Success or failure, the history reloads (`onSubmitted` / `onFailed`) so the card shows the real state.
 
-A refund request does **not** refund automatically — it enters the admin queue for review. The
+Gem and course refund requests are processed **on the spot**: the API saves the request, refunds the
+Mercado Pago payment, reverses the order (`REFUNDED`: gems taken back / course access removed) and
+marks the request `RESOLVED`. If Mercado Pago fails, the call errors and the request stays `PENDING`
+for an admin to retry. (Seat refunds requested from the web panel still go through the admin queue.) The
 backend enforces eligibility at submit time (not just client-side): rejects if the order is not
 `PAID`, already refunded, the user spent part of the gems (gem orders), or the user completed the
 first lesson (course orders). A second request on the same order is also rejected (409 equiv → 400).
