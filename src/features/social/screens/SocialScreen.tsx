@@ -101,7 +101,9 @@ function searchSub(result: UserSearchResult): string {
     case "BLOCKED":
       return `${handle} · bloqueado`;
     default:
-      return `${handle} · ${mutualLabel(result.mutualFriends)}`;
+      return result.profileVisible
+        ? `${handle} · ${mutualLabel(result.mutualFriends)}`
+        : `${handle} · cuenta privada`;
   }
 }
 
@@ -628,7 +630,10 @@ export function SocialScreen({ navigation }: Props) {
                         result.relation
                       )}
                       busyAction={busy}
-                      onPressAvatar={() => openProfile(result.username)}
+                      // A private account's profile stays closed until the request is accepted.
+                      onPressAvatar={
+                        result.profileVisible ? () => openProfile(result.username) : undefined
+                      }
                     />
                   ))}
 

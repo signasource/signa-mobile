@@ -53,7 +53,7 @@ const VISIBILITIES: { id: VisibilityId; label: string; desc: string }[] = [
   {
     id: "PRIVATE",
     label: "Privada",
-    desc: "Solo tus amigos ven tu actividad. No aparecés en el ranking global.",
+    desc: "Solo tus amigos ven tu actividad. No aparecés en el ranking global ni en búsquedas.",
   },
 ];
 
@@ -222,6 +222,22 @@ export function ConfigurationScreen({ navigation, route }: Props) {
     setHeaderColor(hex);
     showToast("Cambios guardados");
     saveSetting({ profileHeaderColor: hex });
+  }
+
+  /**
+   * Visibility is a privacy setting, so unlike the cosmetic ones a failed save must not leave the
+   * switch showing a state the server doesn't have: it is reverted and the user is told.
+   */
+  async function changeVisibility(next: VisibilityId) {
+    const previous = accountVisibility;
+    setAccountVisibility(next);
+    try {
+      await usersApi.updateSettings({ accountVisibility: next });
+      showToast("Cambios guardados");
+    } catch {
+      setAccountVisibility(previous);
+      showToast("No pudimos cambiar la visibilidad. Probá de nuevo.");
+    }
   }
 
   async function saveSetting(patch: Parameters<typeof usersApi.updateSettings>[0]) {
@@ -683,10 +699,8 @@ export function ConfigurationScreen({ navigation, route }: Props) {
                             setSheet(null);
                             setDialog("privacy");
                           } else {
-                            setAccountVisibility(v.id);
                             setSheet(null);
-                            saveSetting({ accountVisibility: v.id });
-                            showToast("Cambios guardados");
+                            if (v.id !== accountVisibility) changeVisibility(v.id);
                           }
                         }}
                         activeOpacity={0.7}
@@ -877,7 +891,7 @@ export function ConfigurationScreen({ navigation, route }: Props) {
                 {dialog === "delete"
                   ? "Se borran tu progreso, racha, logros e inventario. Esta acción no se puede deshacer."
                   : dialog === "privacy"
-                    ? "No vas a poder participar en el ranking global mientras tu cuenta sea privada. Podés cambiar esto cuando quieras."
+                    ? "No vas a aparecer en el ranking global ni en las búsquedas mientras tu cuenta sea privada. Podés cambiar esto cuando quieras."
                     : "Vas a volver a la pantalla de inicio. Tu progreso queda guardado en tu cuenta."}
               </Text>
 
@@ -924,10 +938,8 @@ export function ConfigurationScreen({ navigation, route }: Props) {
                         : undefined
                       : dialog === "privacy"
                         ? () => {
-                            setAccountVisibility("PRIVATE");
                             setDialog(null);
-                            saveSetting({ accountVisibility: "PRIVATE" });
-                            showToast("Cambios guardados");
+                            changeVisibility("PRIVATE");
                           }
                         : handleLogout
                   }
