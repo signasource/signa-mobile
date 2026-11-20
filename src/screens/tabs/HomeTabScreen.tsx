@@ -478,17 +478,7 @@ export function HomeTabScreen({ navigation }: Props) {
               currentCardRef={lessonCardRef}
             />
           ))}
-          {roadmap && roadmap.topics.length > 0 && (
-            <TouchableOpacity
-              style={styles.moreCoursesBtnWrap}
-              onPress={() => setSelectorOpen(true)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="grid-outline" size={16} color={colors.primary} />
-              <Text style={styles.moreCoursesBtn}>Ver más cursos</Text>
-            </TouchableOpacity>
-          )}
-          {roadmap && roadmap.topics.length > 0 && currentCourseIsFree && purchasableCourses.length > 0 && (
+          {roadmap && roadmap.topics.length > 0 && purchasableCourses.length > 0 && (
             <View style={styles.afterCourse}>
               <View style={styles.endMark}>
                 <View style={styles.endLine} />
@@ -892,23 +882,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     marginBottom: 10,
-  },
-  moreCoursesBtnWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 24,
-    marginBottom: 8,
-    paddingVertical: 14,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: colors.primary,
-  },
-  moreCoursesBtn: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 15,
-    color: colors.primary,
   },
   afterCourse: { marginTop: 8, gap: 6 },
   endMark: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14 },
