@@ -378,14 +378,17 @@ export function StoreTabScreen() {
   }
 
   function closeFlow() {
-    if (openTimer.current) clearTimeout(openTimer.current);
     setFlow(null);
+    if (openTimer.current) clearTimeout(openTimer.current);
     navigation.setParams({ fromLesson: undefined } as any);
   }
 
   /** "Conseguir gemas": opens the gem shop, pre-selecting the pack that covers what is missing. */
   function goToGemPacks(missingGems?: number, returnTo?: string) {
-    closeFlow();
+    // Keep `fromLesson`: the user comes back from the gem shop to finish the purchase, and the
+    // success button must still read "Seguir aprendiendo" and lead to Home.
+    if (openTimer.current) clearTimeout(openTimer.current);
+    setFlow(null);
     (navigation as any).navigate("GemShop", { missingGems, returnTo });
   }
 
