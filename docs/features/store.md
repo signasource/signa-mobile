@@ -36,7 +36,9 @@ sheet's **"Conseguir gemas"** button calls `goToGemPacks(missing)`: closes the s
 `returnTo` (the item title: the credited screen then offers "Volver a <item>" instead of "Ir a
 gastarlas"). The sheet itself shows a "Te alcanza con N gemas · $ X" card, from `gemOrdersApi.getPacks()`
 loaded with the shop (`suggestedPack` in `features/store/gemPacks.ts`). The lesson's `NoLivesOverlay`
-also shows the gems balance with a "+" that opens the gem shop (`returnTo: "la lección"`).
+also shows the gems balance with a "+" that opens the gem shop (`fromLesson: true`): its credited
+screen then offers "Seguir aprendiendo", which leads to Home — going back would only reopen the
+"sin vidas" overlay, since gems are not lives.
 The Store header's GEMAS card carries the same "+" (and so does Inicio's). The tab refetches
 `/inventories/me` on focus, so a purchase made in the gem shop shows up on return.
 

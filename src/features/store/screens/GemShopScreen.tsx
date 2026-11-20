@@ -183,6 +183,9 @@ export function GemShopScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const missing = route.params?.missingGems;
   const returnTo = route.params?.returnTo;
+  // From a lesson without lives, going back would land on the same "sin vidas" overlay (gems are
+  // not lives): the success button leads Home instead.
+  const fromLesson = route.params?.fromLesson ?? false;
   const [gems, setGems] = useState<number | null>(null);
   const [selected, setSelected] = useState<GemPack | null>(null);
   const [credited, setCredited] = useState<GemOrder | null>(null);
@@ -262,12 +265,24 @@ export function GemShopScreen({ navigation, route }: Props) {
         <View style={styles.bottomButtons}>
           <TouchableOpacity
             style={styles.lightButton}
-            onPress={() => leaveWithFlight(() => (returnTo ? close() : navigation.replace("Tabs", { screen: "Store" })))}
+            onPress={() =>
+              leaveWithFlight(() => {
+                if (fromLesson) navigation.navigate("Tabs", { screen: "Home" });
+                else if (returnTo) close();
+                else navigation.replace("Tabs", { screen: "Store" });
+              })
+            }
             disabled={flying}
             activeOpacity={0.86}
           >
-            <Ionicons name={returnTo ? "arrow-back" : "storefront"} size={18} color={colors.text} />
-            <Text style={styles.lightButtonText}>{returnTo ? "Volver a " + returnTo : "Ir a gastarlas"}</Text>
+            <Ionicons
+              name={fromLesson ? "school" : returnTo ? "arrow-back" : "storefront"}
+              size={18}
+              color={colors.text}
+            />
+            <Text style={styles.lightButtonText}>
+              {fromLesson ? "Seguir aprendiendo" : returnTo ? "Volver a " + returnTo : "Ir a gastarlas"}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.ghostButton} onPress={() => leaveWithFlight(close)} disabled={flying} activeOpacity={0.86}>
             <Text style={styles.ghostButtonText}>Listo</Text>

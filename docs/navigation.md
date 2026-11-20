@@ -60,7 +60,7 @@ Post-login screens with tab navigation. `screenOptions` use a dark header: `head
 | `Configuration` | `{ updatedProfile?: {...}, passwordChanged?: boolean }` (set by `EditProfile`/`ChangePassword` on save, via "pass params back") | (no header) | `screens/ConfigurationScreen` |
 | `EditProfile` | `{ displayName: string; lastName: string; username: string }` | (no header, screen renders its own back button) | `screens/EditProfileScreen` |
 | `CourseDetail` | `{ courseId: string }` | (no header, screen renders its own) | `features/courses/screens/CourseDetailScreen` — paid-course sheet + whole purchase flow |
-| `GemShop` | `{ missingGems?: number; returnTo?: string } \| undefined` (`returnTo` relabels the success button "Volver a …") | (no header, modal presentation, slide from bottom; renders its own header) | `features/store/screens/GemShopScreen` |
+| `GemShop` | `{ missingGems?: number; returnTo?: string; fromLesson?: boolean } \| undefined` (`returnTo` relabels the success button "Volver a …"; `fromLesson` makes it "Seguir aprendiendo" → Home) | (no header, modal presentation, slide from bottom; renders its own header) | `features/store/screens/GemShopScreen` |
 | `PurchaseHistory` | — | (no header, screen renders its own) | `features/store/screens/PurchaseHistoryScreen` — orders + refund requests |
 | `Lesson` | `{ lessonId: string; unitLabel?: string; signsCount?: number; suggestedCourse?: { id: string; name: string } }` | (no header, screen renders its own) | `features/courses/screens/LessonScreen` |
 | `Notifications` | — | (no header, screen renders its own) | `features/social/screens/NotificationsScreen` |
