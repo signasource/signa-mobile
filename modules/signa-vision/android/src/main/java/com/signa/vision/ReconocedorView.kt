@@ -79,7 +79,16 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
       // que tenerlo prendido.
       if (!valor) post { esqueleto.limpiar() }
     }
+  /**
+   * Pausado deja de procesar cuadros, y entonces el esqueleto tiene que irse:
+   * si no, queda congelado el último encima de la persona al terminar el
+   * reconocimiento (mismo motivo que en [mostrarEsqueleto]).
+   */
   var activo = true
+    set(valor) {
+      field = valor
+      if (!valor) post { esqueleto.limpiar() }
+    }
 
   /**
    * Qué modelo decide: las señas dinámicas sobre una ventana de 2,5 s, o el
@@ -327,8 +336,12 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
     )
     if (mostrarEsqueleto) {
       val cuerpo = pose?.landmarks()?.firstOrNull()
+      val ancho = bitmap.width
+      val alto = bitmap.height
       post {
-        esqueleto.encuadre(bitmap.width, bitmap.height)
+        // Un cuadro que estaba en curso al pausar no lo vuelve a dibujar.
+        if (!activo || !mostrarEsqueleto) return@post
+        esqueleto.encuadre(ancho, alto)
         esqueleto.actualizar(cuerpo, izquierda, derecha)
       }
     }
