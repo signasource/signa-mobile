@@ -595,7 +595,18 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
       // visible. Medido, la segunda mano cuesta poco: MediaPipe sólo corre el
       // detector de palmas de nuevo cuando pierde una.
       val t0 = System.currentTimeMillis()
-      val d = Detectores.crear(context.applicationContext, manos = 2, video = usaVideo())
+      // En CPU y no en GPU. Solo, el detector rinde más en GPU (24 ms contra
+      // 32), pero dentro del ejercicio la GPU la comparten el avatar 3D, la
+      // previa de la cámara y el esqueleto. Medido en un Motorola Edge 30, con
+      // la mano en cuadro: GPU 95-138 ms y 7-9 cuadros por segundo; CPU 58-72
+      // ms y 12-14 (con dos manos, 130 contra 61). Mismo seguimiento, mismas
+      // señas, todas confirmadas en los dos.
+      // `adb shell setprop debug.signa.delegado gpu` vuelve a probar GPU.
+      val d = if (propiedad("debug.signa.delegado") == "gpu") {
+        Detectores.crear(context.applicationContext, manos = 2, video = usaVideo())
+      } else {
+        Detectores.crearEnCpu(context.applicationContext, video = usaVideo())
+      }
       val msCrear = System.currentTimeMillis() - t0
       // Calentar antes de dar por listo: la primera detección cuesta bastante
       // más que las siguientes, y ese costo no debe caer sobre la primera seña.

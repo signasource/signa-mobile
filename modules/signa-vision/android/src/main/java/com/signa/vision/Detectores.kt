@@ -80,8 +80,8 @@ class Detectores private constructor(
     }
 
     /** Sólo para medir: fuerza CPU y saltea el intento con GPU. */
-    fun crearEnCpu(contexto: Context, cadaCuantosPose: Int = 5): Detectores =
-      armar(contexto, Delegate.CPU, cadaCuantosPose, 2, true)
+    fun crearEnCpu(contexto: Context, cadaCuantosPose: Int = 5, video: Boolean = true): Detectores =
+      armar(contexto, Delegate.CPU, cadaCuantosPose, 2, video)
 
     /**
      * Los dos detectores, o ninguno.
