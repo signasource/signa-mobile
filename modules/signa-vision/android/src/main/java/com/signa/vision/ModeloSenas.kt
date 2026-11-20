@@ -26,6 +26,12 @@ class ModeloSenas(contexto: Context) {
   private val umbrales: Map<String, Float>
   private val sinPose: Boolean
 
+  /**
+   * La línea del espacio de seña con la que se armaron los clips de ESTE modelo
+   * (linea_de_sena en su metadata): Ventana tiene que usar la misma.
+   */
+  val linea: Float
+
   /** Clase de "no está haciendo nada". Nunca es una respuesta válida. */
   val reposo = "reposo"
 
@@ -46,6 +52,7 @@ class ModeloSenas(contexto: Context) {
     val u = json.getJSONObject("thresholds")
     umbrales = u.keys().asSequence().associateWith { u.getDouble(it).toFloat() }
     sinPose = json.optBoolean("poseIgnored", true)
+    linea = json.optDouble("linea", Ventana.LINEA_POR_OMISION.toDouble()).toFloat()
   }
 
   private val entrada = ByteBuffer.allocateDirect(4 * PASOS * Ventana.DIM).order(ByteOrder.nativeOrder())
@@ -73,13 +80,36 @@ class ModeloSenas(contexto: Context) {
     return salida[0]
   }
 
-  fun umbral(sena: String): Float = umbrales[sena] ?: 0.5f
+  /**
+   * La seña se busca por su CLAVE y no tal cual viene.
+   *
+   * El ejercicio pide la seña con el nombre del curso ("café", "mamá",
+   * "tarjeta de crédito", "cómo estás") y el modelo la conoce por el nombre de
+   * la carpeta del dataset ("cafe", "mama", "tarjetacredito", "comoestas").
+   * Comparando tal cual, 12 de las 27 señas daban -1: nunca se podían
+   * reconocer, y sus umbrales caían al 0,5 por omisión.
+   */
+  private val porClave: Map<String, Int> =
+    etiquetas.withIndex().associate { (i, e) -> clave(e) to i }
 
-  fun indice(sena: String): Int = etiquetas.indexOf(sena)
+  fun indice(sena: String): Int = porClave[clave(sena)] ?: -1
+
+  fun umbral(sena: String): Float =
+    indice(sena).takeIf { it >= 0 }?.let { umbrales[etiquetas[it]] } ?: 0.5f
 
   fun cerrar() = interprete.close()
 
   companion object {
     const val PASOS = 30
+
+    /**
+     * "Tarjeta de Crédito" → "tarjetacredito": sin tildes ni mayúsculas, sin
+     * el "de" y sin nada que no sea letra. La ñ pasa a n, como en "companero".
+     */
+    fun clave(sena: String): String =
+      java.text.Normalizer.normalize(sena.lowercase(), java.text.Normalizer.Form.NFD)
+        .replace(Regex("\\p{M}+"), "")
+        .replace(Regex("\\bde\\b"), "")
+        .replace(Regex("[^a-z]"), "")
   }
 }

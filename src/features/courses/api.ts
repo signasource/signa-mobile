@@ -77,7 +77,7 @@ export interface RoadmapLesson {
   xpTotal: number;
   signsCount: number;
   /**
-   * Sign meanings taught by this lesson, e.g. ["hola", "gracias"].
+   * Sign meanings taught by this lesson, e.g. ["hola", "chau"].
    * Populated server-side by BlockSignExtractor — requires backend support
    * in GET /learning/tracking/courses/{id}/roadmap. Falls back to client-side
    * extraction from lesson content when absent.

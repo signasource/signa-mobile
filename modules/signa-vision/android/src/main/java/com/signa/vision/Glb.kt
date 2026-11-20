@@ -60,6 +60,20 @@ object Glb {
     return null
   }
 
+  /**
+   * ¿El archivo está entero? Un .glb declara su largo total en la cabecera: si
+   * no coincide con lo que hay en disco, quedó cortado a mitad de escritura o de
+   * descarga. No detecta todo —un tramo en ceros con el largo justo pasa—, pero
+   * es gratis y ataja el caso de una escritura interrumpida.
+   */
+  fun entero(archivo: java.io.File): Boolean {
+    if (!archivo.isFile || archivo.length() < 12) return false
+    val cabecera = ByteArray(12)
+    java.io.RandomAccessFile(archivo, "r").use { it.readFully(cabecera) }
+    val b = ByteBuffer.wrap(cabecera).order(ByteOrder.LITTLE_ENDIAN)
+    return b.int == 0x46546C67 && b.int == 2 && b.int.toLong() == archivo.length()
+  }
+
   /** Devuelve el archivo arreglado, o el original si no hacía falta tocarlo. */
   fun sinWebp(bytes: ByteArray): ByteArray {
     val buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
@@ -100,7 +114,7 @@ object Glb {
 
       // JPEG salvo que la textura tenga transparencia —el pelo la usa—: PNG de
       // 1024x1024 tarda bastante más en comprimirse y ocupa varias veces más.
-      val conAlfa = mapa.hasAlpha()
+      val conAlfa = mapa.hasAlpha() && transparente(mapa)
       val salida = ByteArrayOutputStream()
       mapa.compress(
         if (conAlfa) Bitmap.CompressFormat.PNG else Bitmap.CompressFormat.JPEG,
@@ -206,6 +220,25 @@ object Glb {
       extra.write(ByteArray(largo))
       accessor.put("bufferView", vistas.length() - 1)
     }
+  }
+
+  /**
+   * ¿Algún píxel es de verdad transparente?
+   *
+   * `Bitmap.hasAlpha()` sólo dice que el formato TIENE canal alfa, y un webp
+   * decodificado puede traerlo aunque la imagen sea opaca entera. Creerle
+   * mandaba texturas opacas a PNG, varias veces más lento de comprimir que
+   * JPEG, en la primera carga de cada avatar. Recorrer los píxeles cuesta
+   * milisegundos al lado de eso.
+   */
+  private fun transparente(mapa: Bitmap): Boolean {
+    val ancho = mapa.width
+    val fila = IntArray(ancho)
+    for (y in 0 until mapa.height) {
+      mapa.getPixels(fila, 0, ancho, 0, y, ancho, 1)
+      for (p in fila) if ((p ushr 24) != 0xFF) return true
+    }
+    return false
   }
 
   private fun componentes(tipo: String) = when (tipo) {

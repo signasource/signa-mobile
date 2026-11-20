@@ -39,7 +39,7 @@ la dibuja ella misma.
 **Medido en el mismo teléfono 466 ms hasta verse**, contra 2752 ms. Con el
 archivo ya en disco, son ~250 ms.
 
-## Los cuatro problemas que hubo que resolver
+## Los problemas que hubo que resolver
 
 ### El modelo se veía todo negro
 
@@ -116,6 +116,26 @@ se probaba empezaba con M.
 
 La solución de fondo es del lado de los archivos reexportar M y N con el mismo
 esqueleto que los demás. Mientras tanto, la app no se cae.
+
+### Al repetir un ejercicio, el avatar salía sin cabeza ni manos
+
+Se veía el buzo en negro, los tirantes y los dientes flotando: el resto del
+cuerpo no estaba. No era la GPU ni la luz: **el archivo de la caché tenía un
+tramo en ceros**. En el `.glb` de "chau", todo lo que faltaba (pelo, cabeza,
+cuerpo, manos, pestañas, ojos) vive entre 0,85 y 1,42 MB, y todo lo que se veía
+está fuera de ese tramo.
+
+Cada vista baja y convierte su avatar en su propio hilo, y escribía en un
+temporal de nombre fijo. Con dos vistas de la misma seña a la vez (la del
+intento anterior que todavía no se desmontó y la nueva, o el picture-in-picture)
+la segunda truncaba el archivo mientras la primera escribía, y el hueco quedaba
+guardado en la caché para siempre.
+
+Ahora `AvatarView.descargar` toma **un candado por archivo** (la segunda vista
+espera y lee lo que dejó la primera; señas distintas siguen en paralelo),
+escribe en un **temporal propio** que sólo se renombra si quedó entero
+(`Glb.entero`: el largo de la cabecera coincide con el del archivo), y la caché
+pasó a la **versión 4** para que las ya dañadas se rehagan solas.
 
 ## Ventajas y desventajas del cambio
 

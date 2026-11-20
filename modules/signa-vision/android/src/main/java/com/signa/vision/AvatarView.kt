@@ -400,33 +400,42 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
         // Caché en disco: el mismo avatar aparece en varios ejercicios seguidos
         // y el .glb pesa megas. La versión web lo volvía a pedir cada vez que se
         // montaba el WebView.
-        val archivo = File(context.cacheDir, "avatares/" + desde.hashCode().toString() + ".glb")
-        if (!archivo.exists()) {
-          archivo.parentFile?.mkdirs()
-          val conexion = URL(desde).openConnection() as HttpURLConnection
-          // Corto a propósito: si el origen no responde, lo que importa es
-          // pasar al respaldo rápido y no dejar el avatar en blanco mientras
-          // se agota una espera larga.
-          conexion.connectTimeout = 4_000
-          conexion.readTimeout = 20_000
-          conexion.inputStream.use { entrada ->
-            val temporal = File(archivo.path + ".parcial")
-            temporal.outputStream().use { entrada.copyTo(it) }
-            temporal.renameTo(archivo)
+        //
+        // El número de versión va en el nombre de los DOS archivos: si cambia
+        // cómo se baja o se convierte, los viejos dejan de usarse solos en vez
+        // de quedar pegados en el teléfono.
+        val archivo = File(context.cacheDir, "avatares/v$VERSION_CACHE-${desde.hashCode()}.glb")
+        val listo = File(archivo.path + ".filament")
+
+        // Un candado por archivo. Cada vista baja en su propio hilo, y dos vistas
+        // de la misma seña a la vez —la del intento anterior que todavía no se
+        // desmontó y la nueva, el picture-in-picture— escribían el MISMO
+        // temporal: la segunda lo truncaba mientras la primera escribía, quedaba
+        // un tramo en ceros y eso se guardaba en la caché para siempre. Ceros en
+        // los vértices son mallas que desaparecen (la cabeza, las manos) y en las
+        // texturas, ropa negra: el avatar "roto" que aparecía al repetir un
+        // ejercicio. Con el candado la segunda espera y lee lo que dejó la
+        // primera; señas distintas siguen bajando en paralelo.
+        val bytes = synchronized(CANDADOS.computeIfAbsent(archivo.path) { Any() }) {
+          if (!Glb.entero(archivo)) {
+            archivo.parentFile?.mkdirs()
+            limpiarVersionesViejas(archivo.parentFile)
+            val conexion = URL(desde).openConnection() as HttpURLConnection
+            // Corto a propósito: si el origen no responde, lo que importa es
+            // pasar al respaldo rápido y no dejar el avatar en blanco mientras
+            // se agota una espera larga.
+            conexion.connectTimeout = 4_000
+            conexion.readTimeout = 20_000
+            escribirEntero(archivo) { salida -> conexion.inputStream.use { it.copyTo(salida) } }
           }
+          // La conversión de texturas es cara y se hace una sola vez: lo que
+          // queda en disco ya está listo para Filament.
+          if (!Glb.entero(listo)) {
+            val convertido = Glb.sinWebp(archivo.readBytes())
+            escribirEntero(listo) { it.write(convertido) }
+          }
+          listo.readBytes()
         }
-        // La conversión de texturas es cara y se hace una sola vez: lo que
-        // queda en disco ya está listo para Filament.
-        // El número va en el nombre: si cambia cómo se convierte, los archivos
-        // viejos dejan de usarse solos en vez de quedar pegados en el teléfono.
-        val listo = File(archivo.path + ".filament" + VERSION_CONVERSION)
-        if (!listo.exists()) {
-          val convertido = Glb.sinWebp(archivo.readBytes())
-          val temporal = File(listo.path + ".parcial")
-          temporal.writeBytes(convertido)
-          temporal.renameTo(listo)
-        }
-        val bytes = listo.readBytes()
         val msPreparar = System.currentTimeMillis() - t0
         post { if (!soltado) montar(bytes, msPreparar) }
       } catch (e: Throwable) {
@@ -550,8 +559,48 @@ class AvatarView(contexto: Context, appContext: AppContext) : ExpoView(contexto,
     /** Nanosegundos entre cuadros del avatar: 30 por segundo. */
     const val MS_ENTRE_CUADROS = 33_000_000L
 
-    /** Sube cuando cambia Glb.sinWebp(). Ver descargar(). */
-    const val VERSION_CONVERSION = 3
+    /**
+     * Sube cuando cambia cómo se baja o se convierte (Glb.sinWebp()): los
+     * archivos de otra versión se borran solos. Va en 4 por las cachés que dejó
+     * la carrera entre vistas (ver descargar()), que pueden estar dañadas.
+     */
+    const val VERSION_CACHE = 4
+
+    /** Un candado por archivo de la caché, compartido por todas las vistas. */
+    val CANDADOS = java.util.concurrent.ConcurrentHashMap<String, Any>()
+
+    @Volatile private var limpiado = false
+
+    /**
+     * Escribe en un temporal PROPIO y lo renombra sólo si quedó un .glb entero:
+     * un renombre es atómico, así que nadie llega a leer un archivo a medias.
+     */
+    fun escribirEntero(destino: File, escribir: (java.io.OutputStream) -> Unit) {
+      val temporal = File.createTempFile(destino.name, ".parcial", destino.parentFile)
+      try {
+        temporal.outputStream().use(escribir)
+        if (!Glb.entero(temporal)) throw java.io.IOException("${destino.name} quedó cortado")
+        if (!temporal.renameTo(destino)) throw java.io.IOException("no se pudo guardar ${destino.name}")
+      } finally {
+        temporal.delete()
+      }
+    }
+
+    /**
+     * Una vez por proceso: lo de otras versiones de la caché y temporales que
+     * quedaron de una app cerrada a mitad de descarga. Los temporales recientes
+     * no se tocan: pueden ser de otra seña bajando en paralelo en este momento.
+     */
+    fun limpiarVersionesViejas(carpeta: File?) {
+      if (limpiado || carpeta == null) return
+      limpiado = true
+      val propio = "v$VERSION_CACHE-"
+      val viejo = System.currentTimeMillis() - 10 * 60_000
+      carpeta.listFiles()?.forEach { f ->
+        val huerfano = f.name.endsWith(".parcial") && f.lastModified() < viejo
+        if (!f.name.startsWith(propio) || huerfano) f.delete()
+      }
+    }
 
     /** Grados. Los mismos que usa la versión web. */
     const val FOV = 15f

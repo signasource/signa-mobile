@@ -28,8 +28,9 @@ and [../rendimiento.md](../rendimiento.md).
 | Kotlin (`com.signa.vision`) | Role |
 |---|---|
 | `Reconocedor` / `ReconocedorView` | CameraX capture + view, draws the skeleton and emits the two events (frame summary ×2/s, sign ×12/s) |
+| `PistasDeManos` | which hand goes to which side of the vector, frame by frame: port of `signa-ml` `alphabet_rules.HandTracks` (each hand keeps its track through short losses and order swaps, the side is voted over time, duplicated and torso-sized "hands" are dropped) |
 | `Detectores` | MediaPipe Tasks (hands every frame, pose 1 in 5) in IMAGE mode on the analysis thread; GPU delegate with CPU fallback |
-| `Ventana` | the 258-number vector and the 2,5 s window — same maths as `signa-ml/src/data/normalization.py` |
+| `Ventana` | the 258-number vector and the in-space stretch (up to 2,5 s) — same maths as `signa-ml/src/inference/sign_runner.py` (`preparar` + `_Window`) |
 | `ModeloSenas` / `ModeloAbecedario` | the two TFLite models, run with **LiteRT** (`com.google.ai.edge.litert`, 16 KB page-aligned) |
 | `Confirmador` | confirms a sign held above its threshold for most of a stretch of **time**, not frames |
 | `Esqueleto` | skeleton drawing, smoothed by time constant |
@@ -39,8 +40,8 @@ and [../rendimiento.md](../rendimiento.md).
 
 Assets of the native recogniser live in `modules/signa-vision/android/src/main/assets/` (not in
 `android/app/…`, which `expo prebuild` regenerates): `hand_landmarker.task`, `pose_landmarker.task`,
-`modelo.tflite` (LSTM v9), `alfabeto.tflite`, `senas.json` / `alfabeto.json` (labels + calibrated
-thresholds), `golden*.json`; see `LEEME.md` there.
+`modelo.tflite` (LSTM v14 = `signa_model_v14_s42`, 32 signs + `reposo`), `alfabeto.tflite`, `senas.json` / `alfabeto.json` (labels + calibrated
+thresholds; `senas.json` also carries the signing-space `linea`), `golden*.json`; see `LEEME.md` there.
 
 **Without the module** (iOS, Expo Go): `hayNativo` is `false`; `PerformSignBlock` and `SpellNameBlock`
 show "Reconocimiento no disponible" with a "Continuar" button, and `LessonScreen` treats the block
@@ -63,7 +64,7 @@ static:   camera → MediaPipe → 21 landmarks + 21 world + face block → TFLi
 Neither model sees pixels. The dynamic one eats **258 numbers per frame** — 33 pose landmarks ×
 (x, y, z, visibility) plus 21 × (x, y, z) per hand — normalised against the shoulder centre and
 shoulder width, so the sign does not depend on where the person stands or how far away they are.
-`Ventana.kt` mirrors `signa-ml/src/data/normalization.py` exactly; any drift there shifts
+`Ventana.kt` mirrors `signa-ml/src/inference/sign_runner.py` exactly (checked on the JVM against Python: ≤ 5e-7); any drift there shifts
 the input distribution and the model degrades silently.
 
 The static model is different on purpose: its features (canonical coordinates, joint angles,
@@ -74,19 +75,32 @@ a train/serve mismatch impossible by construction.
 
 ## The window, and why it has rules
 
-The dynamic model decides over the **last 2,5 seconds**, always resampled to 30 evenly spaced steps.
-Not "the last 30 processed frames": at 12 fps that is 2,5 s and at 10 fps it is 3,0 s, so the same
-sign would reach the model stretched or squeezed depending on the phone.
+Before anything else, **y is rescaled to the dataset's 16:9**: MediaPipe gives x as a fraction of
+the frame's width and y of its height, and shoulder width is almost all horizontal, so with the
+phone upright (3:4) vertical motion arrived squeezed to less than half; v11 fell from 97% to 51%.
 
-Frames without hands never enter the window — 126 zeros where a sign should be is out-of-distribution
-input, and the model answers nonsense with full confidence. That alone is not enough: the window must
-also be **populated**. It needs at least 10 samples and no gap wider than 500 ms. Without that rule,
-losing track of the hands left two frames in the window — one old, one recent — which the resampler
-joined with a straight 30-step line. Measured with real clips, that fabricated line reads as a
-deliberate movement and scores 0,95–1,00 on a sign nobody performed.
+The window is the **stretch with hands in the signing space**, not a fixed clock. A hand whose
+wrist is below `linea` (1,5 shoulder widths under the shoulders, from `senas.json`) counts as
+absent and goes to zeros; a frame with no hand inside does not enter. The stretch lasts up to
+2,5 s and is resampled **by order** to 30 steps — exactly what was done to every clip in training,
+so a sign made faster or slower reaches the model the same. If the hands stay out for more than
+500 ms the stretch is cut: what comes next is another sign, and the smoothing and the votes reset.
+
+It is usable with at least 5 samples spanning **0,8 s**, the last one under 500 ms old. With half a
+second the window could be just the hand rising or falling past the belly, and `efectivo`/`bien`
+confirmed by themselves between signs (31 → 22-24 in a real session, same hits).
 
 `reposo` is not a sign. It is the "not signing anything" class the model needs so it does not fire at
 random. Never a valid answer, never shown, excluded from what a lesson may ask for.
+
+## Course names vs model labels
+
+A lesson asks for a sign by its **course name** ("café", "mamá", "tarjeta de crédito", "cómo
+estás") and the model knows it by its **dataset folder** ("cafe", "mama", "tarjetacredito",
+"comoestas"). Both sides are compared by a key — lowercase, no accents, no "de", letters only —
+in `ModeloSenas.clave` (Kotlin) and `signKey` (`features/ml/models/registry.ts`). Comparing them
+as-is made 12 of the 27 signs impossible to recognise and dropped their thresholds to the 0,5
+default. The native module still reports the sign by the name the lesson used.
 
 ## Verification, not identification
 
@@ -95,9 +109,16 @@ instead of requiring the target to beat every other class. It is an easier quest
 lets signs that split their probability with a lookalike (`mama`/`papa`) get through at all.
 
 Thresholds are per sign and come from `signa-ml/scripts/calibrate_signs.py`, calibrated over windows
-with realistic framings; they travel in `assets/models/lsa-signs-v9/manifest.json`. A sign is
-confirmed when it stays above its threshold for 60% of a 700 ms stretch — measured in time, not in
-frames, so it does not depend on the device's frame rate.
+with realistic framings and capped at 0,6; they travel in `senas.json`. A dynamic sign is
+confirmed when it is above its threshold for 60% of the votes over **500 ms** since it became the
+candidate (the alphabet keeps 700 ms) — measured in time, not in frames, so it does not depend on
+the device's frame rate. Lowering 700 → 500 ms and counting coverage from the candidate took real
+iPhone sessions from 22 to 26 of 28 hits.
+
+The v13/v14 models were trained to **not** confirm at the start of a sign: synthetic beginnings and
+"arrived and held still" as `reposo`, real false starts recorded in the `signa-ml` lab as
+`reposo`, full signs recorded there as positives, and a velocity layer inside the model (input is
+still 258). Test 88,3% per clip.
 
 ## Permissions
 
@@ -119,8 +140,11 @@ not to judge recognition. Test on a phone.
 2. **The dataset is one person.** 60 clips per sign, all from the same signer, the same camera and
    the same room. Expect numbers to drop the first time somebody else uses it; augmentation does not
    simulate inter-person variation.
-3. **Four signs plus the alphabet.** Out-of-fold identification is 83% over five classes. Enough for
-   a guided exercise where the app already knows what it asked for; not enough for open recognition.
+3. **32 signs plus the alphabet.** Test identification is 89% over 33 classes (v14 added `mal`, `yo`, `vos`, `chau`, `hola` without moving the other 27: same live hits as v13). Enough for a guided
+   exercise where the app already knows what it asked for; not enough for open recognition. Known
+   weak spots in live use: `papa` and `efectivo` are hard to get, and `companero`, `transferencia`,
+   `hijo` and `mercadopago` can confirm without their key part (joining, rotating, passing the
+   throat, the hit). A lesson only asks for the signs its course content in signa-api includes.
 4. **Android only.** No `signa-vision` on iOS: the camera exercises are skipped there.
 
 See [../status.md](../status.md).
