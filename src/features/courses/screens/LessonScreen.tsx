@@ -104,6 +104,8 @@ export function LessonScreen({ route, navigation }: Props) {
   const lives = livesState.ready ? livesState.lives : STARTING_LIVES;
   const unlimitedLives = livesState.unlimited;
   const [gems, setGems] = useState<number | undefined>(undefined);
+  const [xpMultiplierExpiresAt, setXpMultiplierExpiresAt] = useState<string | null>(null);
+  const [xpMultiplierValue, setXpMultiplierValue] = useState(1);
   const [storedInfiniteLives, setStoredInfiniteLives] = useState(0);
   const [activatingInfinite, setActivatingInfinite] = useState(false);
   const [correctBlockIds, setCorrectBlockIds] = useState<Set<string>>(new Set());
@@ -141,6 +143,8 @@ export function LessonScreen({ route, navigation }: Props) {
         if (inventoryRes?.data) {
           setLivesSource(inventoryRes.data);
           setGems(inventoryRes.data.gems);
+          setXpMultiplierExpiresAt(inventoryRes.data.xpMultiplierExpiresAt ?? null);
+          setXpMultiplierValue(inventoryRes.data.effectiveXpMultiplier);
         }
         if (boostersRes?.data) {
           setStoredInfiniteLives(boostersRes.data.unlimitedLives);
@@ -343,6 +347,8 @@ export function LessonScreen({ route, navigation }: Props) {
           signsLearned={signsCount ?? 0}
           onClose={volver}
           onRestart={resetProgress}
+          xpMultiplierValue={xpMultiplierValue}
+          xpMultiplierExpiresAt={xpMultiplierExpiresAt}
           suggestion={
             suggestedCourse && !incomplete
               ? {

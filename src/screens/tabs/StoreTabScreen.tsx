@@ -428,12 +428,12 @@ export function StoreTabScreen() {
       const { data } = await shopApi.purchase(item.id);
       setInventory(data.inventory);
       if (item.itemType === "MYSTERY_CHEST") {
-        setFlow({ step: "opening", item, effect: data.effect });
+        setFlow({ step: "opening", item, effect: data.effect ?? undefined });
         openTimer.current = setTimeout(() => {
-          setFlow({ step: "success", item, effect: data.effect });
+          setFlow({ step: "success", item, effect: data.effect ?? undefined });
         }, 1400);
       } else {
-        setFlow({ step: "success", item, effect: data.effect });
+        setFlow({ step: "success", item, effect: data.effect ?? undefined });
       }
     } catch (err: any) {
       const message: string | undefined = err?.response?.data?.message;

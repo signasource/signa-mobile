@@ -51,7 +51,8 @@ export interface PurchaseResult {
   item: ShopItem;
   gemsSpent: number;
   purchasedAt: string;
-  effect: AppliedEffect;
+  /** Null for booster activations (XP_MULTIPLIER, UNLIMITED_LIVES): they are stored, not applied immediately. */
+  effect: AppliedEffect | null;
   inventory: ShopInventory;
 }
 

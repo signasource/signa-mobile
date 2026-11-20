@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts } from "@/theme";
 import { NavIconButton } from "@/components/BackButton";
 import { LessonButton } from "./LessonButton";
+import { useSecondsLeft, formatCountdown } from "@/hooks/useSecondsLeft";
 import ManoLeccionFinalizada from "@assets/ilus/mano-leccion-finalizada.svg";
 
 interface LessonCompleteProps {
@@ -20,6 +21,10 @@ interface LessonCompleteProps {
   onRestart: () => void;
   /** Paid course to suggest below the stats (only when a unit was just closed). */
   suggestion?: { name: string; onOpen: () => void };
+  /** Active XP multiplier value (e.g. 2.0); omit or pass 1 when inactive. */
+  xpMultiplierValue?: number;
+  /** ISO expiry of the active XP multiplier; drives the countdown shown on the XP card. */
+  xpMultiplierExpiresAt?: string | null;
 }
 
 export function LessonComplete({
@@ -33,13 +38,18 @@ export function LessonComplete({
   onClose,
   onRestart,
   suggestion,
+  xpMultiplierValue,
+  xpMultiplierExpiresAt,
 }: LessonCompleteProps) {
+  const xpSecs = useSecondsLeft(xpMultiplierExpiresAt);
+  const multiplierActive = !incomplete && (xpMultiplierValue ?? 1) > 1 && xpSecs > 0;
+
   // Only what the user actually earned is worth a card; zeroes read as failure.
   const stats = [
     {
       key: "xp",
       icon: "flash" as const,
-      color: colors.primary,
+      color: multiplierActive ? colors.warning : colors.primary,
       // Una lección incompleta no acredita XP al total: el XP queda a la espera de completarla.
       value: incomplete ? `${xpEarned}` : `+${xpEarned}`,
       label: incomplete ? "XP al completar" : "XP ganado",
@@ -80,16 +90,31 @@ export function LessonComplete({
 
         {stats.length > 0 && (
           <View style={styles.statsRow}>
-            {stats.map((stat) => (
-              <View
-                key={stat.key}
-                style={[styles.statCard, stats.length > 1 ? styles.statCardFlex : styles.statCardSingle]}
-              >
-                <Ionicons name={stat.icon} size={22} color={stat.color} />
-                <Text style={styles.statValue}>{stat.value}</Text>
-                <Text style={styles.statLabel}>{stat.label}</Text>
-              </View>
-            ))}
+            {stats.map((stat) => {
+              const isXp = stat.key === "xp";
+              const boosted = isXp && multiplierActive;
+              return (
+                <View
+                  key={stat.key}
+                  style={[
+                    styles.statCard,
+                    stats.length > 1 ? styles.statCardFlex : styles.statCardSingle,
+                    boosted && styles.statCardBoosted,
+                  ]}
+                >
+                  <Ionicons name={stat.icon} size={22} color={stat.color} />
+                  <Text style={styles.statValue}>{stat.value}</Text>
+                  <Text style={styles.statLabel}>{stat.label}</Text>
+                  {boosted && (
+                    <View style={styles.boostBadge}>
+                      <Text style={styles.boostBadgeText}>
+                        x{xpMultiplierValue} · {formatCountdown(xpSecs)} restantes
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
           </View>
         )}
 
@@ -177,6 +202,23 @@ const styles = StyleSheet.create({
   },
   statCardFlex: { flex: 1 },
   statCardSingle: { width: 160 },
+  statCardBoosted: {
+    backgroundColor: colors.warningLight,
+    borderColor: colors.warning,
+  },
+  boostBadge: {
+    backgroundColor: colors.warning,
+    borderRadius: 8,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    marginTop: 2,
+  },
+  boostBadgeText: {
+    fontFamily: fonts.displayBold,
+    fontSize: 10.5,
+    color: colors.text,
+    textAlign: "center",
+  },
   footer: { padding: 20, gap: 10 },
   suggestion: {
     alignSelf: "stretch",
