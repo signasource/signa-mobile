@@ -13,7 +13,7 @@ import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
  * Suaviza por TIEMPO y no por cuadro dibujado: con un factor fijo por cuadro,
  * en un teléfono lento el esqueleto tardaba casi un segundo en alcanzar la mano
  * y se veía arrastrado. Con una constante de tiempo converge siempre en los
- * mismos ~70 ms reales, dibuje a 60 cuadros por segundo o a 8.
+ * mismos ~35 ms reales, dibuje a 60 cuadros por segundo o a 8.
  */
 class Esqueleto(contexto: Context) : View(contexto) {
 
@@ -28,12 +28,14 @@ class Esqueleto(contexto: Context) : View(contexto) {
   // La demo dibuja en píxeles de CSS sobre un lienzo escalado por la densidad
   // de pantalla; acá el lienzo está en píxeles reales, así que los mismos
   // números se ven tres veces más finos en un teléfono. Todo va en dp.
+  // Y va más grueso que la demo: la previa ocupa la pantalla entera, la mano
+  // queda grande, y con el trazo de la demo se veía flaco.
   private val dp = contexto.resources.displayMetrics.density
 
-  private val haloPose = trazo(Color.argb(83, 255, 255, 255), 6f * dp)
-  private val lineaPose = trazo(conAlfa(ACENTO, 166), 2.6f * dp)
-  private val haloMano = trazo(Color.argb(230, 255, 255, 255), 5f * dp)
-  private val lineaMano = trazo(ACENTO, 2.4f * dp)
+  private val haloPose = trazo(Color.argb(83, 255, 255, 255), 7.5f * dp)
+  private val lineaPose = trazo(conAlfa(ACENTO, 166), 3.4f * dp)
+  private val haloMano = trazo(Color.argb(230, 255, 255, 255), 7.5f * dp)
+  private val lineaMano = trazo(ACENTO, 3.8f * dp)
   private val puntoHalo = Paint().apply { color = Color.argb(230, 255, 255, 255); isAntiAlias = true }
   private val puntoAcento = Paint().apply { color = ACENTO; isAntiAlias = true }
   private val puntoHaloPose = Paint().apply { color = Color.argb(150, 255, 255, 255); isAntiAlias = true }
@@ -67,6 +69,7 @@ class Esqueleto(contexto: Context) : View(contexto) {
   private var poseDestino: FloatArray? = null
   private val manos = HashMap<String, FloatArray>()
   private val manosDestino = HashMap<String, FloatArray>()
+  private val manoVista = HashMap<String, Long>()
   private var ultimoDibujo = 0L
 
   /** Sólo torso y brazos: las piernas no aportan a la seña y ensucian el cuadro. */
@@ -94,11 +97,20 @@ class Esqueleto(contexto: Context) : View(contexto) {
     poseDestino = poseNueva?.let { aplanar(it) }
     if (poseDestino != null && pose == null) pose = poseDestino!!.copyOf()
 
-    manosDestino.clear()
-    izquierda?.let { manosDestino["izq"] = aplanar(it) }
-    derecha?.let { manosDestino["der"] = aplanar(it) }
+    val ahora = System.nanoTime() / 1_000_000
+    izquierda?.let { manosDestino["izq"] = aplanar(it); manoVista["izq"] = ahora }
+    derecha?.let { manosDestino["der"] = aplanar(it); manoVista["der"] = ahora }
+    // Una mano que el detector pierde un instante —un cuadro movido— sigue
+    // dibujada donde estaba hasta [MANTENER_MS]: si no, el esqueleto parpadea
+    // con cada cuadro perdido. Pasado eso deja de dibujarse, en vez de quedar
+    // congelada. Es sólo el dibujo: el reconocedor ve lo que vio el detector.
+    for (k in listOf("izq", "der")) {
+      if (ahora - (manoVista[k] ?: 0L) > MANTENER_MS) {
+        manosDestino.remove(k)
+        manoVista.remove(k)
+      }
+    }
     for ((k, v) in manosDestino) if (!manos.containsKey(k)) manos[k] = v.copyOf()
-    // Una mano que desaparece deja de dibujarse en vez de quedar congelada.
     manos.keys.retainAll(manosDestino.keys)
 
     postInvalidateOnAnimation()
@@ -109,6 +121,7 @@ class Esqueleto(contexto: Context) : View(contexto) {
     pose = null
     manos.clear()
     manosDestino.clear()
+    manoVista.clear()
     postInvalidateOnAnimation()
   }
 
@@ -160,8 +173,8 @@ class Esqueleto(contexto: Context) : View(contexto) {
     for (i in puntosPose) {
       val x = px(actual[i * 2])
       val y = py(actual[i * 2 + 1])
-      lienzo.drawCircle(x, y, 5f * dp, puntoHaloPose)
-      lienzo.drawCircle(x, y, 3.4f * dp, puntoAcentoPose)
+      lienzo.drawCircle(x, y, 6f * dp, puntoHaloPose)
+      lienzo.drawCircle(x, y, 4.2f * dp, puntoAcentoPose)
     }
 
     for (v in manos.values) {
@@ -173,8 +186,8 @@ class Esqueleto(contexto: Context) : View(contexto) {
       for (i in 0 until v.size / 2) {
         val x = px(v[i * 2])
         val y = py(v[i * 2 + 1])
-        val r = (if (i == 0) 5f else if (i in puntas) 4.2f else 3f) * dp
-        lienzo.drawCircle(x, y, r + 1.5f * dp, puntoHalo)
+        val r = (if (i == 0) 6f else if (i in puntas) 5.2f else 3.8f) * dp
+        lienzo.drawCircle(x, y, r + 2f * dp, puntoHalo)
         lienzo.drawCircle(x, y, r, puntoAcento)
       }
     }
@@ -184,6 +197,14 @@ class Esqueleto(contexto: Context) : View(contexto) {
 
   companion object {
     private const val ACENTO = 0xFF7857FF.toInt()
-    private const val TAU = 70.0
+    /**
+     * La constante del suavizado. Era 70 ms y el esqueleto llegaba tarde a la
+     * mano en cualquier movimiento rápido; 35 es lo que da el 0,35 por cuadro
+     * de la web a 60 cuadros por segundo.
+     */
+    private const val TAU = 35.0
+
+    /** Cuánto se sigue dibujando una mano que el detector dejó de ver. */
+    private const val MANTENER_MS = 150L
   }
 }

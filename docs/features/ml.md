@@ -29,11 +29,11 @@ and [../rendimiento.md](../rendimiento.md).
 |---|---|
 | `Reconocedor` / `ReconocedorView` | CameraX capture + view, draws the skeleton and emits the two events (frame summary ×2/s, sign ×12/s) |
 | `PistasDeManos` | which hand goes to which side of the vector, frame by frame: port of `signa-ml` `alphabet_rules.HandTracks` (each hand keeps its track through short losses and order swaps, the side is voted over time, duplicated and torso-sized "hands" are dropped) |
-| `Detectores` | MediaPipe Tasks (hands every frame, pose 1 in 5) in IMAGE mode on the analysis thread; GPU delegate with CPU fallback |
+| `Detectores` | MediaPipe Tasks (hands every frame, pose 1 in 5) on the analysis thread; GPU delegate with CPU fallback. Signs run in VIDEO mode (tracking between frames, as `tasks_extractor.py` extracted the dataset); the alphabet runs in IMAGE mode with detection confidence 0.4, like its dataset |
 | `Ventana` | the 258-number vector and the in-space stretch (up to 2,5 s) — same maths as `signa-ml/src/inference/sign_runner.py` (`preparar` + `_Window`) |
 | `ModeloSenas` / `ModeloAbecedario` | the two TFLite models, run with **LiteRT** (`com.google.ai.edge.litert`, 16 KB page-aligned) |
 | `Confirmador` | confirms a sign held above its threshold for most of a stretch of **time**, not frames |
-| `Esqueleto` | skeleton drawing, smoothed by time constant |
+| `Esqueleto` | skeleton drawing, smoothed by a 35 ms time constant; a hand the detector loses for up to 150 ms stays drawn (drawing only, the recognizer sees what the detector saw) |
 | `Golden` | checks window + model against the Python pipeline's probabilities on real sequences (expected difference ≈ 0) |
 | `AvatarView` / `MotorFilament` / `Glb` / `Reflejos` | the **3D avatar** with Filament (one shared engine for the whole app; converts the `.glb`'s webp textures once and caches the file on disk) — see [../avatar-3d.md](../avatar-3d.md) |
 | `SignaVisionModule` | the Expo module surface |

@@ -7,7 +7,15 @@ import android.graphics.Canvas
 import android.graphics.Matrix
 import android.util.Log
 import android.widget.FrameLayout
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CaptureRequest
+import android.util.Range
+import androidx.camera.camera2.interop.Camera2CameraInfo
+import androidx.camera.camera2.interop.Camera2Interop
+import androidx.camera.camera2.interop.ExperimentalCamera2Interop
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ExtendableBuilder
+import androidx.camera.core.UseCase
 import androidx.camera.core.DynamicRange
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
@@ -100,8 +108,20 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
       field = valor
       val anterior = reconocedor
       reconocedor = null
-      hilo.execute { anterior?.cerrar() }
+      hilo.execute {
+        anterior?.cerrar()
+        // Señas y abecedario no usan el mismo modo de MediaPipe (ver
+        // Detectores): si los que hay son del otro, se rehacen.
+        val det = detectores
+        if (det != null && det.video != usaVideo()) {
+          det.cerrar()
+          detectores = null
+          pistas.reiniciar()
+        }
+      }
     }
+
+  private fun usaVideo() = modo != "estatico"
 
   /**
    * Señas que este ejercicio acepta. Con la lista vacía no se infiere nada: la
@@ -194,6 +214,9 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
   private var armada = false
   private var avisadoDeFallo = false
 
+  /** El rango de fps con que quedó la cámara, para la telemetría. */
+  @Volatile private var rangoUsado = "auto"
+
   private fun arrancar() {
     if (armada) return
     val duenio = appContext.currentActivity as? LifecycleOwner
@@ -210,61 +233,35 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
       val proveedor = futuro.get()
       proveedorCamara = proveedor
 
-      // Rango dinámico estándar y explícito: dejándolo en automático, CameraX
-      // pregunta al aparato qué perfiles soporta, y hay HAL que informan uno
-      // que ninguna versión sabe convertir (visto: "profile ... 8192"), lo que
-      // tira abajo el enlazado entero. Para reconocer señas no hace falta HDR.
-      val previa = Preview.Builder()
-        .setDynamicRange(DynamicRange.SDR)
-        .build()
-        .also { it.setSurfaceProvider(vista.surfaceProvider) }
-
-      // Configuración mínima a propósito: pedir una resolución puntual y un
-      // formato de salida distinto del natural hacía que la sesión de captura
-      // no llegara a abrirse nunca —cinco timeouts seguidos y la pantalla en
-      // negro—. Con los valores por omisión, CameraX elige una combinación que
-      // el aparato soporta seguro. Lo único que se conserva es descartar el
-      // cuadro que llega mientras se procesa el anterior: el esqueleto tiene
-      // que mostrar el presente, no una cola de pasado.
-      val analisis = ImageAnalysis.Builder()
-        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-        // RGBA y no el YUV natural: la conversión a bitmap queda directa y no
-        // depende de cómo entregue el plano cada aparato.
-        .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
-        .build()
-
-      analisis.setAnalyzer(hilo) { imagen ->
-        try {
-          if (activo && !soltando) procesar(imagen)
-        } catch (e: Throwable) {
-          // Sin este catch, una excepción en el primer cuadro mata el hilo de
-          // análisis sin decir nada: la pantalla queda en negro para siempre y
-          // no hay forma de saber por qué.
-          if (!avisadoDeFallo) {
-            avisadoDeFallo = true
-            Log.e(ETIQUETA, "falló al procesar el cuadro", e)
-            post { onListo(mapOf("fase" to "error", "error" to ("cuadro: " + (e.message ?: e.toString())))) }
-          }
-        } finally {
-          imagen.close()
-        }
-      }
-
       val selector =
         if (usarTrasera) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA
-      proveedor.unbindAll()
-      try {
-        proveedor.bindToLifecycle(duenio, selector, previa, analisis)
-        Log.i(ETIQUETA, "cámara enlazada con previa")
-      } catch (e: Throwable) {
-        // Segundo intento sin la previa. El reconocimiento sólo necesita los
-        // cuadros del analizador; la imagen en pantalla es deseable pero no
-        // indispensable, y vale más un reconocedor sin previa que ninguno.
-        Log.w(ETIQUETA, "falló con previa, se reintenta sólo con análisis: " + e.message)
-        proveedor.unbindAll()
-        proveedor.bindToLifecycle(duenio, selector, analisis)
-        Log.i(ETIQUETA, "cámara enlazada sin previa")
+      val rango = rangoDeFps(proveedor, selector)
+
+      // De a un intento por vez, del más completo al mínimo. El reconocimiento
+      // sólo necesita los cuadros del analizador; la imagen en pantalla y el
+      // rango de fps son deseables pero no indispensables, y vale más un
+      // reconocedor sin ellos que ninguno.
+      val intentos = listOfNotNull(
+        rango?.let { Triple(true, it, "con previa y $it fps") },
+        Triple(true, null, "con previa"),
+        Triple(false, null, "sin previa"),
+      )
+      var ultimoError: Throwable? = null
+      for ((conPrevia, fps, nombre) in intentos) {
+        try {
+          proveedor.unbindAll()
+          val casos = casosDeUso(fps, conPrevia)
+          proveedor.bindToLifecycle(duenio, selector, *casos)
+          Log.i(ETIQUETA, "cámara enlazada $nombre")
+          rangoUsado = fps?.toString() ?: "auto"
+          ultimoError = null
+          break
+        } catch (e: Throwable) {
+          Log.w(ETIQUETA, "falló la cámara $nombre: " + e.message)
+          ultimoError = e
+        }
       }
+      ultimoError?.let { throw it }
       } catch (e: Throwable) {
         // Sin esto el fallo se pierde adentro del listener y la pantalla queda
         // en "esperando el primer cuadro" para siempre, sin decir por qué.
@@ -273,6 +270,87 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
         onListo(mapOf("fase" to "error", "error" to ("cámara: " + (e.message ?: e.toString()))))
       }
     }, androidx.core.content.ContextCompat.getMainExecutor(context))
+  }
+
+  /**
+   * Previa y análisis. `fps` fija el rango de cuadros por segundo de la
+   * exposición automática.
+   *
+   * Por qué importa: con luz de interior la cámara frontal baja a 15 cuadros
+   * por segundo o menos para exponer más tiempo, hasta 1/15 s por cuadro. Una
+   * mano que se mueve durante esa exposición sale corrida, y una mano corrida
+   * es la que MediaPipe deja de ver. Con un piso de 24 o 30 cuadros, cada
+   * cuadro expone 1/30 s como mucho: la imagen sale un poco más oscura y con
+   * más grano, pero la mano sale nítida, y el grano le molesta mucho menos al
+   * detector que lo borroso.
+   */
+  @androidx.annotation.OptIn(markerClass = [ExperimentalCamera2Interop::class])
+  private fun casosDeUso(fps: Range<Int>?, conPrevia: Boolean): Array<UseCase> {
+    fun <T> conFps(b: ExtendableBuilder<T>) {
+      if (fps != null) Camera2Interop.Extender(b).setCaptureRequestOption(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, fps)
+    }
+
+    // Rango dinámico estándar y explícito: dejándolo en automático, CameraX
+    // pregunta al aparato qué perfiles soporta, y hay HAL que informan uno
+    // que ninguna versión sabe convertir (visto: "profile ... 8192"), lo que
+    // tira abajo el enlazado entero. Para reconocer señas no hace falta HDR.
+    val previa = Preview.Builder()
+      .setDynamicRange(DynamicRange.SDR)
+      .also { conFps(it) }
+      .build()
+      .also { it.setSurfaceProvider(vista.surfaceProvider) }
+
+    // Configuración mínima a propósito: pedir una resolución puntual y un
+    // formato de salida distinto del natural hacía que la sesión de captura
+    // no llegara a abrirse nunca —cinco timeouts seguidos y la pantalla en
+    // negro—. Con los valores por omisión, CameraX elige una combinación que
+    // el aparato soporta seguro. Lo único que se conserva es descartar el
+    // cuadro que llega mientras se procesa el anterior: el esqueleto tiene
+    // que mostrar el presente, no una cola de pasado.
+    val analisis = ImageAnalysis.Builder()
+      .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+      // RGBA y no el YUV natural: la conversión a bitmap queda directa y no
+      // depende de cómo entregue el plano cada aparato.
+      .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
+      .also { conFps(it) }
+      .build()
+
+    analisis.setAnalyzer(hilo) { imagen ->
+      try {
+        if (activo && !soltando) procesar(imagen)
+      } catch (e: Throwable) {
+        // Sin este catch, una excepción en el primer cuadro mata el hilo de
+        // análisis sin decir nada: la pantalla queda en negro para siempre y
+        // no hay forma de saber por qué.
+        if (!avisadoDeFallo) {
+          avisadoDeFallo = true
+          Log.e(ETIQUETA, "falló al procesar el cuadro", e)
+          post { onListo(mapOf("fase" to "error", "error" to ("cuadro: " + (e.message ?: e.toString())))) }
+        }
+      } finally {
+        imagen.close()
+      }
+    }
+    return if (conPrevia) arrayOf(previa, analisis) else arrayOf(analisis)
+  }
+
+  /**
+   * El rango con el piso más alto entre los que la cámara declara, sin pasar
+   * de 30: más de 30 no le suma nada al detector y le resta luz a la imagen.
+   * Null si no declara ninguno con piso de 24 o más (algunos declaran los
+   * rangos multiplicados por mil): ahí se deja la exposición como venga.
+   */
+  @androidx.annotation.OptIn(markerClass = [ExperimentalCamera2Interop::class])
+  private fun rangoDeFps(proveedor: ProcessCameraProvider, selector: CameraSelector): Range<Int>? = try {
+    val info = selector.filter(proveedor.availableCameraInfos).firstOrNull()
+    val rangos = info?.let {
+      Camera2CameraInfo.from(it).getCameraCharacteristic(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES)
+    }
+    rangos?.filter { it.lower >= 24 && it.upper <= 30 }
+      ?.maxWithOrNull(compareBy<Range<Int>>({ it.lower }, { it.upper }))
+  } catch (e: Throwable) {
+    Log.w(ETIQUETA, "no se pudo leer el rango de fps: ${e.message}")
+    null
   }
 
   private var avisadoPrimerCuadro = false
@@ -325,7 +403,7 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
     Canvas(destino).drawBitmap(origen, matriz, filtro)
     val bitmap = destino
 
-    val (manos, pose) = det.procesar(BitmapImageBuilder(bitmap).build())
+    val (manos, pose) = det.procesar(BitmapImageBuilder(bitmap).build(), imagen.imageInfo.timestamp / 1_000_000)
 
     val ahora = System.currentTimeMillis()
     val (izquierda, derecha) = pistas.repartir(
@@ -396,6 +474,8 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
           "manos" to ((if (izquierda != null) 1 else 0) + (if (derecha != null) 1 else 0)),
           "cuerpo" to (pose?.landmarks()?.isNotEmpty() == true),
           "delegado" to (if (det.enGpu) "GPU" else "CPU"),
+          "modoDetector" to (if (det.video) "VIDEO" else "IMAGE"),
+          "rangoFps" to rangoUsado,
           "ancho" to bitmap.width,
           "inferenciaMs" to (reconocedor?.msInferencia ?: 0.0),
           // Dos veces por segundo alcanza para ver si la memoria crece, que es
@@ -456,7 +536,7 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
       // visible. Medido, la segunda mano cuesta poco: MediaPipe sólo corre el
       // detector de palmas de nuevo cuando pierde una.
       val t0 = System.currentTimeMillis()
-      val d = Detectores.crear(context.applicationContext, manos = 2)
+      val d = Detectores.crear(context.applicationContext, manos = 2, video = usaVideo())
       val msCrear = System.currentTimeMillis() - t0
       // Calentar antes de dar por listo: la primera detección cuesta bastante
       // más que las siguientes, y ese costo no debe caer sobre la primera seña.
