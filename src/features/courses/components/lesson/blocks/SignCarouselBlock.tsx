@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { StyleSheet, TouchableOpacity, View, ViewStyle } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { Pressable, StyleSheet, TouchableOpacity, View, ViewStyle } from "react-native";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts, alpha } from "@/theme";
@@ -40,8 +40,18 @@ interface CarouselAnimationProps {
  */
 function CarouselAnimation({ options, activeIndex, tone, paused, style }: CarouselAnimationProps) {
   const [failed, setFailed] = useState(false);
+  const [vista, setVista] = useState<"frente" | "lateral">("frente");
   const wrong = tone === "wrong";
-  const urls = urlsDeSenas(useSignSources(options));
+  const fuentes = useSignSources(options);
+  const activa = fuentes[activeIndex];
+  // Las señas en video pueden traer además una toma lateral.
+  const lateral = activa?.format === "mp4" ? activa.lateralUrl ?? null : null;
+  const urls = urlsDeSenas(fuentes).map((u, i) => (i === activeIndex && vista === "lateral" && lateral ? lateral : u));
+
+  // Al cambiar de opción se vuelve a la toma de frente.
+  useEffect(() => {
+    setVista("frente");
+  }, [activeIndex]);
 
   return (
     <View style={[animStyles.container, wrong && animStyles.containerWrong, style]}>
@@ -50,6 +60,23 @@ function CarouselAnimation({ options, activeIndex, tone, paused, style }: Carous
           Opción {activeIndex + 1} de {options.length}
         </Text>
       </View>
+      {lateral && (
+        <View style={animStyles.vistas} accessibilityRole="tablist">
+          {(["frente", "lateral"] as const).map((v) => (
+            <Pressable
+              key={v}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: vista === v }}
+              onPress={() => setVista(v)}
+              style={[animStyles.vista, vista === v && animStyles.vistaActiva]}
+            >
+              <Text style={[animStyles.vistaTexto, vista === v && animStyles.vistaTextoActivo]}>
+                {v === "frente" ? "Frente" : "Lateral"}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
 
       {!failed ? (
         <MultiAvatarNativo
@@ -98,6 +125,21 @@ const animStyles = StyleSheet.create({
     fontSize: 11.5,
     color: colors.textMuted,
   },
+  vistas: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    zIndex: 1,
+    flexDirection: "row",
+    gap: 2,
+    padding: 2,
+    borderRadius: 9,
+    backgroundColor: alpha(colors.onColor, 0.94),
+  },
+  vista: { borderRadius: 7, paddingVertical: 4, paddingHorizontal: 9 },
+  vistaActiva: { backgroundColor: colors.text },
+  vistaTexto: { fontFamily: fonts.bodySemiBold, fontSize: 11.5, color: colors.textMuted },
+  vistaTextoActivo: { color: colors.surface },
 });
 
 // ── Block ────────────────────────────────────────────────────────────────────
