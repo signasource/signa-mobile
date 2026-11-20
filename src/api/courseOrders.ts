@@ -44,7 +44,7 @@ export const courseOrdersApi = {
     apiClient.get<{ eligible: boolean; reason?: string }>(
       `/store/course-orders/${orderId}/refund-eligibility`,
     ),
-  createRefundRequest: (orderId: string, data: { reason: string; message: string }) =>
+  createRefundRequest: (orderId: string, data: { reason: string; message?: string }) =>
     apiClient.post<import("@/api/gemOrders").UserRefundRequest>(
       `/store/course-orders/${orderId}/refund-request`,
       data,

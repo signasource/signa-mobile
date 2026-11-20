@@ -78,6 +78,6 @@ export const gemOrdersApi = {
   getHistory: () => apiClient.get<GemOrderHistoryItem[]>("/store/gem-orders"),
   checkRefundEligibility: (orderId: string) =>
     apiClient.get<RefundEligibilityResult>(`/store/gem-orders/${orderId}/refund-eligibility`),
-  createRefundRequest: (orderId: string, data: { reason: string; message: string }) =>
+  createRefundRequest: (orderId: string, data: { reason: string; message?: string }) =>
     apiClient.post<UserRefundRequest>(`/store/gem-orders/${orderId}/refund-request`, data),
 };

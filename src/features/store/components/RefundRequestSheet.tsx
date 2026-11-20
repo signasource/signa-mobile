@@ -59,16 +59,12 @@ export function RefundRequestSheet({ target, onClose, onSubmitted }: Props) {
     setSubmitting(true);
     try {
       let res;
+      const trimmed = message.trim();
+      const body = { reason, ...(trimmed ? { message: trimmed } : {}) };
       if (target.kind === "gems") {
-        res = await gemOrdersApi.createRefundRequest(target.order.id, {
-          reason,
-          message: message.trim(),
-        });
+        res = await gemOrdersApi.createRefundRequest(target.order.id, body);
       } else {
-        res = await courseOrdersApi.createRefundRequest(target.order.id, {
-          reason,
-          message: message.trim(),
-        });
+        res = await courseOrdersApi.createRefundRequest(target.order.id, body);
       }
       setSent(true);
       onSubmitted(res.data);
