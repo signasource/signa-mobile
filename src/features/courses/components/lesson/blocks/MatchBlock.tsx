@@ -117,8 +117,6 @@ function shuffled<T>(items: T[]): T[] {
 
 type Kind = "sign" | "word";
 
-/** Shared by both columns so sign cells line up with word tiles. */
-const ROW_HEIGHT = 96;
 const ROW_GAP = 16;
 
 /**
