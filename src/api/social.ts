@@ -62,6 +62,11 @@ export interface UserSearchResult {
   relation: RelationStatus;
   mutualFriends: number;
   avatarUrl?: string | null;
+  /**
+   * False for a private account the caller isn't friends with (found by its exact username): it can
+   * receive a request, but its profile can't be opened until they are friends.
+   */
+  profileVisible: boolean;
 }
 
 export const socialApi = {
@@ -142,7 +147,8 @@ export interface PublicUserStats {
   longestStreak: number;
   totalXp: number;
   weeklyXp: number;
-  weeklyRank: number;
+  /** Null when the user is not in the global ranking (private account). */
+  weeklyRank: number | null;
   learnedSignsCount: number;
 }
 

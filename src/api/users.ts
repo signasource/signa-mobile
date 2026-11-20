@@ -42,7 +42,8 @@ export interface UserStats {
   totalXp: number;
   currentStreak: number;
   weeklyXp: number;
-  weeklyRank: number;
+  /** Null for private accounts, which are left out of the global ranking. */
+  weeklyRank: number | null;
 }
 
 /** Mirrors `StreakDayResponse`: pending streak notifications from the server. */

@@ -127,8 +127,11 @@ agregar / cancelar solicitud / aceptar solicitud / desbloquear, and for an exist
 
 A private account the viewer isn't friends with comes back with `visible: false`. The screen then
 shows identity (name, username, avatar — header without stats) plus the friendship action over an
-"esta cuenta es privada" state — deliberately not a 404, so someone found through search can still
-be added. The stats strip in `ScreenHeader` is omitted when `!profile.visible`.
+"esta cuenta es privada" state — deliberately not a 404, so the friendship action still works when
+the profile is reached another way (a request, a friend's list). Private accounts are left out of
+the global ranking, and search only returns them on an **exact `@username`** match (or when already
+friends) so a request can still be sent; such a result has `profileVisible: false`, its sub-line
+reads "cuenta privada" and its avatar is not tappable — the profile opens once they are friends. The stats strip in `ScreenHeader` is omitted when `!profile.visible`.
 
 Courses and achievements are typed against the **real** backend shapes (`PublicCourseProgress`,
 `PublicAchievement`), the same shapes `learningApi` and `achievementsApi` now return. Course

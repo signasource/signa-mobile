@@ -125,7 +125,7 @@ Powers the Social tab (see [features/social.md](../features/social.md)).
 | `unblockUser(userId)` | `PATCH /friendships/unblock/{id}` | 200 | deletes the relation entirely |
 | `likeEvent(type, refId)` | `POST /friendships/events/{type}/{refId}/like` | 204 | idempotent; notifies the event's owner. Rejects your own activity and non-friends |
 | `unlikeEvent(type, refId)` | `DELETE /friendships/events/{type}/{refId}/like` | 204 | no-op if there was no like |
-| `searchUsers(query, signal?)` | `GET /users/search?query=&limit=` | `UserSearchResult[]` | `query` is a **contains** match on username or display name, min 2 chars (shorter → 400), max 50 results. Each result carries `relation` and `mutualFriends` already resolved against the caller. Users who blocked the caller are filtered out. Accepts `AbortSignal` |
+| `searchUsers(query, signal?)` | `GET /users/search?query=&limit=` | `UserSearchResult[]` | `query` is a **contains** match on username or display name, min 2 chars (shorter → 400), max 50 results. Each result carries `relation` and `mutualFriends` already resolved against the caller. Users who blocked the caller are filtered out, and so are **private accounts**, except on an exact username match (case-insensitive; a leading `@` is ignored) or when already an accepted friend. `profileVisible: false` marks a private non-friend: the row offers the request but its avatar doesn't open the profile. Accepts `AbortSignal` |
 
 ## `publicProfileApi` (`src/api/social.ts`) — mirrors `UserController.getByUsername`
 
@@ -211,7 +211,7 @@ Both endpoints are authenticated. The backend computes ranks from `UserStats.wee
 
 | Method | Path | Returns | Notes |
 |---|---|---|---|
-| `getGlobal()` | `GET /ranking/global` | `WeeklyRanking` | Top 100 users by `weeklyXp` this week + caller's position. `entries[].delta`: positions gained (positive) or lost (negative) vs last Monday; null until the first reset runs. `me.gapText`: pre-formatted Spanish string e.g. "Te faltan 320 XP para entrar al top 10". |
+| `getGlobal()` | `GET /ranking/global` | `WeeklyRanking` | Top 100 users by `weeklyXp` this week + caller's position. **Public accounts only**: private (and disabled) accounts are never in `entries` nor counted in `total`; a private caller sees the list without the "me" bar (`RankingTab`). `entries[].delta`: positions gained (positive) or lost (negative) vs last Monday; null until the first reset runs. `me.gapText`: pre-formatted Spanish string e.g. "Te faltan 320 XP para entrar al top 10". |
 | `getFriends()` | `GET /ranking/friends` | `WeeklyRanking` | Caller's accepted friends ranked by `weeklyXp`, plus the caller. Delta derived from each user's stored global previous rank re-ranked within the friends group. |
 
 `WeeklyRanking = { entries: RankingEntry[], total: number, me: MyRankingPosition }`.

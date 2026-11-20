@@ -56,7 +56,7 @@ every row saves immediately with `saveSetting(patch)` → `PATCH /users/settings
 
 | Section | Rows |
 |---|---|
-| **Preferencias** | *Tamaño de fuente* (Pequeño / Mediano / Grande → `SettingsContext`: scale 14/15, 1, 17/15, applied by `@/components/Text` everywhere), *Vibración* (`vibrationEnabled`, read by `useHaptics`), *Visibilidad de la cuenta* (`PUBLIC` / `PRIVATE`: a private account only shows identity to non-friends, see [social.md](./social.md#publicprofilescreen)), *Color del encabezado* |
+| **Preferencias** | *Tamaño de fuente* (Pequeño / Mediano / Grande → `SettingsContext`: scale 14/15, 1, 17/15, applied by `@/components/Text` everywhere), *Vibración* (`vibrationEnabled`, read by `useHaptics`), *Visibilidad de la cuenta* (`PUBLIC` / `PRIVATE`: a private account only shows identity to non-friends, is left out of search and the global ranking, and its **Ranking** stat shows "—" (`weeklyRank: null`); see [social.md](./social.md#publicprofilescreen). The change is saved immediately and reverted with a toast if the request fails), *Color del encabezado* |
 | **Notificaciones** | *Notificaciones* (master switch), *Recordatorio diario* (`dailyNotificationEnabled`) and *Hora del recordatorio* (`dailyNotificationTime`, wheel picker; drafts go through a ref so the effect doesn't re-run) |
 | **Cuenta** | *Editar perfil* → `EditProfile`, *Verificar cuenta* (only while unverified) → `VerifyEmail`, *Volver a ver el tour* (`tourReplay()`), *Cuenta de Google* (link, see [../authentication/screens.md](../authentication/screens.md)), *Cambiar contraseña* (hidden for Google-only accounts; passes `passwordChanged` back as a param), *Cerrar sesión*, *Eliminar cuenta* |
 
