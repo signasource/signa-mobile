@@ -2,7 +2,7 @@
 
 > Responsibility: the Perfil tab, Configuración and Editar perfil — what each loads, shows and persists.
 > Update when: a profile section, a setting, or what these screens read/write changes.
-> Sources: src/screens/ProfileScreen.tsx, src/screens/ConfigurationScreen.tsx, src/screens/EditProfileScreen.tsx, src/features/profile/avatarPhoto.ts, src/context/SettingsContext.tsx, src/hooks/useHaptics.ts, src/theme/headerColors.ts
+> Sources: src/screens/ProfileScreen.tsx, src/screens/ConfigurationScreen.tsx, src/screens/EditProfileScreen.tsx, src/features/profile/avatarPhoto.ts, src/features/profile/MetricsRange.tsx, src/features/profile/CalendarModal.tsx, src/context/SettingsContext.tsx, src/hooks/useHaptics.ts, src/theme/headerColors.ts
 
 **Real**, wired to `signa-api`. Endpoints → [../api/endpoints.md](../api/endpoints.md). Another user's
 read-only profile is a different screen: see [social.md](./social.md#publicprofilescreen).
@@ -26,10 +26,20 @@ A `SegmentedControl` (text-only) switches between four sections:
 
 | Section | Content |
 |---|---|
-| **General** | stat cards (XP total, señas aprendidas), the weekly-XP bar chart (tap a day), and the **daily goal** (minutes done today vs. `dailyGoalMinutes`, editable with `usersApi.updateDailyGoal`; `minutesToday` is fed by `useActivityTracker` while a lesson is open) |
+| **General** | stat cards (XP total, señas aprendidas), **Métricas por período** (see below), the weekly-XP bar chart (tap a day), and the **daily goal** (minutes done today vs. `dailyGoalMinutes`, editable with `usersApi.updateDailyGoal`; `minutesToday` is fed by `useActivityTracker` while a lesson is open) |
 | **Cursos** | progress per enrolled course (`PublicCourseProgress`) and a **"Para sumar"** block with the paid courses not owned yet (`PaidCourseRow` `dashed` → `CourseDetail`; see [courses.md](./courses.md#buying-a-paid-course--real)) |
 | **Inventario** | gems, lives (`useLives` + `LivesTimerChip`; "Comprar vida" → Store tab), streak shields, and the **stored boosters** (`GET /boosters`) with "Usar"/"Activar" → `POST /boosters/{type}/activate`; active XP multiplier / unlimited lives show their remaining time (`useSecondsLeft`) |
 | **Logros** | achievements split *Conseguidos / Bloqueados* (`SubTabs`), 3-column grid sized by percentage, a detail modal per achievement; earned streak achievements use the tier medal ([achievements.md](./achievements.md)) |
+
+### Métricas por período (`MetricsRange`)
+
+Inside General. Presets (7 días / 30 días / Este mes) or custom **Desde / Hasta** dates picked in
+`CalendarModal` (own JS calendar, no native date-picker dependency; future days disabled, picking a
+`from` after `to` drags `to` along and vice-versa). Each change calls `usersApi.getMetrics(from, to)`
+(`GET /users/me/metrics`, independent of `loadProfile()`) and shows **XP ganada**, **Señas
+aprendidas** and **Meta diaria cumplida: N de M días**. The goal is compared against the *current*
+`dailyGoalMinutes`, since the backend does not keep goal history — the card says so. Dates are the
+device's local calendar; the backend uses Argentina's.
 
 ### Profile photo
 

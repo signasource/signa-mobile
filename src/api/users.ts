@@ -17,6 +17,27 @@ export interface WeeklyXpEntry {
   xpEarned: number;
 }
 
+/** Mirrors `ProfileMetricsResponse.Day`. */
+export interface MetricsDay {
+  date: string;
+  xpEarned: number;
+  minutes: number;
+  goalReached: boolean;
+}
+
+/** Mirrors `ProfileMetricsResponse`: metrics for an inclusive range of days (`YYYY-MM-DD`). */
+export interface ProfileMetrics {
+  from: string;
+  to: string;
+  totalDays: number;
+  xpEarned: number;
+  signsLearned: number;
+  daysGoalReached: number;
+  /** Today's goal: the per-day history is not stored, every day is compared against it. */
+  dailyGoalMinutes: number;
+  days: MetricsDay[];
+}
+
 export interface UserStats {
   totalXp: number;
   currentStreak: number;
@@ -80,6 +101,9 @@ export const usersApi = {
   markStreakShieldSeen: () => apiClient.post<void>("/users/me/streak-shield/seen"),
 
   getWeeklyXp: () => apiClient.get<WeeklyXpEntry[]>("/users/me/weekly-xp"),
+
+  getMetrics: (from: string, to: string) =>
+    apiClient.get<ProfileMetrics>("/users/me/metrics", { params: { from, to } }),
 
   getDailyGoal: () => apiClient.get<DailyGoal>("/users/daily-goal"),
 
