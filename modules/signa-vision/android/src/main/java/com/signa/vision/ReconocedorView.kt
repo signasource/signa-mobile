@@ -121,7 +121,61 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
       }
     }
 
-  private fun usaVideo() = modo != "estatico"
+  /**
+   * Modo del detector. `adb shell setprop debug.signa.modo image|video` lo
+   * fuerza, para comparar los dos en el mismo teléfono y con la misma luz sin
+   * reinstalar; se toma al entrar al ejercicio siguiente.
+   */
+  private fun usaVideo(): Boolean = when (propiedad("debug.signa.modo")) {
+    "image" -> false
+    "video" -> true
+    else -> modo != "estatico"
+  }
+
+  /** Propiedad del sistema; "" si no está o no se puede leer. */
+  private fun propiedad(nombre: String): String = try {
+    Class.forName("android.os.SystemProperties")
+      .getMethod("get", String::class.java)
+      .invoke(null, nombre) as String
+  } catch (e: Throwable) {
+    ""
+  }
+
+  // Registro para comparar seguimientos: cada [CADA_REGISTRO_MS] una línea
+  // "seguimiento" en logcat. `perdidas` cuenta las veces que una mano que se
+  // venía viendo desaparece de un cuadro al otro.
+  private var regDesde = 0L
+  private var regCuadros = 0
+  private var regConMano = 0
+  private var regManos = 0
+  private var regPerdidas = 0
+  private var regMs = 0.0
+  private var veniaIzq = false
+  private var veniaDer = false
+
+  private fun registrar(ahora: Long, det: Detectores, izq: Boolean, der: Boolean) {
+    if (regDesde == 0L) regDesde = ahora
+    regCuadros++
+    if (izq || der) regConMano++
+    regManos += (if (izq) 1 else 0) + (if (der) 1 else 0)
+    if (veniaIzq && !izq) regPerdidas++
+    if (veniaDer && !der) regPerdidas++
+    veniaIzq = izq
+    veniaDer = der
+    regMs += det.msManos
+    val lapso = ahora - regDesde
+    if (lapso < CADA_REGISTRO_MS) return
+    Log.i(
+      ETIQUETA,
+      "seguimiento modo=${if (det.video) "VIDEO" else "IMAGE"} ${if (det.enGpu) "GPU" else "CPU"} fps=$rangoUsado " +
+        "cuadros/s=%.1f manosMs=%.1f conMano=%d%% manosProm=%.2f perdidas=%d".format(
+          regCuadros * 1000.0 / lapso, regMs / regCuadros, regConMano * 100 / regCuadros,
+          regManos.toDouble() / regCuadros, regPerdidas,
+        ),
+    )
+    regDesde = ahora
+    regCuadros = 0; regConMano = 0; regManos = 0; regPerdidas = 0; regMs = 0.0
+  }
 
   /**
    * Señas que este ejercicio acepta. Con la lista vacía no se infiere nada: la
@@ -235,7 +289,8 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
 
       val selector =
         if (usarTrasera) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA
-      val rango = rangoDeFps(proveedor, selector)
+      // `adb shell setprop debug.signa.fps auto` deja la exposición como venía, para comparar.
+      val rango = if (propiedad("debug.signa.fps") == "auto") null else rangoDeFps(proveedor, selector)
 
       // De a un intento por vez, del más completo al mínimo. El reconocimiento
       // sólo necesita los cuadros del analizador; la imagen en pantalla y el
@@ -455,6 +510,7 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
       }
     }
 
+    registrar(ahora, det, izquierda != null, derecha != null)
     cuadros++
     if (ahora - desdeFps >= 500) {
       fps = cuadros * 1000.0 / (ahora - desdeFps)
@@ -520,7 +576,10 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
           "reposo" to paso.reposo,
         ),
       )
-      paso.confirmada?.let { onConfirmada(mapOf("sena" to it, "p" to paso.p)) }
+      paso.confirmada?.let {
+        Log.i(ETIQUETA, "confirmada $it p=%.2f".format(paso.p))
+        onConfirmada(mapOf("sena" to it, "p" to paso.p))
+      }
     }
   }
 
@@ -570,6 +629,8 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
      * cámara llega con menos píxeles reales.
      */
     const val ANCHO_OBJETIVO = 480
+
+    const val CADA_REGISTRO_MS = 2000L
   }
 
   /**

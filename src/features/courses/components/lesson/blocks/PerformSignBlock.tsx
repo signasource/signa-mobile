@@ -302,7 +302,12 @@ export function PerformSignBlock({ config, active, ultimo, xp, onAnswer, onConti
           <SignPip
             meaning={signMeaning(enPantalla)}
             label={signMeaning(enPantalla)}
-            paused={!pipBig}
+            // Chico también se anima. Pausarlo era una prueba de la época del
+            // WebView (que el avatar le compitiera la GPU a MediaPipe), nunca
+            // medida; el avatar nativo dibuja sus 30 cuadros por segundo igual
+            // en pausa, así que pausarlo no ahorraba nada y dejaba la seña
+            // quieta en su primer cuadro hasta agrandarla.
+            paused={terminado}
             onExpandedChange={setPipBig}
           />
         )}
