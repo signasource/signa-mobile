@@ -32,16 +32,17 @@ export interface ModelDescriptor {
 }
 
 export const SIGNS_MODEL: ModelDescriptor = {
-  // signa-ml: models/experimentos/signa_model_todo_s42 (28 señas). Lo que corre
-  // en Android es el .tflite de modules/signa-vision (ModeloSenas.kt); esto es
-  // el metadato de qué puede pedir un ejercicio.
-  id: "lsa-signs-v13",
-  version: 13,
+  // signa-ml: models/experimentos/signa_model_v14_s42 (32 señas + reposo). Lo
+  // que corre en Android es el .tflite de modules/signa-vision (ModeloSenas.kt);
+  // esto es el metadato de qué puede pedir un ejercicio.
+  id: "lsa-signs-v14",
+  version: 14,
   // Test por clip del dataset (split fijo por hash, sin copias aumentadas).
-  accuracy: 0.883,
+  accuracy: 0.887,
   labels: [
     "esposo",
     "cafe",
+    "mal",
     "hermano",
     "reposo",
     "amigo",
@@ -68,6 +69,10 @@ export const SIGNS_MODEL: ModelDescriptor = {
     "lagrima",
     "mercadopago",
     "abuelo",
+    "hola",
+    "chau",
+    "yo",
+    "vos",
   ],
   sequenceLength: 30,
 };
@@ -84,7 +89,23 @@ export const RECOGNIZABLE_SIGNS = SIGNS_MODEL.labels.filter((l) => l !== REST_LA
 
 /** ¿El modelo puede evaluar esta seña? */
 export function modelKnows(meaning: string): boolean {
-  return RECOGNIZABLE_SIGNS.includes(meaning.trim().toLowerCase());
+  const k = signKey(meaning);
+  return RECOGNIZABLE_SIGNS.some((l) => signKey(l) === k);
+}
+
+/**
+ * La clave con la que se cruza una seña del curso con una etiqueta del modelo:
+ * "Tarjeta de Crédito" → "tarjetacredito", "mamá" → "mama", "cómo estás" →
+ * "comoestas". Es la misma que `ModeloSenas.clave` en el módulo nativo: el
+ * curso usa los nombres reales y el modelo los de las carpetas del dataset.
+ */
+export function signKey(sign: string): string {
+  return sign
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{M}+/gu, "")
+    .replace(/\bde\b/g, "")
+    .replace(/[^a-z]/g, "");
 }
 
 /**
@@ -95,8 +116,19 @@ export function modelKnows(meaning: string): boolean {
  * Donde difieren, esta tabla los reconcilia; el resto pasa derecho.
  */
 const MEANING_POR_LABEL: Record<string, string> = {
-  mama: "madre",
-  papa: "padre",
+  mama: "mamá",
+  papa: "papá",
+  cafe: "café",
+  te: "té",
+  azucar: "azúcar",
+  lagrima: "lágrima",
+  companero: "compañero",
+  comoestas: "cómo estás",
+  medialunadulce: "medialuna dulce",
+  medialunasalada: "medialuna salada",
+  mercadopago: "mercado pago",
+  tarjetacredito: "tarjeta de crédito",
+  tarjetadebito: "tarjeta de débito",
 };
 
 /** Seña del curso que corresponde a una etiqueta del modelo. */

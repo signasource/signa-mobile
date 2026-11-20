@@ -26,7 +26,7 @@ export interface MultiAvatarNativoProps {
   onLoaded?: (index: number) => void;
 }
 
-/** "…/lsa/por%20favor.glb?v=3" → "por favor": el nombre para armar el respaldo. */
+/** "…/lsa/medialuna%20dulce.glb?v=3" → "medialuna dulce": el nombre para armar el respaldo. */
 function nombreDeUrl(url: string): string {
   const archivo = (url.split("?")[0] ?? "").split("/").pop() ?? "";
   try {

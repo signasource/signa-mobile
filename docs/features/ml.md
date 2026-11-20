@@ -40,7 +40,7 @@ and [../rendimiento.md](../rendimiento.md).
 
 Assets of the native recogniser live in `modules/signa-vision/android/src/main/assets/` (not in
 `android/app/…`, which `expo prebuild` regenerates): `hand_landmarker.task`, `pose_landmarker.task`,
-`modelo.tflite` (LSTM v13 = `signa_model_todo_s42`, 27 signs + `reposo`), `alfabeto.tflite`, `senas.json` / `alfabeto.json` (labels + calibrated
+`modelo.tflite` (LSTM v14 = `signa_model_v14_s42`, 32 signs + `reposo`), `alfabeto.tflite`, `senas.json` / `alfabeto.json` (labels + calibrated
 thresholds; `senas.json` also carries the signing-space `linea`), `golden*.json`; see `LEEME.md` there.
 
 **Without the module** (iOS, Expo Go): `hayNativo` is `false`; `PerformSignBlock` and `SpellNameBlock`
@@ -93,6 +93,15 @@ confirmed by themselves between signs (31 → 22-24 in a real session, same hits
 `reposo` is not a sign. It is the "not signing anything" class the model needs so it does not fire at
 random. Never a valid answer, never shown, excluded from what a lesson may ask for.
 
+## Course names vs model labels
+
+A lesson asks for a sign by its **course name** ("café", "mamá", "tarjeta de crédito", "cómo
+estás") and the model knows it by its **dataset folder** ("cafe", "mama", "tarjetacredito",
+"comoestas"). Both sides are compared by a key — lowercase, no accents, no "de", letters only —
+in `ModeloSenas.clave` (Kotlin) and `signKey` (`features/ml/models/registry.ts`). Comparing them
+as-is made 12 of the 27 signs impossible to recognise and dropped their thresholds to the 0,5
+default. The native module still reports the sign by the name the lesson used.
+
 ## Verification, not identification
 
 A lesson already knows which sign it asked for, so the engine checks `p(target) ≥ threshold(target)`
@@ -106,7 +115,7 @@ candidate (the alphabet keeps 700 ms) — measured in time, not in frames, so it
 the device's frame rate. Lowering 700 → 500 ms and counting coverage from the candidate took real
 iPhone sessions from 22 to 26 of 28 hits.
 
-The v13 model was trained to **not** confirm at the start of a sign: synthetic beginnings and
+The v13/v14 models were trained to **not** confirm at the start of a sign: synthetic beginnings and
 "arrived and held still" as `reposo`, real false starts recorded in the `signa-ml` lab as
 `reposo`, full signs recorded there as positives, and a velocity layer inside the model (input is
 still 258). Test 88,3% per clip.
@@ -131,7 +140,7 @@ not to judge recognition. Test on a phone.
 2. **The dataset is one person.** 60 clips per sign, all from the same signer, the same camera and
    the same room. Expect numbers to drop the first time somebody else uses it; augmentation does not
    simulate inter-person variation.
-3. **27 signs plus the alphabet.** Test identification is 88% over 28 classes. Enough for a guided
+3. **32 signs plus the alphabet.** Test identification is 89% over 33 classes (v14 added `mal`, `yo`, `vos`, `chau`, `hola` without moving the other 27: same live hits as v13). Enough for a guided
    exercise where the app already knows what it asked for; not enough for open recognition. Known
    weak spots in live use: `papa` and `efectivo` are hard to get, and `companero`, `transferencia`,
    `hijo` and `mercadopago` can confirm without their key part (joining, rotating, passing the

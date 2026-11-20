@@ -1,8 +1,9 @@
 {
-  "modelo": "signa_model_todo_s42",
+  "modelo": "signa_model_v14_s42",
   "labels": [
     "esposo",
     "cafe",
+    "mal",
     "hermano",
     "reposo",
     "amigo",
@@ -28,13 +29,18 @@
     "tarjetacredito",
     "lagrima",
     "mercadopago",
-    "abuelo"
+    "abuelo",
+    "hola",
+    "chau",
+    "yo",
+    "vos"
   ],
   "sequenceLength": 30,
   "featureDim": 258,
   "thresholds": {
     "esposo": 0.6,
     "cafe": 0.57,
+    "mal": 0.6,
     "hermano": 0.6,
     "amigo": 0.6,
     "bien": 0.41,
@@ -59,7 +65,11 @@
     "tarjetacredito": 0.6,
     "lagrima": 0.6,
     "mercadopago": 0.47,
-    "abuelo": 0.6
+    "abuelo": 0.6,
+    "hola": 0.6,
+    "chau": 0.6,
+    "yo": 0.6,
+    "vos": 0.6
   },
   "poseIgnored": true,
   "linea": 1.5
