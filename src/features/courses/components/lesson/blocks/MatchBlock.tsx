@@ -10,6 +10,94 @@ import { SignAnimation } from "../SignAnimation";
 import Check from "@assets/ilus/check.svg";
 import Denied from "@assets/ilus/denied.svg";
 
+type TileState = "idle" | "selected" | "wrong" | "matched";
+
+function StateIcon({ state }: { state: TileState }) {
+  if (state !== "matched" && state !== "wrong") return null;
+  const Icon = state === "matched" ? Check : Denied;
+  return <Icon width={18} height={18} />;
+}
+
+interface MatchSignCellProps {
+  concept: string;
+  state: TileState;
+  height: number;
+  paused?: boolean;
+  onSelect: () => void;
+  onLongPress: () => void;
+}
+
+function MatchSignCell({ concept, state, height, paused, onSelect, onLongPress }: MatchSignCellProps) {
+  return (
+    <TouchableOpacity
+      onPress={onSelect}
+      onLongPress={onLongPress}
+      delayLongPress={400}
+      disabled={state === "matched"}
+      activeOpacity={0.85}
+    >
+      <SignAnimation
+        meaning={concept}
+        label={concept}
+        height={height}
+        paused={paused}
+        style={[
+          styles.signCellAnim,
+          state === "selected" && styles.signCellSelected,
+          state === "wrong" && styles.signCellWrong,
+          state === "matched" && styles.signCellMatched,
+        ]}
+      />
+      {(state === "matched" || state === "wrong") && (
+        <View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            styles.signCellOverlay,
+            state === "matched" && styles.signCellOverlayMatched,
+            state === "wrong" && styles.signCellOverlayWrong,
+          ]}
+        >
+          <StateIcon state={state} />
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+}
+
+interface MatchWordTileProps {
+  concept: string;
+  state: TileState;
+  onSelect: () => void;
+}
+
+function MatchWordTile({ concept, state, onSelect }: MatchWordTileProps) {
+  return (
+    <TouchableOpacity
+      onPress={onSelect}
+      disabled={state === "matched"}
+      activeOpacity={0.85}
+      style={[
+        styles.tile,
+        state === "matched" && styles.tileMatched,
+        state === "wrong" && styles.tileWrong,
+        state === "selected" && styles.tileSelected,
+      ]}
+    >
+      <Text
+        style={[
+          styles.wordText,
+          state === "matched" && { color: colors.successDark },
+          state === "wrong" && { color: colors.danger },
+        ]}
+      >
+        {concept}
+      </Text>
+      <StateIcon state={state} />
+    </TouchableOpacity>
+  );
+}
+
 interface MatchBlockProps {
   config: MatchConfig;
   xp: number;
@@ -96,87 +184,13 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
     }
   }
 
-  function tileState(kind: Kind, concept: string) {
-    if (matched.has(concept)) return "matched" as const;
+  function tileState(kind: Kind, concept: string): TileState {
+    if (matched.has(concept)) return "matched";
     if (wrongPair && ((kind === "sign" && wrongPair.sign === concept) || (kind === "word" && wrongPair.word === concept))) {
-      return "wrong" as const;
+      return "wrong";
     }
-    if (selected?.kind === kind && selected.concept === concept) return "selected" as const;
-    return "idle" as const;
-  }
-
-  function StateIcon({ state }: { state: ReturnType<typeof tileState> }) {
-    if (state !== "matched" && state !== "wrong") return null;
-    const Icon = state === "matched" ? Check : Denied;
-    return <Icon width={18} height={18} />;
-  }
-
-  function SignCell({ concept }: { concept: string }) {
-    const state = tileState("sign", concept);
-    return (
-      <TouchableOpacity
-        onPress={() => {
-          if (matched.has(concept) || wrongPair) return;
-          setSignModal(concept);
-        }}
-        disabled={state === "matched"}
-        activeOpacity={0.85}
-      >
-        <SignAnimation
-          meaning={concept}
-          label={concept}
-          height={ROW_HEIGHT}
-          paused={done}
-          style={[
-            styles.signCellAnim,
-            state === "selected" && styles.signCellSelected,
-            state === "wrong" && styles.signCellWrong,
-            state === "matched" && styles.signCellMatched,
-          ]}
-        />
-        {(state === "matched" || state === "wrong") && (
-          <View
-            pointerEvents="none"
-            style={[
-              StyleSheet.absoluteFill,
-              styles.signCellOverlay,
-              state === "matched" && styles.signCellOverlayMatched,
-              state === "wrong" && styles.signCellOverlayWrong,
-            ]}
-          >
-            <StateIcon state={state} />
-          </View>
-        )}
-      </TouchableOpacity>
-    );
-  }
-
-  function WordTile({ concept }: { concept: string }) {
-    const state = tileState("word", concept);
-    return (
-      <TouchableOpacity
-        onPress={() => handleTap("word", concept)}
-        disabled={state === "matched"}
-        activeOpacity={0.85}
-        style={[
-          styles.tile,
-          state === "matched" && styles.tileMatched,
-          state === "wrong" && styles.tileWrong,
-          state === "selected" && styles.tileSelected,
-        ]}
-      >
-        <Text
-          style={[
-            styles.wordText,
-            state === "matched" && { color: colors.successDark },
-            state === "wrong" && { color: colors.danger },
-          ]}
-        >
-          {concept}
-        </Text>
-        <StateIcon state={state} />
-      </TouchableOpacity>
-    );
+    if (selected?.kind === kind && selected.concept === concept) return "selected";
+    return "idle";
   }
 
   return (
@@ -200,17 +214,36 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
           </Text>
         </View>
 
-        <Text style={styles.hint}>Tocá una seña y luego su palabra. El par correcto se apaga; si no coinciden, perdés una vida.</Text>
+        <Text style={styles.hint}>Tocá una seña y luego su palabra. Mantené presionada una seña para verla más grande. El par correcto se apaga; si no coinciden, perdés una vida.</Text>
 
         <View style={styles.grid}>
           <View style={styles.column}>
             {signOrder.map((concept) => (
-              <SignCell key={concept} concept={concept} />
+              <MatchSignCell
+                key={concept}
+                concept={concept}
+                state={tileState("sign", concept)}
+                height={ROW_HEIGHT}
+                paused={done}
+                onSelect={() => {
+                  if (matched.has(concept) || wrongPair) return;
+                  handleTap("sign", concept);
+                }}
+                onLongPress={() => {
+                  if (matched.has(concept) || wrongPair) return;
+                  setSignModal(concept);
+                }}
+              />
             ))}
           </View>
           <View style={styles.column}>
             {wordOrder.map((concept) => (
-              <WordTile key={concept} concept={concept} />
+              <MatchWordTile
+                key={concept}
+                concept={concept}
+                state={tileState("word", concept)}
+                onSelect={() => handleTap("word", concept)}
+              />
             ))}
           </View>
         </View>
