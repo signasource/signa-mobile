@@ -187,7 +187,9 @@ memoria y re-dibuja cuando llega la respuesta.
 - Las URLs subidas llevan `?v=<fecha de subida>`: como `AvatarView.kt` guarda los
   `.glb` en disco por URL, una re-subida baja el archivo nuevo.
 - Si la seña en video trae `lateralUrl`, `SignAnimation` muestra un selector
-  Frente / Lateral arriba a la derecha.
+  Frente / Lateral arriba a la derecha. `SignCarouselBlock` (seleccionar seña y
+  pregunta contextual) muestra el mismo selector para la opción activa y vuelve
+  a Frente al cambiar de opción.
 - Un `.mp4` se muestra con `SignVideo` (un WebView con `<video>` en loop y sin
   sonido; no suma dependencias nativas). Lo usan `SignAnimation` y, en Android,
   `MultiAvatarNativo` (Emparejar, carrusel, reconocimiento visual). En iOS los
