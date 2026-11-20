@@ -29,7 +29,10 @@ gems. Gems only enter the economy through the signup bonus (100), the mystery ch
 
 ## Gem-priced purchase (unchanged)
 
-`openBuy(item)` → `confirm` sheet (or `insufficient` if `gems < priceGems`) → `shopApi.purchase(id)`
+`openBuy(item)` → `confirm` sheet (or `insufficient` if `gems < priceGems`; or, for a `LIFE` item
+while the lives bar is full or unlimited lives run (`useLives().full`), a `livesFull` sheet "Ya tenés
+el máximo de vidas" that blocks the purchase; signa-api also rejects it with 400 "Lives are already
+full" before debiting, and the app maps that message to the same sheet when its inventory was stale) → `shopApi.purchase(id)`
 → `success` overlay (the mystery chest passes through an `opening` step first). The `insufficient`
 sheet's **"Conseguir gemas"** button calls `goToGemPacks(missing)`: closes the sheet and opens the
 **gem shop** (`GemShop` route) with `missingGems` (pre-marks the smallest pack that covers it) and

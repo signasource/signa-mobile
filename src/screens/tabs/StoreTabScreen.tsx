@@ -38,7 +38,7 @@ import { useTour } from "@/features/tour/TourContext";
 import { SectionWelcomeModal } from "@/features/tour/components/SectionWelcomeModal";
 
 type TabKey = "vidas" | "potenciadores" | "especiales" | "cursos";
-type FlowStep = "confirm" | "insufficient" | "opening" | "success";
+type FlowStep = "confirm" | "insufficient" | "livesFull" | "opening" | "success";
 
 interface Flow {
   step: FlowStep;
@@ -126,6 +126,9 @@ function effectLabel(effect: AppliedEffect): string {
 }
 
 const LIVES_TYPES: ShopItemType[] = ["LIFE", "UNLIMITED_LIVES"];
+
+/** `PurchaseService.LIVES_FULL_MESSAGE` in signa-api: a life bought with a full bar. */
+const LIVES_FULL_MESSAGE = "Lives are already full";
 
 interface SuccessOverlayProps {
   flow: Flow;
@@ -393,6 +396,11 @@ export function StoreTabScreen() {
   }
 
   function openBuy(item: ShopItem) {
+    // A life bought with a full bar (or unlimited lives running) would be charged and grant 0.
+    if (item.itemType === "LIFE" && livesState.ready && livesState.full) {
+      setFlow({ step: "livesFull", item });
+      return;
+    }
     const enough = (inventory?.gems ?? 0) >= item.priceGems;
     setFlow({ step: enough ? "confirm" : "insufficient", item });
   }
@@ -428,7 +436,14 @@ export function StoreTabScreen() {
         setFlow({ step: "success", item, effect: data.effect });
       }
     } catch (err: any) {
-      setError(err?.response?.data?.message ?? "No pudimos completar la compra.");
+      const message: string | undefined = err?.response?.data?.message;
+      // The backend refuses a life when the bar is full; our copy of the inventory was stale.
+      if (item.itemType === "LIFE" && message === LIVES_FULL_MESSAGE) {
+        refreshInventory();
+        setFlow({ step: "livesFull", item });
+        return;
+      }
+      setError(message ?? "No pudimos completar la compra.");
       closeFlow();
     } finally {
       setPurchasing(false);
@@ -727,6 +742,30 @@ export function StoreTabScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.secondaryButton} onPress={closeFlow} activeOpacity={0.86}>
                   <Text style={styles.secondaryButtonText}>Volver a la tienda</Text>
+                </TouchableOpacity>
+              </View>
+            </Pressable>
+          </Pressable>
+        )}
+
+        {flow?.step === "livesFull" && (
+          <Pressable style={styles.backdrop} onPress={closeFlow}>
+            <Pressable style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 34) }]} onPress={() => {}}>
+              <TouchableOpacity style={styles.insufficientClose} onPress={closeFlow} activeOpacity={0.7}>
+                <Ionicons name="close" size={22} color={colors.text} />
+              </TouchableOpacity>
+              <View style={styles.insufficientContent}>
+                <HeartConFondo width={180} height={174} />
+                <Text style={styles.insufficientTitle}>Ya tenés el máximo de vidas</Text>
+                <Text style={styles.insufficientSub}>
+                  {livesState.unlimited
+                    ? "Tenés vidas infinitas activas. Vas a poder comprar vidas cuando se terminen."
+                    : `Tenés ${livesState.lives}/${livesState.max} vidas. Vas a poder comprar cuando pierdas alguna.`}
+                </Text>
+              </View>
+              <View style={styles.insufficientActions}>
+                <TouchableOpacity style={styles.darkButton} onPress={closeFlow} activeOpacity={0.86}>
+                  <Text style={styles.darkButtonText}>Volver a la tienda</Text>
                 </TouchableOpacity>
               </View>
             </Pressable>
