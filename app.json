@@ -2,6 +2,7 @@
   "expo": {
     "name": "Signa",
     "slug": "signa-mobile",
+    "owner": "signa",
     "scheme": "signa",
     "version": "0.1.0",
     "orientation": "portrait",
