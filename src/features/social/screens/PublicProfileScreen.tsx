@@ -255,26 +255,30 @@ export function PublicProfileScreen({ route, navigation }: Props) {
         description={`@${profile.username}`}
         paddingTop={insets.top + 14}
         tone={headerColor}
-        stats={[
-          {
-            key: "streak",
-            label: "Racha",
-            value: String(profile.stats.currentStreak),
-            icon: "flame",
-          },
-          {
-            key: "xp",
-            label: "XP total",
-            value: formatXp(profile.stats.totalXp),
-            icon: "flash",
-          },
-          {
-            key: "rank",
-            label: "Ranking",
-            value: profile.stats.weeklyRank != null ? `#${profile.stats.weeklyRank}` : "—",
-            icon: "ribbon",
-          },
-        ]}
+        stats={
+          profile.visible
+            ? [
+                {
+                  key: "streak",
+                  label: "Racha",
+                  value: String(profile.stats.currentStreak),
+                  icon: "flame",
+                },
+                {
+                  key: "xp",
+                  label: "XP total",
+                  value: formatXp(profile.stats.totalXp),
+                  icon: "flash",
+                },
+                {
+                  key: "rank",
+                  label: "Ranking",
+                  value: profile.stats.weeklyRank != null ? `#${profile.stats.weeklyRank}` : "—",
+                  icon: "ribbon",
+                },
+              ]
+            : undefined
+        }
         left={
           <View style={[styles.avatar, { borderColor: fg, backgroundColor: avatar.bg }]}>
             <Text style={[styles.avatarInitials, { color: avatar.fg }]}>
