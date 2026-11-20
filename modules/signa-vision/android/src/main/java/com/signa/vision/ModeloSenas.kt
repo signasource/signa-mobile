@@ -26,6 +26,12 @@ class ModeloSenas(contexto: Context) {
   private val umbrales: Map<String, Float>
   private val sinPose: Boolean
 
+  /**
+   * La línea del espacio de seña con la que se armaron los clips de ESTE modelo
+   * (linea_de_sena en su metadata): Ventana tiene que usar la misma.
+   */
+  val linea: Float
+
   /** Clase de "no está haciendo nada". Nunca es una respuesta válida. */
   val reposo = "reposo"
 
@@ -46,6 +52,7 @@ class ModeloSenas(contexto: Context) {
     val u = json.getJSONObject("thresholds")
     umbrales = u.keys().asSequence().associateWith { u.getDouble(it).toFloat() }
     sinPose = json.optBoolean("poseIgnored", true)
+    linea = json.optDouble("linea", Ventana.LINEA_POR_OMISION.toDouble()).toFloat()
   }
 
   private val entrada = ByteBuffer.allocateDirect(4 * PASOS * Ventana.DIM).order(ByteOrder.nativeOrder())

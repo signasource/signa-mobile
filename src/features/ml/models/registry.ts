@@ -1,17 +1,18 @@
 /**
  * Qué modelo de señas lleva la app y qué sabe reconocer.
  *
- * El manifiesto vive en `assets/models/lsa-signs-v9/` y el .tflite en
- * `assets/tflite/`; son copia
- * de lo que entrena `signa-ml`. Están dentro de la app —y no detrás de un
- * endpoint— porque el reconocimiento corre on-device: no hay servidor de
- * inferencia que hostear ni video que enviar a ningún lado.
+ * Lo que corre es el módulo nativo `modules/signa-vision` (Android): su
+ * `modelo.tflite` y `senas.json` (etiquetas, umbrales, línea del espacio de
+ * seña) están en `modules/signa-vision/android/src/main/assets/` y salen de
+ * `signa-ml/scripts/exportar_senas_nativo.py`. Están dentro de la app —y no
+ * detrás de un endpoint— porque el reconocimiento corre on-device.
  *
- * Este archivo es sólo el metadato: qué señas existen y con qué versión. El
- * motor de inferencia está en `../engine/`.
+ * Este archivo es sólo el metadato: qué señas existen y con qué versión.
+ * (`assets/models/lsa-signs-v9/` es del motor WebView viejo, ver docs/status.md.)
  *
- * Para actualizar el modelo: regenerar `weights.bin` + `manifest.json` desde
- * signa-ml y ajustar `labels` y `version` acá.
+ * Para actualizar el modelo: correr el exportador de signa-ml, regenerar
+ * golden.json (`signa-ml/scripts/golden_senas_app.py`) y ajustar `labels` y
+ * `version` acá.
  */
 
 export interface ModelDescriptor {
@@ -31,15 +32,42 @@ export interface ModelDescriptor {
 }
 
 export const SIGNS_MODEL: ModelDescriptor = {
-  id: "lsa-signs-v9",
-  version: 9,
-  accuracy: 0.833,
+  // signa-ml: models/experimentos/signa_model_todo_s42 (28 señas). Lo que corre
+  // en Android es el .tflite de modules/signa-vision (ModeloSenas.kt); esto es
+  // el metadato de qué puede pedir un ejercicio.
+  id: "lsa-signs-v13",
+  version: 13,
+  // Test por clip del dataset (split fijo por hash, sin copias aumentadas).
+  accuracy: 0.883,
   labels: [
+    "esposo",
+    "cafe",
     "hermano",
     "reposo",
     "amigo",
+    "bien",
+    "sordo",
+    "oyente",
+    "comoestas",
+    "hijo",
     "papa",
     "mama",
+    "novio",
+    "azucar",
+    "nombre",
+    "companero",
+    "te",
+    "tarjetadebito",
+    "efectivo",
+    "edulcorante",
+    "transferencia",
+    "medialunadulce",
+    "cortado",
+    "medialunasalada",
+    "tarjetacredito",
+    "lagrima",
+    "mercadopago",
+    "abuelo",
   ],
   sequenceLength: 30,
 };

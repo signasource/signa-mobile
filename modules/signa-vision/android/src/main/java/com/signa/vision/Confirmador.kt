@@ -11,6 +11,16 @@ package com.signa.vision
  * torno al 64% de los cuadros y se cae en el resto. Exigir una racha perfecta
  * sobre eso es mucho más difícil que el 64% suelto, y era la razón de que
  * costara tanto confirmar algo que el modelo estaba viendo.
+ *
+ * Las señas dinámicas usan 500 ms (Reconocedor.CONFIRMA_SENAS_MS) y no 700, y
+ * la cobertura se cuenta desde que la seña es CANDIDATA: es
+ * sign_runner._Confirmer. El abecedario sigue con 700, como se ajustó.
+ *
+ * Medido el 16/11 reproduciendo 28 intentos reales de señas desde un iPhone:
+ * al descartar los votos de más de 700 ms, con un voto cada
+ * ~105 ms lo que abarcaban oscilaba entre 595 y 700 ms, y cada vez que caía
+ * debajo de 630 la confirmación se postergaba aunque todos dieran bien. Las dos
+ * cosas juntas: 22 → 26 de 28 aciertos, mediana 1,8 → 1,4 s.
  */
 class Confirmador(
   private val ventanaMs: Long = 700,
@@ -22,19 +32,21 @@ class Confirmador(
   private val votos = ArrayDeque<Voto>()
   private var candidata: String? = null
   private var confirmada: String? = null
+  private var desde = 0L
 
   /** Devuelve la seña si acaba de confirmarse, o null. */
   fun votar(t: Long, sena: String?, cumple: Boolean): String? {
     if (sena != candidata) {
       votos.clear()
       candidata = sena
+      desde = t
     }
     if (sena == null) return null
 
     votos.addLast(Voto(t, cumple))
     while (votos.isNotEmpty() && t - votos.first().t > ventanaMs) votos.removeFirst()
 
-    val cubre = votos.size > 1 && t - votos.first().t >= ventanaMs * 0.9
+    val cubre = votos.size > 1 && t - desde >= ventanaMs * 0.9
     val proporcion = if (votos.isEmpty()) 0f else votos.count { it.ok }.toFloat() / votos.size
     if (cubre && proporcion >= proporcionMinima && sena != confirmada) {
       confirmada = sena

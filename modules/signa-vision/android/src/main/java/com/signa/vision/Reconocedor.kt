@@ -13,10 +13,11 @@ import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
  * los 258 números se arman igual que en Python.
  *
  * Atiende los dos ejercicios de cámara, que se parecen menos de lo que
- * parecen: las señas dinámicas son movimiento y necesitan 2,5 s de historia,
+ * parecen: las señas dinámicas son movimiento y necesitan historia (el tramo
+ * con manos en el espacio de seña, hasta 2,5 s; ver Ventana),
  * mientras que una letra del abecedario ES una postura y se decide con el
- * cuadro que tiene delante. Lo que comparten —el suavizado y los 700 ms
- * sostenidos para confirmar— vive acá una sola vez.
+ * cuadro que tiene delante. Lo que comparten —el suavizado y la seña
+ * sostenida para confirmar— vive acá una sola vez.
  */
 class Reconocedor(contexto: Context, val modo: Modo = Modo.DINAMICO) {
 
@@ -24,8 +25,8 @@ class Reconocedor(contexto: Context, val modo: Modo = Modo.DINAMICO) {
 
   private val modelo = if (modo == Modo.DINAMICO) ModeloSenas(contexto) else null
   private val abecedario = if (modo == Modo.ESTATICO) ModeloAbecedario(contexto) else null
-  private val ventana = Ventana()
-  private val confirmador = Confirmador()
+  private val ventana = Ventana(linea = modelo?.linea ?: Ventana.LINEA_POR_OMISION)
+  private val confirmador = if (modo == Modo.DINAMICO) Confirmador(CONFIRMA_SENAS_MS) else Confirmador()
   private val suavizado = ArrayDeque<FloatArray>()
   private val plano = if (modo == Modo.DINAMICO) FloatArray(ModeloSenas.PASOS * Ventana.DIM) else FloatArray(0)
 
@@ -63,7 +64,7 @@ class Reconocedor(contexto: Context, val modo: Modo = Modo.DINAMICO) {
   /**
    * Devuelve null si en este cuadro no hubo nada que decidir: la inferencia se
    * limita a doce por segundo aunque la cámara dé más, porque la ventana se
-   * remuestrea a 30 pasos fijos sobre los últimos 2,5 s y correrla más seguido
+   * remuestrea a 30 pasos fijos sobre el tramo y correrla más seguido
    * no cambia lo que ve el modelo.
    */
   fun cuadro(
@@ -73,10 +74,15 @@ class Reconocedor(contexto: Context, val modo: Modo = Modo.DINAMICO) {
     derecha: List<NormalizedLandmark>?,
     mundo: List<Landmark>? = null,
     manoIzquierda: Boolean = false,
+    aspecto: Float = Ventana.ASPECTO_DATASET,
   ): Paso? {
     if (modo == Modo.ESTATICO) return letra(t, pose, izquierda ?: derecha, mundo, manoIzquierda)
 
-    ventana.agregar(t, pose, izquierda, derecha)
+    if (ventana.agregar(t, pose, izquierda, derecha, aspecto)) {
+      // Un tramo nuevo es otra seña: lo suavizado y lo votado eran de la anterior.
+      suavizado.clear()
+      confirmador.reiniciar()
+    }
     if (t - ultima < MS_ENTRE_INFERENCIAS) return null
     ultima = t
 
@@ -85,7 +91,7 @@ class Reconocedor(contexto: Context, val modo: Modo = Modo.DINAMICO) {
     }
 
     val m = modelo ?: return null
-    ventana.remuestrear(t, plano)
+    ventana.remuestrear(plano)
     val t0 = System.nanoTime()
     val probs = m.predecir(plano)
     msInferencia = (System.nanoTime() - t0) / 1_000_000.0
@@ -185,6 +191,9 @@ class Reconocedor(contexto: Context, val modo: Modo = Modo.DINAMICO) {
 
   companion object {
     const val MS_ENTRE_INFERENCIAS = 80L
+
+    /** Ver Confirmador: medido con sesiones reales, 700 → 500 ms. */
+    const val CONFIRMA_SENAS_MS = 500L
     const val SUAVIZADO = 5
 
     /**

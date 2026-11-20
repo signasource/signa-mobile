@@ -14,6 +14,11 @@ import org.json.JSONObject
  * confundiría con un problema de calibración. golden.json trae secuencias
  * reales del dataset con las probabilidades que da Python, y esto reproduce el
  * camino entero contra ellas.
+ *
+ * Se arma con `signa-ml/scripts/golden_senas_app.py`: cuadros crudos de
+ * MediaPipe con el aspecto de la cámara que los vio. Los casos `seña@3:4` son el
+ * mismo clip recortado como lo vería el teléfono en vertical, que es donde la
+ * corrección de aspecto de Ventana hace algo.
  */
 object Golden {
 
@@ -30,17 +35,20 @@ object Golden {
       val caso = casos.getJSONObject(nombre)
       val cuadros = caso.getJSONArray("frames")
       val esperado = caso.getJSONArray("probs")
+      val aspecto = caso.optDouble("aspecto", Ventana.ASPECTO_DATASET.toDouble()).toFloat()
 
-      // Los mismos 30 pasos, repartidos en los 2,5 s que dura la ventana.
-      val ventana = Ventana()
+      // Los mismos tiempos que golden_senas_app.py: parejos en 2,5 s.
+      val ventana = Ventana(linea = modelo.linea)
       val t0 = 1_000_000L
       for (i in 0 until cuadros.length()) {
         val fila = cuadros.getJSONArray(i)
         val kp = FloatArray(Ventana.DIM) { fila.getDouble(it).toFloat() }
         val t = t0 + 2500L * i / (cuadros.length() - 1)
-        ventana.agregar(t, pose(kp), mano(kp, Ventana.POSE_DIM), mano(kp, Ventana.POSE_DIM + Ventana.MANO_DIM))
+        ventana.agregar(
+          t, pose(kp), mano(kp, Ventana.POSE_DIM), mano(kp, Ventana.POSE_DIM + Ventana.MANO_DIM), aspecto,
+        )
       }
-      ventana.remuestrear(t0 + 2500L, plano)
+      ventana.remuestrear(plano)
       val dio = modelo.predecir(plano)
 
       var maximo = 0.0
@@ -128,7 +136,7 @@ object Golden {
    *
    * Entre las probabilidades y una seña dada por hecha hay bastante más:
    * cuántos cuadros tiene que juntar la ventana, el piso de movimiento, el
-   * umbral de cada seña y los 700 ms sostenidos. Nada de eso se ve mirando el
+   * umbral de cada seña y los 500 ms sostenidos. Nada de eso se ve mirando el
    * golden, y no se puede probar con la cámara del emulador, que no tiene
    * manos. Acá se le pasan los cuadros de un clip real de a uno, con tiempos
    * como los que daría la cámara, por el mismo camino que corre en vivo.
@@ -136,19 +144,21 @@ object Golden {
   private fun reproducir(contexto: Context, casos: org.json.JSONObject): String {
     val salida = StringBuilder()
     for (nombre in casos.keys()) {
-      if (nombre == "reposo") continue
-      val cuadros = casos.getJSONObject(nombre).getJSONArray("frames")
+      val sena = nombre.substringBefore("@")
+      if (sena == "reposo") continue
+      val caso = casos.getJSONObject(nombre)
+      val cuadros = caso.getJSONArray("frames")
+      val aspecto = caso.optDouble("aspecto", Ventana.ASPECTO_DATASET.toDouble()).toFloat()
       val reconocedor = Reconocedor(contexto)
-      reconocedor.objetivos = listOf(nombre)
+      reconocedor.objetivos = listOf(sena)
 
-      // La ventana pide 2,5 s de historia y el clip dura eso justo, así que se
-      // repite: es lo mismo que hace alguien que insiste con la seña.
+      // El clip se repite hasta 4 veces: es lo mismo que hace alguien que
+      // insiste con la seña.
       //
       // Los cuadros donde MediaPipe no vio manos se saltean sin gastar tiempo.
       // En los clips grabados hay hasta 900 ms seguidos sin manos —la persona
-      // todavía no arrancó— y repitiendo el clip ese hueco vuelve cada 2,5 s,
-      // así que la ventana no llegaba a estar sana nunca. Eso es del clip, no
-      // de lo que ve la cámara cuando alguien está haciendo la seña.
+      // todavía no arrancó— y ese hueco cortaría el tramo cada vez. Eso es del
+      // clip, no de lo que ve la cámara cuando alguien está haciendo la seña.
       var confirmada: String? = null
       var t = 1_000_000L
       var cuando = 0L
@@ -161,12 +171,7 @@ object Golden {
           val izq = mano(kp, Ventana.POSE_DIM)
           val der = mano(kp, Ventana.POSE_DIM + Ventana.MANO_DIM)
           if (izq == null && der == null) continue
-          val paso = reconocedor.cuadro(
-            t,
-            pose(kp),
-            izq,
-            der,
-          )
+          val paso = reconocedor.cuadro(t, pose(kp), izq, der, aspecto = aspecto)
           if (paso != null && paso.progreso >= 1f) huboVentana = true
           if (paso != null) mejorP = maxOf(mejorP, paso.p)
           if (paso?.confirmada != null) { confirmada = paso.confirmada; cuando = t - 1_000_000L; break@vueltas }
@@ -175,11 +180,12 @@ object Golden {
       }
       reconocedor.cerrar()
       // Cuando no confirma, decir por qué: sin ventana es que MediaPipe perdió
-      // las manos tantos cuadros seguidos que nunca se juntaron 2,5 s sanos,
+      // las manos (o las tuvo abajo de la línea) y nunca se juntaron 0,8 s en
+      // el espacio de seña,
       // que es muy distinto de que el modelo no le crea a la seña.
       salida.append(nombre).append(
         when {
-          confirmada == nombre -> "=sí(${cuando}ms) "
+          confirmada == sena -> "=sí(${cuando}ms) "
           !huboVentana -> "=sin-ventana "
           else -> "=NO(p=${String.format("%.2f", mejorP)}) "
         },

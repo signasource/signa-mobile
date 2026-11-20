@@ -63,6 +63,9 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
   @Volatile private var soltando = false
   private var proveedorCamara: ProcessCameraProvider? = null
   @Volatile private var reconocedor: Reconocedor? = null
+
+  /** Ver PistasDeManos: el seguimiento de la feria, en vez de la cercanía al cuadro anterior. */
+  private val pistas = PistasDeManos()
   private var ultimoAviso = 0L
   private var cuadros = 0
   private var desdeFps = System.currentTimeMillis()
@@ -315,7 +318,13 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
 
     val (manos, pose) = det.procesar(BitmapImageBuilder(bitmap).build())
 
-    val (izquierda, derecha) = repartir(manos)
+    val ahora = System.currentTimeMillis()
+    val (izquierda, derecha) = pistas.repartir(
+      manos,
+      pose?.landmarks()?.firstOrNull(),
+      bitmap.height.toFloat() / bitmap.width,
+      ahora,
+    )
     if (mostrarEsqueleto) {
       val cuerpo = pose?.landmarks()?.firstOrNull()
       post {
@@ -324,7 +333,6 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
       }
     }
 
-    val ahora = System.currentTimeMillis()
     if (objetivos.isNotEmpty()) {
       val cuerpo = pose?.landmarks()?.firstOrNull()
       if (modo == "estatico") {
@@ -350,7 +358,9 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
           cual?.let { manos.handedness()[it].firstOrNull()?.categoryName() == "Left" } ?: false,
         )
       } else {
-        reconocer(ahora, cuerpo, izquierda, derecha)
+        // El aspecto del cuadro que vio MediaPipe: con el teléfono en vertical
+        // lo vertical llega comprimido respecto del dataset (ver Ventana).
+        reconocer(ahora, cuerpo, izquierda, derecha, aspecto = bitmap.width.toFloat() / bitmap.height)
       }
     }
 
@@ -390,6 +400,7 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
     derecha: Manos,
     mundo: List<com.google.mediapipe.tasks.components.containers.Landmark>? = null,
     manoIzquierda: Boolean = false,
+    aspecto: Float = Ventana.ASPECTO_DATASET,
   ) {
     val r = reconocedor ?: try {
       val cual = if (modo == "estatico") Reconocedor.Modo.ESTATICO else Reconocedor.Modo.DINAMICO
@@ -406,7 +417,7 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
       return
     }
 
-    val paso = r.cuadro(ahora, pose, izquierda, derecha, mundo, manoIzquierda) ?: return
+    val paso = r.cuadro(ahora, pose, izquierda, derecha, mundo, manoIzquierda, aspecto) ?: return
     post {
       onSena(
         mapOf(
@@ -420,54 +431,6 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
     }
   }
 
-  private var previaIzq: FloatArray? = null
-  private var previaDer: FloatArray? = null
-
-  /**
-   * Reparte las manos detectadas entre izquierda y derecha.
-   *
-   * La "handedness" de MediaPipe es la de la persona —la misma convención con
-   * la que se entrenó— pero se decide en cada cuadro por separado, y con
-   * movimiento rápido o la mano girada se equivoca. Ahí el esqueleto salta de
-   * una mano a la otra y, peor, los 63 números de cada mano cambian de lugar
-   * en el medio de la ventana, que para el modelo es otra seña. Mientras haya
-   * historia se asigna por cercanía a dónde estaba cada mano un cuadro antes;
-   * la etiqueta se usa sólo para arrancar.
-   */
-  private fun repartir(r: HandLandmarkerResult): Pair<Manos, Manos> {
-    val lms = r.landmarks()
-    if (lms.isEmpty()) {
-      previaIzq = null; previaDer = null
-      return null to null
-    }
-
-    var izq: Manos = null
-    var der: Manos = null
-
-    val sinHistoria = previaIzq == null || previaDer == null
-    if (lms.size >= 2 && !sinHistoria) {
-      val directo = dist(lms[0], previaIzq) + dist(lms[1], previaDer)
-      val cruzado = dist(lms[1], previaIzq) + dist(lms[0], previaDer)
-      if (directo <= cruzado) { izq = lms[0]; der = lms[1] } else { izq = lms[1]; der = lms[0] }
-    } else if (lms.size == 1 && (previaIzq != null || previaDer != null)) {
-      if (dist(lms[0], previaIzq) <= dist(lms[0], previaDer)) izq = lms[0] else der = lms[0]
-    } else {
-      for (i in lms.indices) {
-        when (r.handedness()[i].firstOrNull()?.categoryName()) {
-          "Left" -> izq = lms[i]
-          "Right" -> der = lms[i]
-        }
-      }
-    }
-
-    previaIzq = izq?.let { floatArrayOf(it[0].x(), it[0].y()) }
-    previaDer = der?.let { floatArrayOf(it[0].x(), it[0].y()) }
-    return izq to der
-  }
-
-  private fun dist(mano: List<NormalizedLandmark>, previa: FloatArray?): Float =
-    if (previa == null) Float.MAX_VALUE
-    else kotlin.math.hypot((mano[0].x() - previa[0]).toDouble(), (mano[0].y() - previa[1]).toDouble()).toFloat()
 
   private fun crearDetectores(): Detectores? {
     return try {
@@ -545,12 +508,11 @@ class ReconocedorView(contexto: Context, appContext: AppContext) : ExpoView(cont
       lienzoDetección = null
       reconocedor?.cerrar()
       reconocedor = null
+      pistas.reiniciar()
     }
     hilo.shutdown()
 
     esqueleto.limpiar()
-    previaIzq = null
-    previaDer = null
   }
 
   // Desprenderse de la ventana no quiere decir que la vista se vaya: React la

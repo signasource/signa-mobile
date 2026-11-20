@@ -3,96 +3,100 @@ package com.signa.vision
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 
 /**
- * El vector de 258 números por cuadro y la ventana de 2,5 segundos.
+ * El vector de 258 números por cuadro y la ventana que ve el modelo.
  *
- * Es el mismo armado que hace `signa-ml/src/data/normalization.py` y que hasta
- * ahora vivía en `engine/keypoints.ts`: 33 puntos de cuerpo por (x, y, z,
- * visibilidad) y 21 por (x, y, z) de cada mano, centrados en el punto medio de
- * los hombros y divididos por el ancho de hombros. Cualquier diferencia con esa
- * versión mueve la distribución de entrada y el modelo se degrada en silencio.
+ * Es el mismo armado que `signa-ml/src/inference/sign_runner.py` (preparar y
+ * _Window), con el que se entrenó y se midió cada cambio contra sesiones reales
+ * del laboratorio: 33 puntos de cuerpo por (x, y, z, visibilidad) y 21 por
+ * (x, y, z) de cada mano, centrados en el punto medio de los hombros y divididos
+ * por el ancho de hombros. Cualquier diferencia con esa versión mueve la
+ * distribución de entrada y el modelo se degrada en silencio: Golden.kt la
+ * compara contra golden.json, que sale de ese mismo código.
+ *
+ * Tres cosas que antes no estaban, todas medidas (ver signa-ml):
+ *
+ * - **Aspecto de la cámara.** MediaPipe da x en fracción del ANCHO del cuadro e
+ *   y en fracción del ALTO, y el ancho de hombros es casi todo horizontal: con
+ *   el teléfono en vertical (3:4) lo vertical llegaba comprimido a menos de la
+ *   mitad que en el dataset (16:9), y el v11 caía de 97% a 51%. Se reescala y a
+ *   la proporción del dataset.
+ * - **El espacio de seña.** Una mano con la muñeca debajo de [linea] (en anchos
+ *   de hombro desde los hombros) no cuenta: se pone en cero, y un cuadro sin
+ *   ninguna mano adentro no entra. La ventana es el TRAMO con manos en el
+ *   espacio, hasta 2,5 s, estirado a 30 pasos: igual que cada clip al entrenar.
+ *   Si las manos salen más de medio segundo, el tramo se corta: lo que venga es
+ *   otra seña.
+ * - **Ventana mínima de 0,8 s.** Con medio segundo la ventana podía ser sólo la
+ *   mano subiendo o bajando por la panza, y efectivo y bien se confirmaban
+ *   solas entre seña y seña (31 → 22-24 en una sesión, mismos aciertos).
  */
-class Ventana(private val pasos: Int = 30, private val duracionMs: Long = 2500) {
+class Ventana(
+  private val pasos: Int = 30,
+  private val linea: Float = LINEA_POR_OMISION,
+) {
 
   private data class Cuadro(val t: Long, val kp: FloatArray)
 
   private val cuadros = ArrayDeque<Cuadro>()
 
-  /** Mínimo de muestras y hueco máximo para dar la ventana por utilizable. */
-  private val minMuestras = 10
-  private val huecoMaxMs = 500
-
+  /**
+   * Un cuadro. `aspecto` es ancho/alto de la imagen que vio MediaPipe.
+   *
+   * Devuelve true si con este cuadro se cortó el tramo anterior (las manos
+   * estuvieron fuera del espacio más de [HUECO_MAX_MS]): lo suavizado y lo
+   * votado eran de otra seña.
+   */
   fun agregar(
     t: Long,
     pose: List<NormalizedLandmark>?,
     izquierda: List<NormalizedLandmark>?,
     derecha: List<NormalizedLandmark>?,
-  ) {
-    // Sin manos no entra nada: 126 ceros donde el modelo espera una seña son
-    // entrada fuera de distribución, y responde cualquier cosa con mucha
-    // confianza.
-    if (izquierda == null && derecha == null) {
-      purgar(t)
-      return
+    aspecto: Float = ASPECTO_DATASET,
+  ): Boolean {
+    val cortado = cuadros.isNotEmpty() && t - cuadros.last().t > HUECO_MAX_MS
+    if (cortado) cuadros.clear()
+    if (izquierda != null || derecha != null) {
+      val kp = normalizar(armar(pose, izquierda, derecha))
+      corregirAspecto(kp, aspecto)
+      if (enEspacio(kp)) cuadros.addLast(Cuadro(t, kp))
     }
-    cuadros.addLast(Cuadro(t, normalizar(armar(pose, izquierda, derecha))))
-    purgar(t)
+    while (cuadros.isNotEmpty() && t - cuadros.first().t > DURACION_MS) cuadros.removeFirst()
+    return cortado
   }
 
-  private fun purgar(t: Long) {
-    // Se descarta TODO lo viejo, sin conservar el último: guardarlo dejaba un
-    // cuadro eterno y la ventana se daba por cubierta con una foto de hace diez
-    // segundos.
-    while (cuadros.isNotEmpty() && t - cuadros.first().t > duracionMs) cuadros.removeFirst()
-  }
+  /** Lo que abarca el tramo de ahora, en ms. */
+  private fun abarca(): Long = if (cuadros.size > 1) cuadros.last().t - cuadros.first().t else 0L
 
-  /**
-   * ¿Se puede decidir con lo que hay?
-   *
-   * No alcanza con que la ventana abarque los 2,5 segundos: tiene que estar
-   * POBLADA. Con dos cuadros sueltos —uno viejo y uno reciente— el remuestreo
-   * los une con una recta que el modelo lee como un movimiento deliberado, y
-   * reconoce señas que nadie hizo.
-   */
-  fun utilizable(t: Long): Boolean {
-    if (cuadros.size < minMuestras) return false
-    if (t - cuadros.first().t < duracionMs * 0.9) return false
-    var previo = cuadros.first().t
-    for (c in cuadros) {
-      if (c.t - previo > huecoMaxMs) return false
-      previo = c.t
-    }
-    return true
-  }
+  /** ¿Se puede decidir con lo que hay? Como _Window.usable. */
+  fun utilizable(t: Long): Boolean =
+    cuadros.size >= MIN_MUESTRAS && abarca() >= MIN_ABARCA_MS && t - cuadros.last().t <= HUECO_MAX_MS
 
-  fun progreso(t: Long): Float {
-    if (cuadros.size < 2) return 0f
-    val porTiempo = (t - cuadros.first().t).toFloat() / duracionMs
-    val porMuestras = cuadros.size.toFloat() / minMuestras
-    return minOf(1f, porTiempo, porMuestras)
-  }
+  fun progreso(t: Long): Float = minOf(1f, abarca().toFloat() / MIN_ABARCA_MS)
 
   fun limpiar() = cuadros.clear()
 
   /**
-   * Los últimos `duracionMs` repartidos en `pasos` puntos parejos.
-   *
-   * Se remuestrea por TIEMPO y no por cantidad de cuadros: a 12 por segundo son
-   * 2,5 s y a 10 son 3,0, así que la misma seña le llegaría al modelo estirada
-   * o comprimida según lo que rinda el aparato en ese momento.
+   * El tramo repartido en `pasos` puntos parejos POR ORDEN, no por tiempo: es
+   * normalization.estirar, lo mismo que se hizo con cada clip al entrenar. El
+   * tramo entero se lleva a 30 pasos dure lo que dure, así que una seña hecha
+   * más rápido o más despacio le llega al modelo igual.
    */
-  fun remuestrear(ahora: Long, destino: FloatArray) {
-    val desde = ahora - duracionMs
+  fun remuestrear(destino: FloatArray) {
+    val n = cuadros.size
     val lista = cuadros.toList()
-    var j = 0
     for (i in 0 until pasos) {
-      val t = desde + duracionMs * i / (pasos - 1)
-      while (j < lista.size - 2 && lista[j + 1].t < t) j++
-      val a = lista[j]
-      val b = lista[minOf(j + 1, lista.size - 1)]
-      val tramo = (b.t - a.t).toFloat()
-      val u = if (tramo > 0) ((t - a.t) / tramo).coerceIn(0f, 1f) else 0f
       val off = i * DIM
-      for (k in 0 until DIM) destino[off + k] = a.kp[k] + (b.kp[k] - a.kp[k]) * u
+      if (n == 1) {
+        System.arraycopy(lista[0].kp, 0, destino, off, DIM)
+        continue
+      }
+      // np.interp sobre linspace(0, 1, n) en los puntos linspace(0, 1, pasos).
+      val x = i.toDouble() / (pasos - 1) * (n - 1)
+      val j = minOf(x.toInt(), n - 2)
+      val u = (x - j).toFloat()
+      val a = lista[j].kp
+      val b = lista[j + 1].kp
+      for (k in 0 until DIM) destino[off + k] = a[k] + (b[k] - a[k]) * u
     }
   }
 
@@ -160,9 +164,7 @@ class Ventana(private val pasos: Int = 30, private val duracionMs: Long = 2500) 
       // La visibilidad no se toca.
     }
     for (desde in intArrayOf(POSE_DIM, POSE_DIM + MANO_DIM)) {
-      var vacia = true
-      for (i in 0 until MANO_DIM) if (kp[desde + i] != 0f) { vacia = false; break }
-      if (vacia) continue
+      if (vacia(kp, desde)) continue
       for (i in 0 until 21) {
         val o = desde + i * 3
         kp[o] = (kp[o] - cx) / ancho
@@ -173,9 +175,50 @@ class Ventana(private val pasos: Int = 30, private val duracionMs: Long = 2500) 
     return kp
   }
 
+  /** normalization.corregir_aspecto: y de la pose y de las manos a la escala del dataset. */
+  private fun corregirAspecto(kp: FloatArray, aspecto: Float) {
+    val factor = ASPECTO_DATASET / aspecto
+    for (i in 0 until 33) kp[i * 4 + 1] *= factor
+    for (i in 0 until MANO_DIM * 2 / 3) kp[POSE_DIM + i * 3 + 1] *= factor
+  }
+
+  /**
+   * normalization.en_espacio: la mano con la muñeca debajo de la línea va en
+   * cero. Devuelve si quedó alguna mano adentro.
+   */
+  private fun enEspacio(kp: FloatArray): Boolean {
+    var alguna = false
+    for (desde in intArrayOf(POSE_DIM, POSE_DIM + MANO_DIM)) {
+      if (vacia(kp, desde)) continue
+      if (kp[desde + 1] >= linea) {
+        for (i in 0 until MANO_DIM) kp[desde + i] = 0f
+      } else {
+        alguna = true
+      }
+    }
+    return alguna
+  }
+
+  private fun vacia(kp: FloatArray, desde: Int): Boolean {
+    for (i in 0 until MANO_DIM) if (kp[desde + i] != 0f) return false
+    return true
+  }
+
   companion object {
     const val POSE_DIM = 33 * 4
     const val MANO_DIM = 21 * 3
     const val DIM = POSE_DIM + MANO_DIM * 2
+
+    /** Los mismos números que sign_runner.py. */
+    const val DURACION_MS = 2500L
+    const val MIN_MUESTRAS = 5
+    const val MIN_ABARCA_MS = 800L
+    const val HUECO_MAX_MS = 500L
+
+    /** 1280x720: con lo que se grabó el dataset. */
+    const val ASPECTO_DATASET = 16f / 9f
+
+    /** Para un senas.json sin "linea": la del v12 en adelante. */
+    const val LINEA_POR_OMISION = 1.5f
   }
 }
