@@ -41,6 +41,7 @@ function MatchSignCell({ concept, state, height, paused, onSelect, onLongPress }
         label={concept}
         height={height}
         paused={paused}
+        hideControls
         style={[
           styles.signCellAnim,
           state === "selected" && styles.signCellSelected,

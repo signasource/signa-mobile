@@ -25,6 +25,8 @@ interface SignAnimationProps {
   cameraControls?: boolean;
   /** Forzar un motor. Sólo lo usa el banco, para compararlos lado a lado. */
   motor?: "nativo" | "webview";
+  /** Ocultar los controles de frente/lateral y velocidad. */
+  hideControls?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -45,7 +47,7 @@ interface SignAnimationProps {
  */
 const NATIVO = process.env.EXPO_PUBLIC_AVATAR_WEBVIEW !== "1";
 
-export function SignAnimation({ meaning, label, height = 320, tone = "neutral", paused, badge, cameraControls, motor, style }: SignAnimationProps) {
+export function SignAnimation({ meaning, label, height = 320, tone = "neutral", paused, badge, cameraControls, motor, hideControls, style }: SignAnimationProps) {
   // Si el motor nativo no puede con este modelo, se cae al visor web en vez de
   // mostrar la lámina fija: hay avatares —M y N— con un esqueleto de 574 huesos
   // contra el tope de 256 de Filament, y el web los dibuja igual.
@@ -102,7 +104,7 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
           <Text style={styles.badgeText}>{badge}</Text>
         </View>
       )}
-      {lateral && (
+      {!hideControls && lateral && (
         <View style={styles.vistas} accessibilityRole="tablist">
           {(["frente", "lateral"] as const).map((v) => (
             <Pressable
@@ -119,7 +121,7 @@ export function SignAnimation({ meaning, label, height = 320, tone = "neutral", 
           ))}
         </View>
       )}
-      {fuente.format === "mp4" && <SpeedToggle rate={videoRate} onChange={setVideoRate} />}
+      {!hideControls && fuente.format === "mp4" && <SpeedToggle rate={videoRate} onChange={setVideoRate} />}
       {fuente.format === "mp4" ? (
         <SignVideo
           url={vista === "lateral" && lateral ? lateral : fuente.url}
