@@ -8,7 +8,7 @@ Import: `import { colors, alpha } from "@/theme"`. Rule: every color comes from 
 
 **Enforced by lint.** `eslint.config.js` (`no-restricted-syntax`) fails `npm run lint` on any hex
 literal, `rgb()/rgba()/hsl()` string, or hex/rgba inside a template literal anywhere in `src/`
-except `src/theme/`. HTML built for a WebView (`recognizerHtml.ts`) interpolates tokens too:
+except `src/theme/`. HTML built for a WebView must interpolate tokens too:
 `` `background: ${colors.fillDark};` ``.
 
 **Every color is a design decision — never swap one for a "close enough" token.** When migrating
@@ -52,8 +52,13 @@ of an `rgba()` literal. Appending a hex alpha suffix (`colors.onColor + "47"`) a
 | `colors.celebrationGifts` | `#F59BC4` | achievement celebration background: gifts |
 | `colors.celebrationShop` | `#F29A4F` | achievement celebration background: shop |
 | `colors.celebrationGeneric` | `#9B86FF` | achievement celebration background: any other achievement |
+| `colors.celebrationShield` | `#29B6E8` | background of the streak-shield celebration screen (`StreakShieldScreen`) |
 | `colors.gemsBlue` | `#29B6E8` | gems icon/border |
 | `colors.gemsBlueDark` | `#1B84AB` | gems text/count |
+| `colors.gemsHighlight` | `#FFE27A` | "Más elegido" badge and sparkles in the gem shop |
+| `colors.courseIndigo` | `#4361D8` | paid-course tone: sheet header, icon medallions, success screen (`CourseDetailScreen`, `PaidCourseRow`) |
+| `colors.courseIndigoDark` | `#2C46A8` | text on `courseIndigoLight` |
+| `colors.courseIndigoLight` | `#E6EBFB` | icon medallion tint for `courseIndigo` items |
 | `colors.courseTeal` | `#2FA8A0` | courses, sign count |
 | `colors.courseTealLight` | `#E4F1EC` | icon medallion tint for `courseTeal`-toned items (Práctica libre) |
 | `colors.livesRed` | `#E03B3B` | heart / lives icon |

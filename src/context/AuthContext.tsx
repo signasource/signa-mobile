@@ -2,11 +2,13 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { AppState, AppStateStatus } from "react-native";
 import { authApi } from "@/api/auth";
 import { usersApi } from "@/api/users";
-import { setOnRefreshFailure } from "@/api/client";
+import { refreshSession, SessionRejectedError, setOnRefreshFailure } from "@/api/client";
 import { tokenStorage } from "@/utils/storage";
-import { extractEmailFromToken, isTokenExpired } from "@/utils/jwt";
+import { extractEmailFromToken, extractRoleFromToken, isTokenExpired } from "@/utils/jwt";
+import { signInWithGoogle } from "@/utils/googleAuth";
 import { profileCache } from "@/utils/profileCache";
 import { ChangePasswordRequest, LoginRequest, RegisterRequest, User } from "@/types";
+import { onboardingStorage } from "@/features/onboarding/storage";
 
 interface AuthContextValue {
   user: User | null;
@@ -16,12 +18,22 @@ interface AuthContextValue {
   sessionExpired: boolean;
   login: (payload: LoginRequest) => Promise<void>;
   register: (payload: RegisterRequest) => Promise<void>;
+  /** Abre el selector de Google y entra (o crea la cuenta). Devuelve false si el usuario canceló. */
+  loginWithGoogle: () => Promise<boolean>;
   changePassword: (payload: ChangePasswordRequest) => Promise<void>;
-  logout: () => Promise<void>;
+  /**
+   * Logs out the user. Pass an optional async callback that runs before the auth
+   * tokens are cleared — used to unregister the push notification device token
+   * while the session is still valid.
+   */
+  logout: (preLogout?: () => Promise<void>) => Promise<void>;
   /** El usuario eligió "Iniciar sesión" en el aviso de sesión expirada */
   resumeExpiredSession: () => void;
   /** El usuario eligió "Salir" en el aviso de sesión expirada */
   dismissExpiredSession: () => void;
+  /** true justo después de registrarse: la app ofrece verificar el email (opcional) una sola vez */
+  verificationPrompt: boolean;
+  clearVerificationPrompt: () => void;
   /** Ruta inicial del stack de auth: "Login" si se venía de una sesión expirada, "Welcome" si no */
   authInitialRoute: "Login" | "Welcome";
   error: string | null;
@@ -31,8 +43,30 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 async function buildUserFromToken(accessToken: string): Promise<User> {
   const email = extractEmailFromToken(accessToken);
+  const role = extractRoleFromToken(accessToken);
   const cachedName = await profileCache.getName(email);
-  return { email, name: cachedName ?? undefined };
+  return { email, name: cachedName ?? undefined, role };
+}
+
+/**
+ * Daily goal picked in the onboarding survey (only stored locally until an account exists). It is
+ * sent along with register / Google sign-in, where the backend applies it only if that call
+ * creates the account. Never read it on email login: an existing account keeps its own goal.
+ */
+async function readOnboardingDailyGoal(): Promise<number | undefined> {
+  try {
+    return (await onboardingStorage.getData()).dailyGoal ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function discardOnboardingDailyGoal(): Promise<void> {
+  try {
+    await onboardingStorage.saveData({ dailyGoal: null });
+  } catch {
+    // non-blocking: worst case a stale goal is sent on the next sign-up
+  }
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -41,6 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [authInitialRoute, setAuthInitialRoute] = useState<"Login" | "Welcome">("Welcome");
+  const [verificationPrompt, setVerificationPrompt] = useState(false);
   const appState = useRef<AppStateStatus>(AppState.currentState);
 
   useEffect(() => {
@@ -67,11 +102,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!isTokenExpired(token)) return;
 
       try {
-        const { data } = await authApi.refresh(refreshToken);
-        await tokenStorage.setTokens(data.accessToken, data.refreshToken);
-        setUser(await buildUserFromToken(data.accessToken));
-      } catch {
-        await expireSession();
+        setUser(await buildUserFromToken(await refreshSession()));
+      } catch (err) {
+        // Solo se cierra la sesión si el servidor rechazó el refresh token. Sin red al volver a
+        // primer plano (muy común) se conserva: el interceptor reintenta en el próximo request.
+        if (err instanceof SessionRejectedError) await expireSession();
       }
     }
 
@@ -80,15 +115,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const refreshToken = await tokenStorage.getRefreshToken();
 
       if (!token || !refreshToken) {
+        const completed = await onboardingStorage.isCompleted();
+        if (completed) setAuthInitialRoute("Login");
         setIsLoading(false);
         return;
       }
 
       try {
         if (isTokenExpired(token)) {
-          const { data } = await authApi.refresh(refreshToken);
-          await tokenStorage.setTokens(data.accessToken, data.refreshToken);
-          setUser(await buildUserFromToken(data.accessToken));
+          try {
+            setUser(await buildUserFromToken(await refreshSession()));
+          } catch (err) {
+            if (err instanceof SessionRejectedError) throw err;
+            // Sin red / error del servidor: no cerrar la sesión. Se entra con el token vencido
+            // (el email se lee igual) y el interceptor refresca en el primer request.
+            setUser(await buildUserFromToken(token));
+          }
         } else {
           setUser(await buildUserFromToken(token));
         }
@@ -124,6 +166,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data } = await authApi.login(payload);
       await tokenStorage.setTokens(data.accessToken, data.refreshToken);
+      // The account already has its own goal; the onboarding one must not override it.
+      await discardOnboardingDailyGoal();
+      // Logging in means the user already went through onboarding before — skip it on this device.
+      await onboardingStorage.complete();
       setUser(await buildUserFromToken(data.accessToken));
     } catch (err: any) {
       setError(err?.response?.data?.message ?? "No se pudo iniciar sesion");
@@ -134,12 +180,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = useCallback(async (payload: RegisterRequest) => {
     setError(null);
     try {
-      const { data } = await authApi.register(payload);
+      const dailyGoalMinutes = await readOnboardingDailyGoal();
+      const { data } = await authApi.register({ ...payload, dailyGoalMinutes });
       await tokenStorage.setTokens(data.accessToken, data.refreshToken);
       await profileCache.setName(payload.email, payload.name);
+      await discardOnboardingDailyGoal();
+      setVerificationPrompt(true);
       setUser(await buildUserFromToken(data.accessToken));
     } catch (err: any) {
       setError(err?.response?.data?.message ?? "No se pudo registrar el usuario");
+      throw err;
+    }
+  }, []);
+
+  const loginWithGoogle = useCallback(async () => {
+    setError(null);
+    try {
+      const google = await signInWithGoogle();
+      if (!google) return false;
+      // /auth/google logs in or registers; the backend applies the goal only when it creates the account.
+      const dailyGoalMinutes = await readOnboardingDailyGoal();
+      const { data } = await authApi.google({ idToken: google.idToken, dailyGoalMinutes });
+      await tokenStorage.setTokens(data.accessToken, data.refreshToken);
+      await discardOnboardingDailyGoal();
+      await onboardingStorage.complete();
+      const built = await buildUserFromToken(data.accessToken);
+      if (!built.name && google.name) await profileCache.setName(built.email, google.name);
+      setUser(built.name ? built : { ...built, name: google.name ?? undefined });
+      return true;
+    } catch (err: any) {
+      if (__DEV__) console.warn("[google-auth]", err?.code, err?.message, err?.response?.status, err?.response?.data);
+      setError(err?.response?.data?.message ?? "No se pudo iniciar sesion con Google");
       throw err;
     }
   }, []);
@@ -156,10 +227,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const logout = useCallback(async () => {
+  const logout = useCallback(async (preLogout?: () => Promise<void>) => {
+    if (preLogout) {
+      try {
+        await preLogout();
+      } catch {
+        // non-blocking: proceed with logout even if the pre-step fails
+      }
+    }
     await tokenStorage.clear();
     setUser(null);
   }, []);
+
+  const clearVerificationPrompt = useCallback(() => setVerificationPrompt(false), []);
 
   const resumeExpiredSession = useCallback(() => {
     setAuthInitialRoute("Login");
@@ -181,11 +261,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       sessionExpired,
       login,
       register,
+      loginWithGoogle,
       changePassword,
       logout,
       resumeExpiredSession,
       dismissExpiredSession,
       authInitialRoute,
+      verificationPrompt,
+      clearVerificationPrompt,
       error,
     }),
     [
@@ -194,11 +277,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       sessionExpired,
       login,
       register,
+      loginWithGoogle,
       changePassword,
       logout,
       resumeExpiredSession,
       dismissExpiredSession,
       authInitialRoute,
+      verificationPrompt,
+      clearVerificationPrompt,
       error,
     ]
   );

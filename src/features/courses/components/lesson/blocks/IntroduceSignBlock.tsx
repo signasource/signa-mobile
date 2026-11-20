@@ -3,6 +3,7 @@ import {
   StyleSheet,
   View,
   Modal,
+  KeyboardAvoidingView,
   Pressable,
   TouchableOpacity,
   TextInput,
@@ -10,6 +11,7 @@ import {
   Linking,
   ActivityIndicator,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts, alpha } from "@/theme";
@@ -36,15 +38,15 @@ const REASONS: { value: ReportReason; label: string }[] = [
 ];
 
 export function IntroduceSignBlock({ config, onContinue }: IntroduceSignBlockProps) {
+  const insets = useSafeAreaInsets();
   const [view, setView] = useState<ModalView | null>(null);
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
 
-  const youtubeUrl =
-    config.video_url ??
-    `https://www.youtube.com/results?search_query=${encodeURIComponent(`seña LSA ${config.word}`)}`;
+  const label = config.word ?? config.meaning;
+  const youtubeUrl = config.video_url ?? null;
 
   function closeModal() {
     if (loading) return;
@@ -91,32 +93,41 @@ export function IntroduceSignBlock({ config, onContinue }: IntroduceSignBlockPro
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.word}>{config.word}</Text>
-        <SignAnimation meaning={config.meaning} label={config.word} badge="animación LSA" height={340} />
+        <Text style={styles.word}>{label}</Text>
+        <SignAnimation meaning={config.meaning} label={label} badge="animación LSA" height={340} />
       </View>
 
       <View style={styles.footer}>
         <LessonButton label="La practico" onPress={onContinue} />
       </View>
 
-      <Modal visible={view !== null} transparent animationType="slide" onRequestClose={closeModal}>
+      <Modal
+        visible={view !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={closeModal}
+        statusBarTranslucent
+      >
+        <KeyboardAvoidingView behavior="padding" style={styles.kav}>
         <Pressable style={styles.backdrop} onPress={closeModal}>
-          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+          <Pressable style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 30) }]} onPress={(e) => e.stopPropagation()}>
             <View style={styles.grabber} />
 
             {view === "options" && (
               <>
                 <Text style={styles.sheetTitle}>Sobre esta seña</Text>
 
-                <OptionRow
-                  icon="logo-youtube"
-                  iconColor={colors.youtubeRed}
-                  label="Ver en YouTube"
-                  onPress={() => {
-                    Linking.openURL(youtubeUrl);
-                    closeModal();
-                  }}
-                />
+                {youtubeUrl && (
+                  <OptionRow
+                    icon="logo-youtube"
+                    iconColor={colors.youtubeRed}
+                    label="Ver en YouTube"
+                    onPress={() => {
+                      Linking.openURL(youtubeUrl);
+                      closeModal();
+                    }}
+                  />
+                )}
                 <OptionRow
                   icon="flag-outline"
                   iconColor={colors.danger}
@@ -133,7 +144,7 @@ export function IntroduceSignBlock({ config, onContinue }: IntroduceSignBlockPro
             {view === "report" && (
               <>
                 <Text style={styles.sheetTitle}>Reportar seña</Text>
-                <Text style={styles.sheetSubtitle}>¿Cuál es el problema con “{config.word}”?</Text>
+                <Text style={styles.sheetSubtitle}>¿Cuál es el problema con “{label}”?</Text>
 
                 <ScrollView style={styles.reasonList} showsVerticalScrollIndicator={false}>
                   {REASONS.map((r) => (
@@ -152,18 +163,19 @@ export function IntroduceSignBlock({ config, onContinue }: IntroduceSignBlockPro
                       )}
                     </TouchableOpacity>
                   ))}
-
-                  <TextInput
-                    style={styles.descInput}
-                    placeholder="Descripción adicional (opcional)"
-                    placeholderTextColor={colors.textMuted}
-                    value={description}
-                    onChangeText={setDescription}
-                    multiline
-                    maxLength={300}
-                    textAlignVertical="top"
-                  />
                 </ScrollView>
+
+                <Text style={styles.commentLabel}>Comentario (opcional)</Text>
+                <TextInput
+                  style={styles.descInput}
+                  placeholder="Contanos más sobre el problema…"
+                  placeholderTextColor={colors.textMuted}
+                  value={description}
+                  onChangeText={setDescription}
+                  multiline
+                  maxLength={300}
+                  textAlignVertical="top"
+                />
 
                 {reportError && <Text style={styles.errorText}>{reportError}</Text>}
 
@@ -187,20 +199,23 @@ export function IntroduceSignBlock({ config, onContinue }: IntroduceSignBlockPro
 
             {view === "success" && (
               <>
-                <View style={styles.successIcon}>
-                  <Ionicons name="checkmark-circle" size={38} color={colors.success} />
+                <View style={styles.successIconWrap}>
+                  <View style={styles.successIconCircle}>
+                    <Ionicons name="checkmark" size={32} color={colors.onDark} />
+                  </View>
                 </View>
-                <Text style={styles.sheetTitle}>Reporte enviado</Text>
+                <Text style={styles.sheetTitle}>¡Gracias por tu aporte!</Text>
                 <Text style={styles.sheetSubtitle}>
-                  Gracias por ayudarnos a mejorar el contenido de Signa.
+                  Tu reporte va a ser revisado por el equipo de Signa. Vamos a hacer algo al respecto y te vamos a avisar cuando esté resuelto.
                 </Text>
                 <TouchableOpacity style={styles.submitBtn} onPress={closeModal}>
-                  <Text style={styles.submitLabel}>Aceptar</Text>
+                  <Text style={styles.submitLabel}>Entendido</Text>
                 </TouchableOpacity>
               </>
             )}
           </Pressable>
         </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -263,6 +278,7 @@ const styles = StyleSheet.create({
   footer: { padding: 20, paddingTop: 14 },
 
   // Modal
+  kav: { flex: 1 },
   backdrop: {
     flex: 1,
     backgroundColor: alpha(colors.text, 0.55),
@@ -274,7 +290,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 26,
     paddingHorizontal: 22,
     paddingTop: 16,
-    paddingBottom: 30,
+    paddingBottom: 0,
   },
   grabber: {
     width: 40,
@@ -325,8 +341,14 @@ const styles = StyleSheet.create({
 
   // Report view
   reasonList: {
-    maxHeight: 320,
+    maxHeight: 240,
     marginBottom: 8,
+  },
+  commentLabel: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.text,
+    marginTop: 6,
   },
   reasonRow: {
     flexDirection: "row",
@@ -351,7 +373,7 @@ const styles = StyleSheet.create({
     color: colors.primaryDark,
   },
   descInput: {
-    marginTop: 10,
+    marginTop: 8,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 12,
@@ -400,8 +422,16 @@ const styles = StyleSheet.create({
   },
 
   // Success view
-  successIcon: {
-    alignSelf: "center",
-    marginBottom: 12,
+  successIconWrap: {
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  successIconCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: colors.success,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

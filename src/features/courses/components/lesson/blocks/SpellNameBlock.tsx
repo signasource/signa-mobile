@@ -1,11 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useCameraPermissions } from "expo-camera";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Animated, StyleSheet, TextInput, View } from "react-native";
+import { Animated, KeyboardAvoidingView, StyleSheet, TextInput, View } from "react-native";
 
 import { Text } from "@/components/Text";
-import { LiveSignRecognizer } from "@/features/ml";
+import { trackCameraSkip } from "@/telemetry/telemetry";
 import { colors, fonts, alpha } from "@/theme";
+import { ReconocedorSenasNativo } from "@/features/ml/components/ReconocedorSenasNativo";
+import { hayNativo } from "../../../../../../modules/signa-vision";
+// TEMPORAL: rama de diagnóstico, ver src/features/ml/telemetria.ts
+import { cerrarMedicion, marcar, medir } from "@/features/ml/telemetria";
 import { LessonButton } from "../LessonButton";
 import { SignPip } from "../SignPip";
 import {
@@ -50,7 +54,7 @@ function limpiar(texto: string, tope: number): string {
  * de una ventana de 2,5 s.
  */
 export function SpellNameBlock({ config, active, ultimo, xp, onAnswer, onContinue }: Props) {
-  const tope = config.max_letters ?? 12;
+  const tope = config?.max_letters ?? 10;
   const [permission, requestPermission] = useCameraPermissions();
   const [nombre, setNombre] = useState("");
   const [empezado, setEmpezado] = useState(false);
@@ -60,6 +64,7 @@ export function SpellNameBlock({ config, active, ultimo, xp, onAnswer, onContinu
   const [estado, setEstado] = useState<Estado>("esperando");
   const [visto, setVisto] = useState<{ nombre: string; p: number } | null>(null);
   const [conf, setConf] = useState(0);
+  const [ms, setMs] = useState(0);
   const [fps, setFps] = useState(0);
   const [delegado, setDelegado] = useState("");
   const [verTrackeo, setVerTrackeo] = useState(true);
@@ -86,12 +91,15 @@ export function SpellNameBlock({ config, active, ultimo, xp, onAnswer, onContinu
     return () => clearTimeout(t);
   }, [completo, ultimo, onContinue]);
 
+  // Sólo se reporta el acierto. Rendirse NO se manda al backend: signa-api da por
+  // hecho un bloque de cámara con sólo intentarlo, y la lección quedaría
+  // completada (con su XP) aunque el ejercicio se haya omitido.
   useEffect(() => {
-    if (terminado && !answered.current) {
+    if (completo && !answered.current) {
       answered.current = true;
-      onAnswer(completo);
+      onAnswer(true);
     }
-  }, [terminado, completo, onAnswer]);
+  }, [completo, onAnswer]);
 
   // La tarjeta entra con un pop y se retira sola, igual que en la demo.
   useEffect(() => {
@@ -113,16 +121,30 @@ export function SpellNameBlock({ config, active, ultimo, xp, onAnswer, onContinu
     [letras],
   );
 
+  // TEMPORAL: marca entrada y salida del ejercicio para poder separar sesiones.
+  useEffect(() => {
+    marcar("entra", { modo: "estatico" });
+    return cerrarMedicion;
+  }, []);
+
   const handleFrame = useCallback((f: LiveFrame) => {
     setEstado(estadoDeFrame(f));
+    medir({
+      modo: "estatico", fps: f.fps, poseMs: f.poseMs, handsMs: f.handsMs, inferMs: f.inferMs,
+      drawFps: f.drawFps, drawMs: f.drawMs, delegado: f.delegado,
+      body: f.body, hands: f.hands, resting: f.resting, progress: f.progress,
+      sign: f.sign, confidence: f.confidence, targetConfidence: f.targetConfidence,
+      memoriaKB: f.memoriaKB,
+    });
     setFps(f.fps);
     setConf(f.targetConfidence);
+    setMs(f.inferMs);
     setVisto(f.sign && !f.resting ? { nombre: f.sign, p: f.confidence } : null);
   }, []);
 
   if (!empezado) {
     return (
-      <View style={styles.setup}>
+      <KeyboardAvoidingView behavior="padding" style={styles.setup}>
         <View style={styles.setupHead}>
           <Text style={styles.setupTitulo}>¿Cómo te llamás?</Text>
           <XpChip xp={xp} state="idle" />
@@ -154,6 +176,26 @@ export function SpellNameBlock({ config, active, ultimo, xp, onAnswer, onContinu
             onPress={() => setEmpezado(true)}
           />
         </View>
+      </KeyboardAvoidingView>
+    );
+  }
+
+  if (!hayNativo) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.permission}>
+          <View style={styles.permissionIcon}>
+            <Ionicons name="camera-outline" size={34} color={colors.primary} />
+          </View>
+          <Text style={styles.permissionTitle}>Reconocimiento no disponible</Text>
+          <Text style={styles.permissionText}>
+            Este dispositivo todavía no puede reconocer señas con la cámara. Podés seguir con el
+            resto de la lección.
+          </Text>
+        </View>
+        <View style={styles.footer}>
+          <LessonButton label={ultimo ? "Terminar" : "Continuar"} onPress={onContinue} />
+        </View>
       </View>
     );
   }
@@ -173,7 +215,14 @@ export function SpellNameBlock({ config, active, ultimo, xp, onAnswer, onContinu
         </View>
         <View style={styles.footer}>
           <LessonButton label="Permitir cámara" icon="camera" onPress={requestPermission} />
-          <LessonButton label="Saltear por ahora" variant="outline" onPress={onContinue} />
+          <LessonButton
+            label="Saltear por ahora"
+            variant="outline"
+            onPress={() => {
+              trackCameraSkip();
+              onContinue();
+            }}
+          />
         </View>
       </View>
     );
@@ -191,11 +240,11 @@ export function SpellNameBlock({ config, active, ultimo, xp, onAnswer, onContinu
             </>
           )}
         </Text>
-        <XpChip xp={xp} state={terminado ? (completo ? "correct" : "incorrect") : "idle"} />
+        <XpChip xp={xp} state={completo ? "correct" : rendido ? "skipped" : "idle"} />
       </View>
 
       <View style={styles.stage}>
-        <LiveSignRecognizer
+        <ReconocedorSenasNativo
           targets={objetivo ? [objetivo] : []}
           modo="estatico"
           onFrame={handleFrame}
@@ -213,6 +262,7 @@ export function SpellNameBlock({ config, active, ultimo, xp, onAnswer, onContinu
           fps={fps}
           confianza={conf}
           visto={visto}
+          ms={ms}
           delegado={delegado}
         />
         <ToggleTrackeo activo={verTrackeo} onPress={() => setVerTrackeo((v) => !v)} />

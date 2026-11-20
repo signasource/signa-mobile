@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
   View,
   ScrollView,
@@ -8,6 +8,7 @@ import {
   Pressable,
   ActivityIndicator,
   RefreshControl,
+  useWindowDimensions,
 } from "react-native";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -16,23 +17,28 @@ import { BottomTabNavigationProp, BottomTabScreenProps } from "@react-navigation
 import { CompositeNavigationProp, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { colors, fonts, fontSizes, alpha } from "@/theme";
+import { usePendingGemOrders } from "@/features/store/usePendingGemOrders";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { TabParamList } from "@/navigation/TabNavigator";
 import { AppStackParamList } from "@/navigation/AppNavigator";
 import { usersApi } from "@/api/users";
+import { useLives, livesValue, livesCaption, LivesSource } from "@/features/lives/useLives";
 import { inventoryApi } from "@/api/inventory";
 import { learningApi, EnrollmentSummary } from "@/api/learning";
 import type { PublicCourseProgress } from "@/api/social";
 import {
   coursesApi,
   CourseRoadmap,
+  CourseSummary,
   RoadmapLesson,
   RoadmapLessonState,
   RoadmapTopic,
 } from "@/features/courses/api";
 import { accentFor, progressFor } from "@/features/courses/roadmap";
+import { PaidCourseRow } from "@/features/store/PaidCourseRow";
 import { useTour } from "@/features/tour/TourContext";
+import { useTourTarget } from "@/features/tour/useTourTarget";
 import { challengesApi, Challenge, Challenges } from "@/api/challenges";
 import { ChallengesCard } from "@/features/challenges/components/ChallengesCard";
 import { mapChallengeClaimError } from "@/utils/challengeErrors";
@@ -64,34 +70,70 @@ interface HomeData {
   roadmap: CourseRoadmap;
   enrollments: EnrollmentSummary[];
   lessonCounts: PublicCourseProgress[];
+  catalog: CourseSummary[];
+}
+
+/** Catalog of the user's sign language (LSA), used to show buyable paid courses. Never throws. */
+async function fetchCatalog(): Promise<CourseSummary[]> {
+  try {
+    const { data: languages } = await coursesApi.getSignLanguages();
+    const lsa = languages.find((l) => l.code === "LSA") ?? languages[0];
+    if (!lsa) return [];
+    const { data: catalog } = await coursesApi.getCatalog(lsa.id);
+    return catalog.content.filter(isPublished);
+  } catch {
+    return [];
+  }
+}
+
+/** Defensive: older signa-api builds ignore the `status=PUBLISHED` param and return drafts too. */
+function isPublished(course: CourseSummary): boolean {
+  return !course.status || course.status === "PUBLISHED";
 }
 
 async function fetchEnrollmentData() {
   const [enrollments, lessonCounts] = await Promise.all([
-    learningApi.getEnrollments().then((r) => r.data).catch(() => [] as EnrollmentSummary[]),
+    learningApi.getEnrollments().then((r) => r.data).catch(() => null),
     learningApi.getProgress().then((r) => r.data).catch(() => [] as PublicCourseProgress[]),
   ]);
-  return { enrollments, lessonCounts };
+  // `enrollmentsLoaded` is false when the request failed: an empty list then means "unknown",
+  // not "brand-new user", so it must not trigger the auto-enrolment.
+  return {
+    enrollments: enrollments ?? ([] as EnrollmentSummary[]),
+    enrollmentsLoaded: enrollments !== null,
+    lessonCounts,
+  };
 }
 
-// Free courses are joined once per app session; enrolment is what makes a course show up in
-// the selector and in the profile's "Cursos" progress.
-let freeCoursesJoined = false;
+// Enrolment is what makes a course show up in the selector and in the profile's "Cursos"
+// progress. Only an in-flight guard (no per-session flag): a failed attempt, or a different user
+// signing in within the same session, must be retried on the next load.
+let freeCourseJoin: Promise<boolean> | null = null;
 
-/** Enrolls the user in the free catalog courses they're missing. Returns true if any was joined. */
-async function joinMissingFreeCourses(enrollments: EnrollmentSummary[]): Promise<boolean> {
-  if (freeCoursesJoined) return false;
+/**
+ * Auto-enrols a brand-new user (no prior enrollments) in the base free course only.
+ * Additional free courses must be joined explicitly by the user via "Empezar".
+ */
+function joinMissingFreeCourses(enrollments: EnrollmentSummary[]): Promise<boolean> {
+  if (enrollments.length > 0) return Promise.resolve(false);
+  freeCourseJoin ??= joinBaseFreeCourse().finally(() => {
+    freeCourseJoin = null;
+  });
+  return freeCourseJoin;
+}
+
+async function joinBaseFreeCourse(): Promise<boolean> {
   try {
     const { data: languages } = await coursesApi.getSignLanguages();
     const lsa = languages.find((l) => l.code === "LSA") ?? languages[0];
     if (!lsa) return false;
     const { data: catalog } = await coursesApi.getCatalog(lsa.id);
-    const enrolledIds = new Set(enrollments.map((e) => e.courseId));
-    const missing = catalog.content.filter((c) => c.isFree && !enrolledIds.has(c.id));
-    await Promise.all(missing.map((c) => learningApi.joinCourse(c.id)));
-    freeCoursesJoined = true;
-    return missing.length > 0;
-  } catch {
+    const baseCourse = catalog.content.filter(isPublished).find((c) => c.isFree);
+    if (!baseCourse) return false;
+    await learningApi.joinCourse(baseCourse.id);
+    return true;
+  } catch (err) {
+    if (__DEV__) console.warn("[home] auto-join of the base free course failed", err);
     return false;
   }
 }
@@ -101,26 +143,19 @@ async function joinMissingFreeCourses(enrollments: EnrollmentSummary[]): Promise
  * to the first catalog course if enrolment isn't available.
  */
 async function fetchHomeData(): Promise<HomeData> {
-  let { enrollments, lessonCounts } = await fetchEnrollmentData();
-  if (await joinMissingFreeCourses(enrollments)) {
-    ({ enrollments, lessonCounts } = await fetchEnrollmentData());
+  let { enrollments, enrollmentsLoaded, lessonCounts } = await fetchEnrollmentData();
+  if (enrollmentsLoaded && (await joinMissingFreeCourses(enrollments))) {
+    ({ enrollments, enrollmentsLoaded, lessonCounts } = await fetchEnrollmentData());
   }
+
+  const catalog = await fetchCatalog();
 
   const enrolled = enrollments.find((e) => e.isCurrent) ?? enrollments[0];
-  let courseId = enrolled?.courseId;
-
-  if (!courseId) {
-    const { data: languages } = await coursesApi.getSignLanguages();
-    const lsa = languages.find((l) => l.code === "LSA") ?? languages[0];
-    if (!lsa) throw new Error("No hay lenguas de señas disponibles.");
-
-    const { data: catalog } = await coursesApi.getCatalog(lsa.id);
-    courseId = catalog.content[0]?.id;
-    if (!courseId) throw new Error("Todavía no hay cursos disponibles.");
-  }
+  let courseId = enrolled?.courseId ?? catalog.find((c) => c.owned)?.id ?? catalog[0]?.id;
+  if (!courseId) throw new Error("Todavía no hay cursos disponibles.");
 
   const { data: roadmap } = await coursesApi.getRoadmap(courseId);
-  return { roadmap, enrollments, lessonCounts };
+  return { roadmap, enrollments, lessonCounts, catalog };
 }
 
 function formatDate(iso: string): string {
@@ -151,12 +186,15 @@ function findCurrentLessonId(topics: RoadmapTopic[]): string | null {
 
 export function HomeTabScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const { height: screenHeight } = useWindowDimensions();
   const [streak, setStreak] = useState(0);
   const [gems, setGems] = useState(0);
-  const [xp, setXp] = useState(0);
+  const [livesSource, setLivesSource] = useState<LivesSource | null>(null);
+  const livesState = useLives(livesSource);
   const [roadmap, setRoadmap] = useState<CourseRoadmap | null>(null);
   const [enrollments, setEnrollments] = useState<EnrollmentSummary[]>([]);
   const [lessonCounts, setLessonCounts] = useState<PublicCourseProgress[]>([]);
+  const [catalog, setCatalog] = useState<CourseSummary[]>([]);
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -173,6 +211,35 @@ export function HomeTabScreen({ navigation }: Props) {
 
   // The welcome tour spotlights elements of this screen: the card would shift them.
   const { tourVisible } = useTour();
+  const statsRef = useTourTarget("home-stats");
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollY = useRef(0);
+  const lessonCardRef = useTourTarget("home-current-lesson", revealCurrentLesson);
+
+  /**
+   * Scrolls the roadmap so the current lesson sits right under the fixed header, leaving the rest
+   * of the screen for the tour bubble. The reference is the ScrollView's own top edge (where the
+   * header ends), not a fraction of the screen: the header's height varies per device and font
+   * scale, and anchoring above it would hide the card behind the header.
+   */
+  function revealCurrentLesson() {
+    return new Promise<void>((resolve) => {
+      const node = lessonCardRef.current;
+      const scroll = scrollRef.current;
+      if (!node || !scroll) return resolve();
+      // ScrollView is a native host component and has measureInWindow at runtime; its typings omit it.
+      (scroll as unknown as View).measureInWindow((_sx, scrollTop) => {
+        node.measureInWindow((_x, y) => {
+          const delta = y - (scrollTop + 16);
+          if (Math.abs(delta) > 4) {
+            scroll.scrollTo({ y: Math.max(0, scrollY.current + delta), animated: false });
+          }
+          // Give the scroll a frame to be applied before measuring again.
+          setTimeout(resolve, 80);
+        });
+      });
+    });
+  }
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -181,8 +248,8 @@ export function HomeTabScreen({ navigation }: Props) {
     Promise.all([usersApi.getStats(), inventoryApi.getMyInventory()])
       .then(([stats, inventory]) => {
         setStreak(stats.data.currentStreak);
-        setXp(stats.data.totalXp);
         setGems(inventory.data.gems);
+        setLivesSource(inventory.data);
       })
       .catch(() => {});
     challengesApi
@@ -190,10 +257,16 @@ export function HomeTabScreen({ navigation }: Props) {
       .then((res) => setChallenges(res.data))
       .catch(() => {});
     try {
-      const { roadmap: rm, enrollments: enr, lessonCounts: counts } = await fetchHomeData();
+      const {
+        roadmap: rm,
+        enrollments: enr,
+        lessonCounts: counts,
+        catalog: cat,
+      } = await fetchHomeData();
       setRoadmap(rm);
       setEnrollments(enr);
       setLessonCounts(counts);
+      setCatalog(cat);
     } catch (err: any) {
       setError(err?.response?.data?.message ?? err?.message ?? "No pudimos cargar tu curso.");
     } finally {
@@ -203,11 +276,21 @@ export function HomeTabScreen({ navigation }: Props) {
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+  const pendingGemOrders = usePendingGemOrders();
+
+  const purchasableCourses = catalog.filter((c) => !c.owned && isPublished(c));
+
+  function openCourseSheet(course: CourseSummary) {
+    setSelectorOpen(false);
+    navigation.navigate("CourseDetail", { courseId: course.id });
+  }
 
   const currentLessonId = roadmap ? findCurrentLessonId(roadmap.topics) : null;
   const cta = openLesson ? ctaFor(openLesson.lesson.state) : null;
 
   const currentCourse = enrollments.find((e) => e.isCurrent) ?? enrollments[0] ?? null;
+  const currentCourseIsFree =
+    catalog.find((c) => c.id === currentCourse?.courseId)?.isFree ?? false;
 
   async function selectCourse(course: EnrollmentSummary) {
     if (course.courseId === currentCourse?.courseId) {
@@ -229,14 +312,23 @@ export function HomeTabScreen({ navigation }: Props) {
 
   function navigateToLesson(lesson: RoadmapLesson, unitLabel: string) {
     setOpenLesson(null);
-    navigation.navigate("Lesson", { lessonId: lesson.id, unitLabel, signsCount: lesson.signsCount });
+    // Closing the last pending lesson of the entire free course is the moment to suggest a
+    // paid one (the motivation is high); never on a replay, mid-course, or on every lesson.
+    const allLessons = roadmap?.topics.flatMap((t) => t.lessons) ?? [];
+    const closesCourse =
+      lesson.state !== "COMPLETED" &&
+      allLessons.every((l) => l.id === lesson.id || l.state === "COMPLETED");
+    const suggestion = closesCourse && currentCourseIsFree ? purchasableCourses[0] : undefined;
+    navigation.navigate("Lesson", {
+      lessonId: lesson.id,
+      unitLabel,
+      signsCount: lesson.signsCount,
+      suggestedCourse: suggestion ? { id: suggestion.id, name: suggestion.name } : undefined,
+    });
   }
 
   function handleChallengePress(challenge: Challenge) {
     switch (challenge.criteriaType) {
-      case "CAMERA_PRACTICES":
-        navigation.navigate("Tabs", { screen: "Practice" });
-        break;
       case "FRIEND_REQUESTS_SENT":
         navigation.navigate("Tabs", { screen: "Social" });
         break;
@@ -281,25 +373,42 @@ export function HomeTabScreen({ navigation }: Props) {
         description="Seguí la ruta lección por lección y sumá señas todos los días."
         paddingTop={insets.top + 14}
         tone={colors.primary}
+        statsRef={statsRef}
         top={
           currentCourse ? (
-            <TouchableOpacity
-              style={styles.courseChip}
-              onPress={() => setSelectorOpen(true)}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="briefcase" size={14} color={colors.onDark} />
-              <Text style={styles.courseChipText} numberOfLines={1}>
-                {currentCourse.courseName}
-              </Text>
-              <Ionicons name="chevron-down" size={14} color={colors.onDark} />
-            </TouchableOpacity>
+            <View style={styles.courseChipRow}>
+              <TouchableOpacity
+                style={styles.courseChip}
+                onPress={() => setSelectorOpen(true)}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="briefcase" size={14} color={colors.onDark} />
+                <Text style={styles.courseChipText} numberOfLines={1}>
+                  {currentCourse.courseName}
+                </Text>
+                <Ionicons name="chevron-down" size={14} color={colors.onDark} />
+              </TouchableOpacity>
+            </View>
           ) : null
         }
         stats={[
           { key: "streak", label: "Racha", value: String(streak), icon: "flame" },
-          { key: "gems", label: "Gemas", value: gems.toLocaleString("es-AR"), icon: "diamond" },
-          { key: "xp", label: "XP", value: xp.toLocaleString("es-AR"), icon: "flash" },
+          {
+            key: "gems",
+            label: "Gemas",
+            value: gems.toLocaleString("es-AR"),
+            icon: "diamond",
+            onPress: () => navigation.navigate("GemShop"),
+            dot: pendingGemOrders.length > 0,
+            accessibilityLabel: "Conseguir más gemas",
+          },
+          {
+            key: "lives",
+            label: "Vidas",
+            value: livesValue(livesState),
+            caption: livesCaption(livesState),
+            icon: "heart",
+          },
         ]}
       />
 
@@ -317,9 +426,14 @@ export function HomeTabScreen({ navigation }: Props) {
         </View>
       ) : (
         <ScrollView
+          ref={scrollRef}
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          onScroll={(e) => {
+            scrollY.current = e.nativeEvent.contentOffset.y;
+          }}
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -360,8 +474,27 @@ export function HomeTabScreen({ navigation }: Props) {
               currentLessonId={currentLessonId}
               onInfo={(lesson) => setOpenLesson({ lesson, unitLabel: topic.title })}
               onNavigate={(lesson) => navigateToLesson(lesson, topic.title)}
+              currentCardRef={lessonCardRef}
             />
           ))}
+          {roadmap && roadmap.topics.length > 0 && currentCourseIsFree && purchasableCourses.length > 0 && (
+            <View style={styles.afterCourse}>
+              <View style={styles.endMark}>
+                <View style={styles.endLine} />
+                <Text style={styles.endText}>FIN DE {currentCourse?.courseName.toUpperCase()}</Text>
+                <View style={styles.endLine} />
+              </View>
+              <Text style={styles.afterTitle}>¿Y después?</Text>
+              <Text style={styles.afterSub}>
+                Cursos temáticos para usar LSA en lugares concretos.
+              </Text>
+              <View style={styles.afterList}>
+                {purchasableCourses.map((course) => (
+                  <PaidCourseRow key={course.id} course={course} onOpen={openCourseSheet} />
+                ))}
+              </View>
+            </View>
+          )}
           {roadmap && roadmap.topics.length === 0 && (
             <EmptyState
               title="Todavía no hay contenido"
@@ -381,7 +514,10 @@ export function HomeTabScreen({ navigation }: Props) {
       >
         <Pressable style={styles.sheetBackdrop} onPress={() => setSelectorOpen(false)}>
           <Pressable
-            style={[styles.sheet, { paddingBottom: insets.bottom + 20 }]}
+            style={[
+              styles.sheet,
+              { maxHeight: screenHeight * 0.72, paddingBottom: insets.bottom + 20 },
+            ]}
             onPress={() => {}}
           >
             <View style={styles.sheetHandle} />
@@ -389,46 +525,61 @@ export function HomeTabScreen({ navigation }: Props) {
             <Text style={styles.sheetSubtitle}>
               Tu progreso se guarda por separado en cada curso.
             </Text>
-            {enrollments.map((course) => {
-              const selected = course.courseId === currentCourse?.courseId;
-              const isOrg = !!course.organizationName;
-              return (
-                <TouchableOpacity
-                  key={course.courseId}
-                  style={[styles.courseOption, selected && styles.courseOptionSelected]}
-                  onPress={() => selectCourse(course)}
-                  disabled={switching}
-                  activeOpacity={0.85}
-                >
-                  <View
-                    style={[
-                      styles.courseOptionIcon,
-                      { backgroundColor: isOrg ? colors.success : colors.primary },
-                    ]}
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              style={styles.sheetScroll}
+              contentContainerStyle={styles.sheetScrollContent}
+            >
+              {enrollments.map((course) => {
+                const selected = course.courseId === currentCourse?.courseId;
+                const isOrg = !!course.organizationName;
+                return (
+                  <TouchableOpacity
+                    key={course.courseId}
+                    style={[styles.courseOption, selected && styles.courseOptionSelected]}
+                    onPress={() => selectCourse(course)}
+                    disabled={switching}
+                    activeOpacity={0.85}
                   >
-                    <Ionicons
-                      name={isOrg ? "medkit" : "hand-left"}
-                      size={22}
-                      color={colors.onDark}
-                    />
-                  </View>
-                  <View style={styles.courseOptionText}>
-                    <Text style={styles.courseOptionName} numberOfLines={1}>
-                      {course.courseName}
-                    </Text>
-                    <Text style={styles.courseOptionSub} numberOfLines={1}>
-                      {courseSubtitle(course, lessonCounts)}
-                    </Text>
-                  </View>
-                  {selected &&
-                    (switching ? (
-                      <ActivityIndicator color={colors.primary} />
-                    ) : (
-                      <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
-                    ))}
-                </TouchableOpacity>
-              );
-            })}
+                    <View
+                      style={[
+                        styles.courseOptionIcon,
+                        { backgroundColor: isOrg ? colors.success : colors.primary },
+                      ]}
+                    >
+                      <Ionicons
+                        name={isOrg ? "medkit" : "hand-left"}
+                        size={22}
+                        color={colors.onDark}
+                      />
+                    </View>
+                    <View style={styles.courseOptionText}>
+                      <Text style={styles.courseOptionName} numberOfLines={1}>
+                        {course.courseName}
+                      </Text>
+                      <Text style={styles.courseOptionSub} numberOfLines={1}>
+                        {courseSubtitle(course, lessonCounts)}
+                      </Text>
+                    </View>
+                    {selected &&
+                      (switching ? (
+                        <ActivityIndicator color={colors.primary} />
+                      ) : (
+                        <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                      ))}
+                  </TouchableOpacity>
+                );
+              })}
+
+              {purchasableCourses.length > 0 && (
+                <>
+                  <Text style={styles.sheetSectionLabel}>Más cursos</Text>
+                  {purchasableCourses.map((course) => (
+                    <PaidCourseRow key={course.id} course={course} onOpen={openCourseSheet} />
+                  ))}
+                </>
+              )}
+            </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>
@@ -446,7 +597,7 @@ export function HomeTabScreen({ navigation }: Props) {
             <Pressable style={styles.modalCard} onPress={() => {}}>
               <View style={styles.modalTitleRow}>
                 <Text style={styles.modalKicker}>Seguí acá</Text>
-                {openLesson.lesson.xpTotal > 0 && (
+                {openLesson.lesson.xpTotal > 0 && openLesson.lesson.state !== "COMPLETED" && (
                   <View style={styles.modalXpPill}>
                     <Text style={styles.modalXpText}>+{openLesson.lesson.xpTotal} XP</Text>
                   </View>
@@ -500,11 +651,14 @@ function TopicSection({
   currentLessonId,
   onInfo,
   onNavigate,
+  currentCardRef,
 }: {
   topic: RoadmapTopic;
   currentLessonId: string | null;
   onInfo: (lesson: RoadmapLesson) => void;
   onNavigate: (lesson: RoadmapLesson) => void;
+  /** Welcome-tour anchor: attached to the current lesson card only. */
+  currentCardRef: React.Ref<View>;
 }) {
   const accent = accentFor(topic);
   const progress = progressFor(topic);
@@ -552,6 +706,7 @@ function TopicSection({
             isCurrent={isCurrent}
             onInfo={() => onInfo(lesson)}
             onNavigate={() => onNavigate(lesson)}
+            cardRef={currentCardRef}
           />
         );
       })}
@@ -566,14 +721,18 @@ function LessonRow({
   isCurrent,
   onInfo,
   onNavigate,
+  cardRef,
 }: {
   lesson: RoadmapLesson;
   isCurrent: boolean;
   onInfo: () => void;
   onNavigate: () => void;
+  cardRef: React.Ref<View>;
 }) {
   if (isCurrent) {
-    return <CurrentLessonCard lesson={lesson} onInfo={onInfo} onNavigate={onNavigate} />;
+    return (
+      <CurrentLessonCard lesson={lesson} onInfo={onInfo} onNavigate={onNavigate} cardRef={cardRef} />
+    );
   }
   if (lesson.state === "COMPLETED") {
     return <CompletedLessonRow lesson={lesson} onNavigate={onNavigate} />;
@@ -611,10 +770,12 @@ function CurrentLessonCard({
   lesson,
   onInfo,
   onNavigate,
+  cardRef,
 }: {
   lesson: RoadmapLesson;
   onInfo: () => void;
   onNavigate: () => void;
+  cardRef: React.Ref<View>;
 }) {
   return (
     <View style={[styles.lessonRow, styles.lessonRowTop]}>
@@ -626,13 +787,13 @@ function CurrentLessonCard({
           </View>
         </View>
       </View>
-      <View style={styles.lessonCard}>
+      <View ref={cardRef} collapsable={false} style={styles.lessonCard}>
         <Text style={styles.cardKicker}>Seguí acá</Text>
         <Text style={styles.cardTitle}>{lesson.name}</Text>
         <View style={styles.cardActions}>
           <TouchableOpacity style={styles.cardCta} onPress={onNavigate} activeOpacity={0.86}>
             <Ionicons name="play" size={17} color={colors.onDark} />
-            <Text style={styles.cardCtaText}>Seguir</Text>
+            <Text style={styles.cardCtaText}>{ctaFor(lesson.state).label}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.cardInfoBtn} onPress={onInfo} activeOpacity={0.8}>
             <Ionicons name="information-circle-outline" size={20} color={colors.neutral900} />
@@ -703,17 +864,33 @@ const styles = StyleSheet.create({
   },
 
   // Course selector chip (header) and organization banner
+  courseChipRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 10,
+  },
+  afterCourse: { marginTop: 8, gap: 6 },
+  endMark: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14 },
+  endLine: { flex: 1, height: 2, backgroundColor: colors.roadmapLockedBorder },
+  endText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    letterSpacing: 1.1,
+    color: colors.textMuted,
+  },
+  afterTitle: { fontFamily: fonts.displayExtraBold, fontSize: 20, color: colors.text },
+  afterSub: { fontFamily: fonts.bodyRegular, fontSize: 13, color: colors.textMuted },
+  afterList: { gap: 10, marginTop: 8 },
   courseChip: {
-    alignSelf: "flex-start",
+    flexShrink: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    maxWidth: "80%",
     backgroundColor: alpha(colors.onColor, 0.16),
     borderRadius: 999,
     paddingVertical: 6,
     paddingHorizontal: 12,
-    marginBottom: 10,
   },
   courseChipText: {
     flexShrink: 1,
@@ -755,8 +932,9 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
     paddingTop: 12,
-    gap: 10,
   },
+  sheetScroll: { flexShrink: 1 },
+  sheetScrollContent: { gap: 10, paddingTop: 4 },
   sheetHandle: {
     alignSelf: "center",
     width: 40,
@@ -777,6 +955,15 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: "center",
     marginBottom: 8,
+  },
+  sheetSectionLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
+    color: colors.textMuted,
+    marginTop: 8,
+    marginBottom: 2,
   },
   courseOption: {
     flexDirection: "row",

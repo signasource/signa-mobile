@@ -2,7 +2,7 @@
 
 > Responsibility: real/stub snapshot and cross-cutting technical debt.
 > Update when: something moves stub→real, or debt is added/resolved.
-> Sources: src/, .github/workflows/release.yml
+> Sources: src/, modules/signa-vision/, .github/workflows/release.yml
 
 ## Real vs stub
 
@@ -10,28 +10,63 @@ Per-feature detail is owned by each feature doc; this is the index.
 
 | Area | State | Owner doc |
 |---|---|---|
+| Profile photo (take/choose, crop square, 256 px JPEG, upload; shown in profile, social, ranking, gifts) | real — needs a **new dev build** (`expo-image-picker` + `expo-image-manipulator` are native) | [features/social.md](./features/social.md), [api/endpoints.md](./api/endpoints.md) |
 | Auth (login/register→auto-login/forgot/reset/change) | real | [authentication/screens.md](./authentication/screens.md) |
 | Session + token refresh | real | [authentication/auth-context.md](./authentication/auth-context.md), [api/http-client.md](./api/http-client.md) |
 | Onboarding (6 screens + progress) | real | [features/onboarding.md](./features/onboarding.md) |
+| Perfil, Configuración, Editar perfil (stats, daily goal, inventory + boosters, achievements, settings, delete account) | real | [features/profile.md](./features/profile.md) |
+| Push notifications (FCM token registration, tap → Notifications) | real; needs `google-services.json` and a dev build | [api/endpoints.md](./api/endpoints.md), `src/hooks/usePushToken.ts` |
+| Lives (10-minute regeneration mirrored on the server clock) | real | [features/courses.md](./features/courses.md#lives) |
 | Theming (palette + fonts) | real | [design-system/colors.md](./design-system/colors.md) |
 | Connection test | real | `screens/ConnectionTestScreen` |
 | User profile | partial | [api/session-persistence.md](./api/session-persistence.md) |
-| Store / Tienda (gem catalog, buy for self, **gem packs with real money via Google Play**) | real (Android; packs need a dev build + Play Console setup) | [features/store.md](./features/store.md) |
+| Store / Tienda (gem catalog, buy for self, **gem packs with real money via Mercado Pago Checkout Pro**) | real, **verified in production 2026-11-07** (purchase, credit and refund with real money); needs a build with the `signa://` scheme and signa-api with Mercado Pago configured | [features/store.md](./features/store.md) |
 | Inicio (Home) roadmap screen | real (topics/lessons + per-lesson state from `signa-api`) | [features/courses.md](./features/courses.md#inicio-home-roadmap-screen) |
+| Paid-course sheet + purchase flow (`CourseDetailScreen`) | real; needs `signa-api` with the extended `GET /courses/{id}` | [features/courses.md](./features/courses.md#buying-a-paid-course--real) |
 | Lesson player (`LessonScreen`) | real, wired to `signa-api` | [features/courses.md](./features/courses.md#lesson-player--real) |
 | Social (feed + likes, amigos, solicitudes, búsqueda, ranking semanal) | real | [features/social.md](./features/social.md) |
 | Notifications inbox | real | [features/social.md](./features/social.md#notificationsscreen) |
+| Sign report flow (`IntroduceSignBlock`: "…" → "Reportar seña" → thank-you) | real, works for both GLB and MP4 signs; `SIGN_REPORT_RESOLVED` notification navigates to `SignDetailScreen` | [features/courses.md](./features/courses.md), [features/social.md](./features/social.md#notificationsscreen) |
 | Public profile (read-only, of another user) | real | [features/social.md](./features/social.md#publicprofilescreen) |
-| Courses flat browse (`CoursesListScreen`) | stub | [features/courses.md](./features/courses.md#course-catalog--stub) |
 | Práctica libre (`PracticeTabScreen` + `PracticeSessionScreen`) | real, wired to `signa-api` | [features/practice.md](./features/practice.md) |
 | Primeros pasos + daily and weekly challenges (server-side progress, claimable gem rewards; the main source of gems) | real; needs `signa-api` with `/challenges` and the `challenges.sql` seed | [features/challenges.md](./features/challenges.md) |
-| Achievements (catalog, unlocked by the backend, celebration screen per group, streak medals) | real; animations are real for streak, lessons and courses and **mocked** for the rest until their Lottie files are added; needs `signa-api` with the achievement catalog and a dev-build rebuild for Lottie | [features/achievements.md](./features/achievements.md) |
-| ML (sign recognition) | real, **on-device and real time** (nothing leaves the phone) | [features/ml.md](./features/ml.md) |
+| Achievements (catalog, unlocked by the backend, celebration screen per group, streak medals, 17 SVG coins with an animated shine) | real; animations are real for streak, lessons and courses and **mocked** for the rest until their Lottie files are added; needs `signa-api` with the achievement catalog and a dev-build rebuild for Lottie | [features/achievements.md](./features/achievements.md) |
+| ML (sign recognition) | real, **on-device and real time** (nothing leaves the phone), **Android only** (native module `signa-vision`) | [features/ml.md](./features/ml.md) |
+| 3D sign avatar | real: Filament in `signa-vision` on Android, `<model-viewer>` WebView elsewhere | [avatar-3d.md](./avatar-3d.md) |
+| Client telemetry (animation load latency, API errors) → signa-api `/telemetry/events` | real, fire-and-forget | [api/endpoints.md](./api/endpoints.md#telemetry-srctelemetrytelemetryts) |
+
+## Plataformas
+
+`modules/signa-vision` is a **local Expo module with an Android implementation only**
+(`expo-module.config.json` declares `"platforms": ["android"]`; there is no `ios/` directory).
+It provides both the camera recogniser and the Filament avatar.
+
+Because of that, the app degrades on any build without it — iOS, and Expo Go on every platform,
+since a local native module is never part of Expo Go:
+
+| | Android (dev build) | iOS / Expo Go |
+|---|---|---|
+| Sign recognition (`PERFORM_SIGN`, `SPELL_NAME`) | native, real time | exercise replaced by "Reconocimiento no disponible" + Continuar |
+| Sign avatar | native (Filament) | WebView with Google's `<model-viewer>` |
+| Startup bench (`BancoNativoPantalla`) | shown before the app | skipped |
+
+The switch is the `hayNativo` flag exported by `modules/signa-vision`, which is
+`requireOptionalNativeModule(...) !== null`. Its six consumers are `App.tsx`, `LessonScreen`,
+`AvatarGlbNativo`, `MultiAvatarNativo`, `ReconocedorSenasNativo` and `BancoNativoPantalla`.
+
+Running on iPhone is therefore useful for everything **except** recognition: auth, Inicio,
+lessons without camera, Tienda, Social, Perfil and Práctica all work.
 
 ## Cross-cutting tech debt
 
+- ~~`npm run lint` reports `import/no-unresolved` for `expo-notifications`.~~ It was a stale ESLint cache (`.expo/cache/eslint`, git-ignored), not a code problem: the package is installed and resolves. If it reappears, run `npx eslint src --no-cache` (or delete `.expo/cache/eslint`) before suspecting the code.
+- **Welcome tour not yet verified on a device/emulator.** The rewrite (native engine in `src/features/tour/`, see [features/onboarding.md](./features/onboarding.md#post-login-tour-srcfeaturestour)) passes `typecheck` + `lint`, and its placement logic was checked at 320×568, 390×844, 412×915 and 820×1180. Pending: walk it on a real Android phone (3-button nav and gesture nav), an iPhone with notch, and a small/short phone; also with large font scale. Replay it from Perfil → Configuración → Volver a ver el tour.
+
+- **Responsive pending**: only `AuthScreen` caps its width on tablets; the other screens (tabs, onboarding choice screens, lessons) stretch full width. Lesson sign animations use fixed heights (330dp in `SignCarouselBlock`). Not yet checked on small/short screens or at large font scale beyond Welcome/Achievement (which now fit via `useFitSquare`).
+
 - **Profile partly from JWT + local cache.** `GET /users/me` *does* exist and `usersApi.getMe()` calls it; what is still cached in AsyncStorage is the name captured at registration, used as a fallback before the profile loads.
 - ~~**Password reset is barely usable.**~~ Fixed in [signa-api#99](https://github.com/signasource/signa-api/pull/99) + the app branch `feat/password-reset-code` (merged to `develop` 2026-10-22): the email now carries a 6-digit code (BCrypt-hashed, 15 min TTL, discarded after 5 failed attempts) and `ResetPasswordScreen` takes `{ email, code, newPassword }`, then auto-logs in. **The contract changed**: older app builds can no longer reset once the new API is deployed, so release the API and the app together. Email verification still exists on the backend (`verified` flag) but registration auto-logs in and the app surfaces no verify/resend UI.
+- **Email verification by 6-digit code** (app + [signa-api#122](https://github.com/signasource/signa-api/pull/122)): registration emails a code; `VerifyEmailScreen` opens once after sign-up (optional, "Más tarde") and from Configuración while the account is unverified. Release the API and the app together; an older app just never shows the screen and registration keeps working. Verification still gates nothing.
 - **Password-reset hardening** ([signa-api#97](https://github.com/signasource/signa-api/pull/97), merged to `develop` 2026-10-22): `/auth/forgot-password`, `/auth/reset-password` and `/auth/resend-verification-email` are rate-limited to 10 requests / 15 min per IP (429 `Too many requests`, mapped to Spanish in `authErrors.ts`), and the reset email is sent `@Async` so the response no longer reveals whether an email is registered. A known account still costs a few ms more (deleting the old code and saving the new one); not worth hiding, since `POST /auth/register` already answers "Email already in use".
 - ~~**signa-api: rate limits can be bypassed by spoofing `X-Forwarded-For`.**~~ Fixed in [signa-api#98](https://github.com/signasource/signa-api/pull/98), merged to `develop`: nginx resolves the client IP from `CF-Connecting-IP` trusting only Cloudflare's ranges and overwrites `X-Real-IP`; the app keys on `X-Real-IP`. When deploying it: **nginx first** (`docker compose restart nginx`), then the API — the reverse order makes users behind the same Cloudflare edge share a bucket (false 429s).
 - ~~12 `react-hooks/exhaustive-deps` lint warnings.~~ Fixed: `npm run lint` is at 0 problems. Loaders became `useCallback` or moved inside their effect; values an effect must read without re-running (`cameraControls` in `GlbAnimationView`, the time drafts in `ConfigurationScreen`) go through a ref. Keep it at 0 — never silence the rule with a bare `eslint-disable`.
@@ -44,10 +79,15 @@ Per-feature detail is owned by each feature doc; this is the index.
 - ~~No ESLint.~~ Fixed: `eslint` + `eslint-config-expo` (flat config, `eslint.config.js`), `npm run lint` = `expo lint`.
 - ~~**Legacy theme tokens** (`accent`, `morado`, `azulOscuro`, `headingSemiBold`, …).~~ Fixed: the 12 files that used them moved to current tokens and the aliases were deleted from `colors.ts` / `typography.ts`, so they can't come back. `white` → `surface` (backgrounds) / `onColor` (foreground, same `#FFFFFF`); `verde` → `connectionOk` (same `#34D339`).
 - ~~**~110 hardcoded hex colors and ~70 `rgba()` in 30 files.**~~ Fixed: every one maps to a token with the exact same value (new tokens where none existed), `rgba()` became `alpha(colors.x, a)`, the profile header palette duplicated in Perfil/Configuración moved to `@/theme` (`headerColors`), and `ConfigurationScreen`'s copy of the luminance helpers now uses `@/utils/color`. `npm run lint` now fails on any hardcoded color, so it can't come back. No color changed.
+- **Lateral video only in single-sign blocks.** Every block renders `.glb` or `.mp4` signs (`SignAnimation` for one sign, `MultiAvatarNativo` for carousels/grids), but only `SignAnimation` offers the Frente / Lateral switch. On iOS the multi-sign blocks (`MultiGlbView`) do not play video yet.
 - **Sent gifts have no UI.** Sending and receiving/claiming gifts work from the Store, but `GET /store/gifts/sent` has no client, so a sender cannot see the status (pending / claimed / expired) of what they sent.
-- **Gem packs are Android-only.** `useGemPurchase` only requests Google products; iOS would need App Store products, a StoreKit branch (`request.apple`) and App Store receipt verification on the backend. The section is simply not mounted off Android.
-- **No `obfuscatedAccountId` on Play purchases.** The JWT carries only the email and there is no user id on the client, so purchases are not tagged with an account hash; the backend ties every token to the redeeming user anyway.
+- **Gem packs and store policy.** Google Play requires Play Billing for digital goods consumed inside the app, so selling gems through Mercado Pago can get the app rejected or removed from Google Play. Chosen because Play Console's payments profile blocked registering the products before production; revisit before a public release (alternative billing program, or ship Play Billing again once products can be registered).
+- **Gem shop polish.** The "Gemas gratis" row points to Inicio instead of a challenges screen. The diamond flight aims at an approximate height, not at the real position of the counter. The pending-order indicator depends on `GET /store/gem-orders/pending` (`signa-api`), unverified against a real in-process payment (cash).
+- **Orphaned `PENDING` gem orders (signa-api).** `POST /store/gem-orders` saves the order before calling Mercado Pago, so a failed call leaves a `PENDING` row with no Mercado Pago order. Harmless (no payment, no gems) but they accumulate; clean them up (delete old `PENDING` rows without `mercado_pago_order_id`).
+- **Nothing detects duplicate Flyway versions (signa-api).** `develop` already had `V8`/`V9` when the gem orders migration (also `V8`) merged, and production refused to start. Tests run on H2, so CI does not catch it; add a test that fails on two migrations with the same version.
+- **`gem_purchases` table (signa-api) is orphaned.** It holds the old Google Play receipts; nothing writes to it any more. Drop it in a later migration once it is confirmed empty in production.
 - ~~No leaderboard.~~ Implemented in `feature/ranking`: `GET /ranking/global` + `GET /ranking/friends`, weekly reset scheduler, and the Social Ranking tab.
+- ~~Lesson-complete XP (e.g. "+20") disagreed with the Perfil (e.g. 5).~~ Fixed: the end-of-lesson XP is the backend's `totalXp` delta (not the local sum of `xpReward`), and Perfil (stats, weekly XP, achievements, courses), Práctica (summary) and Ranking now refetch on every focus instead of only on mount. Known remaining: `recordBlockInteraction` failures are still swallowed in `LessonScreen` (a lost POST means lost XP, silently).
 - ~~`CourseProgress` / `Achievement` client types out of sync with the backend.~~ Fixed: `learningApi.getProgress()` returns `PublicCourseProgress[]` and `achievementsApi` returns `Achievement` = `PublicAchievement` (alias); `ProfileScreen` renders the real fields (`title`, `earned`, `earnedAt`, `criteriaValue`; trophy/lock icons since the backend sends no icon or colour).
 - ~~`inventoryApi` / `shopApi` duplicated types.~~ Fixed: `ShopInventory` (`api/shop.ts`) is the single type and `shopApi.getMyInventory` the single call; `inventoryApi` / `UserInventory` are thin aliases of them.
 - **Course challenges are not implemented.** The first-steps, daily and weekly sets exist (the weekly numbers are placeholders, not from `Gamificación.xlsx`); the achievements `DAILY_CHALLENGES_COMPLETED` / `WEEKLY_CHALLENGES_COMPLETED` still have nothing to count them.
@@ -58,6 +98,19 @@ Per-feature detail is owned by each feature doc; this is the index.
 - ~~signa-api: Hibernate DDL warning on every startup.~~ Gone since Flyway took over the schema (`ddl-auto: validate` no longer runs `alter table`); verified with a clean `bootRun`.
 - ~~signa-api: local `bootRun` needs undocumented setup.~~ Documented in [signa-api#100](https://github.com/signasource/signa-api/pull/100), in the signa-api `README.md` ("Correr la API fuera de Docker"), including that a pre-Flyway local DB fails `validate` and must be recreated.
 - **signa-api: remaining startup warnings.** A clean `bootRun` still logs `spring.jpa.open-in-view is enabled by default` and SpringDoc's "enabled by default" (×2), plus `Serializing PageImpl instances as-is` on the first paginated response. Each needs its own decision (turning off open-in-view can surface `LazyInitializationException`s; `PageImpl` needs `@EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO)`, which changes the JSON shape the app reads). The Google Play "DISABLED" warning is intentional in `local`.
+- **Google sign-in setup pending.** Code is done (`@react-native-google-signin/google-signin`, `src/utils/googleAuth.ts`, `POST /auth/google`). To work it needs: `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` in `.env` (same "Web application" client ID as `GOOGLE_CLIENT_ID` in signa-api), an "Android" OAuth client in the same Google Cloud project (package `com.signasource.signamobile` + SHA-1 of the debug/release/EAS keystore), and a **new native build** (new native module; not available in Expo Go / an old dev client). iOS: replace the placeholder `iosUrlScheme` in `app.json` with the reversed iOS client ID. Google-created users get a backend-generated username (`name` + random digits); they can change it from "Editar perfil". They have no password (null `password_hash`), so Configuración hides "Cambiar contraseña" when `providers` has no `LOCAL`. Existing users link Google from Configuración → "Cuenta de Google" (`usersApi.linkGoogle`; needs signa-api with `POST /users/me/google` and migration V13).
+- **Google sign-in fails in local debug builds (`npm run android`).** `expo run:android` signs with `android/app/debug.keystore` (Expo template, same on every machine): SHA-1 `5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25`. It needs its own Android OAuth client (package `com.signasource.signamobile` + that SHA-1) next to the EAS one; without it Google returns `DEVELOPER_ERROR` (code 10). Pending in Google Cloud (2026-11-13); also confirm the signa-api server's `GOOGLE_CLIENT_ID` equals the app's web client ID.
+- ~~signa-api: race on `user_lesson_progress` returns 500.~~ Fixed in signa-api (`develop`, not yet released): `CourseTrackingService.recordBlockInteraction` now takes a row lock on the user (`UserRepository.lockById`, `SELECT ... FOR UPDATE`) before reading/inserting progress, so concurrent interactions of the same user (double submit, retry) run one after another instead of both inserting the `(user_id, lesson_id)` row (the original 500 was a unique-constraint violation, prod logs 2026-11-13 21:07 UTC). Also covers the same race on `user_topic_progress`. The lesson player also sends interactions serially now (`LessonScreen.recordInteraction`) and reports each `INFO` block once, so the app no longer provokes the race.
+- ~~Lint at 3 errors / 2 warnings.~~ Fixed: `npx eslint src --no-cache` and `npm run typecheck` both pass with 0 problems (re-checked 2026-11-18).
+- ~~**Not 16 KB page-size compatible.**~~ Fixed: `libtensorflowlite_jni.so` from `org.tensorflow:tensorflow-lite:2.16.1` was 4 KB-aligned (Android showed "This app isn't 16 KB compatible" on 16 KB devices and Google Play requires it). `signa-vision` now uses LiteRT (`com.google.ai.edge.litert:litert:1.4.2`, same `org.tensorflow.lite` API); every `.so` passes `zipalign -c -P 16`.
+- **`signa-vision` has no iOS implementation.** The recogniser and the Filament avatar are Kotlin
+  only, so iOS loses the camera exercises and falls back to the WebView avatar. Writing the Swift
+  side is what would unblock feature parity; until then an iPhone cannot be used to test
+  recognition.
+- **Dead code left from the native migration.** The WebView recogniser (`LiveSignRecognizer`, `engine/`, `assets/mediapipe/`, `assets/tflite/`, `scripts/build-recognizer.mjs`, the `tfjs` / MediaPipe web dependencies), `Banco3D`, `CoursesTabScreen`, `CoursesListScreen` and the stub half of `coursesApi` are still in the repo. Deleting them (2026-11-18) broke sign recognition, so it was reverted; find out why (the native path still imports the `LiveFrame` type from `LiveSignRecognizer`, and `metro.config.js` / `package.json` changed in the same commit) before removing them again.
+- **`AuthContext.verificationPrompt` is dead state.** Still present (kept on purpose); `VerifyEmail` is reached only from the Perfil chip and Configuración.
+- ~~Hard-coded app version in Configuración.~~ The footer now reads `Constants.expoConfig.version` (`expo-constants`).
+- **Unused telemetry helpers.** `trackInference`, `trackConfidence`, `trackFps`, `trackScreenLoad` and `trackClientError` in `src/telemetry/telemetry.ts` have no caller since the native recogniser replaced the WebView one; wire the native recogniser's `onFrame` data to them or delete them.
 - **CI:** GitHub Actions (`.github/workflows/release.yml`, semantic-release on push to `master`). No GitLab pipeline.
 
 ## Next steps
@@ -68,7 +121,9 @@ Per-feature detail is owned by each feature doc; this is the index.
 - ~~Wire the Inicio roadmap lesson CTA to navigate into `LessonScreen`.~~ Done (`HomeTabScreen.navigateToLesson`).
 - ~~Leaderboard endpoint + the Social *Ranking* tile.~~ Done.
 - ~~Fix `CourseProgress` / `Achievement` client types.~~ Done.
-- Confirm real `courses` endpoints for the flat browse stub, or retire it in favor of the Inicio roadmap.
+- The course sheet lacks 3D/video availability and a per-course tone (the backend has neither).
+- ~~Flat course browse stub~~ retired in favor of the Inicio roadmap.
 - ~~Decide the camera + ML runtime stack and migrate to a dev build.~~ Done: `expo-camera` + MediaPipe (WASM in a WebView worker) + TFLite, all on-device ([features/ml.md](./features/ml.md)); `expo-dev-client` with an EAS `development` profile.
 - Persist onboarding answers once there is a place to store them.
+- Swift implementation of `signa-vision` (iOS) — see the tech debt above.
 - (Optional) Add Prettier and run `npm run lint` in CI.

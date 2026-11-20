@@ -12,13 +12,16 @@
 export interface User {
   email: string;
   name?: string;
+  /** Role from the JWT claim (USER | ADMIN | ORG_ADMIN). Present for sessions created after the JWT update. */
+  role?: string;
 }
 
-// AuthResponse.java: public record AuthResponse(String accessToken, String refreshToken)
+// AuthResponse.java: public record AuthResponse(String accessToken, String refreshToken, String role)
 // OJO: no trae datos del usuario. El perfil se arma decodificando el JWT.
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
+  role: string;
 }
 
 // LoginRequest.java
@@ -34,6 +37,8 @@ export interface RegisterRequest {
   password: string;
   name: string;
   lastName: string;
+  /** Daily goal (min) from the onboarding survey; applied only when the account is created. */
+  dailyGoalMinutes?: number;
 }
 
 // RefreshTokenRequest.java
@@ -46,11 +51,28 @@ export interface ForgotPasswordRequest {
   email: string;
 }
 
+// GoogleAuthRequest.java: ID token de Google (audience = GOOGLE_CLIENT_ID del back, el client ID "web").
+export interface GoogleAuthRequest {
+  idToken: string;
+  /** Onboarding daily goal (min); the backend applies it only if this call creates the account. */
+  dailyGoalMinutes?: number;
+}
+
 // ResetPasswordRequest.java - confirmado: email + codigo de 6 digitos del mail + nueva contrasena.
 export interface ResetPasswordRequest {
   email: string;
   code: string;
   newPassword: string;
+}
+
+// VerifyEmailRequest.java / ResendVerificationEmailRequest.java - confirmado: email + codigo de 6 digitos.
+export interface VerifyEmailRequest {
+  email: string;
+  code: string;
+}
+
+export interface ResendVerificationEmailRequest {
+  email: string;
 }
 
 // ChangePasswordRequest.java - confirmado: currentPassword + newPassword

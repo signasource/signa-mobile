@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NavigationContainer, NavigationContainerRef, NavigationState } from "@react-navigation/native";
+import * as Notifications from "expo-notifications";
 import { useAuth } from "@/context/AuthContext";
+import { useSessionTracker } from "@/hooks/useSessionTracker";
+import { usePushToken } from "@/hooks/usePushToken";
 import { AuthNavigator } from "./AuthNavigator";
 import { AppNavigator, AppStackParamList } from "./AppNavigator";
 import { SessionExpiredModal } from "@/components/SessionExpiredModal";
@@ -11,8 +13,8 @@ import { FriendAcceptedModal } from "@/features/social/components/FriendAccepted
 import { AchievementCelebrationProvider, useAchievementCelebration } from "@/features/achievements/AchievementCelebrationContext";
 import { TourProvider } from "@/features/tour/TourContext";
 import { TourOverlay } from "@/features/tour/components/TourOverlay";
-import { organizationsApi } from "@/api/organizations";
 import { colors } from "@/theme";
+import { RoleBlockedScreen } from "@/screens/RoleBlockedScreen";
 
 function getActiveRouteName(state: NavigationState | undefined): string {
   if (!state) return "";
@@ -51,9 +53,20 @@ function FriendAcceptedModalConnected({
   );
 }
 
+/** Mid-lesson, or already on a celebration: nothing is shown on top. */
+function isCelebrationBlocked(routeName: string): boolean {
+  return (
+    routeName === "" ||
+    routeName === "Lesson" ||
+    routeName === "StreakShield" ||
+    routeName === "StreakDay" ||
+    routeName === "AchievementCelebration"
+  );
+}
+
 /**
- * Shows the achievement celebration on top of whatever the user is doing, except mid-lesson,
- * and re-checks for new achievements as soon as a lesson or practice session is left.
+ * Shows shield, streak-day and achievement celebrations on top of whatever the user is doing,
+ * except mid-lesson. Order: shield (what happened overnight) → streak day → achievements.
  */
 function AchievementCelebrationConnected({
   currentRouteName,
@@ -62,7 +75,7 @@ function AchievementCelebrationConnected({
   currentRouteName: string;
   navigationRef: React.RefObject<NavigationContainerRef<AppStackParamList> | null>;
 }) {
-  const { pending, consume, refresh } = useAchievementCelebration();
+  const { pending, consume, pendingStreakDay, consumeStreakDay, pendingStreakShield, consumeStreakShield, refresh } = useAchievementCelebration();
   const previousRoute = useRef("");
 
   useEffect(() => {
@@ -71,75 +84,52 @@ function AchievementCelebrationConnected({
     if (left === "Lesson" || left === "PracticeSession") refresh();
   }, [currentRouteName, refresh]);
 
-  useEffect(() => {
-    if (!pending) return;
-    if (currentRouteName === "" || currentRouteName === "Lesson" || currentRouteName === "AchievementCelebration") return;
-    if (!navigationRef.current?.isReady()) return;
-
-    navigationRef.current.navigate("AchievementCelebration", {
-      achievementId: pending.id,
-      criteriaType: pending.criteriaType,
-      criteriaValue: pending.criteriaValue,
-      title: pending.title,
-      rewardStreakShields: pending.rewardStreakShields,
-      rewardGems: pending.rewardGems,
-    });
-    consume();
-  }, [pending, currentRouteName, consume, navigationRef]);
-
-  return null;
-}
-
-function OrgWelcomeConnected({
-  isAuthenticated,
-  navigationRef,
-}: {
-  isAuthenticated: boolean;
-  navigationRef: React.RefObject<NavigationContainerRef<AppStackParamList> | null>;
-}) {
-  const checked = useRef(false);
+  // One celebration at a time, in order: shield (what happened overnight) → streak day → achievement.
+  // `inFlight` holds the route we just navigated to: until the navigator reports it, `currentRouteName`
+  // is stale, and a second `navigate` would stack another celebration on top of the first one.
+  const inFlight = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      checked.current = false;
+    if (inFlight.current !== null) {
+      if (currentRouteName === inFlight.current) inFlight.current = null;
       return;
     }
-    if (checked.current) return;
-    checked.current = true;
+    if (isCelebrationBlocked(currentRouteName) || !navigationRef.current?.isReady()) return;
 
-    async function checkOrgWelcome() {
-      try {
-        const response = await organizationsApi.getMyOrganization();
-        const org = response.data;
-
-        const key = `org_welcome_shown_${org.id}`;
-        const shown = await AsyncStorage.getItem(key);
-        if (shown) return;
-
-        await AsyncStorage.setItem(key, "true");
-
-        const waitAndNavigate = () => {
-          if (!navigationRef.current?.isReady()) {
-            setTimeout(waitAndNavigate, 100);
-            return;
-          }
-          navigationRef.current.navigate("OrganizationWelcome", {
-            orgName: org.name,
-            courses: org.courses,
-            alreadyMember: true,
-          });
-        };
-        setTimeout(waitAndNavigate, 500);
-      } catch {
-        // User has no org or API error — do nothing
-      }
+    if (pendingStreakShield !== null) {
+      inFlight.current = "StreakShield";
+      navigationRef.current.navigate("StreakShield", { streak: pendingStreakShield });
+      consumeStreakShield();
+    } else if (pendingStreakDay !== null) {
+      inFlight.current = "StreakDay";
+      navigationRef.current.navigate("StreakDay", { streak: pendingStreakDay });
+      consumeStreakDay();
+    } else if (pending) {
+      inFlight.current = "AchievementCelebration";
+      navigationRef.current.navigate("AchievementCelebration", {
+        achievementId: pending.id,
+        criteriaType: pending.criteriaType,
+        criteriaValue: pending.criteriaValue,
+        title: pending.title,
+        rewardStreakShields: pending.rewardStreakShields,
+        rewardGems: pending.rewardGems,
+      });
+      consume();
     }
-
-    checkOrgWelcome();
-  }, [isAuthenticated, navigationRef]);
+  }, [
+    pending,
+    pendingStreakDay,
+    pendingStreakShield,
+    currentRouteName,
+    consume,
+    consumeStreakDay,
+    consumeStreakShield,
+    navigationRef,
+  ]);
 
   return null;
 }
+
 
 export function RootNavigator() {
   const {
@@ -155,6 +145,22 @@ export function RootNavigator() {
   const navigationRef = useRef<NavigationContainerRef<AppStackParamList>>(null);
   const [currentRouteName, setCurrentRouteName] = useState("");
 
+  // App-usage session telemetry (foreground stretches while signed in) → "sesiones por usuario".
+  useSessionTracker(isAuthenticated);
+
+  // Push notification token registration/cleanup.
+  usePushToken(isAuthenticated);
+
+  // Navigate to Notifications screen when the user taps a push notification.
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener(() => {
+      if (navigationRef.current?.isReady()) {
+        navigationRef.current.navigate("Notifications");
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
   if (isLoading) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.background }}>
@@ -163,10 +169,17 @@ export function RootNavigator() {
     );
   }
 
+  if (isAuthenticated && user?.role && user.role !== "USER") {
+    return <RoleBlockedScreen role={user.role} />;
+  }
+
   return (
     <FriendAcceptedProvider isAuthenticated={isAuthenticated}>
       <AchievementCelebrationProvider isAuthenticated={isAuthenticated}>
       <TourProvider isAuthenticated={isAuthenticated} userId={user?.email ?? null}>
+        {/* The tour overlay is a sibling of the navigator inside this box (not a Modal), so it
+            shares the app's coordinate space and always sits on top of what it explains. */}
+        <View style={{ flex: 1 }}>
         <NavigationContainer
           ref={navigationRef}
           onStateChange={(state) => setCurrentRouteName(getActiveRouteName(state))}
@@ -190,8 +203,8 @@ export function RootNavigator() {
           navigationRef={navigationRef}
         />
         <AchievementCelebrationConnected currentRouteName={currentRouteName} navigationRef={navigationRef} />
-        <OrgWelcomeConnected isAuthenticated={isAuthenticated} navigationRef={navigationRef} />
-        <TourOverlay />
+        <TourOverlay navigationRef={navigationRef} />
+        </View>
       </TourProvider>
       </AchievementCelebrationProvider>
     </FriendAcceptedProvider>

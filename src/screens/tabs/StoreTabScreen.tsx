@@ -8,22 +8,27 @@ import {
   Modal,
   Pressable,
   SafeAreaView,
-  Platform,
 } from "react-native";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation, useRoute, RouteProp, useFocusEffect } from "@react-navigation/native";
+import { useNavigation, useRoute, RouteProp, useFocusEffect, useIsFocused } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { TabParamList } from "@/navigation/TabNavigator";
+import { AppStackParamList } from "@/navigation/AppNavigator";
 import { colors, fonts, alpha } from "@/theme";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SegmentedControl, Segment } from "@/components/SegmentedControl";
-import { EmptyState, EmptyNote } from "@/components/EmptyState";
+import { EmptyState } from "@/components/EmptyState";
+import { useLives, livesValue, livesCaption } from "@/features/lives/useLives";
 import { shopApi, ShopItem, ShopItemType, ShopInventory, AppliedEffect, GiftClaimResult } from "@/api/shop";
 import type { Friend } from "@/api/social";
-import { GemPurchaseResult } from "@/api/gemPurchases";
-import { GemPacksSection } from "@/features/store/components/GemPacksSection";
+import { gemOrdersApi, GemPack } from "@/api/gemOrders";
+import { usePendingGemOrders } from "@/features/store/usePendingGemOrders";
+import { fmt, formatPrice, suggestedPack } from "@/features/store/gemPacks";
+import { CoursesSection } from "@/features/store/components/CoursesSection";
 import { GiftSheet } from "@/features/store/components/GiftSheet";
+import { NavIconButton } from "@/components/BackButton";
 import { ReceivedGiftsSection } from "@/features/store/components/ReceivedGiftsSection";
 import ManoVacia from "@assets/ilus/mano-vacia.svg";
 import HeartConFondo from "@assets/ilus/heart-con-fondo.svg";
@@ -32,7 +37,7 @@ import ManoConGlobo from "@assets/ilus/mano-con-globo.svg";
 import { useTour } from "@/features/tour/TourContext";
 import { SectionWelcomeModal } from "@/features/tour/components/SectionWelcomeModal";
 
-type TabKey = "vidas" | "potenciadores" | "especiales";
+type TabKey = "vidas" | "potenciadores" | "especiales" | "cursos";
 type FlowStep = "confirm" | "insufficient" | "opening" | "success";
 
 interface Flow {
@@ -43,18 +48,17 @@ interface Flow {
 
 const TABS: readonly Segment<TabKey>[] = [
   { key: "vidas", label: "Vidas" },
-  { key: "potenciadores", label: "Potenciadores" },
+  { key: "potenciadores", label: "Potenciad." },
   { key: "especiales", label: "Especiales" },
+  { key: "cursos", label: "Cursos" },
 ];
 
 const TAB_TYPES: Record<TabKey, ShopItemType[]> = {
   vidas: ["LIFE", "UNLIMITED_LIVES"],
   potenciadores: ["XP_MULTIPLIER", "STREAK_SHIELD"],
   especiales: ["MYSTERY_CHEST"],
+  cursos: [],
 };
-
-/** Google Play Billing only exists on Android; elsewhere the packs section explains that. */
-const GEM_PACKS_SUPPORTED = Platform.OS === "android";
 
 const ICON: Record<ShopItemType, keyof typeof Ionicons.glyphMap> = {
   LIFE: "heart",
@@ -135,10 +139,12 @@ interface SuccessOverlayProps {
 function SuccessOverlay({ flow, gems, inventory, fromLesson, insets, onClose }: SuccessOverlayProps) {
   const isLives = LIVES_TYPES.includes(flow.item.itemType);
   const isMysteryChest = flow.item.itemType === "MYSTERY_CHEST";
-  const isGenericItem = !isLives && !isMysteryChest;
 
   const effectType = flow.effect?.type ?? flow.item.itemType;
+  // Boosters come back without `effect`: they are stored until activated from the profile.
+  const isStored = flow.effect == null && (effectType === "UNLIMITED_LIVES" || effectType === "XP_MULTIPLIER");
   const isUnlimited = effectType === "UNLIMITED_LIVES";
+  const isGenericItem = !isMysteryChest && (!isLives || isStored);
   const livesGranted = flow.effect?.livesGranted ?? flow.item.quantity;
 
   const cardIcon: keyof typeof Ionicons.glyphMap =
@@ -154,12 +160,16 @@ function SuccessOverlay({ flow, gems, inventory, fromLesson, insets, onClose }: 
 
   const screenTitle = isLives
     ? isUnlimited
-      ? "¡Vidas infinitas activadas!"
+      ? isStored
+        ? "¡Vidas infinitas compradas!"
+        : "¡Vidas infinitas activadas!"
       : `Sumaste ${livesGranted} ${livesGranted === 1 ? "vida" : "vidas"}`
     : "¡Ya es tuyo!";
 
   const screenSub = isGenericItem
-    ? "Lo guardamos en tu inventario y se activa cuando lo uses."
+    ? isStored
+      ? "Lo guardamos en tu inventario. Activalo desde Perfil → Inventario."
+      : "Lo guardamos en tu inventario y se activa cuando lo uses."
     : isMysteryChest
     ? "Ya está sumado a tu inventario."
     : undefined;
@@ -209,7 +219,7 @@ function SuccessOverlay({ flow, gems, inventory, fromLesson, insets, onClose }: 
       <View style={[styles.successButtonRow, { paddingBottom: Math.max(insets.bottom, 28) }]}>
         <TouchableOpacity style={styles.successCloseButton} onPress={onClose} activeOpacity={0.86}>
           <Text style={styles.darkButtonText}>
-            {fromLesson ? "Volver a la lección" : "Volver a la tienda"}
+            {fromLesson ? "Seguir aprendiendo" : "Volver a la tienda"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -295,89 +305,47 @@ function GiftDoneOverlay({ done, gems, insets, onClose }: GiftDoneOverlayProps) 
   );
 }
 
-interface GemsSuccessOverlayProps {
-  result: GemPurchaseResult;
-  insets: { top: number; bottom: number };
-  onClose: () => void;
-}
-
-function GemsSuccessOverlay({ result, insets, onClose }: GemsSuccessOverlayProps) {
-  return (
-    <SafeAreaView style={styles.fullOverlay}>
-      <View style={[styles.successBadgeRow, { paddingTop: insets.top + 16 }]}>
-        <View style={styles.successBadge}>
-          <Text style={styles.successBadgeText}>COMPRA LISTA</Text>
-        </View>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={styles.successScroll}
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-      >
-        <View style={styles.successIllustration}>
-          <ManoConCaja width={260} height={260} />
-        </View>
-
-        <Text style={styles.fullTitle}>
-          {result.alreadyGranted
-            ? "Esas gemas ya estaban acreditadas"
-            : `¡Sumaste ${result.gemsGranted.toLocaleString("es-AR")} gemas!`}
-        </Text>
-        <Text style={styles.fullSub}>Ya podés gastarlas en vidas, escudos y potenciadores.</Text>
-
-        <View style={styles.purchaseCard}>
-          <View style={styles.purchaseCardLeft}>
-            <View style={styles.purchaseCardIconWrap}>
-              <Ionicons name="diamond" size={21} color={colors.onDark} />
-            </View>
-            <View style={styles.purchaseCardTexts}>
-              <Text style={styles.purchaseCardTitle}>Pack de gemas</Text>
-              <Text style={styles.purchaseCardSub}>
-                Ahora tenés {result.inventory.gems.toLocaleString("es-AR")} gemas
-              </Text>
-            </View>
-          </View>
-          <View style={styles.purchaseCardGems}>
-            <Ionicons name="diamond" size={14} color={colors.onDark} />
-            <Text style={styles.purchaseCardGemCount}>+{result.gemsGranted}</Text>
-          </View>
-        </View>
-      </ScrollView>
-
-      <View style={[styles.successButtonRow, { paddingBottom: Math.max(insets.bottom, 28) }]}>
-        <TouchableOpacity style={styles.successCloseButton} onPress={onClose} activeOpacity={0.86}>
-          <Text style={styles.darkButtonText}>Volver a la tienda</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
-  );
-}
-
 export function StoreTabScreen() {
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const route = useRoute<RouteProp<TabParamList, "Store">>();
   const fromLesson = route.params?.fromLesson ?? false;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<ShopItem[]>([]);
   const [inventory, setInventory] = useState<ShopInventory | null>(null);
+  const [packs, setPacks] = useState<GemPack[]>([]);
+  const pendingGemOrders = usePendingGemOrders();
   const [tab, setTab] = useState<TabKey>("vidas");
   const [flow, setFlow] = useState<Flow | null>(null);
   const [purchasing, setPurchasing] = useState(false);
   const [giftItem, setGiftItem] = useState<ShopItem | null>(null);
   const [giftDone, setGiftDone] = useState<GiftDone | null>(null);
-  const [gemsCredited, setGemsCredited] = useState<GemPurchaseResult | null>(null);
+  const livesState = useLives(inventory);
   const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const listRef = useRef<ScrollView>(null);
 
   const { storeModalVisible, dismissStoreModal, showSectionModal } = useTour();
+  const isFocused = useIsFocused();
 
   useFocusEffect(
     useCallback(() => {
-      showSectionModal("store");
+      let focused = true;
+      showSectionModal("store", () => focused);
+      return () => {
+        focused = false;
+      };
     }, [showSectionModal]),
+  );
+
+  // Gems may have been bought in the gem shop (a pushed screen): resync the balance on return.
+  useFocusEffect(
+    useCallback(() => {
+      shopApi
+        .getMyInventory()
+        .then((res) => setInventory(res.data))
+        .catch(() => {});
+    }, []),
   );
 
   useEffect(() => {
@@ -388,6 +356,11 @@ export function StoreTabScreen() {
   }, []);
 
   async function loadShop() {
+    // Only used to suggest a pack when gems are missing; failing here is harmless.
+    gemOrdersApi
+      .getPacks()
+      .then((res) => setPacks([...res.data].sort((a, b) => a.sortOrder - b.sortOrder)))
+      .catch(() => {});
     setError(null);
     setLoading(true);
     try {
@@ -410,17 +383,11 @@ export function StoreTabScreen() {
     navigation.setParams({ fromLesson: undefined } as any);
   }
 
-  /** "Conseguir gemas": jump to the packs, which sit at the top of the Especiales tab. */
-  function goToGemPacks() {
+  /** "Conseguir gemas": opens the gem shop, pre-selecting the pack that covers what is missing. */
+  function goToGemPacks(missingGems?: number, returnTo?: string) {
     closeFlow();
-    setTab("especiales");
-    listRef.current?.scrollTo({ y: 0, animated: true });
+    (navigation as any).navigate("GemShop", { missingGems, returnTo });
   }
-
-  const onGemsCredited = useCallback((result: GemPurchaseResult) => {
-    setInventory(result.inventory);
-    setGemsCredited(result);
-  }, []);
 
   function openBuy(item: ShopItem) {
     const enough = (inventory?.gems ?? 0) >= item.priceGems;
@@ -466,8 +433,7 @@ export function StoreTabScreen() {
   }
 
   const gems = inventory?.gems ?? 0;
-  const livesLabel =
-    inventory?.livesMode === "INFINITE" ? "∞" : `${inventory?.currentLives ?? 0}/5`;
+  const livesLabel = livesValue(livesState);
   const shields = inventory?.streakShields ?? 0;
   const visibleItems = items.filter((i) => TAB_TYPES[tab].includes(i.itemType));
 
@@ -478,9 +444,26 @@ export function StoreTabScreen() {
         description="Gastá tus gemas en vidas y potenciadores para seguir aprendiendo."
         paddingTop={insets.top + 14}
         tone={colors.shopAmber}
+        right={
+          <NavIconButton
+            icon="receipt-outline"
+            label="Mis compras"
+            color={colors.onDark}
+            size={22}
+            onPress={() => navigation.navigate("PurchaseHistory")}
+          />
+        }
         stats={[
-          { key: "gems", label: "Gemas", value: String(gems), icon: "diamond" },
-          { key: "lives", label: "Vidas", value: livesLabel, icon: "heart" },
+          {
+            key: "gems",
+            label: "Gemas",
+            value: String(gems),
+            icon: "diamond",
+            onPress: () => goToGemPacks(),
+            dot: pendingGemOrders.length > 0,
+            accessibilityLabel: "Conseguir más gemas",
+          },
+          { key: "lives", label: "Vidas", value: livesLabel, caption: livesCaption(livesState), icon: "heart" },
           { key: "shields", label: "Escudos", value: String(shields), icon: "shield-half" },
         ]}
       />
@@ -504,18 +487,14 @@ export function StoreTabScreen() {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
         >
-          <ReceivedGiftsSection
-            onClaimed={(result) => {
-              setInventory(result.inventory);
-              setGiftDone({ kind: "claimed", result });
-            }}
-          />
-          {tab === "especiales" &&
-            (GEM_PACKS_SUPPORTED ? (
-              <GemPacksSection onCredited={onGemsCredited} />
-            ) : (
-              <EmptyNote>Los packs de gemas se compran desde la app de Android, a través de Google Play.</EmptyNote>
-            ))}
+          {tab !== "cursos" && (
+            <ReceivedGiftsSection
+              onClaimed={(result) => {
+                setInventory(result.inventory);
+                setGiftDone({ kind: "claimed", result });
+              }}
+            />
+          )}
           {visibleItems.map((item) => {
             const featured = item.itemType === "UNLIMITED_LIVES";
             return (
@@ -604,7 +583,8 @@ export function StoreTabScreen() {
               </View>
             );
           })}
-          {visibleItems.length === 0 && (
+          {tab === "cursos" && <CoursesSection />}
+          {tab !== "cursos" && visibleItems.length === 0 && (
             <EmptyState
               title="Sin ítems por ahora"
               description="No hay ítems disponibles en esta categoría."
@@ -718,8 +698,28 @@ export function StoreTabScreen() {
                   Este ítem cuesta {flow.item.priceGems} y tenés {gems}.
                 </Text>
               </View>
+              {(() => {
+                const pack = suggestedPack(packs, flow.item.priceGems - gems);
+                if (!pack) return null;
+                return (
+                  <View style={styles.suggestion}>
+                    <View style={styles.suggestionIcon}>
+                      <Ionicons name="diamond" size={21} color={colors.gemsBlueDark} />
+                    </View>
+                    <View style={styles.suggestionTexts}>
+                      <Text style={styles.suggestionKicker}>TE ALCANZA CON</Text>
+                      <Text style={styles.suggestionTitle}>
+                        {fmt(pack.gems)} gemas · {formatPrice(pack)}
+                      </Text>
+                      <Text style={styles.suggestionSub}>
+                        Te sobran {fmt(Math.max(0, gems + pack.gems - flow.item.priceGems))}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })()}
               <View style={styles.insufficientActions}>
-                <TouchableOpacity style={styles.darkButton} onPress={goToGemPacks} activeOpacity={0.86}>
+                <TouchableOpacity style={styles.darkButton} onPress={() => goToGemPacks(flow.item.priceGems - gems, flow.item.title)} activeOpacity={0.86}>
                   <Text style={styles.darkButtonText}>Conseguir gemas</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.secondaryButton} onPress={closeFlow} activeOpacity={0.86}>
@@ -745,29 +745,16 @@ export function StoreTabScreen() {
             inventory={inventory}
             fromLesson={fromLesson}
             insets={insets}
-            onClose={closeFlow}
-          />
-        )}
-      </Modal>
-
-      <Modal
-        visible={gemsCredited != null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setGemsCredited(null)}
-        statusBarTranslucent
-      >
-        {gemsCredited != null && (
-          <GemsSuccessOverlay
-            result={gemsCredited}
-            insets={insets}
-            onClose={() => setGemsCredited(null)}
+            onClose={() => {
+              closeFlow();
+              if (fromLesson) navigation.navigate("Tabs", { screen: "Home" });
+            }}
           />
         )}
       </Modal>
 
       <SectionWelcomeModal
-        visible={storeModalVisible}
+        visible={storeModalVisible && isFocused}
         title="Tienda"
         subtitle="Cambiá tus gemas por vidas, escudos y potenciadores."
         headerColor={colors.shopAmber}
@@ -1100,6 +1087,28 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: "center",
   },
+  suggestion: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 2,
+    borderColor: colors.gemsBlueDark,
+    borderRadius: 18,
+    padding: 12,
+    marginTop: 6,
+  },
+  suggestionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: colors.avatarBlueLight,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  suggestionTexts: { flex: 1, minWidth: 0 },
+  suggestionKicker: { fontFamily: fonts.bodyBold, fontSize: 10, letterSpacing: 1, color: colors.gemsBlueDark },
+  suggestionTitle: { fontFamily: fonts.displayExtraBold, fontSize: 16, color: colors.text, marginTop: 2 },
+  suggestionSub: { fontFamily: fonts.bodyRegular, fontSize: 12, color: colors.textMuted, marginTop: 1 },
   insufficientActions: {
     gap: 10,
     marginTop: 10,

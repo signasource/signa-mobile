@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   DimensionValue,
+  KeyboardAvoidingView,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -19,12 +20,17 @@ import { isLightColor, luminance } from "@/utils/color";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { BackButton } from "@/components/BackButton";
 import { useAuth } from "@/context/AuthContext";
+import { unregisterPushToken } from "@/hooks/usePushToken";
 import { useSettings } from "@/context/SettingsContext";
+import { useTour } from "@/features/tour/TourContext";
 import { usersApi } from "@/api/users";
+import { signInWithGoogle } from "@/utils/googleAuth";
+import { mapAuthError } from "@/utils/authErrors";
+import Constants from "expo-constants";
 
 type Props = NativeStackScreenProps<AppStackParamList, "Configuration">;
 type Sheet = null | "color" | "vis" | "time";
-type Dialog = null | "logout" | "delete";
+type Dialog = null | "logout" | "delete" | "privacy";
 type FontSizeId = "SMALL" | "MEDIUM" | "LARGE";
 type VisibilityId = "PUBLIC" | "PRIVATE";
 
@@ -74,13 +80,18 @@ function fillAccent(hex: string): string {
 export function ConfigurationScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const { logout } = useAuth();
-  const { fontSizeId: fontSize, setFontSizeId: setFontSize } = useSettings();
+  const { tourReplay: replayTour } = useTour();
+  const {
+    fontSizeId: fontSize,
+    setFontSizeId: setFontSize,
+    vibrationEnabled,
+    setVibrationEnabled,
+  } = useSettings();
 
   const [loading, setLoading] = useState(true);
 
   // Settings state
   const [headerColor, setHeaderColor] = useState(colors.primary);
-  const [vibrationEnabled, setVibrationEnabled] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [dailyNotificationEnabled, setDailyNotificationEnabled] = useState(false);
   const [accountVisibility, setAccountVisibility] = useState<VisibilityId>("PUBLIC");
@@ -95,6 +106,11 @@ export function ConfigurationScreen({ navigation, route }: Props) {
   const [displayName, setDisplayName] = useState("");
   const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
+  // null = todavía no se sabe (o el perfil no lo informó): no se ofrece verificar.
+  const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
+  const [googleLinked, setGoogleLinked] = useState(false);
+  const [hasPassword, setHasPassword] = useState(true);
+  const [linkingGoogle, setLinkingGoogle] = useState(false);
 
   // UI overlays
   const [sheet, setSheet] = useState<Sheet>(null);
@@ -141,10 +157,15 @@ export function ConfigurationScreen({ navigation, route }: Props) {
       setDisplayName(p.name);
       setLastName(p.lastName ?? "");
       setUsername(p.username);
+      setEmailVerified(p.verified ?? null);
+      if (p.providers) {
+        setGoogleLinked(p.providers.includes("GOOGLE"));
+        setHasPassword(p.providers.includes("LOCAL"));
+      }
     }
 
     setLoading(false);
-  }, [setFontSize]);
+  }, [setFontSize, setVibrationEnabled]);
 
   const showToast = useCallback((text: string) => {
     setToast(text);
@@ -158,6 +179,16 @@ export function ConfigurationScreen({ navigation, route }: Props) {
       if (toastTimer.current) clearTimeout(toastTimer.current);
     };
   }, [loadData]);
+
+  // Al volver de "Verificar cuenta" se actualiza el estado sin recargar toda la pantalla.
+  useEffect(() => {
+    return navigation.addListener("focus", () => {
+      usersApi
+        .getMe()
+        .then(({ data }) => setEmailVerified(data.verified ?? null))
+        .catch(() => {});
+    });
+  }, [navigation]);
 
   useEffect(() => {
     const updated = route.params?.updatedProfile;
@@ -205,13 +236,29 @@ export function ConfigurationScreen({ navigation, route }: Props) {
     navigation.navigate("EditProfile", { displayName, lastName, username });
   }
 
+  async function handleLinkGoogle() {
+    if (googleLinked || linkingGoogle) return;
+    setLinkingGoogle(true);
+    try {
+      const google = await signInWithGoogle();
+      if (!google) return;
+      await usersApi.linkGoogle(google.idToken);
+      setGoogleLinked(true);
+      showToast("Cuenta de Google vinculada");
+    } catch (err: unknown) {
+      showToast(mapAuthError(err, "No se pudo vincular la cuenta de Google"));
+    } finally {
+      setLinkingGoogle(false);
+    }
+  }
+
   function openPassword() {
     navigation.navigate("ChangePassword");
   }
 
   async function handleLogout() {
     setDialog(null);
-    await logout();
+    await logout(unregisterPushToken);
   }
 
   async function handleDeleteAccount() {
@@ -221,7 +268,7 @@ export function ConfigurationScreen({ navigation, route }: Props) {
     } catch {
       // proceed anyway
     }
-    await logout();
+    await logout(unregisterPushToken);
   }
 
   // ─── derived ──────────────────────────────────────────────────
@@ -446,19 +493,6 @@ export function ConfigurationScreen({ navigation, route }: Props) {
           <SectionHeader label="Cuenta" />
 
           <TouchableOpacity
-            style={[styles.settingRow, styles.borderBottom]}
-            onPress={() => navigation.navigate("InviteCode")}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="business-outline" size={20} color={colors.neutral600} />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={styles.settingLabel}>Tengo un código de organización</Text>
-              <Text style={styles.settingSubtitle}>Accedé a los cursos que pagó tu empresa</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={colors.neutral600} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
             style={styles.settingRow}
             onPress={() => setSheet("color")}
             activeOpacity={0.7}
@@ -481,15 +515,69 @@ export function ConfigurationScreen({ navigation, route }: Props) {
             <Ionicons name="chevron-forward" size={16} color={colors.neutral600} />
           </TouchableOpacity>
 
+          {emailVerified === false ? (
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={() => navigation.navigate("VerifyEmail")}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="mail-unread-outline" size={20} color={colors.neutral600} />
+              <Text style={[styles.settingLabel, { flex: 1 }]}>Verificar cuenta</Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.neutral600} />
+            </TouchableOpacity>
+          ) : null}
+
           <TouchableOpacity
             style={styles.settingRow}
-            onPress={openPassword}
+            onPress={() => {
+              // The tour is drawn over the navigator and brings Inicio to the front by itself.
+              navigation.navigate("Tabs", { screen: "Home" });
+              replayTour();
+            }}
             activeOpacity={0.7}
+            accessibilityRole="button"
           >
-            <Ionicons name="lock-closed-outline" size={20} color={colors.neutral600} />
-            <Text style={[styles.settingLabel, { flex: 1 }]}>Cambiar contraseña</Text>
+            <Ionicons name="compass-outline" size={20} color={colors.neutral600} />
+            <Text style={[styles.settingLabel, { flex: 1 }]}>Volver a ver el tour</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.neutral600} />
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={handleLinkGoogle}
+            disabled={googleLinked || linkingGoogle}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={googleLinked ? "Google vinculado" : "Vincular cuenta de Google"}
+          >
+            <Ionicons name="logo-google" size={20} color={colors.neutral600} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.settingLabel}>Cuenta de Google</Text>
+              <Text style={styles.settingSubtitle}>Iniciá sesión con Google en esta cuenta</Text>
+            </View>
+            {linkingGoogle ? (
+              <ActivityIndicator size="small" color={colors.neutral600} />
+            ) : googleLinked ? (
+              <Text style={styles.settingValue}>Vinculada</Text>
+            ) : (
+              <>
+                <Text style={styles.settingValue}>Vincular</Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.neutral600} />
+              </>
+            )}
+          </TouchableOpacity>
+
+          {hasPassword ? (
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={openPassword}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="lock-closed-outline" size={20} color={colors.neutral600} />
+              <Text style={[styles.settingLabel, { flex: 1 }]}>Cambiar contraseña</Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.neutral600} />
+            </TouchableOpacity>
+          ) : null}
 
           <TouchableOpacity
             style={styles.logoutBtn}
@@ -511,15 +599,15 @@ export function ConfigurationScreen({ navigation, route }: Props) {
             <Text style={styles.deleteText}>Eliminar cuenta</Text>
           </TouchableOpacity>
 
-          <Text style={styles.versionText}>Signa 1.4.0</Text>
+          <Text style={styles.versionText}>Signa {Constants.expoConfig?.version ?? ""}</Text>
         </ScrollView>
       )}
 
       {/* ── Bottom sheets ── */}
       {sheet !== null && (
-        <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
+        <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
           <View style={styles.overlay}>
-            <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setSheet(null)} />
+            <Pressable style={StyleSheet.absoluteFill} onPress={() => setSheet(null)} />
             <View style={[styles.sheetCard, { paddingBottom: Math.max(insets.bottom, 32) }]}>
               <View style={styles.sheetHandle} />
               <View style={styles.sheetTitleRow}>
@@ -591,10 +679,15 @@ export function ConfigurationScreen({ navigation, route }: Props) {
                           { backgroundColor: selected ? accentSoft : "transparent" },
                         ]}
                         onPress={() => {
-                          setAccountVisibility(v.id);
-                          setSheet(null);
-                          saveSetting({ accountVisibility: v.id });
-                          showToast("Cambios guardados");
+                          if (v.id === "PRIVATE" && accountVisibility !== "PRIVATE") {
+                            setSheet(null);
+                            setDialog("privacy");
+                          } else {
+                            setAccountVisibility(v.id);
+                            setSheet(null);
+                            saveSetting({ accountVisibility: v.id });
+                            showToast("Cambios guardados");
+                          }
                         }}
                         activeOpacity={0.7}
                       >
@@ -732,32 +825,60 @@ export function ConfigurationScreen({ navigation, route }: Props) {
 
       {/* ── Dialogs ── */}
       {dialog !== null && (
-        <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
-          <Pressable style={styles.overlay} onPress={() => setDialog(null)}>
+        <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+          <View style={styles.dialogOverlay}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={() => setDialog(null)} />
+            <KeyboardAvoidingView
+              behavior="padding"
+              pointerEvents="box-none"
+              style={styles.dialogKAV}
+            >
             <View style={styles.dialogCard} onStartShouldSetResponder={() => true}>
               <View
                 style={[
                   styles.dialogIcon,
                   {
                     backgroundColor:
-                      dialog === "delete" ? colors.dangerLight : accentSoft,
+                      dialog === "delete"
+                        ? colors.dangerLight
+                        : dialog === "privacy"
+                          ? colors.warningLight
+                          : accentSoft,
                   },
                 ]}
               >
                 <Ionicons
-                  name={dialog === "delete" ? "trash-outline" : "log-out-outline"}
+                  name={
+                    dialog === "delete"
+                      ? "trash-outline"
+                      : dialog === "privacy"
+                        ? "eye-off-outline"
+                        : "log-out-outline"
+                  }
                   size={26}
-                  color={dialog === "delete" ? colors.danger : accent}
+                  color={
+                    dialog === "delete"
+                      ? colors.danger
+                      : dialog === "privacy"
+                        ? colors.warning
+                        : accent
+                  }
                 />
               </View>
 
               <Text style={styles.dialogTitle}>
-                {dialog === "delete" ? "Eliminar tu cuenta" : "¿Cerrar sesión?"}
+                {dialog === "delete"
+                  ? "Eliminar tu cuenta"
+                  : dialog === "privacy"
+                    ? "¿Poner la cuenta en privado?"
+                    : "¿Cerrar sesión?"}
               </Text>
               <Text style={styles.dialogDesc}>
                 {dialog === "delete"
                   ? "Se borran tu progreso, racha, logros e inventario. Esta acción no se puede deshacer."
-                  : "Vas a volver a la pantalla de inicio. Tu progreso queda guardado en tu cuenta."}
+                  : dialog === "privacy"
+                    ? "No vas a poder participar en el ranking global mientras tu cuenta sea privada. Podés cambiar esto cuando quieras."
+                    : "Vas a volver a la pantalla de inicio. Tu progreso queda guardado en tu cuenta."}
               </Text>
 
               {dialog === "delete" && (
@@ -801,7 +922,14 @@ export function ConfigurationScreen({ navigation, route }: Props) {
                       ? deleteReady
                         ? handleDeleteAccount
                         : undefined
-                      : handleLogout
+                      : dialog === "privacy"
+                        ? () => {
+                            setAccountVisibility("PRIVATE");
+                            setDialog(null);
+                            saveSetting({ accountVisibility: "PRIVATE" });
+                            showToast("Cambios guardados");
+                          }
+                        : handleLogout
                   }
                   activeOpacity={dialog === "delete" && !deleteReady ? 1 : 0.85}
                 >
@@ -818,12 +946,17 @@ export function ConfigurationScreen({ navigation, route }: Props) {
                       },
                     ]}
                   >
-                    {dialog === "delete" ? "Eliminar" : "Cerrar sesión"}
+                    {dialog === "delete"
+                      ? "Eliminar"
+                      : dialog === "privacy"
+                        ? "Poner privada"
+                        : "Cerrar sesión"}
                   </Text>
                 </TouchableOpacity>
               </View>
             </View>
-          </Pressable>
+            </KeyboardAvoidingView>
+          </View>
         </View>
       )}
 
@@ -1154,6 +1287,15 @@ const styles = StyleSheet.create({
   },
 
   // Dialog
+  dialogOverlay: {
+    flex: 1,
+    backgroundColor: alpha(colors.black, 0.45),
+  },
+  dialogKAV: {
+    ...StyleSheet.absoluteFill,
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
   dialogCard: {
     backgroundColor: colors.surface,
     borderRadius: 24,

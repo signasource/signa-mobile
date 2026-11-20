@@ -1,6 +1,8 @@
 import React from "react";
 import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { Text } from "@/components/Text";
+import { AvatarPhoto } from "@/components/AvatarPhoto";
+import { avatarUri } from "@/utils/avatar";
 import { fonts } from "@/theme";
 import { avatarColors, initialsOf } from "@/features/social/people";
 
@@ -9,12 +11,14 @@ interface Props {
   id: string;
   name: string;
   username: string;
+  /** Path of the profile photo (`avatarUrl` from the API); initials when empty. */
+  avatarUrl?: string | null;
   size?: number;
   /** When given, the avatar becomes tappable. */
   onPress?: () => void;
 }
 
-export function Avatar({ id, name, username, size = 40, onPress }: Props) {
+export function Avatar({ id, name, username, avatarUrl, size = 40, onPress }: Props) {
   const { bg, fg } = avatarColors(id);
   const fontSize = Math.round(size * 0.325);
 
@@ -28,6 +32,7 @@ export function Avatar({ id, name, username, size = 40, onPress }: Props) {
       <Text style={[styles.initials, { color: fg, fontSize }]}>
         {initialsOf(name, username)}
       </Text>
+      <AvatarPhoto uri={avatarUri(avatarUrl)} />
     </View>
   );
 
@@ -49,6 +54,7 @@ const styles = StyleSheet.create({
   avatar: {
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
   initials: {
     fontFamily: fonts.displayExtraBold,

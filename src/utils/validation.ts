@@ -12,8 +12,17 @@ export const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,50}$/;
 
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Espeja RegisterRequest.name/lastName del back: @Pattern(^[\p{L} .'-]+$) @Size(2,100).
+// Solo letras (de cualquier idioma), espacios, punto, apostrofo y guion: no numeros.
+export const NAME_REGEX = /^[\p{L} .'-]+$/u;
+
 export function isValidEmail(value: string): boolean {
   return EMAIL_REGEX.test(value.trim());
+}
+
+export function isValidName(value: string): boolean {
+  const v = value.trim();
+  return v.length >= 2 && v.length <= 100 && NAME_REGEX.test(v);
 }
 
 export function isValidUsername(value: string): boolean {

@@ -8,7 +8,7 @@ Status: **real**. Built from `Practica Libre.dc.html` (Claude Design), wired to 
 `/practice/*` endpoints (`PracticeController`).
 
 `PracticeTabScreen` is a `courseTeal`-toned `ScreenHeader` (2 stats: señas aprendidas / ejercicios
-hechos, from `practiceApi.getSummary()`), a 3-way `SegmentedControl` (Ejercicios / Señas /
+hechos, from `practiceApi.getSummary()`, refetched on every focus), a 3-way `SegmentedControl` (Ejercicios / Señas /
 Errores), and a sign-detail view that replaces the tab body when a sign is tapped (local `detail`
 state, not a stack route — same pattern `SocialScreen` uses for its modals).
 
@@ -18,8 +18,8 @@ state, not a stack route — same pattern `SocialScreen` uses for its modals).
   `{ mode: "type", blockType, title }`.
 - **Señas**: a search box over `practiceApi.getLearnedSigns()` — the user's actual learned signs
   (from `UserLearnedSign` on the backend), not the full catalog. Tapping a result opens the
-  sign-detail view, which fetches the real animation via `signsApi.getSignAnimations([meaning])`
-  and up to 4 "related" signs (the rest of the learned-signs list, minus the current one — no real
+  sign-detail view, which plays the sign with `SignAnimation` (`.glb` or `.mp4`, resolved through
+  `POST /signs/media`, see [courses.md](./courses.md)) and up to 4 "related" signs (the rest of the learned-signs list, minus the current one — no real
   lesson/topic grouping, so no "de la misma lección" claim is made). "Practicar" navigates to
   `PracticeSession` with `{ mode: "sign", meaning }`.
 - **Errores**: a "Repaso de errores" card (count + an XP badge advertising the reward + "Empezar"
@@ -43,19 +43,20 @@ mount-all-blocks-simultaneously pattern for WebView/3D preload.
 
 **Deliberately does not behave like `LessonScreen`:**
 - No lives, no `NoLivesOverlay` — matches the tab's own copy ("sin perder vidas").
-- No real XP per exercise: `onAnswer` calls `practiceApi.recordAttempt(block.id, correct)`, **not**
+- Attempts go to `practiceApi.recordAttempt(block.id, correct)`, **not**
   `learningApi.recordBlockInteraction` — practice never costs lives or advances lesson/topic/course
-  progress (`PracticeAttempt` is a separate table server-side), and individual answers never grant
-  XP either.
-- **Exception — finishing a `mode: "mistakes"` batch can grant XP.** Reaching the end of the batch
+  progress (`PracticeAttempt` is a separate table server-side).
+- **XP is paid per exercise:** a correct answer returns `xpEarned` (0 when wrong or the block has no
+  reward), and `PracticeSessionScreen` accumulates it in `xpEarned`; the total is shown at the end.
+- **Finishing a `mode: "mistakes"` batch adds a flat bonus.** Reaching the end of the batch
   calls `practiceApi.completeMistakeReview()` (once, via `finishSession`, after the in-flight
-  `recordAttempt` calls settle), which awards a flat backend-side bonus (see Backend below) unrelated
+  `recordAttempt` calls settle), which awards a backend-side bonus (see Backend below) unrelated
   to `xpReward` on the individual blocks — but only if the backend saw a mistake resolved; otherwise
-  it returns `xpEarned: 0`. The result feeds `PracticeComplete`'s `xpEarned` prop.
+  it returns `xpEarned: 0`. It is added on top of the per-exercise XP.
 - Answering only records the attempt; the block's own "Continuar" advances. (Advancing from
-  `onAnswer` too used to hide the right/wrong feedback the moment it showed.) Other modes (`type`, `sign`) never call this and never show an XP card.
+  `onAnswer` too used to hide the right/wrong feedback the moment it showed.) Other modes (`type`, `sign`) never call `completeMistakeReview`.
 - Results screen is `PracticeComplete` (own component, not `LessonComplete`): aciertos/total, plus
-  an XP card only when `xpEarned > 0` (i.e. only after a completed mistakes batch). "Repetir"
+  an XP card only when `xpEarned > 0` (the per-exercise XP, plus the bonus after a completed mistakes batch). "Repetir"
   re-fetches a fresh batch — important for `mode: "mistakes"`, so items answered correctly this
   time drop out of the next one, and the reward is claimed again only if there's still a
   non-empty batch to finish.
@@ -73,7 +74,7 @@ courses the user is enrolled in; attempts persist to `PracticeAttempt`, kept sep
 mistake if its most recent attempt, in either one, was wrong.
 
 `POST /practice/mistakes/complete` (`PracticeService.completeMistakeReview`) is the one exception
-to "practice never grants XP": it publishes an `XpEarnedEvent` for a flat
+to the per-answer XP: it publishes an `XpEarnedEvent` for a flat
 `MISTAKE_REVIEW_XP_REWARD` bonus, picked up by the same `UserStatsEventListener` that handles
 lesson-block XP. Anti-farming: it pays only if, since `UserStats.lastMistakeReviewAt`, the user
 answered right a block they had previously missed (lesson or practice); the claim stamps that field.

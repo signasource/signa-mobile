@@ -1,11 +1,11 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
+  BackHandler,
   Image,
-  Modal,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
-  useWindowDimensions,
   View,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
@@ -13,121 +13,31 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
 import { colors, fonts, fontSizes, alpha } from "@/theme";
+import type { NavigationContainerRef } from "@react-navigation/native";
 import { useTour } from "../TourContext";
+import {
+  TOUR_CLOSING_STEP,
+  TOUR_STEPS,
+  TOUR_STEP_COUNT,
+  TOUR_WELCOME_STEP,
+  type TourStepConfig,
+} from "../steps";
+import { useTourSpot } from "../useTourSpot";
+import { placeBubble, spotFromRect, SKIP_ROW_HEIGHT, type Spot } from "../placement";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const OVERLAY = alpha(colors.tourScrim, 0.74);
 const WELCOME_OVERLAY = alpha(colors.tourScrim, 0.6);
-const TAB_BAR_H = 76;
-const TOTAL_COACH_STEPS = 6;
+const BUBBLE_MARGIN_X = 20;
+const BUBBLE_MAX_WIDTH = 460;
+const ARROW_SIZE = 18;
 
-// ── Spotlight helpers ─────────────────────────────────────────────────────────
+type Size = { width: number; height: number };
 
-interface Spot {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  circular: boolean;
-}
+const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(v, max));
 
-function tabSpot(tabIndex: number, screenW: number, screenH: number, bottomInset: number): Spot {
-  const tabW = screenW / 5;
-  const cx = (tabIndex + 0.5) * tabW;
-  const tabBarTop = screenH - TAB_BAR_H - bottomInset;
-  const cy = tabBarTop + 25;
-  const r = 31;
-  return { x: cx - r, y: cy - r, width: 62, height: 62, circular: true };
-}
-
-// ── Per-step data ─────────────────────────────────────────────────────────────
-
-interface StepData {
-  title: string;
-  description: string;
-  infoBox?: string;
-  accentColor: string;
-  lisaBody?: "waving" | "arms";
-  lisaSize?: number;       // override container size (default 190)
-  lisaBottomExtra?: number; // bottom offset above tab bar (default 220)
-  bubbleAbove: boolean;
-  getSpot: (w: number, h: number, topInset: number, bottomInset: number) => Spot;
-}
-
-const STEP_DATA: Record<number, StepData> = {
-  1: {
-    title: "Tus tres números",
-    description:
-      "La racha son tus días seguidos. Las gemas se usan en la Tienda. El XP sube con cada lección.",
-    infoBox:
-      "Cada sección tiene su propia barra de números arriba. Siempre son los que importan en esa pantalla.",
-    accentColor: colors.primary,
-    bubbleAbove: false,
-    getSpot: (w, _h, topInset) => ({
-      x: 14,
-      y: topInset + 112,
-      width: w - 28,
-      height: 64,
-      circular: false,
-    }),
-  },
-  2: {
-    title: "Tu próxima lección, siempre acá",
-    description:
-      "El recorrido va de abajo hacia arriba. Tocá Empezar en la lección que te toca. La ⓘ te dice qué señas vas a ver.",
-    accentColor: colors.primary,
-    bubbleAbove: false,
-    getSpot: (w, _h, topInset) => ({
-      x: 74,
-      y: topInset + 286,
-      width: w - 94,
-      height: 152,
-      circular: false,
-    }),
-  },
-  3: {
-    title: "Práctica libre, sin perder vidas",
-    description:
-      "Repasá lo que ya aprendiste: por ejercicio, por seña puntual o por tus errores — esa última opción también da XP.",
-    accentColor: colors.courseTeal,
-    lisaBody: "arms",
-    bubbleAbove: true,
-    getSpot: (w, h, _top, bottom) => tabSpot(1, w, h, bottom),
-  },
-  4: {
-    title: "Gastá tus gemas acá",
-    description:
-      "Vidas, escudos para tu racha y potenciadores de XP. Arrancás con 100 gemas de regalo.",
-    accentColor: colors.shopAmber,
-    lisaBody: "waving",
-    lisaSize: 230,
-    lisaBottomExtra: 185,
-    bubbleAbove: true,
-    getSpot: (w, h, _top, bottom) => tabSpot(2, w, h, bottom),
-  },
-  5: {
-    title: "No aprendas sola",
-    description:
-      "Agregá amigos y mirá su actividad en el feed. Ver que otros practican ayuda a no cortar la racha.",
-    accentColor: colors.socialWine,
-    lisaBody: "arms",
-    lisaBottomExtra: 170,
-    bubbleAbove: true,
-    getSpot: (w, h, _top, bottom) => tabSpot(3, w, h, bottom),
-  },
-  6: {
-    title: "Tu progreso y tus ajustes",
-    description:
-      "Arriba: racha, XP total y tu puesto en el ranking. Adentro: logros, inventario y meta diaria. ¿Te perdiste algo? Configuración → Volver a ver el tour.",
-    accentColor: colors.primary,
-    lisaBody: "waving",
-    bubbleAbove: true,
-    getSpot: (w, h, _top, bottom) => tabSpot(4, w, h, bottom),
-  },
-};
-
-// ── Sub-components ─────────────────────────────────────────────────────────────
+// ── Spotlight ────────────────────────────────────────────────────────────────
 
 function roundedRectPath(x: number, y: number, w: number, h: number, r: number): string {
   return (
@@ -139,121 +49,129 @@ function roundedRectPath(x: number, y: number, w: number, h: number, r: number):
 }
 
 function circlePath(cx: number, cy: number, r: number): string {
+  return `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy} A ${r} ${r} 0 0 1 ${cx - r} ${cy} Z`;
+}
+
+/** Dark scrim with a clean cutout over `spot` (or fully dark when `spot` is null). */
+function Scrim({ spot, size }: { spot: Spot | null; size: Size }) {
+  const { width: sw, height: sh } = size;
+  const screenRect = `M 0 0 L ${sw} 0 L ${sw} ${sh} L 0 ${sh} Z`;
+  const hole = spot
+    ? spot.circular
+      ? circlePath(spot.x + spot.width / 2, spot.y + spot.height / 2, spot.radius)
+      : roundedRectPath(spot.x, spot.y, spot.width, spot.height, spot.radius)
+    : "";
+
   return (
-    `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy} ` +
-    `A ${r} ${r} 0 0 1 ${cx - r} ${cy} Z`
+    <Svg style={StyleSheet.absoluteFill} width={sw} height={sh} pointerEvents="none">
+      {/* evenodd: the hole path overlapping the full-screen rect becomes transparent. */}
+      <Path d={`${screenRect} ${hole}`} fill={OVERLAY} fillRule="evenodd" />
+    </Svg>
   );
 }
 
-function SpotlightHole({ spot }: { spot: Spot }) {
-  const { width: sw, height: sh } = useWindowDimensions();
-  const pulseAnim = useRef(new Animated.Value(0)).current;
+/** White border plus a pulsing ring around the cutout. */
+function SpotRing({ spot }: { spot: Spot }) {
+  const pulse = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1, duration: 2400, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 0, duration: 0, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 2400, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 0, useNativeDriver: true }),
       ]),
     );
     loop.start();
     return () => loop.stop();
-  }, [pulseAnim]);
+  }, [pulse]);
 
-  const pulseScale = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.3] });
-  const pulseOpacity = pulseAnim.interpolate({ inputRange: [0, 0.12, 1], outputRange: [0.5, 1, 0] });
-
-  const r = spot.circular ? spot.width / 2 : 16;
-  const cx = spot.x + spot.width / 2;
-  const cy = spot.y + spot.height / 2;
-
-  // Full-screen rect + hole path — fillRule "evenodd" makes the overlap transparent.
-  const screenRect = `M 0 0 L ${sw} 0 L ${sw} ${sh} L 0 ${sh} Z`;
-  const hole = spot.circular
-    ? circlePath(cx, cy, r)
-    : roundedRectPath(spot.x, spot.y, spot.width, spot.height, r);
+  const box = {
+    top: spot.y,
+    left: spot.x,
+    width: spot.width,
+    height: spot.height,
+    borderRadius: spot.radius,
+  };
 
   return (
     <>
-      {/* SVG overlay with a clean cutout (no artifacts from overlapping rgba views) */}
-      <Svg style={StyleSheet.absoluteFill} width={sw} height={sh}>
-        <Path d={`${screenRect} ${hole}`} fill={OVERLAY} fillRule="evenodd" />
-      </Svg>
-
-      {/* White border */}
-      <View
-        style={[
-          styles.spotBorder,
-          { top: spot.y, left: spot.x, width: spot.width, height: spot.height, borderRadius: r },
-        ]}
-      />
-
-      {/* Pulsing ring */}
+      <View pointerEvents="none" style={[styles.spotBorder, box]} />
       <Animated.View
+        pointerEvents="none"
         style={[
           styles.spotPulse,
-          { top: spot.y, left: spot.x, width: spot.width, height: spot.height, borderRadius: r },
-          { transform: [{ scale: pulseScale }], opacity: pulseOpacity },
+          box,
+          {
+            opacity: pulse.interpolate({ inputRange: [0, 0.12, 1], outputRange: [0.5, 1, 0] }),
+            transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.3] }) }],
+          },
         ]}
       />
     </>
   );
 }
 
+// ── Coach mark ───────────────────────────────────────────────────────────────
+
 function StepDots({ step }: { step: number }) {
   return (
     <View style={styles.dotsRow}>
-      {Array.from({ length: TOTAL_COACH_STEPS }, (_, i) => {
-        const dotStep = i + 1;
-        const active = dotStep === step;
-        return (
-          <View
-            key={dotStep}
-            style={[
-              styles.dot,
-              active ? styles.dotActive : styles.dotInactive,
-            ]}
-          />
-        );
-      })}
+      {Array.from({ length: TOUR_STEP_COUNT }, (_, i) => (
+        <View
+          key={i}
+          style={[styles.dot, i + 1 === step ? styles.dotActive : styles.dotInactive]}
+        />
+      ))}
     </View>
   );
 }
 
 function CoachBubble({
   step,
-  stepData,
+  config,
+  maxHeight,
   onPrev,
   onNext,
 }: {
   step: number;
-  stepData: StepData;
+  config: TourStepConfig;
+  maxHeight: number;
   onPrev: () => void;
   onNext: () => void;
 }) {
   const isFirst = step === 1;
-  const isLast = step === TOTAL_COACH_STEPS;
-  const acc = stepData.accentColor;
+  const isLast = step === TOUR_STEP_COUNT;
 
   return (
-    <View style={styles.bubble}>
-      {/* Header row: step label + progress dots */}
-      <View style={styles.bubbleHeader}>
-        <Text style={styles.bubbleStepLabel}>
-          PASO {step} DE {TOTAL_COACH_STEPS}
-        </Text>
-        <StepDots step={step} />
-      </View>
-
-      <Text style={styles.bubbleTitle}>{stepData.title}</Text>
-      <Text style={styles.bubbleDesc}>{stepData.description}</Text>
-
-      {!!stepData.infoBox && (
-        <View style={styles.infoBox}>
-          <Ionicons name="information-circle" size={17} color={colors.primary} style={{ flexShrink: 0 }} />
-          <Text style={styles.infoBoxText}>{stepData.infoBox}</Text>
+    <View style={[styles.bubble, { maxHeight }]}>
+      {/* Long copy (large font scale, small phones) scrolls; the buttons always stay visible. */}
+      <ScrollView
+        style={styles.bubbleScroll}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <View style={styles.bubbleHeader}>
+          <Text style={styles.bubbleStepLabel}>
+            PASO {step} DE {TOUR_STEP_COUNT}
+          </Text>
+          <StepDots step={step} />
         </View>
-      )}
+
+        <Text style={styles.bubbleTitle}>{config.title}</Text>
+        <Text style={styles.bubbleDesc}>{config.description}</Text>
+
+        {!!config.infoBox && (
+          <View style={styles.infoBox}>
+            <Ionicons
+              name="information-circle"
+              size={17}
+              color={colors.primary}
+              style={styles.infoIcon}
+            />
+            <Text style={styles.infoBoxText}>{config.infoBox}</Text>
+          </View>
+        )}
+      </ScrollView>
 
       <View style={styles.bubbleActions}>
         <TouchableOpacity
@@ -269,37 +187,165 @@ function CoachBubble({
           />
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.nextBtn, { backgroundColor: acc }]}
+          style={[styles.nextBtn, { backgroundColor: config.accentColor }]}
           onPress={onNext}
           activeOpacity={0.86}
         >
           <Text style={styles.nextBtnText}>{isLast ? "Listo" : "Siguiente"}</Text>
-          {!isLast && <Ionicons name="arrow-forward" size={18} color={colors.onColor} />}
-          {isLast && <Ionicons name="checkmark" size={18} color={colors.onColor} />}
+          <Ionicons name={isLast ? "checkmark" : "arrow-forward"} size={18} color={colors.onColor} />
         </TouchableOpacity>
       </View>
     </View>
   );
 }
 
-// ── WelcomeStep ───────────────────────────────────────────────────────────────
+/**
+ * One coach mark: scrim + highlight + popover. The popover is measured and then placed on the
+ * side of the highlight that has room, so it adapts to any screen size or font scale.
+ * Remounted per step (`key`), which resets the measured popover height.
+ */
+function CoachMarkStep({
+  step,
+  config,
+  spot,
+  size,
+  insets,
+  onPrev,
+  onNext,
+  onSkip,
+}: {
+  step: number;
+  config: TourStepConfig;
+  /** `null`: the element could not be found, so the popover is shown centered without a highlight. */
+  spot: Spot | null;
+  size: Size;
+  insets: { top: number; bottom: number };
+  onPrev: () => void;
+  onNext: () => void;
+  onSkip: () => void;
+}) {
+  const [bubbleHeight, setBubbleHeight] = useState<number | null>(null);
+
+  const bubbleWidth = Math.min(size.width - BUBBLE_MARGIN_X * 2, BUBBLE_MAX_WIDTH);
+  const bubbleLeft = (size.width - bubbleWidth) / 2;
+  const maxBubbleHeight = Math.max(
+    160,
+    size.height - insets.top - SKIP_ROW_HEIGHT - insets.bottom - 24,
+  );
+
+  const placement =
+    bubbleHeight === null
+      ? null
+      : placeBubble({
+          spot,
+          preferred: config.preferredSide,
+          bubbleHeight,
+          height: size.height,
+          insetTop: insets.top,
+          insetBottom: insets.bottom,
+        });
+
+  const lisaSize = clamp(size.height * 0.2, 110, 190);
+  const showLisa =
+    !!config.lisa &&
+    !!placement &&
+    placement.side === "above" &&
+    placement.top - (insets.top + SKIP_ROW_HEIGHT) >= lisaSize * 0.8;
+
+  const arrowLeft = spot
+    ? clamp(spot.x + spot.width / 2 - bubbleLeft - ARROW_SIZE / 2, 22, bubbleWidth - 22 - ARROW_SIZE)
+    : 0;
+
+  return (
+    <>
+      <Scrim spot={spot} size={size} />
+      {spot && <SpotRing spot={spot} />}
+
+      <TouchableOpacity
+        style={[styles.skipBtn, { top: insets.top + 12 }]}
+        onPress={onSkip}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.skipText}>Saltear</Text>
+        <Ionicons name="close" size={15} color={colors.onColor} />
+      </TouchableOpacity>
+
+      {/* Lisa goes before the bubble so the bubble is drawn over her. */}
+      {showLisa && placement && config.lisa && (
+        <Image
+          source={
+            config.lisa === "waving"
+              ? require("@assets/images/lisa-waving.png")
+              : require("@assets/images/lisa-arms-crossed.png")
+          }
+          style={{
+            position: "absolute",
+            right: bubbleLeft + 4,
+            top: placement.top - lisaSize + 22,
+            width: lisaSize,
+            height: lisaSize,
+            resizeMode: "contain",
+          }}
+        />
+      )}
+
+      <View
+        // Invisible until measured: avoids a one-frame flash at the wrong position.
+        style={[
+          styles.bubbleWrap,
+          {
+            left: bubbleLeft,
+            width: bubbleWidth,
+            top: placement?.top ?? 0,
+            opacity: placement ? 1 : 0,
+          },
+        ]}
+        onLayout={(e) => {
+          const h = Math.round(e.nativeEvent.layout.height);
+          setBubbleHeight((prev) => (prev === h ? prev : h));
+        }}
+      >
+        {placement?.showArrow && placement.side === "below" && (
+          <View style={[styles.arrow, { top: -ARROW_SIZE / 2, left: arrowLeft }]} />
+        )}
+        {placement?.showArrow && placement.side === "above" && (
+          <View style={[styles.arrow, { bottom: -ARROW_SIZE / 2, left: arrowLeft }]} />
+        )}
+        <CoachBubble
+          step={step}
+          config={config}
+          maxHeight={maxBubbleHeight}
+          onPrev={onPrev}
+          onNext={onNext}
+        />
+      </View>
+    </>
+  );
+}
+
+// ── Welcome & closing ────────────────────────────────────────────────────────
 
 function WelcomeStep({
+  size,
+  bottomInset,
   onStart,
   onSkip,
 }: {
+  size: Size;
+  bottomInset: number;
   onStart: () => void;
   onSkip: () => void;
 }) {
+  const lisaSize = clamp(size.height * 0.2, 110, 164);
+
   return (
     <>
       <View style={[styles.fullOverlay, { backgroundColor: WELCOME_OVERLAY }]} />
 
-      <View style={styles.welcomeCard}>
-        {/* Lisa image floats above card */}
+      <View style={[styles.welcomeCard, { bottom: Math.max(24, bottomInset + 12) }]}>
         <Image
           source={require("@assets/images/lisa-waving.png")}
-          style={styles.welcomeLisa}
+          style={[styles.welcomeLisa, { width: lisaSize, height: lisaSize }]}
         />
 
         <View style={styles.welcomeCardContent}>
@@ -309,11 +355,7 @@ function WelcomeStep({
             Te voy a enseñar Lengua de Señas Argentina. Un minuto y te muestro dónde está todo.
           </Text>
 
-          <TouchableOpacity
-            style={styles.welcomeStartBtn}
-            onPress={onStart}
-            activeOpacity={0.86}
-          >
+          <TouchableOpacity style={styles.welcomeStartBtn} onPress={onStart} activeOpacity={0.86}>
             <Ionicons name="arrow-forward" size={20} color={colors.onDark} />
             <Text style={styles.welcomeStartText}>Mostrame la app</Text>
           </TouchableOpacity>
@@ -326,8 +368,6 @@ function WelcomeStep({
     </>
   );
 }
-
-// ── ClosingStep ───────────────────────────────────────────────────────────────
 
 function ClosingStep({ onDone }: { onDone: () => void }) {
   return (
@@ -356,150 +396,102 @@ function ClosingStep({ onDone }: { onDone: () => void }) {
   );
 }
 
-// ── CoachMarkStep ─────────────────────────────────────────────────────────────
-
-function CoachMarkStep({
-  step,
-  stepData,
-  spot,
-  onPrev,
-  onNext,
-  onSkip,
-  bottomInset,
-}: {
-  step: number;
-  stepData: StepData;
-  spot: Spot;
-  onPrev: () => void;
-  onNext: () => void;
-  onSkip: () => void;
-  screenH: number;
-  bottomInset: number;
-}) {
-  const bubbleAbove = stepData.bubbleAbove;
-
-  return (
-    <>
-      <SpotlightHole spot={spot} />
-
-      {/* Skip button */}
-      <TouchableOpacity style={styles.skipBtn} onPress={onSkip} activeOpacity={0.8}>
-        <Text style={styles.skipText}>Saltear</Text>
-        <Ionicons name="close" size={15} color={colors.onColor} />
-      </TouchableOpacity>
-
-      {/* Lisa body image — rendered behind the bubble (comes before it in JSX) */}
-      {stepData.lisaBody && bubbleAbove && (
-        <View
-          style={[
-            styles.lisaBodyContainer,
-            {
-              bottom: TAB_BAR_H + bottomInset + (stepData.lisaBottomExtra ?? 220),
-              width: stepData.lisaSize ?? 190,
-              height: stepData.lisaSize ?? 190,
-            },
-          ]}
-        >
-          <Image
-            source={
-              stepData.lisaBody === "waving"
-                ? require("@assets/images/lisa-waving.png")
-                : require("@assets/images/lisa-arms-crossed.png")
-            }
-            style={[
-              styles.lisaBodyImage,
-              {
-                width: stepData.lisaSize ?? 190,
-                height: stepData.lisaSize ?? 190,
-              },
-            ]}
-          />
-        </View>
-      )}
-
-      {/* Bubble card — rendered after Lisa, so it appears on top */}
-      {bubbleAbove ? (
-        <View
-          style={[
-            styles.bubblePositioned,
-            { bottom: TAB_BAR_H + bottomInset + 14, zIndex: 10 },
-          ]}
-        >
-          {/* Arrow pointing down */}
-          <View style={[styles.arrowDown, { left: spot.x + spot.width / 2 - 9 }]} />
-          <CoachBubble
-            step={step}
-            stepData={stepData}
-            onPrev={onPrev}
-            onNext={onNext}
-          />
-        </View>
-      ) : (
-        <View
-          style={[
-            styles.bubblePositioned,
-            { top: spot.y + spot.height + 14 },
-          ]}
-        >
-          {/* Arrow pointing up */}
-          <View style={[styles.arrowUp, { left: spot.x + spot.width / 2 - 9 }]} />
-          <CoachBubble
-            step={step}
-            stepData={stepData}
-            onPrev={onPrev}
-            onNext={onNext}
-          />
-        </View>
-      )}
-    </>
-  );
-}
-
 // ── TourOverlay ───────────────────────────────────────────────────────────────
 
-export function TourOverlay() {
+/**
+ * The welcome tour. Rendered as the last child of the app root (not a `Modal`), so it shares
+ * the app's coordinate space and always sits on top of the navigator it explains.
+ * Step 0 welcome → 1..TOUR_STEP_COUNT coach marks (`TOUR_STEPS`) → closing.
+ */
+export function TourOverlay({
+  navigationRef,
+}: {
+  navigationRef: React.RefObject<NavigationContainerRef<any> | null>;
+}) {
   const { tourVisible, tourStep, tourGoNext, tourGoPrev, tourSkip } = useTour();
-  const { width: screenW, height: screenH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
-  const isWelcome = tourStep === 0;
-  const isClosing = tourStep === 7;
-  const isCoachMark = tourStep >= 1 && tourStep <= 6;
+  // Everything is laid out in the overlay's own space: its size (not the window's) and the
+  // elements' positions relative to its origin (see `useTourSpot`).
+  const rootRef = useRef<View>(null);
+  const [size, setSize] = useState<Size | null>(null);
 
-  const stepData = isCoachMark ? STEP_DATA[tourStep] : null;
-  const spot = stepData
-    ? stepData.getSpot(screenW, screenH, insets.top, insets.bottom)
-    : null;
+  const isWelcome = tourStep === TOUR_WELCOME_STEP;
+  const isClosing = tourStep === TOUR_CLOSING_STEP;
+  const config =
+    tourVisible && tourStep >= 1 && tourStep <= TOUR_STEP_COUNT ? TOUR_STEPS[tourStep - 1] : null;
+
+  const spotState = useTourSpot({ stepIndex: tourStep, step: config, rootRef, navigationRef });
+
+  // Android back skips the tour instead of leaving the app underneath.
+  useEffect(() => {
+    if (!tourVisible) return;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      tourSkip();
+      return true;
+    });
+    return () => sub.remove();
+  }, [tourVisible, tourSkip]);
+
+  if (!tourVisible) return null;
+
+  const spot =
+    config && size && spotState.status === "ready" && spotState.rect
+      ? spotFromRect(spotState.rect, config.shape, size)
+      : null;
 
   return (
-    <Modal
-      visible={tourVisible}
-      transparent
-      animationType="fade"
-      statusBarTranslucent
-      onRequestClose={tourSkip}
+    <View
+      ref={rootRef}
+      collapsable={false}
+      style={styles.root}
+      onLayout={(e) => {
+        const { width, height } = e.nativeEvent.layout;
+        setSize((prev) =>
+          prev && prev.width === width && prev.height === height ? prev : { width, height },
+        );
+      }}
     >
-      <View style={styles.root}>
-        {isWelcome && (
-          <WelcomeStep onStart={tourGoNext} onSkip={tourSkip} />
-        )}
+      {size && isWelcome && (
+        <WelcomeStep
+          size={size}
+          bottomInset={insets.bottom}
+          onStart={tourGoNext}
+          onSkip={tourSkip}
+        />
+      )}
 
-        {isCoachMark && stepData && spot && (
-          <CoachMarkStep
-            step={tourStep}
-            stepData={stepData}
-            spot={spot}
-            onPrev={tourGoPrev}
-            onNext={tourGoNext}
-            onSkip={tourSkip}
-            screenH={screenH}
-            bottomInset={insets.bottom}
-          />
-        )}
+      {/* Searching: fully dark until the element holds still, so the highlight never jumps. */}
+      {size && config && spotState.status === "searching" && (
+        <>
+          <View style={[styles.fullOverlay, { backgroundColor: OVERLAY }]} />
+          <TouchableOpacity
+            style={[styles.skipBtn, { top: insets.top + 12 }]}
+            onPress={tourSkip}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.skipText}>Saltear</Text>
+            <Ionicons name="close" size={15} color={colors.onColor} />
+          </TouchableOpacity>
+        </>
+      )}
 
-        {isClosing && <ClosingStep onDone={tourGoNext} />}
-      </View>
-    </Modal>
+      {size && config && spotState.status !== "searching" && (
+        <CoachMarkStep
+          key={tourStep}
+          step={tourStep}
+          config={config}
+          spot={spot}
+          size={size}
+          insets={insets}
+          onPrev={tourGoPrev}
+          onNext={tourGoNext}
+          onSkip={tourSkip}
+        />
+      )}
+
+      {size && isClosing && <ClosingStep onDone={tourGoNext} />}
+    </View>
   );
 }
 
@@ -507,10 +499,12 @@ export function TourOverlay() {
 
 const styles = StyleSheet.create({
   root: {
-    flex: 1,
+    ...StyleSheet.absoluteFill,
+    zIndex: 9999,
+    elevation: 9999,
   },
   fullOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   spotBorder: {
     position: "absolute",
@@ -526,7 +520,6 @@ const styles = StyleSheet.create({
   // Skip button
   skipBtn: {
     position: "absolute",
-    top: 56,
     right: 18,
     flexDirection: "row",
     alignItems: "center",
@@ -545,29 +538,15 @@ const styles = StyleSheet.create({
     color: colors.onColor,
   },
 
-  // Bubble positioning wrapper
-  bubblePositioned: {
+  // Bubble positioning wrapper (its height is measured to place it)
+  bubbleWrap: {
     position: "absolute",
-    left: 20,
-    right: 20,
+    zIndex: 10,
   },
-
-  // Arrow indicators
-  arrowUp: {
+  arrow: {
     position: "absolute",
-    top: -9,
-    width: 18,
-    height: 18,
-    backgroundColor: colors.surface,
-    transform: [{ rotate: "45deg" }],
-    borderRadius: 4,
-    zIndex: 1,
-  },
-  arrowDown: {
-    position: "absolute",
-    bottom: -9,
-    width: 18,
-    height: 18,
+    width: ARROW_SIZE,
+    height: ARROW_SIZE,
     backgroundColor: colors.surface,
     transform: [{ rotate: "45deg" }],
     borderRadius: 4,
@@ -584,6 +563,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 36,
     elevation: 12,
+  },
+  bubbleScroll: {
+    flexGrow: 0,
+    flexShrink: 1,
   },
   bubbleHeader: {
     flexDirection: "row",
@@ -638,6 +621,9 @@ const styles = StyleSheet.create({
     padding: 11,
     marginTop: 12,
   },
+  infoIcon: {
+    flexShrink: 0,
+  },
   infoBoxText: {
     flex: 1,
     fontFamily: fonts.bodyMedium,
@@ -678,35 +664,16 @@ const styles = StyleSheet.create({
     color: colors.onColor,
   },
 
-  // Lisa body (tab bar coach mark steps, rendered behind bubble)
-  lisaBodyContainer: {
-    position: "absolute",
-    right: 4,
-    width: 190,
-    height: 190,
-  },
-  lisaBodyImage: {
-    position: "absolute",
-    right: 0,
-    bottom: 0,
-    width: 190,
-    height: 190,
-    resizeMode: "contain",
-  },
-
   // Welcome step
   welcomeCard: {
     position: "absolute",
     left: 20,
     right: 20,
-    bottom: 24,
   },
   welcomeLisa: {
     position: "absolute",
     alignSelf: "center",
     bottom: "100%",
-    width: 164,
-    height: 164,
     resizeMode: "contain",
     zIndex: 1,
   },

@@ -25,8 +25,8 @@ type Props = NativeStackScreenProps<AppStackParamList, "PracticeSession">;
  * Standalone practice session: exercises by type, by a learned sign, or a
  * mistake-review queue (see docs/features/practice.md). Reuses the real
  * lesson block components, but — unlike LessonScreen — never calls
- * learningApi.recordBlockInteraction: no lives, no real XP, no lesson
- * progress. Attempts go to practiceApi.recordAttempt instead.
+ * learningApi.recordBlockInteraction: no lives and no lesson progress.
+ * Attempts go to practiceApi.recordAttempt instead, which pays XP per answer.
  */
 export function PracticeSessionScreen({ route, navigation }: Props) {
   const { mode } = route.params;
@@ -68,7 +68,17 @@ export function PracticeSessionScreen({ route, navigation }: Props) {
           : practiceApi.getMistakeExercises();
 
     request
-      .then((res) => setBlocks(res.data.filter((block) => isPracticableType(block.type as BlockType))))
+      .then((res) =>
+        setBlocks(
+          res.data.filter((block) => {
+            if (!isPracticableType(block.type as BlockType)) return false;
+            // When practising a specific sign the user already knows its meaning —
+            // SELECT_MEANING would be trivially obvious, so skip those blocks.
+            if (mode.mode === "sign" && block.type === "SELECT_MEANING") return false;
+            return true;
+          })
+        )
+      )
       .catch(() => setError("No pudimos cargar los ejercicios."))
       .finally(() => setLoading(false));
   }, [mode]);
@@ -81,14 +91,18 @@ export function PracticeSessionScreen({ route, navigation }: Props) {
     if (finished.current) return;
     finished.current = true;
     setCompleted(true);
-    if (mode.mode !== "mistakes") return;
 
-    // Side effects live here, not in a state updater (React may run those twice). Waiting for the
-    // attempts matters: the backend only pays out for mistakes it has seen resolved.
-    Promise.all(pendingAttempts.current)
-      .then(() => practiceApi.completeMistakeReview())
-      .then((res) => setXpEarned(res.data.xpEarned))
-      .catch(() => {});
+    // For mistake review, wait for all attempts so the backend has seen every resolved mistake
+    // before claiming the batch bonus, then add it on top of per-exercise XP already accumulated.
+    if (mode.mode === "mistakes") {
+      Promise.all(pendingAttempts.current)
+        .then(() => practiceApi.completeMistakeReview())
+        .then((res) => {
+          if (res.data.xpEarned > 0) setXpEarned((prev) => prev + res.data.xpEarned);
+        })
+        .catch(() => {});
+    }
+    // Free-practice modes accumulate XP per exercise via handleAnswer — nothing extra to claim.
   }
 
   function goToNextBlock() {
@@ -105,7 +119,13 @@ export function PracticeSessionScreen({ route, navigation }: Props) {
    * hid the right/wrong feedback the instant it appeared.
    */
   function handleAnswer(block: LessonContentBlock, correct: boolean) {
-    pendingAttempts.current.push(practiceApi.recordAttempt(block.id, correct).catch(() => {}));
+    const promise = practiceApi
+      .recordAttempt(block.id, correct)
+      .then((res) => {
+        if (res.data.xpEarned > 0) setXpEarned((prev) => prev + res.data.xpEarned);
+      })
+      .catch(() => {});
+    pendingAttempts.current.push(promise);
     if (correct) {
       setCorrectBlockIds((prev) => new Set(prev).add(block.id));
     }
@@ -167,7 +187,7 @@ export function PracticeSessionScreen({ route, navigation }: Props) {
         {blocks.map((block, i) => (
           <View
             key={block.id}
-            style={[StyleSheet.absoluteFillObject, { opacity: i === blockIndex ? 1 : 0 }]}
+            style={[StyleSheet.absoluteFill, { opacity: i === blockIndex ? 1 : 0 }]}
             pointerEvents={i === blockIndex ? "auto" : "none"}
           >
             <PracticeBlockRenderer

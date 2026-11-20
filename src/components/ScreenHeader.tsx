@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
 import { colors, fonts, fontSizes, alpha } from "@/theme";
@@ -11,6 +11,16 @@ export interface HeaderStat {
   label: string;
   value: string;
   icon: keyof typeof Ionicons.glyphMap;
+  /** Makes the whole card tappable and adds a white "+" chip (e.g. buy more gems). */
+  onPress?: () => void;
+  /** Small orange dot on the card (e.g. a payment is pending). */
+  dot?: boolean;
+  /** Accessibility label for the tappable card. */
+  accessibilityLabel?: string;
+  /** Small line under the value (e.g. time until the next life). */
+  caption?: string;
+  /** Override the card background (defaults to the computed tint from the header tone). */
+  cardBackground?: string;
 }
 
 interface ScreenHeaderProps {
@@ -27,6 +37,8 @@ interface ScreenHeaderProps {
   /** Rendered above the title row (e.g. a course selector chip). */
   top?: React.ReactNode;
   children?: React.ReactNode;
+  /** Ref to the stats strip (the welcome tour measures it to place its spotlight). */
+  statsRef?: React.Ref<View>;
   /**
    * Drops the shared minimum height so the header hugs its content. Used by
    * secondary screens (Configuración, Notificaciones), which show only a title
@@ -53,6 +65,7 @@ export function ScreenHeader({
   right,
   top,
   children,
+  statsRef,
   compact = false,
 }: ScreenHeaderProps) {
   const light = isLightColor(tone);
@@ -90,20 +103,40 @@ export function ScreenHeader({
       </View>
 
       {stats && stats.length > 0 && (
-        <View style={styles.stats}>
-          {stats.map((stat) => (
-            <View key={stat.key} style={[styles.statCard, { backgroundColor: tint }]}>
-              <Text style={[styles.statLabel, { color: fg }]} numberOfLines={1}>
-                {stat.label.toUpperCase()}
-              </Text>
-              <View style={styles.statValueRow}>
-                <Ionicons name={stat.icon} size={17} color={fg} />
-                <Text style={[styles.statValue, { color: fg }]} numberOfLines={1}>
-                  {stat.value}
+        <View ref={statsRef} collapsable={false} style={styles.stats}>
+          {stats.map((stat) => {
+            const Card = stat.onPress ? TouchableOpacity : View;
+            return (
+              <Card
+                key={stat.key}
+                style={[styles.statCard, stat.onPress && styles.statCardAction, { backgroundColor: stat.cardBackground ?? tint }]}
+                {...(stat.onPress
+                  ? { onPress: stat.onPress, activeOpacity: 0.8, accessibilityRole: "button" as const, accessibilityLabel: stat.accessibilityLabel }
+                  : {})}
+              >
+                <Text style={[styles.statLabel, { color: fg }]} numberOfLines={1}>
+                  {stat.label.toUpperCase()}
                 </Text>
-              </View>
-            </View>
-          ))}
+                {stat.dot && <View style={styles.dot} />}
+                <View style={styles.statValueRow}>
+                  <Ionicons name={stat.icon} size={17} color={fg} />
+                  <Text style={[styles.statValue, styles.statValueFlex, { color: fg }]} numberOfLines={1}>
+                    {stat.value}
+                  </Text>
+                  {stat.onPress && (
+                    <View style={styles.plusChip}>
+                      <Ionicons name="add" size={18} color={colors.gemsBlueDark} />
+                    </View>
+                  )}
+                </View>
+                {stat.caption != null && (
+                  <Text style={[styles.statCaption, { color: fg }]} numberOfLines={1}>
+                    {stat.caption}
+                  </Text>
+                )}
+              </Card>
+            );
+          })}
         </View>
       )}
 
@@ -164,11 +197,39 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 11,
   },
+  statCardAction: {
+    flex: 1.15,
+    paddingRight: 8,
+  },
+  plusChip: {
+    width: 24,
+    height: 24,
+    borderRadius: 8,
+    backgroundColor: colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dot: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.streakOrange,
+  },
   statLabel: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 10,
     letterSpacing: 0.8,
     opacity: 0.75,
+  },
+  statCaption: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 10,
+    letterSpacing: 0.3,
+    opacity: 0.75,
+    marginTop: 3,
   },
   statValueRow: {
     flexDirection: "row",
@@ -179,5 +240,9 @@ const styles = StyleSheet.create({
   statValue: {
     fontFamily: fonts.displayBold,
     fontSize: 21,
+  },
+  statValueFlex: {
+    flexShrink: 1,
+    flexGrow: 1,
   },
 });

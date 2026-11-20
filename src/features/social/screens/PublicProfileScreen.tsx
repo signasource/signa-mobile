@@ -13,8 +13,8 @@ import PictureIllustration from "@assets/ilus/picture.svg";
 import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { StreakMedal } from "@/features/achievements/components/StreakMedal";
-import { isStreakAchievement } from "@/features/achievements/streakTier";
+import { AchievementArt } from "@/features/achievements/components/AchievementArt";
+import { hasAchievementArt } from "@/features/achievements/coins";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AppStackParamList } from "@/navigation/AppNavigator";
 import { colors, fonts } from "@/theme";
@@ -31,6 +31,8 @@ import {
   socialApi,
 } from "@/api/social";
 import { avatarColors, formatXp, initialsOf } from "@/features/social/people";
+import { AvatarPhoto } from "@/components/AvatarPhoto";
+import { avatarUri } from "@/utils/avatar";
 import { ConfirmSheet, ConfirmSpec } from "@/features/social/components/ConfirmSheet";
 import { Toast } from "@/features/social/components/Toast";
 
@@ -278,6 +280,7 @@ export function PublicProfileScreen({ route, navigation }: Props) {
             <Text style={[styles.avatarInitials, { color: avatar.fg }]}>
               {initialsOf(profile.name, profile.username)}
             </Text>
+            <AvatarPhoto uri={avatarUri(profile.avatarUrl)} />
           </View>
         }
         right={
@@ -496,8 +499,8 @@ export function PublicProfileScreen({ route, navigation }: Props) {
             {achievementsShown.map((a) => (
               <View key={a.id} style={styles.achItem}>
                 <View style={styles.achBadge}>
-                  {a.earned && isStreakAchievement(a) ? (
-                    <StreakMedal days={a.criteriaValue} size={64} />
+                  {a.earned && hasAchievementArt(a) ? (
+                    <AchievementArt achievement={a} size={64} />
                   ) : (
                     <Ionicons
                       name={a.earned ? "trophy" : "lock-closed-outline"}
@@ -645,6 +648,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
     flexShrink: 0,
   },
   avatarInitials: {

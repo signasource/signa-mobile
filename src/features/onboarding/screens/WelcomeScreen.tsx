@@ -4,12 +4,16 @@ import { Text } from "@/components/Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "@/navigation/AuthNavigator";
+import { useFitSquare } from "@/hooks/useFitSquare";
 import { colors, fonts, alpha } from "@/theme";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Welcome">;
 
 export function WelcomeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  // 272 = pulse ring; the circle is 12 smaller. Shrinks on short screens so nothing overflows.
+  const { size: ring, onLayout: onAvatarLayout } = useFitSquare(272, 140, 8);
+  const circle = ring - 12;
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -21,14 +25,14 @@ export function WelcomeScreen({ navigation }: Props) {
       <View style={[styles.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}>
         {/* Logo */}
         <View style={styles.logoRow}>
-          <Image source={require("@assets/images/icon.jpg")} style={styles.logoIcon} />
+          <Image source={require("@assets/images/icon.png")} style={styles.logoIcon} />
           <Text style={styles.logoText}>Signa</Text>
         </View>
 
         {/* Lisa avatar */}
-        <View style={styles.avatarContainer}>
-          <View style={styles.pulseRing} />
-          <View style={styles.avatarCircle}>
+        <View style={styles.avatarContainer} onLayout={onAvatarLayout}>
+          <View style={[styles.pulseRing, { width: ring, height: ring, borderRadius: ring / 2 }]} />
+          <View style={[styles.avatarCircle, { width: circle, height: circle, borderRadius: circle / 2 }]}>
             <Image
               source={require("@assets/images/lisa-waving.png")}
               style={styles.lisaImage}

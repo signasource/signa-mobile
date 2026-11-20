@@ -27,11 +27,12 @@ Wine `ScreenHeader` (`tone={colors.socialWine}`) with the background-less bell (
 the shared one — same title size, description, top-right bubble and `minHeight` as every other
 top-level screen.
 
-> The mockup's second tile was a **Ranking** (`#3`). The backend has no leaderboard at all, and
-> ranking was explicitly deferred to a later iteration, so the tile shows pending requests instead.
+> The mockup's second tile was a **Ranking** (`#3`); the tile shows pending requests instead, and
+> the ranking lives in its own tab (see *Ranking tab* below).
 
-Two tabs below the header, rendered by the shared `SegmentedControl` (full width, black active
-state); the **Mis amigos / Solicitudes** sub-selector uses `SubTabs`:
+Three tabs below the header — **Feed**, **Amigos** (badge = incoming requests) and **Ranking** —
+rendered by the shared `SegmentedControl` (full width, black active state); the
+**Mis amigos / Solicitudes** sub-selector uses `SubTabs`:
 
 ### Feed
 
@@ -102,6 +103,12 @@ background, which read as noisy.
 Icon and colors per `code` come from `notificationVisual()` in `features/social/people.ts`; unknown
 codes fall back to a neutral bell, so a new backend code never breaks the list.
 
+**`SIGN_REPORT_RESOLVED`** — sent by `signa-api` when an admin resolves a sign report. The
+notification's `metadata.sign` holds the sign's meaning. The row is rendered as a `TouchableOpacity`
+with a forward chevron; tapping navigates to `SignDetail` (`{ signMeaning: metadata.sign }`) so the
+user can view the sign again. The `shield-checkmark` icon in `successDark/successLight` distinguishes
+it from other notification types.
+
 ## PublicProfileScreen
 
 Reached by **tapping anyone's avatar** — in a feed card, a friend row, a search result or a request
@@ -134,27 +141,29 @@ colours are derived from list position since the backend sends none.
 
 ## FriendAcceptedScreen
 
-Full-screen celebration shown after accepting an incoming request. Sky-blue background (`#C2E8F5`)
+Full-screen celebration shown after accepting an incoming request. Sky-blue background (`colors.skyLight`)
 with the sheep illustration (`assets/ilus/ovejas.svg`), the new friend's avatar card (name +
 handle + streak), a primary "Ver su perfil" button, and a "Volver a notificaciones" back link.
 
 ## FriendAcceptedModal (when someone accepts MY request)
 
 Overlay modal rendered by `FriendAcceptedProvider` (in `RootNavigator`) when a new
-`FRIEND_REQUEST_ACCEPTED` notification is detected. Suppressed while the user is in the `Lesson`
+unread `FRIEND_REQUEST_ACCEPTED` notification is detected; it is marked as read as soon as it is
+shown, so it never reappears after a re-login. Suppressed while the user is in the `Lesson`
 screen. Offers "Mandarle un regalo" (→ Store tab) and "Ver su perfil" (→ PublicProfile). Polling
 interval: 30 s + AppState foreground resume.
 
 ## Components — `features/social/components/`
 
-`Avatar`, `PersonRow` (+ `RowAction`), `FeedCard`, `ConfirmSheet`, `Toast`, `FriendAcceptedModal`.
+`Avatar` (takes `avatarUrl`; initials when none), `PersonRow` (+ `RowAction`), `FeedCard`, `ConfirmSheet`, `Toast`, `FriendAcceptedModal`.
+Profile photos (`avatarUrl` on every user in the social/ranking responses) show in `Avatar`, the ranking podium/rows/me bar, `PublicProfileScreen` and the gift friend list through `AvatarPhoto`; `FriendAcceptedScreen` too (`SocialScreen` passes `friendAvatarUrl` from the refreshed friends list). Editing happens in Perfil → tap the avatar.
 `EmptyState` / `EmptyNote` now live in `@/components/EmptyState` (the local file only re-exports them);
 the header comes from `@/components/ScreenHeader`.
 
 ## Ranking tab — `RankingTab.tsx`
 
 Third tab in the Social `SegmentedControl`. Self-contained component that:
-- Fetches `GET /ranking/global` and `GET /ranking/friends` in parallel (plus `GET /users/me` for the user's own name/initials), all at mount time.
+- Fetches `GET /ranking/global` and `GET /ranking/friends` in parallel (plus `GET /users/me` for the user's own name/initials), on every focus (`useFocusEffect`; later fetches refresh silently, keeping the current ranking on screen) since lessons change weekly XP.
 - Shows a **scope toggle** (Global · Mis amigos) backed by local state; no re-fetch on switch.
 - **Countdown** banner ("Se reinicia el lunes a las 00:00") with a live 1-second timer based on device local time (users are assumed to be in ART).
 - **Podium** card: top 3 in 2nd–1st–3rd visual order, avatar rings in gold/silver/bronze, bar heights proportional to rank.
@@ -162,12 +171,6 @@ Third tab in the Social `SegmentedControl`. Self-contained component that:
 - **Sticky me bar** at the bottom (outside the `ScrollView`): wine-tinted background, user's rank, initials, gap-to-next text, delta, weekly XP.
 
 Delta (position change since last Monday) comes from the backend's `delta` field on each entry and on `me`. It is null until the first weekly reset runs.
-
-## Components — `features/social/components/`
-
-`Avatar`, `PersonRow` (+ `RowAction`), `FeedCard`, `ConfirmSheet`, `Toast`, `FriendAcceptedModal`.
-`EmptyState` / `EmptyNote` now live in `@/components/EmptyState` (the local file only re-exports them);
-the header comes from `@/components/ScreenHeader`.
 
 ## Not implemented
 

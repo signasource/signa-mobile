@@ -1,0 +1,273 @@
+package com.signa.vision
+
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import com.google.mediapipe.framework.image.BitmapImageBuilder
+import com.google.mediapipe.tasks.core.BaseOptions
+import com.google.mediapipe.tasks.core.Delegate
+import com.google.mediapipe.tasks.vision.core.RunningMode
+import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarker
+import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarker
+import expo.modules.kotlin.modules.Module
+import expo.modules.kotlin.modules.ModuleDefinition
+import expo.modules.kotlin.views.ViewDefinitionBuilder
+
+/**
+ * Espiga: ¿cuánto tarda MediaPipe nativo con los mismos modelos?
+ *
+ * Medido en el teléfono con la versión actual —WASM dentro de un WebView— la
+ * detección de manos cuesta entre 70 y 136 ms por frame y la de pose entre 50 y
+ * 112. Esto corre los MISMOS dos modelos con el runtime nativo y el delegado de
+ * GPU del sistema, sobre un bitmap sintético, para poder comparar contra esos
+ * números antes de comprometerse a migrar el pipeline entero.
+ *
+ * No usa la cámara a propósito: lo que se quiere aislar es el costo de los
+ * modelos, no el de la captura. Si acá aparecen 20-30 ms donde hoy hay 70-130,
+ * la migración se justifica sola; si aparecen 60, no.
+ */
+class SignaVisionModule : Module() {
+
+  override fun definition() = ModuleDefinition {
+    Name("SignaVision")
+
+    /**
+     * Abre y cierra los modelos muchas veces y informa cuánta memoria nativa
+     * quedó. Manejar esto desde la UI no sirve: los toques no siempre entran y
+     * lo que se mide termina siendo otra cosa. Acá no hay cámara ni vistas, así
+     * que lo que crezca es de los modelos.
+     */
+    /**
+     * Por qué se cerró la app la última vez.
+     *
+     * Android lo sabe y lo guarda; sin preguntárselo, una app que el sistema
+     * mata por memoria y una que se cae por un error nativo se ven exactamente
+     * igual desde afuera: la pantalla vuelve al escritorio. Esto lo saca de
+     * ActivityManager y se manda con las métricas al arrancar.
+     */
+    AsyncFunction("ultimaSalida") {
+      val contexto = appContext.reactContext ?: throw IllegalStateException("sin contexto")
+      val am = contexto.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+      if (android.os.Build.VERSION.SDK_INT < 30) return@AsyncFunction mapOf("motivo" to "sin datos")
+
+      // Se piden varias y se filtran los procesos AISLADOS: el WebView corre su
+      // renderizador en uno aparte, que el sistema mata y revive todo el
+      // tiempo, y esos registros tapaban el de la app.
+      val salidas = am.getHistoricalProcessExitReasons(contexto.packageName, 0, 10)
+        .filter { it.processName == contexto.packageName }
+        .take(3)
+        .map { s ->
+          mapOf(
+            "motivo" to when (s.reason) {
+              android.app.ApplicationExitInfo.REASON_LOW_MEMORY -> "memoria del sistema"
+              android.app.ApplicationExitInfo.REASON_CRASH -> "excepción de Java"
+              android.app.ApplicationExitInfo.REASON_CRASH_NATIVE -> "caída nativa"
+              android.app.ApplicationExitInfo.REASON_ANR -> "se colgó (ANR)"
+              android.app.ApplicationExitInfo.REASON_EXCESSIVE_RESOURCE_USAGE -> "consumo excesivo"
+              android.app.ApplicationExitInfo.REASON_USER_REQUESTED -> "la cerró el usuario"
+              android.app.ApplicationExitInfo.REASON_SIGNALED -> "señal ${s.status}"
+              android.app.ApplicationExitInfo.REASON_OTHER -> "otro"
+              else -> "código ${s.reason}"
+            },
+            "descripcion" to (s.description ?: ""),
+            "memoriaKB" to s.pss,
+            "cuando" to s.timestamp,
+            "importancia" to s.importance,
+            // Para una caída nativa, Android guarda el volcado con la señal y
+            // la pila. Es lo único que dice en qué librería se cayó: sin esto,
+            // "caída nativa" es todo lo que se sabe.
+            "volcado" to volcado(s),
+          )
+        }
+      mapOf("salidas" to salidas)
+    }
+
+    AsyncFunction("estres") { vueltas: Int, que: String ->
+      val contexto = appContext.reactContext ?: throw IllegalStateException("sin contexto")
+      System.gc()
+      val antes = android.os.Debug.getNativeHeapAllocatedSize()
+      repeat(vueltas) {
+        when (que) {
+          "senas" -> Reconocedor(contexto, Reconocedor.Modo.DINAMICO).cerrar()
+          "abecedario" -> Reconocedor(contexto, Reconocedor.Modo.ESTATICO).cerrar()
+          "detectores" -> Detectores.crear(contexto).cerrar()
+          "detectoresCpu" -> Detectores.crearEnCpu(contexto).cerrar()
+          else -> {
+            Reconocedor(contexto, Reconocedor.Modo.DINAMICO).cerrar()
+            Reconocedor(contexto, Reconocedor.Modo.ESTATICO).cerrar()
+            Detectores.crear(contexto).cerrar()
+          }
+        }
+      }
+      System.gc()
+      val despues = android.os.Debug.getNativeHeapAllocatedSize()
+      mapOf(
+        "que" to que,
+        "vueltas" to vueltas,
+        "antesKB" to antes / 1024,
+        "despuesKB" to despues / 1024,
+        "porVueltaKB" to (despues - antes) / 1024 / maxOf(1, vueltas),
+      )
+    }
+
+    AsyncFunction("golden") {
+      Golden.correr(appContext.reactContext ?: throw IllegalStateException("sin contexto"))
+    }
+
+    AsyncFunction("banco") { vueltas: Int, enGpu: Boolean ->
+      medir(vueltas, enGpu)
+    }
+
+    // El reconocedor va primero a propósito: la primera vista registrada es la
+    // que devuelve requireNativeViewManager sin nombre.
+    View(ReconocedorView::class) {
+      Events("onFrame", "onListo", "onSena", "onConfirmada")
+
+      Prop("mostrarEsqueleto") { vista: ReconocedorView, valor: Boolean ->
+        vista.mostrarEsqueleto = valor
+      }
+      Prop("activo") { vista: ReconocedorView, valor: Boolean ->
+        vista.activo = valor
+      }
+      Prop("objetivos") { vista: ReconocedorView, valor: List<String> ->
+        vista.objetivos = valor
+      }
+      Prop("modo") { vista: ReconocedorView, valor: String ->
+        vista.modo = valor
+      }
+      Prop("usarTrasera") { vista: ReconocedorView, valor: Boolean ->
+        vista.usarTrasera = valor
+      }
+
+      OnViewDestroys { vista: ReconocedorView ->
+        vista.soltar()
+      }
+    }
+
+    View(AvatarView::class) {
+      Events("onCargado", "onFalla", "onCuadros")
+
+      Prop("url") { vista: AvatarView, valor: String ->
+        vista.url = valor
+      }
+      Prop("urlRespaldo") { vista: AvatarView, valor: String ->
+        vista.urlRespaldo = valor
+      }
+      Prop("pausado") { vista: AvatarView, valor: Boolean ->
+        vista.pausado = valor
+      }
+      Prop("rotable") { vista: AvatarView, valor: Boolean ->
+        vista.rotable = valor
+      }
+
+      OnViewDestroys { vista: AvatarView ->
+        vista.soltar()
+      }
+    }
+  }
+
+  /**
+   * El volcado de la caída, tal cual, codificado para que viaje por JSON.
+   *
+   * No es texto: Android lo guarda como protobuf binario, así que filtrarlo por
+   * líneas devuelve basura. Se manda crudo —acotado— y se interpreta del otro
+   * lado, donde sí hay herramientas. Sin esto, "caída nativa" es todo lo que se
+   * sabe de un teléfono que no se tiene a mano.
+   */
+  @androidx.annotation.RequiresApi(30)
+  private fun volcado(salida: android.app.ApplicationExitInfo): String {
+    if (salida.reason != android.app.ApplicationExitInfo.REASON_CRASH_NATIVE &&
+      salida.reason != android.app.ApplicationExitInfo.REASON_ANR
+    ) {
+      return ""
+    }
+    return try {
+      salida.traceInputStream?.use { entrada ->
+        val tope = 96 * 1024
+        val bytes = entrada.readBytes().let { if (it.size > tope) it.copyOf(tope) else it }
+        android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+      } ?: ""
+    } catch (e: Throwable) {
+      "no se pudo leer: ${e.message}"
+    }
+  }
+
+  private fun medir(vueltas: Int, enGpu: Boolean): Map<String, Any> {
+    val contexto = appContext.reactContext ?: return mapOf("error" to "sin contexto")
+    val delegado = if (enGpu) Delegate.GPU else Delegate.CPU
+
+    val manos = HandLandmarker.createFromOptions(
+      contexto,
+      HandLandmarker.HandLandmarkerOptions.builder()
+        .setBaseOptions(
+          BaseOptions.builder()
+            .setModelAssetPath("hand_landmarker.task")
+            .setDelegate(delegado)
+            .build(),
+        )
+        .setRunningMode(RunningMode.IMAGE)
+        .setNumHands(2)
+        .setMinHandPresenceConfidence(0.3f)
+        .setMinTrackingConfidence(0.3f)
+        .build(),
+    )
+
+    val pose = PoseLandmarker.createFromOptions(
+      contexto,
+      PoseLandmarker.PoseLandmarkerOptions.builder()
+        .setBaseOptions(
+          BaseOptions.builder()
+            .setModelAssetPath("pose_landmarker.task")
+            .setDelegate(delegado)
+            .build(),
+        )
+        .setRunningMode(RunningMode.IMAGE)
+        .setNumPoses(1)
+        .build(),
+    )
+
+    // Un frame del tamaño que pide la app a la cámara.
+    val bitmap = Bitmap.createBitmap(480, 360, Bitmap.Config.ARGB_8888)
+    Canvas(bitmap).drawColor(Color.rgb(128, 128, 128))
+    val imagen = BitmapImageBuilder(bitmap).build()
+
+    // La primera pasada es el calentamiento y se informa aparte: en la versión
+    // web cuesta 3 segundos y es lo que más se siente al entrar al ejercicio.
+    val calPose = tiempo { pose.detect(imagen) }
+    val calManos = tiempo { manos.detect(imagen) }
+
+    val msPose = ArrayList<Double>(vueltas)
+    val msManos = ArrayList<Double>(vueltas)
+    repeat(vueltas) {
+      msPose.add(tiempo { pose.detect(imagen) })
+      msManos.add(tiempo { manos.detect(imagen) })
+    }
+
+    manos.close()
+    pose.close()
+
+    return mapOf(
+      "delegado" to if (enGpu) "GPU" else "CPU",
+      "vueltas" to vueltas,
+      "calentamientoPoseMs" to calPose,
+      "calentamientoManosMs" to calManos,
+      "poseMs" to mediana(msPose),
+      "manosMs" to mediana(msManos),
+      "poseMsMin" to (msPose.minOrNull() ?: 0.0),
+      "manosMsMin" to (msManos.minOrNull() ?: 0.0),
+    )
+  }
+
+  private inline fun tiempo(bloque: () -> Unit): Double {
+    val t0 = System.nanoTime()
+    bloque()
+    return (System.nanoTime() - t0) / 1_000_000.0
+  }
+
+  private fun mediana(v: List<Double>): Double {
+    if (v.isEmpty()) return 0.0
+    val o = v.sorted()
+    return if (o.size % 2 == 1) o[o.size / 2] else (o[o.size / 2 - 1] + o[o.size / 2]) / 2
+  }
+}

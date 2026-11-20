@@ -1,12 +1,13 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { useKeepAwake } from "expo-keep-awake";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts, alpha } from "@/theme";
 import { VisualRecognitionConfig } from "@/features/courses/lessonContent.types";
 import { SignPlaceholder } from "../SignPlaceholder";
-import { MultiGlbView } from "@/features/animations/MultiGlbView";
-import { getGlbUrl } from "@/features/animations/glbUrl";
+import { MultiAvatarNativo } from "@/features/animations/MultiAvatarNativo";
+import { urlsDeSenas, useSignSources } from "@/features/animations/signMedia";
 import { XpChip } from "../XpChip";
 import { FeedbackBar } from "../FeedbackBar";
 import { LessonButton } from "../LessonButton";
@@ -23,8 +24,11 @@ interface VisualRecognitionBlockProps {
 /** How long each sign of the sequence stays on screen. */
 const SIGN_DURATION_MS = 2600;
 const SEQUENCE_HEIGHT = 250;
+/** Max wait for a sign to load before moving on anyway. */
+const LOAD_TIMEOUT_MS = 8000;
 
 export function VisualRecognitionBlock({ config, xp, onAnswer, onContinue }: VisualRecognitionBlockProps) {
+  useKeepAwake();
   const total = config.sign_sequence.length;
   const [marked, setMarked] = useState<Set<string>>(new Set());
   const [wrongOption, setWrongOption] = useState<string | null>(null);
@@ -38,19 +42,33 @@ export function VisualRecognitionBlock({ config, xp, onAnswer, onContinue }: Vis
 
   // The sequence plays one sign at a time inside a single WebView; `seqIndex`
   // advances on a timer and `replayKey` restarts it from the first sign.
-  const seqUrls = useMemo(() => config.sign_sequence.map(getGlbUrl), [config.sign_sequence]);
+  const sources = useSignSources(config.sign_sequence);
+  const seqUrls = urlsDeSenas(sources);
+  const sourcesReady = sources.every((s) => s !== null);
   const [seqIndex, setSeqIndex] = useState(0);
   const [replayKey, setReplayKey] = useState(0);
   const [seqFailed, setSeqFailed] = useState(false);
+  // Signs that finished loading. The countdown of a sign starts only once it is
+  // actually on screen, otherwise slow loads eat its time (or skip it entirely).
+  const [loaded, setLoaded] = useState<Set<number>>(new Set());
   const playing = seqIndex < total - 1;
+  const currentLoaded = sourcesReady && (loaded.has(seqIndex) || !seqUrls[seqIndex]);
 
   useEffect(() => {
-    if (!playing) return;
+    if (!playing || !currentLoaded) return;
     const id = setTimeout(() => setSeqIndex((i) => i + 1), SIGN_DURATION_MS);
     return () => clearTimeout(id);
-  }, [seqIndex, playing, replayKey]);
+  }, [seqIndex, playing, currentLoaded, replayKey]);
+
+  // Safety net: a sign that never reports loading must not freeze the sequence.
+  useEffect(() => {
+    if (!playing || currentLoaded || !sourcesReady) return;
+    const id = setTimeout(() => setLoaded((prev) => new Set(prev).add(seqIndex)), LOAD_TIMEOUT_MS);
+    return () => clearTimeout(id);
+  }, [seqIndex, playing, currentLoaded, sourcesReady, replayKey]);
 
   function replay() {
+    setLoaded(new Set());
     setSeqIndex(0);
     setReplayKey((k) => k + 1);
   }
@@ -80,10 +98,11 @@ export function VisualRecognitionBlock({ config, xp, onAnswer, onContinue }: Vis
           <SignPlaceholder label={`secuencia · ${total} señas`} height={SEQUENCE_HEIGHT} />
         ) : (
           <View style={styles.sequence}>
-            <MultiGlbView
+            <MultiAvatarNativo
               key={replayKey}
               urls={seqUrls}
               activeIndex={seqIndex}
+              onLoaded={(i) => setLoaded((prev) => (prev.has(i) ? prev : new Set(prev).add(i)))}
               onError={() => setSeqFailed(true)}
             />
             <View style={styles.sequenceBadge}>

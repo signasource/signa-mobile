@@ -1,121 +1,44 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ErrorCode, useIAP, type Product, type Purchase } from "expo-iap";
-import { gemPurchasesApi, GemPack, GemPurchaseResult } from "@/api/gemPurchases";
+import * as WebBrowser from "expo-web-browser";
+import { gemOrdersApi, GemOrder, GemPack } from "@/api/gemOrders";
 
-/** A backend pack paired with its Google Play product (localized price, title). */
-export interface GemOffer {
-  pack: GemPack;
-  product: Product;
-}
-
-export type GemPurchaseStatus =
-  | "loading"
-  | "idle"
-  | "buying"
-  | "redeeming"
-  | "success"
-  | "pending"
-  | "error";
+export type GemPurchaseStatus = "loading" | "idle" | "buying" | "checking" | "pending" | "error";
 
 interface Options {
-  /** Called once the backend confirmed the credit; carries the refreshed inventory. */
-  onCredited: (result: GemPurchaseResult) => void;
+  /** Called once the backend confirmed the payment; carries the refreshed inventory. */
+  onCredited: (order: GemOrder) => void;
 }
 
-type FinishTransaction = (args: { purchase: Purchase; isConsumable?: boolean }) => Promise<void>;
+/** Deep link the API's return page hands the browser back to (`scheme` in app.json). */
+const RETURN_URL = "signa://store";
+const SYNC_ATTEMPTS = 4;
+const SYNC_DELAY_MS = 2500;
+
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /**
- * Buying gem packs with real money through Google Play. Android only — mount the caller
- * conditionally; this hook opens the Play Billing connection on mount.
+ * Buying gem packs with real money through Mercado Pago Checkout Pro.
  *
- * Flow: `buy(offer)` → Play sheet → `onPurchaseSuccess` → `POST /store/gem-purchases` (the server
- * verifies the token with Google and credits the gems) → `finishTransaction(isConsumable)`.
- * Gems are never credited client-side. On connect, unfinished purchases are re-submitted through
- * the same path — the backend is idempotent by token — so a crash between paying and crediting
- * never loses a purchase.
+ * Flow: `buy(pack)` → `POST /store/gem-orders` → checkout opened in an in-app browser → when it
+ * closes, `POST /store/gem-orders/{id}/sync` (the server re-reads the order from Mercado Pago and
+ * credits the gems once). Gems are never credited client-side. If the payment is still in
+ * process the webhook credits it later, and other tabs refetch the inventory on focus.
  */
 export function useGemPurchase({ onCredited }: Options) {
   const [status, setStatus] = useState<GemPurchaseStatus>("loading");
   const [error, setError] = useState<string | null>(null);
-  const [offers, setOffers] = useState<GemOffer[]>([]);
-  const [lastResult, setLastResult] = useState<GemPurchaseResult | null>(null);
-  const packsRef = useRef<GemPack[]>([]);
+  const [packs, setPacks] = useState<GemPack[]>([]);
   const onCreditedRef = useRef(onCredited);
   onCreditedRef.current = onCredited;
-  const finishRef = useRef<FinishTransaction | null>(null);
-  // Tokens already sent to the backend in this session, so the restore pass never re-sends one.
-  const submittedRef = useRef(new Set<string>());
 
-  const redeemAndFinish = useCallback(async (purchase: Purchase) => {
-    const token = purchase.purchaseToken;
-    if (!token) {
-      setError("Google Play no devolvió el comprobante de la compra.");
-      setStatus("error");
-      return;
-    }
-    if (submittedRef.current.has(token)) return;
-    submittedRef.current.add(token);
-    setStatus("redeeming");
-    try {
-      const { data } = await gemPurchasesApi.redeem(purchase.productId, token);
-      // Only tell Play the item was consumed once our backend has the credit on record.
-      await finishRef.current?.({ purchase, isConsumable: true });
-      setLastResult(data);
-      onCreditedRef.current(data);
-      setStatus("success");
-    } catch (err: any) {
-      submittedRef.current.delete(token);
-      setError(
-        err?.response?.data?.message ??
-          "No pudimos acreditar las gemas. Volvé a abrir la tienda para reintentar.",
-      );
-      setStatus("error");
-    }
-  }, []);
-
-  const {
-    connected,
-    products,
-    availablePurchases,
-    fetchProducts,
-    requestPurchase,
-    finishTransaction,
-    getAvailablePurchases,
-  } = useIAP({
-    onPurchaseSuccess: (purchase) => {
-      if (purchase.purchaseState === "pending") {
-        setStatus("pending");
-        return;
-      }
-      void redeemAndFinish(purchase);
-    },
-    onPurchaseError: (err) => {
-      if (err.code === ErrorCode.UserCancelled) {
-        setStatus("idle");
-        return;
-      }
-      setError(err.message || "No pudimos completar la compra en Google Play.");
-      setStatus("error");
-    },
-    onError: (err) => {
-      setError(err.message || "No pudimos conectar con Google Play.");
-      setStatus("error");
-    },
-  });
-  finishRef.current = finishTransaction;
-
-  // 1. Load the backend packs, ask Play for their localized prices and for unfinished purchases.
   useEffect(() => {
-    if (!connected) return;
     let cancelled = false;
     (async () => {
       try {
-        const { data } = await gemPurchasesApi.getPacks();
+        const { data } = await gemOrdersApi.getPacks();
         if (cancelled) return;
-        packsRef.current = data;
-        await fetchProducts({ skus: data.map((p) => p.productId), type: "in-app" });
-        await getAvailablePurchases();
-        if (!cancelled) setStatus((s) => (s === "loading" ? "idle" : s));
+        setPacks([...data].sort((a, b) => a.sortOrder - b.sortOrder));
+        setStatus("idle");
       } catch (err: any) {
         if (cancelled) return;
         setError(err?.response?.data?.message ?? "No pudimos cargar los packs de gemas.");
@@ -125,56 +48,44 @@ export function useGemPurchase({ onCredited }: Options) {
     return () => {
       cancelled = true;
     };
-    // fetchProducts / getAvailablePurchases are stable for the hook's lifetime.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connected]);
+  }, []);
 
-  // 2. Pair packs with products as soon as Play answers.
-  useEffect(() => {
-    const byId = new Map(products.map((p) => [p.id, p]));
-    const paired = packsRef.current
-      .map((pack) => ({ pack, product: byId.get(pack.productId) }))
-      .filter((o): o is GemOffer => o.product != null)
-      .sort((a, b) => a.pack.sortOrder - b.pack.sortOrder);
-    setOffers(paired);
-  }, [products]);
-
-  // 3. Recover purchases that were paid but never credited (app killed mid-flow).
-  useEffect(() => {
-    const known = new Set(packsRef.current.map((p) => p.productId));
-    for (const purchase of availablePurchases) {
-      if (!known.has(purchase.productId) || purchase.purchaseState !== "purchased") continue;
-      void redeemAndFinish(purchase);
+  /** Asks the backend about an order, a few times: Mercado Pago can take seconds to approve. */
+  const checkOrder = useCallback(async (orderId: string) => {
+    setStatus("checking");
+    for (let attempt = 0; attempt < SYNC_ATTEMPTS; attempt++) {
+      const { data } = await gemOrdersApi.syncOrder(orderId);
+      if (data.status === "PAID") {
+        onCreditedRef.current(data);
+        setStatus("idle");
+        return;
+      }
+      if (attempt < SYNC_ATTEMPTS - 1) await wait(SYNC_DELAY_MS);
     }
-  }, [availablePurchases, redeemAndFinish]);
+    setStatus("pending");
+  }, []);
 
   const buy = useCallback(
-    async (offer: GemOffer) => {
+    async (pack: GemPack) => {
       setError(null);
       setStatus("buying");
       try {
-        await requestPurchase({
-          request: { google: { skus: [offer.pack.productId] } },
-          type: "in-app",
-        });
-        // The outcome arrives through onPurchaseSuccess / onPurchaseError.
+        const { data } = await gemOrdersApi.createOrder(pack.id);
+        await WebBrowser.openAuthSessionAsync(data.checkoutUrl, RETURN_URL);
+        // Whether the browser returned or was closed, the user may have paid: ask the server.
+        await checkOrder(data.orderId);
       } catch (err: any) {
-        if (err?.code === ErrorCode.UserCancelled) {
-          setStatus("idle");
-          return;
-        }
-        setError(err?.message ?? "No pudimos abrir Google Play.");
+        setError(err?.response?.data?.message ?? "No pudimos completar la compra. Probá de nuevo.");
         setStatus("error");
       }
     },
-    [requestPurchase],
+    [checkOrder],
   );
 
   const reset = useCallback(() => {
     setError(null);
-    setLastResult(null);
     setStatus("idle");
   }, []);
 
-  return { connected, status, error, offers, lastResult, buy, reset };
+  return { status, error, packs, buy, reset };
 }

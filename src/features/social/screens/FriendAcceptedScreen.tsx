@@ -16,7 +16,7 @@ const SKY_BLUE = colors.skyLight;
 const OVEJAS_RATIO = 1072.5 / 932.23;
 
 export function FriendAcceptedScreen({ navigation, route }: Props) {
-  const { friendId, friendName, friendUsername, friendStreak } = route.params;
+  const { friendId, friendName, friendUsername, friendStreak, friendAvatarUrl } = route.params;
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
 
@@ -50,7 +50,13 @@ export function FriendAcceptedScreen({ navigation, route }: Props) {
             </Text>
 
             <View style={styles.card}>
-              <Avatar id={friendId} name={friendName} username={friendUsername} size={44} />
+              <Avatar
+                id={friendId}
+                name={friendName}
+                username={friendUsername}
+                avatarUrl={friendAvatarUrl}
+                size={44}
+              />
               <View style={styles.cardInfo}>
                 <Text style={styles.cardName}>{friendName}</Text>
                 <Text style={styles.cardUsername}>@{friendUsername}</Text>

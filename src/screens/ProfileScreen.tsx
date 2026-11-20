@@ -26,15 +26,26 @@ import { SegmentedControl, Segment } from "@/components/SegmentedControl";
 import { SubTabs, SubTab } from "@/components/SubTabs";
 import { EmptyState } from "@/components/EmptyState";
 import { NavIconButton } from "@/components/BackButton";
+import { VerifyEmailChip } from "@/components/VerifyEmailChip";
+import { AvatarPhoto } from "@/components/AvatarPhoto";
+import { avatarUri } from "@/utils/avatar";
+import { pickAvatar, AvatarSource } from "@/features/profile/avatarPhoto";
 import { isLightColor } from "@/utils/color";
 import { useAuth } from "@/context/AuthContext";
 import { usersApi, WeeklyXpEntry, UserStats } from "@/api/users";
 import { inventoryApi, UserInventory } from "@/api/inventory";
+import { boostersApi, BoosterType } from "@/api/boosters";
+import { useSecondsLeft, formatCountdown } from "@/hooks/useSecondsLeft";
+import { useLives, MAX_LIVES } from "@/features/lives/useLives";
+import { LivesTimerChip } from "@/features/lives/LivesTimerChip";
 import { achievementsApi, Achievement } from "@/api/achievements";
-import { StreakMedal } from "@/features/achievements/components/StreakMedal";
-import { isStreakAchievement } from "@/features/achievements/streakTier";
-import { learningApi } from "@/api/learning";
+import { AchievementArt } from "@/features/achievements/components/AchievementArt";
+import { hasAchievementArt } from "@/features/achievements/coins";
+import { learningApi, EnrollmentSummary } from "@/api/learning";
 import type { PublicCourseProgress } from "@/api/social";
+import { PaidCourseRow } from "@/features/store/PaidCourseRow";
+import { fetchCatalog } from "@/features/courses/catalog";
+import type { CourseSummary } from "@/features/courses/api";
 
 type ProfileNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, "Profile">,
@@ -52,9 +63,6 @@ interface DayXp {
 }
 
 // ─── constants ────────────────────────────────────────────────
-const MAX_LIVES = 5;
-const LIFE_GEM_COST = 350;
-const LIFE_REGEN_SECS = 30 * 60; // 30 min por vida
 const DAY_LABELS = ["L", "M", "M", "J", "V", "S", "D"];
 const DAY_NAMES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
@@ -90,12 +98,6 @@ function initials(name: string): string {
     .map((w) => w[0])
     .join("")
     .toUpperCase();
-}
-
-function formatLifeTimer(secs: number): string {
-  const m = Math.floor(secs / 60);
-  const s = secs % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 function getTodayIndex(): number {
@@ -164,7 +166,13 @@ export function ProfileScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [displayName, setDisplayName] = useState("");
+  // Solo `false` explícito muestra el aviso: si el perfil no lo informa, no se molesta.
+  const [emailUnverified, setEmailUnverified] = useState(false);
   const [username, setUsername] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarOpen, setAvatarOpen] = useState(false);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
 
   const firstFocus = useRef(true);
   const [weekDays, setWeekDays] = useState<DayXp[]>(buildDefaultWeek);
@@ -172,23 +180,31 @@ export function ProfileScreen({ navigation }: Props) {
   const [inventory, setInventory] = useState<UserInventory>(DEFAULT_INVENTORY);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [courses, setCourses] = useState<PublicCourseProgress[]>([]);
+  const [enrollments, setEnrollments] = useState<EnrollmentSummary[]>([]);
+  const [buyableCourses, setBuyableCourses] = useState<CourseSummary[]>([]);
   const [savingGoal, setSavingGoal] = useState(false);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [minutesToday, setMinutesToday] = useState(0);
 
   // Local inventory actions (optimistic)
-  const [livesCount, setLivesCount] = useState<number>(DEFAULT_INVENTORY.currentLives ?? MAX_LIVES);
   const [gemsCount, setGemsCount] = useState(DEFAULT_INVENTORY.gems);
-  const [xpBoostActive, setXpBoostActive] = useState(false);
-  const [infiniteActive, setInfiniteActive] = useState(false);
   const [xpBoostQty, setXpBoostQty] = useState(0);
   const [infiniteQty, setInfiniteQty] = useState(0);
-  const [lifeSecsLeft, setLifeSecsLeft] = useState(LIFE_REGEN_SECS);
+  const [activating, setActivating] = useState<BoosterType | null>(null);
+  const [boosterError, setBoosterError] = useState<string | null>(null);
+  const xpSecs = useSecondsLeft(inventory.xpMultiplierExpiresAt);
+  const xpBoostActive = inventory.xpMultiplierActive && xpSecs > 0;
+  const livesState = useLives(inventory);
+  const infiniteActive = livesState.unlimited;
+  const infiniteSecs = livesState.unlimitedSecs;
 
-  const loadProfile = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
-    const [profileRes, weekRes, goalRes, statsRes, invRes, unlockedRes, lockedRes, coursesRes, settingsRes] =
+  /** `silent` re-fetches in place (on focus) without the loading/refreshing spinners. */
+  const loadProfile = useCallback(async (isRefresh = false, silent = false) => {
+    if (!silent) {
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+    }
+    const [profileRes, weekRes, goalRes, statsRes, invRes, unlockedRes, lockedRes, coursesRes, enrollmentsRes, settingsRes, boostersRes] =
       await Promise.allSettled([
         usersApi.getMe(),
         usersApi.getWeeklyXp(),
@@ -198,13 +214,17 @@ export function ProfileScreen({ navigation }: Props) {
         achievementsApi.getAchievements(true),
         achievementsApi.getAchievements(false),
         learningApi.getProgress(),
+        learningApi.getEnrollments(),
         usersApi.getSettings(),
+        boostersApi.getStored(),
       ]);
 
     if (profileRes.status === "fulfilled") {
       const p = profileRes.value.data;
       setDisplayName(p.name);
       setUsername(p.username);
+      setAvatarUrl(p.avatarUrl ?? null);
+      setEmailUnverified(p.verified === false);
     } else {
       setDisplayName(user?.name ?? "");
     }
@@ -228,9 +248,12 @@ export function ProfileScreen({ navigation }: Props) {
     if (invRes.status === "fulfilled") {
       const inv = invRes.value.data;
       setInventory(inv);
-      setLivesCount(inv.currentLives ?? MAX_LIVES);
       setGemsCount(inv.gems);
-      // xpBoostQty e infiniteQty no tienen campo en la API todavía; quedan en 0
+    }
+
+    if (boostersRes.status === "fulfilled") {
+      setXpBoostQty(boostersRes.value.data.xpMultiplier);
+      setInfiniteQty(boostersRes.value.data.unlimitedLives);
     }
 
     if (unlockedRes.status === "fulfilled" || lockedRes.status === "fulfilled") {
@@ -241,6 +264,10 @@ export function ProfileScreen({ navigation }: Props) {
 
     if (coursesRes.status === "fulfilled") {
       setCourses(coursesRes.value.data);
+    }
+
+    if (enrollmentsRes.status === "fulfilled") {
+      setEnrollments(enrollmentsRes.value.data);
     }
 
     if (settingsRes.status === "fulfilled") {
@@ -256,48 +283,30 @@ export function ProfileScreen({ navigation }: Props) {
     loadProfile();
   }, [loadProfile]);
 
+  // Paid courses still to get; refetched on focus so a course bought meanwhile disappears.
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      fetchCatalog().then((catalog) => {
+        if (active) setBuyableCourses(catalog.filter((c) => !c.owned && !c.owned));
+      });
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
+
   useFocusEffect(
     useCallback(() => {
       if (firstFocus.current) {
         firstFocus.current = false;
         return;
       }
-      usersApi.getMe().then((res) => {
-        setDisplayName(res.data.name);
-        setUsername(res.data.username);
-      }).catch(() => {});
-      usersApi.getSettings().then((res) => {
-        const color = res.data.profileHeaderColor;
-        setHeaderColor(color);
-      }).catch(() => {});
-      usersApi.getDailyGoal().then((res) => {
-        setMinutesToday(res.data.minutesToday);
-      }).catch(() => {});
-      // Las lecciones gastan vidas en el backend: sin esto el inventario queda con las de antes.
-      inventoryApi.getMyInventory().then((res) => {
-        setInventory(res.data);
-        setLivesCount(res.data.currentLives ?? MAX_LIVES);
-        setGemsCount(res.data.gems);
-      }).catch(() => {});
-    }, [])
+      // Las lecciones dan XP, rachas y logros y gastan vidas en el backend: el perfil sigue
+      // montado en su tab, así que sin recargar todo muestra los números de antes.
+      loadProfile(false, true);
+    }, [loadProfile])
   );
-
-  // Life regeneration countdown
-  useEffect(() => {
-    if (livesCount >= MAX_LIVES || infiniteActive) return;
-    let secs = LIFE_REGEN_SECS;
-    setLifeSecsLeft(secs);
-    const tick = setInterval(() => {
-      secs -= 1;
-      if (secs <= 0) {
-        clearInterval(tick);
-        setLivesCount((c) => Math.min(MAX_LIVES, c + 1));
-      } else {
-        setLifeSecsLeft(secs);
-      }
-    }, 1000);
-    return () => clearInterval(tick);
-  }, [livesCount, infiniteActive]);
 
   /** Picking a swatch applies it immediately and persists it — no confirm step. */
   async function applyHeaderColor(hex: string) {
@@ -306,6 +315,46 @@ export function ProfileScreen({ navigation }: Props) {
       await usersApi.updateSettings({ profileHeaderColor: hex });
     } catch {
       // optimistic update: keep local change even if API fails
+    }
+  }
+
+  function openAvatarSheet() {
+    setAvatarError(null);
+    setAvatarOpen(true);
+  }
+
+  /** Take or choose a photo, shrink it and upload it; the sheet closes only when it worked. */
+  async function changeAvatar(source: AvatarSource) {
+    setAvatarError(null);
+    setAvatarBusy(true);
+    try {
+      const picked = await pickAvatar(source);
+      if (picked.status === "denied") {
+        setAvatarError("Necesitamos permiso para usar la cámara. Podés habilitarlo en los ajustes del teléfono.");
+        return;
+      }
+      if (picked.status === "cancelled") return;
+      const { data } = await usersApi.setAvatar(picked.dataUrl);
+      setAvatarUrl(data.avatarUrl ?? null);
+      setAvatarOpen(false);
+    } catch (err: any) {
+      setAvatarError(err?.response?.data?.message ?? "No pudimos guardar la foto. Probá de nuevo.");
+    } finally {
+      setAvatarBusy(false);
+    }
+  }
+
+  async function removeAvatar() {
+    setAvatarError(null);
+    setAvatarBusy(true);
+    try {
+      await usersApi.removeAvatar();
+      setAvatarUrl(null);
+      setAvatarOpen(false);
+    } catch (err: any) {
+      setAvatarError(err?.response?.data?.message ?? "No pudimos quitar la foto. Probá de nuevo.");
+    } finally {
+      setAvatarBusy(false);
     }
   }
 
@@ -327,8 +376,24 @@ export function ProfileScreen({ navigation }: Props) {
   const goalPct = Math.min(100, Math.round((minutesToday / dailyGoalMinutes) * 100));
   const goalDone = minutesToday >= dailyGoalMinutes;
 
-  const canBuyLife = gemsCount >= LIFE_GEM_COST && livesCount < MAX_LIVES;
-  const canUseInfinite = infiniteQty > 0 && !infiniteActive;
+  const canBuyLife = !livesState.unlimited && !livesState.full;
+  const canUseInfinite = infiniteQty > 0 && !infiniteActive && activating == null;
+
+  /** Consumes one stored booster on the backend and applies the returned inventory. */
+  async function activateBooster(type: BoosterType) {
+    setBoosterError(null);
+    setActivating(type);
+    try {
+      const { data } = await boostersApi.activate(type);
+      setInventory(data.inventory);
+      if (type === "XP_MULTIPLIER") setXpBoostQty((q) => Math.max(0, q - 1));
+      else setInfiniteQty((q) => Math.max(0, q - 1));
+    } catch (err: any) {
+      setBoosterError(err?.response?.data?.message ?? "No pudimos activar el potenciador.");
+    } finally {
+      setActivating(null);
+    }
+  }
 
   const selectedDay = weekDays[selectedDayIndex] ?? weekDays[todayIdx];
   const selectedDayName = selectedDayIndex === todayIdx ? "Hoy" : selectedDay.name;
@@ -393,9 +458,20 @@ export function ProfileScreen({ navigation }: Props) {
           },
         ]}
         left={
-          <View style={[styles.avatar, { borderColor: fg }]}>
-            <Text style={styles.avatarInitials}>{initials(displayName || "?")}</Text>
-          </View>
+          <TouchableOpacity
+            onPress={openAvatarSheet}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Cambiar foto de perfil"
+          >
+            <View style={[styles.avatar, { borderColor: fg }]}>
+              <Text style={styles.avatarInitials}>{initials(displayName || "?")}</Text>
+              <AvatarPhoto uri={avatarUri(avatarUrl)} />
+            </View>
+            <View style={styles.avatarEditBadge}>
+              <Ionicons name="camera" size={12} color={colors.onColor} />
+            </View>
+          </TouchableOpacity>
         }
         right={
           <View style={styles.headerActions}>
@@ -413,7 +489,11 @@ export function ProfileScreen({ navigation }: Props) {
             />
           </View>
         }
-      />
+      >
+        {emailUnverified && (
+          <VerifyEmailChip onPress={() => navigation.navigate("VerifyEmail")} />
+        )}
+      </ScreenHeader>
     );
   }
 
@@ -551,6 +631,7 @@ export function ProfileScreen({ navigation }: Props) {
             title="Sin cursos todavía"
             description="Cuando empieces un curso va a aparecer acá tu progreso."
           />
+          {renderBuyableCourses()}
         </View>
       );
     }
@@ -589,7 +670,7 @@ export function ProfileScreen({ navigation }: Props) {
               {unit && (
                 <View style={styles.courseUnit}>
                   <View style={styles.courseUnitHeader}>
-                    <Text style={styles.courseUnitLabel}>{unit.title}</Text>
+                    <Text style={styles.courseUnitLabel} numberOfLines={1}>{unit.title}</Text>
                     <Text style={styles.courseUnitPct}>{unit.progressPercentage}% de la unidad</Text>
                   </View>
                   <View style={styles.courseUnitTrack}>
@@ -613,6 +694,13 @@ export function ProfileScreen({ navigation }: Props) {
                 <TouchableOpacity
                   style={styles.courseCtaBtn}
                   activeOpacity={0.8}
+                  onPress={async () => {
+                    const enrollment = enrollments.find((e) => e.courseName === c.courseName);
+                    if (enrollment && !enrollment.isCurrent) {
+                      try { await learningApi.setCurrentCourse(enrollment.courseId); } catch { /* navigate anyway */ }
+                    }
+                    navigation.navigate("Home");
+                  }}
                 >
                   <Text style={styles.courseCtaText}>Seguir</Text>
                   <Ionicons name="arrow-forward" size={13} color={colors.onDark} />
@@ -621,31 +709,37 @@ export function ProfileScreen({ navigation }: Props) {
             </View>
           );
         })}
-        <TouchableOpacity style={styles.moreCoursesBtn} activeOpacity={0.7}>
-          <Ionicons name="add-circle-outline" size={16} color={colors.neutral900} />
-          <Text style={styles.moreCoursesText}>Ver más cursos</Text>
-        </TouchableOpacity>
+        {renderBuyableCourses()}
       </View>
     );
   }
 
+  function renderBuyableCourses() {
+    if (buyableCourses.length === 0) return null;
+    const hasOnlyFree = buyableCourses.every((c) => c.isFree);
+    const hint = hasOnlyFree ? "Gratis" : buyableCourses.some((c) => c.isFree) ? "" : "Pago único";
+    return (
+      <>
+        <View style={styles.buyableHeader}>
+          <Text style={styles.buyableLabel}>PARA SUMAR</Text>
+          {!!hint && <Text style={styles.buyableHint}>{hint}</Text>}
+        </View>
+        {buyableCourses.map((course) => (
+          <PaidCourseRow
+            key={course.id}
+            course={course}
+            dashed
+            onOpen={(c) => navigation.navigate("CourseDetail", { courseId: c.id })}
+          />
+        ))}
+      </>
+    );
+  }
+
   function renderInventario() {
-    const livesFull = livesCount >= MAX_LIVES;
     const hearts = Array.from({ length: MAX_LIVES }, (_, i) => ({
-      filled: i < livesCount || infiniteActive,
+      filled: i < livesState.lives || infiniteActive,
     }));
-    const livesTimerColor = infiniteActive
-      ? colors.primaryDark
-      : livesFull
-      ? colors.successDark
-      : colors.neutral600;
-    const livesTimerBg = infiniteActive
-      ? colors.primaryLight
-      : livesFull
-      ? colors.successLight
-      : colors.neutral100;
-    const livesTimer = infiniteActive ? "27:00" : livesFull ? "Completas" : formatLifeTimer(lifeSecsLeft);
-    const livesTimerIcon: any = infiniteActive ? "infinite" : livesFull ? "checkmark-circle" : "time-outline";
 
     const boosters = [
       {
@@ -653,14 +747,15 @@ export function ProfileScreen({ navigation }: Props) {
         icon: "flash",
         color: colors.warning,
         name: "Multiplicador de XP",
-        desc: xpBoostActive ? "Activo · 14 min restantes" : "Duplicá tu XP durante 15 minutos",
+        desc: xpBoostActive
+          ? `Activo · x${inventory.effectiveXpMultiplier} · ${formatCountdown(xpSecs)} restantes`
+          : "Multiplicá tu XP por un tiempo",
         qty: xpBoostQty,
         active: xpBoostActive,
         actionLabel: xpBoostActive ? "Activo" : "Usar",
         onAction: () => {
-          if (xpBoostQty > 0 && !xpBoostActive) {
-            setXpBoostActive(true);
-            setXpBoostQty((q) => q - 1);
+          if (xpBoostQty > 0 && !xpBoostActive && activating == null) {
+            activateBooster("XP_MULTIPLIER");
           }
         },
       },
@@ -668,15 +763,16 @@ export function ProfileScreen({ navigation }: Props) {
         key: "inf",
         icon: "infinite",
         color: colors.infinitePink,
-        name: "Vidas infinitas · 30 min",
-        desc: infiniteActive ? "Activo · 27 min restantes" : "Practicá media hora sin perder vidas",
+        name: "Vidas infinitas",
+        desc: infiniteActive
+          ? `Activo · ${formatCountdown(infiniteSecs)} restantes`
+          : "Practicá sin perder vidas por un tiempo",
         qty: infiniteQty,
         active: infiniteActive,
         actionLabel: infiniteActive ? "Activo" : "Activar",
         onAction: () => {
-          if (infiniteQty > 0 && !infiniteActive) {
-            setInfiniteActive(true);
-            setInfiniteQty((q) => q - 1);
+          if (infiniteQty > 0 && !infiniteActive && activating == null) {
+            activateBooster("UNLIMITED_LIVES");
           }
         },
       },
@@ -690,10 +786,7 @@ export function ProfileScreen({ navigation }: Props) {
         <View style={styles.invCard}>
           <View style={styles.invCardHeader}>
             <Text style={styles.invCardTitle}>Vidas</Text>
-            <View style={[styles.livesTimer, { backgroundColor: livesTimerBg }]}>
-              <Ionicons name={livesTimerIcon} size={13} color={livesTimerColor} />
-              <Text style={[styles.livesTimerText, { color: livesTimerColor }]}>{livesTimer}</Text>
-            </View>
+            <LivesTimerChip state={livesState} showFull />
           </View>
           <View style={styles.heartsRow}>
             {hearts.map((h, i) => (
@@ -709,10 +802,7 @@ export function ProfileScreen({ navigation }: Props) {
             <TouchableOpacity
               style={[styles.lifeBtn, !canBuyLife && styles.lifeBtnDisabled]}
               onPress={() => {
-                if (canBuyLife) {
-                  setLivesCount((l) => l + 1);
-                  setGemsCount((g) => g - LIFE_GEM_COST);
-                }
+                if (canBuyLife) navigation.navigate("Store");
               }}
               activeOpacity={canBuyLife ? 0.8 : 1}
             >
@@ -723,7 +813,7 @@ export function ProfileScreen({ navigation }: Props) {
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.infiniteBtn, !canUseInfinite && styles.infiniteBtnDisabled]}
-              onPress={() => { if (canUseInfinite) { setInfiniteActive(true); setInfiniteQty((q) => q - 1); } }}
+              onPress={() => { if (canUseInfinite) activateBooster("UNLIMITED_LIVES"); }}
               activeOpacity={canUseInfinite ? 0.8 : 1}
             >
               <Ionicons name="infinite" size={16} color={canUseInfinite ? colors.neutral900 : colors.neutral400} />
@@ -757,6 +847,7 @@ export function ProfileScreen({ navigation }: Props) {
         </View>
 
         <SectionTitle icon="rocket" label="Potenciadores" style={{ marginTop: 18 }} />
+        {boosterError != null && <Text style={styles.boosterDesc}>{boosterError}</Text>}
         {boosters.map((b) => {
           const ready = b.qty > 0 && !b.active;
           return (
@@ -826,8 +917,8 @@ export function ProfileScreen({ navigation }: Props) {
               activeOpacity={0.7}
             >
               <View style={styles.achBadge}>
-                {a.earned && isStreakAchievement(a) ? (
-                  <StreakMedal days={a.criteriaValue} size={64} />
+                {a.earned && hasAchievementArt(a) ? (
+                  <AchievementArt achievement={a} size={64} />
                 ) : (
                   <Ionicons
                     name={a.earned ? "trophy" : "lock-closed-outline"}
@@ -861,7 +952,7 @@ export function ProfileScreen({ navigation }: Props) {
   }) {
     if (!open) return null;
     return (
-      <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
+      <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
         <Pressable style={styles.overlay} onPress={onClose}>
           <View
             style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 28) }]}
@@ -967,6 +1058,46 @@ export function ProfileScreen({ navigation }: Props) {
         </View>
       </BottomSheet>
 
+      {/* Profile photo modal */}
+      <BottomSheet open={avatarOpen} onClose={() => !avatarBusy && setAvatarOpen(false)} title="Foto de perfil">
+        <View style={styles.avatarOptions}>
+          <TouchableOpacity
+            style={styles.avatarOption}
+            onPress={() => changeAvatar("camera")}
+            disabled={avatarBusy}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+          >
+            <Ionicons name="camera-outline" size={20} color={colors.neutral900} />
+            <Text style={styles.avatarOptionLabel}>Tomar una foto</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.avatarOption}
+            onPress={() => changeAvatar("library")}
+            disabled={avatarBusy}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+          >
+            <Ionicons name="images-outline" size={20} color={colors.neutral900} />
+            <Text style={styles.avatarOptionLabel}>Elegir de la galería</Text>
+          </TouchableOpacity>
+          {avatarUrl && (
+            <TouchableOpacity
+              style={styles.avatarOption}
+              onPress={removeAvatar}
+              disabled={avatarBusy}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+            >
+              <Ionicons name="trash-outline" size={20} color={colors.danger} />
+              <Text style={[styles.avatarOptionLabel, { color: colors.danger }]}>Quitar foto</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        {avatarBusy && <ActivityIndicator style={styles.avatarSpinner} color={colors.primary} />}
+        {avatarError && <Text style={styles.avatarError}>{avatarError}</Text>}
+      </BottomSheet>
+
       {/* Daily goal modal */}
       <BottomSheet open={goalOpen} onClose={() => setGoalOpen(false)} title="Meta diaria">
         <View style={styles.goalEditor}>
@@ -994,7 +1125,7 @@ export function ProfileScreen({ navigation }: Props) {
 
       {/* Achievement detail modal */}
       {achievementDetail !== null && (
-        <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
+        <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
           <Pressable style={styles.overlay} onPress={() => setAchievementDetailId(null)}>
             <View
               style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 32) }]}
@@ -1013,8 +1144,8 @@ export function ProfileScreen({ navigation }: Props) {
               </View>
               <View style={styles.achDetailBody}>
                 <View style={styles.achDetailBadge}>
-                  {achievementDetail.earned && isStreakAchievement(achievementDetail) ? (
-                    <StreakMedal days={achievementDetail.criteriaValue} size={84} animated />
+                  {achievementDetail.earned && hasAchievementArt(achievementDetail) ? (
+                    <AchievementArt achievement={achievementDetail} size={84} animated />
                   ) : (
                     <Ionicons
                       name={achievementDetail.earned ? "trophy" : "lock-closed-outline"}
@@ -1067,12 +1198,45 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
     flexShrink: 0,
   },
   avatarInitials: {
     fontFamily: fonts.displayExtraBold,
     fontSize: 23,
     color: colors.primary,
+  },
+  avatarEditBadge: {
+    position: "absolute",
+    right: -2,
+    bottom: -2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarOptions: { gap: 4 },
+  avatarOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    paddingVertical: 14,
+  },
+  avatarOptionLabel: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    color: colors.neutral900,
+  },
+  avatarSpinner: { marginTop: 8 },
+  avatarError: {
+    marginTop: 12,
+    fontFamily: fonts.bodyRegular,
+    fontSize: 13,
+    color: colors.danger,
   },
 
   // Scroll
@@ -1328,11 +1492,15 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodySemiBold,
     fontSize: 12,
     color: colors.neutral900,
+    flex: 1,
+    minWidth: 0,
   },
   courseUnitPct: {
     fontFamily: fonts.bodyBold,
     fontSize: 12,
     color: colors.neutral600,
+    flexShrink: 0,
+    marginLeft: 8,
   },
   courseUnitTrack: {
     height: 6,
@@ -1380,21 +1548,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.onDark,
   },
-  moreCoursesBtn: {
+  buyableHeader: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    backgroundColor: colors.neutral100,
-    borderRadius: 14,
-    padding: 14,
-    marginTop: 2,
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    marginTop: 8,
   },
-  moreCoursesText: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 13,
-    color: colors.neutral900,
+  buyableLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    letterSpacing: 1.1,
+    color: colors.textMuted,
   },
+  buyableHint: { fontFamily: fonts.bodyRegular, fontSize: 12, color: colors.textMuted },
 
   // Inventory
   invCard: {
@@ -1413,18 +1579,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.displayBold,
     fontSize: 16,
     color: colors.neutral900,
-  },
-  livesTimer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    borderRadius: 10,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-  },
-  livesTimerText: {
-    fontFamily: fonts.displayBold,
-    fontSize: 13,
   },
   heartsRow: {
     flexDirection: "row",

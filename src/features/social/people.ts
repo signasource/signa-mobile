@@ -105,6 +105,7 @@ const NOTIFICATION_VISUAL: Record<string, EventVisual> = {
   },
   COURSE_COMPLETED: { icon: "trophy", tone: colors.warning, tint: colors.warningLight },
   STREAK_REMINDER: { icon: "flame", tone: colors.streakOrange, tint: colors.avatarAmberLight },
+  SIGN_REPORT_RESOLVED: { icon: "shield-checkmark", tone: colors.successDark, tint: colors.successLight },
 };
 
 const DEFAULT_NOTIFICATION_VISUAL: EventVisual = {

@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View, StyleSheet } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useNavigation, useNavigationState } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { OnboardingProgress } from "@/components/OnboardingProgress";
 import { ONBOARDING_TOTAL_STEPS } from "@/features/onboarding/types";
+import { pendingReset } from "@/utils/pendingReset";
 
 // Onboarding screens
 import { WelcomeScreen } from "@/features/onboarding/screens/WelcomeScreen";
@@ -75,10 +76,29 @@ interface AuthNavigatorProps {
 }
 
 export function AuthNavigator({ initialRoute = "Welcome" }: AuthNavigatorProps) {
+  // Si había un restablecimiento de contraseña en curso (la app se cerró mientras el usuario
+  // leía el código en su mail), se reabre directo en ingresar el código.
+  // `undefined` = todavía leyendo el storage.
+  const [resetEmail, setResetEmail] = useState<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    let active = true;
+    pendingReset.get().then((email) => {
+      if (active) setResetEmail(email);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (resetEmail === undefined) return <View style={styles.root} />;
+
+  const resuming = resetEmail !== null && initialRoute === "Welcome";
+
   return (
     <View style={styles.root}>
       <Stack.Navigator
-        initialRouteName={initialRoute}
+        initialRouteName={resuming ? "ResetPassword" : initialRoute}
         screenOptions={{ headerShown: false, animation: "slide_from_right" }}
       >
         <Stack.Screen name="Welcome" component={WelcomeScreen} />
@@ -91,7 +111,11 @@ export function AuthNavigator({ initialRoute = "Welcome" }: AuthNavigatorProps) 
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         <Stack.Screen name="ForgotPasswordSent" component={ForgotPasswordSentScreen} />
-        <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+        <Stack.Screen
+          name="ResetPassword"
+          component={ResetPasswordScreen}
+          initialParams={{ email: resetEmail ?? "" }}
+        />
       </Stack.Navigator>
       <OnboardingProgressOverlay />
     </View>

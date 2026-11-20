@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Text";
 import { colors, fonts, fontSizes, alpha } from "@/theme";
@@ -42,6 +43,7 @@ export function SectionWelcomeModal({
   onPrimary,
   onSecondary,
 }: Props) {
+  const insets = useSafeAreaInsets();
   return (
     <Modal
       visible={visible}
@@ -78,7 +80,7 @@ export function SectionWelcomeModal({
           </ScrollView>
 
           {/* CTAs */}
-          <View style={styles.actions}>
+          <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, 32) }]}>
             {secondaryLabel && onSecondary && (
               <TouchableOpacity
                 style={styles.secondaryBtn}
@@ -182,7 +184,6 @@ const styles = StyleSheet.create({
   },
   actions: {
     paddingHorizontal: 20,
-    paddingBottom: 32,
     paddingTop: 12,
     gap: 8,
   },

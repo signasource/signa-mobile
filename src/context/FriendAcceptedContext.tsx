@@ -42,11 +42,13 @@ export function FriendAcceptedProvider({ children, isAuthenticated }: Props) {
     try {
       const { data } = await notificationsApi.getInbox(0, 10);
       const notification = data.content.find(
-        (n) => n.code === "FRIEND_REQUEST_ACCEPTED" && !shownIds.has(n.id)
+        (n) => n.code === "FRIEND_REQUEST_ACCEPTED" && !n.read && !shownIds.has(n.id)
       );
       if (!notification) return;
 
       shownIds.add(notification.id);
+      // Persist "seen" server-side so the modal doesn't reappear on the next login/app start.
+      notificationsApi.markAsRead(notification.id).catch(() => {});
       const meta = notification.metadata ?? {};
       setPending({
         notificationId: notification.id,

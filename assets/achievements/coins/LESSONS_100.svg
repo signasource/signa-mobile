@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300" fill="none">
+  <title>Signa achievement coin — LESSONS_100 (ruby)</title>
+  <!-- COIN: outer rim + face. Recolour per tier here. -->
+  <g id="coin">
+    <circle cx="150" cy="150" r="134.82" fill="#fbb0b0"/>
+    <circle cx="150" cy="150" r="126" fill="#f87171"/>
+  </g>
+
+  <!-- EMBLEM: the carved icon. REPLACE the contents of this group for each achievement.
+       Keep it centred on (150,150) and ~55% of the face diameter (about 140 units wide). -->
+  <g id="emblem">
+    <path transform="translate(77.5 78) scale(0.578125)" d="M216,96A88,88,0,1,0,72,163.83V240a8,8,0,0,0,11.58,7.16L128,225l44.43,22.21A8.07,8.07,0,0,0,176,248a8,8,0,0,0,8-8V163.83A87.85,87.85,0,0,0,216,96ZM56,96a72,72,0,1,1,72,72A72.08,72.08,0,0,1,56,96Zm16,0a56,56,0,1,1,56,56A56.06,56.06,0,0,1,72,96Z" fill="#b91c1c"/>
+    <path transform="translate(79.5 80.5) scale(0.578125)" d="M216,96A88,88,0,1,0,72,163.83V240a8,8,0,0,0,11.58,7.16L128,225l44.43,22.21A8.07,8.07,0,0,0,176,248a8,8,0,0,0,8-8V163.83A87.85,87.85,0,0,0,216,96ZM56,96a72,72,0,1,1,72,72A72.08,72.08,0,0,1,56,96Zm16,0a56,56,0,1,1,56,56A56.06,56.06,0,0,1,72,96Z" fill="#b91c1c"/>
+    <path transform="translate(76 76) scale(0.578125)" d="M216,96A88,88,0,1,0,72,163.83V240a8,8,0,0,0,11.58,7.16L128,225l44.43,22.21A8.07,8.07,0,0,0,176,248a8,8,0,0,0,8-8V163.83A87.85,87.85,0,0,0,216,96ZM56,96a72,72,0,1,1,72,72A72.08,72.08,0,0,1,56,96Zm16,0a56,56,0,1,1,56,56A56.06,56.06,0,0,1,72,96Z" fill="#fbb0b0"/>
+  </g>
+
+  <!-- GLOSS: static 20% white veil over the whole coin (as in the current medal). -->
+  <g id="gloss">
+    <circle cx="150" cy="150" r="134.82" fill="#FFFFFF" fill-opacity="0.2"/>
+  </g>
+
+</svg>

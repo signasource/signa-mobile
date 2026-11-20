@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "261951208096",
+    "project_id": "signa-8764d",
+    "storage_bucket": "signa-8764d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:261951208096:android:09668fc2adcf9d3a9de7c5",
+        "android_client_info": {
+          "package_name": "com.signasource.signamobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA1VG-vNQi3hHRF6D-C9AjEJU2Sm07_b8w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

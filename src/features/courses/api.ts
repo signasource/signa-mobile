@@ -9,6 +9,8 @@ export interface SignLanguage {
   countryCode: string;
 }
 
+export type CourseStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
+
 /** Resumen de curso del catálogo (`GET /courses?signLanguageId=`). */
 export interface CourseSummary {
   id: string;
@@ -16,7 +18,46 @@ export interface CourseSummary {
   description?: string;
   coverUrl?: string;
   isFree: boolean;
+  /** Precio del pago único (ARS) para cursos pagos; null para los gratuitos. */
+  price: number | null;
+  /** `true` si el usuario ya tiene acceso (gratis unido, comprado o por organización). */
+  owned: boolean;
+  status: CourseStatus;
   signLanguageCode: string;
+}
+
+/** Ficha pública de un curso (`GET /courses/{id}`), calculada del contenido publicado. */
+export interface CourseDetail {
+  id: string;
+  name: string;
+  description?: string;
+  isFree: boolean;
+  price: number | null;
+  owned: boolean;
+  status: CourseStatus;
+  unitCount: number;
+  lessonCount: number;
+  /** Señas distintas que enseña el curso. */
+  signCount: number;
+  /** Algún ejercicio usa reconocimiento con cámara (derivado de los bloques). */
+  hasCameraPractice: boolean;
+  /** Declarado explícitamente en el YAML del curso: tiene práctica de reconocimiento por cámara. */
+  hasCameraRecognition: boolean;
+  /** El curso usa animaciones 3D (`.glb`). Mutuamente excluyente con `hasVideos`. */
+  hasAnimations: boolean;
+  /** El curso usa videos (`.mp4`). Mutuamente excluyente con `hasAnimations`. */
+  hasVideos: boolean;
+  /** Significado de la primera seña que enseña, o null si no enseña ninguna. */
+  sampleSign: string | null;
+  topics: CourseDetailTopic[];
+}
+
+export interface CourseDetailTopic {
+  id: string;
+  title: string;
+  subtitle?: string;
+  order: number;
+  lessons: { name: string; signs: string[] }[];
 }
 
 /** Página de Spring Data — sólo consumimos `content`. */
@@ -75,9 +116,12 @@ export const coursesApi = {
   /** Lenguas de señas sembradas en el back (para resolver el `signLanguageId` de LSA). */
   getSignLanguages: () => apiClient.get<SignLanguage[]>("/sign-languages"),
 
-  /** Catálogo de cursos de una lengua de señas. */
+  /** Catálogo de cursos de una lengua de señas (solo publicados). */
   getCatalog: (signLanguageId: string) =>
-    apiClient.get<Page<CourseSummary>>("/courses", { params: { signLanguageId } }),
+    apiClient.get<Page<CourseSummary>>("/courses", { params: { signLanguageId, status: "PUBLISHED" } }),
+
+  /** Ficha del curso (también para quien todavía no lo tiene). */
+  getDetail: (courseId: string) => apiClient.get<CourseDetail>(`/courses/${courseId}`),
 
   /** Recorrido personalizado del curso: temas con sus lecciones y estado por lección. */
   getRoadmap: (courseId: string) =>

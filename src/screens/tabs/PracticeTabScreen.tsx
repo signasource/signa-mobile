@@ -3,7 +3,7 @@ import { View, ScrollView, TextInput, TouchableOpacity, StyleSheet, ActivityIndi
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomTabNavigationProp, BottomTabScreenProps } from "@react-navigation/bottom-tabs";
-import { CompositeNavigationProp, useFocusEffect } from "@react-navigation/native";
+import { CompositeNavigationProp, useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
@@ -57,22 +57,35 @@ export function PracticeTabScreen({ navigation }: Props) {
     dismissPracticeModal,
     showSectionModal,
   } = useTour();
+  const isFocused = useIsFocused();
 
   useFocusEffect(
     useCallback(() => {
-      showSectionModal("practice");
+      let focused = true;
+      showSectionModal("practice", () => focused);
+      return () => {
+        focused = false;
+      };
     }, [showSectionModal]),
   );
 
-  useEffect(() => {
-    practiceApi
-      .getSummary()
-      .then((res) => {
-        setSignsLearnedCount(res.data.signsLearnedCount);
-        setExercisesDoneCount(res.data.exercisesDoneCount);
-      })
-      .catch(() => {});
-  }, []);
+  // Refetched on every focus: lessons and practice sessions change both counters in the backend.
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      practiceApi
+        .getSummary()
+        .then((res) => {
+          if (!active) return;
+          setSignsLearnedCount(res.data.signsLearnedCount);
+          setExercisesDoneCount(res.data.exercisesDoneCount);
+        })
+        .catch(() => {});
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
 
   if (detail) {
     return (
@@ -127,7 +140,7 @@ export function PracticeTabScreen({ navigation }: Props) {
       </ScrollView>
 
       <SectionWelcomeModal
-        visible={practiceModalVisible}
+        visible={practiceModalVisible && isFocused}
         title="Práctica libre"
         subtitle="Repasá lo que ya aprendiste, a tu ritmo y sin perder vidas."
         headerColor={colors.courseTeal}
@@ -297,12 +310,17 @@ function SignsTab({
 function MistakesTab({ navigation }: { navigation: PracticeNavigation }) {
   const [mistakes, setMistakes] = useState<PracticeMistake[] | null>(null);
 
-  useEffect(() => {
-    practiceApi
-      .getMistakes()
-      .then((res) => setMistakes(res.data.filter((m) => isPracticableType(m.type))))
-      .catch(() => setMistakes([]));
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      setMistakes(null);
+      practiceApi
+        .getMistakes()
+        .then((res) => { if (active) setMistakes(res.data.filter((m) => isPracticableType(m.type))); })
+        .catch(() => { if (active) setMistakes([]); });
+      return () => { active = false; };
+    }, []),
+  );
 
   if (mistakes === null) {
     return (
@@ -332,7 +350,7 @@ function MistakesTab({ navigation }: { navigation: PracticeNavigation }) {
           </View>
         </View>
         <Text style={styles.mistakesDescription}>
-          Armamos una lección corta con las señas que falliste en tus últimas prácticas. Completala
+          Armamos una lección corta con las señas que fallaste en tus últimas prácticas. Completala
           y ganá XP.
         </Text>
         <View style={styles.mistakesMetaRow}>

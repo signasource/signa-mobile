@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "@/navigation/AuthNavigator";
 import { onboardingStorage } from "../storage";
+import { useFitSquare } from "@/hooks/useFitSquare";
 import { colors, fonts, alpha } from "@/theme";
 import ManoConGlobo from "@assets/ilus/mano-con-globo.svg";
 
@@ -12,6 +13,7 @@ type Props = NativeStackScreenProps<AuthStackParamList, "Achievement">;
 
 export function AchievementScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const { size: art, onLayout: onArtLayout } = useFitSquare(263, 120, 8);
   async function handleCreateAccount() {
     try {
       await onboardingStorage.complete();
@@ -53,8 +55,8 @@ export function AchievementScreen({ navigation }: Props) {
         </View>
 
         {/* Illustration */}
-        <View style={styles.avatarSection}>
-          <ManoConGlobo width={260} height={263} />
+        <View style={styles.avatarSection} onLayout={onArtLayout}>
+          <ManoConGlobo width={Math.round((art * 260) / 263)} height={art} />
         </View>
 
         {/* Headline */}
@@ -174,6 +176,7 @@ const styles = StyleSheet.create({
   },
   avatarSection: {
     flex: 1,
+    alignSelf: "stretch",
     alignItems: "center",
     justifyContent: "center",
     marginVertical: 6,

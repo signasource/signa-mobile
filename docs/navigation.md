@@ -2,7 +2,7 @@
 
 > Responsibility: navigators, auth↔app switching, route params, add-a-screen procedure.
 > Update when: a screen/route is added, renamed, or removed, or navigation params change.
-> Sources: src/navigation/RootNavigator.tsx, AuthNavigator.tsx, AppNavigator.tsx
+> Sources: src/navigation/RootNavigator.tsx, AuthNavigator.tsx, AppNavigator.tsx, TabNavigator.tsx
 
 All navigation uses `@react-navigation/native-stack`. Three navigators.
 
@@ -19,7 +19,11 @@ Switching between auth and app is **not** done by navigating; mutate the session
 
 `FriendAcceptedProvider` (`@/context/FriendAcceptedContext`) wraps the whole navigator tree and polls `GET /notifications` every 30 s (and on foreground resume) for new `FRIEND_REQUEST_ACCEPTED` notifications. When one is detected it exposes a `pending` object; `FriendAcceptedModalConnected` renders the friend-accepted modal overlay, suppressed while the current route is `Lesson`. A `NavigationContainerRef` created in `RootNavigator` is used to deep-navigate from the modal (gift → Store tab; profile → `PublicProfile`).
 
-`TourProvider` (`@/features/tour/TourContext`) wraps the authenticated session and manages the post-login welcome tour and per-tab section modals (the first-steps checklist is now a server-side challenge set, see [features/challenges.md](./features/challenges.md)). `TourOverlay` (rendered outside `NavigationContainer` as a React Native `Modal`) renders the tour itself. See [features/onboarding.md](./features/onboarding.md#post-login-tour-srcfeaturestour).
+`AchievementCelebrationProvider` (`@/features/achievements/AchievementCelebrationContext`) wraps the tree too; `AchievementCelebrationConnected` (in `RootNavigator`) navigates to `StreakShield` → `StreakDay` → `AchievementCelebration`, one at a time and in that order, on top of whatever the user is doing. Nothing is shown while the active route is `Lesson` or one of the celebrations themselves; after leaving `Lesson` / `PracticeSession` it calls `refresh()`. See [features/achievements.md](./features/achievements.md).
+
+`RootNavigator` also runs `useSessionTracker` (foreground-session telemetry) and `usePushToken` (FCM token registration/cleanup), and tapping a push notification navigates to `Notifications`. If the authenticated user's `role` is not `USER`, it renders `RoleBlockedScreen` instead of any navigator.
+
+`TourProvider` (`@/features/tour/TourContext`) wraps the authenticated session and manages the post-login welcome tour and per-tab section modals (the first-steps checklist is now a server-side challenge set, see [features/challenges.md](./features/challenges.md)). `TourOverlay` (an absolute `View` rendered next to `NavigationContainer` inside `RootNavigator`'s root box, not a `Modal`) renders the tour itself and navigates to `Tabs → Home` on its own when a step needs it. See [features/onboarding.md](./features/onboarding.md#post-login-tour-srcfeaturestour).
 
 ## AuthNavigator (`src/navigation/AuthNavigator.tsx`)
 
@@ -45,29 +49,35 @@ Onboarding progress bar: rendered as a **fixed overlay** (`OnboardingProgressOve
 
 ## AppNavigator (`src/navigation/AppNavigator.tsx`)
 
-Post-login screens with tab navigation. `screenOptions` use a dark header: `headerStyle.backgroundColor = colors.text`, `headerTintColor = colors.onDark`, `headerTitleStyle.fontFamily = fonts.bodySemiBold`.
+Post-login screens with tab navigation. `screenOptions` use a dark header: `headerStyle.backgroundColor = colors.text`, `headerTintColor = colors.onColor`, `headerTitleStyle.fontFamily = fonts.bodySemiBold`.
 
 `AppStackParamList`:
 
 | Route | Params | Header title | Screen |
 |---|---|---|---|
 | `ChangePassword` | — | (no header, screen renders its own back button) | `screens/ChangePasswordScreen` |
+| `VerifyEmail` | — | (no header, `AuthScreen` with its own back button) | `screens/VerifyEmailScreen` |
 | `Configuration` | `{ updatedProfile?: {...}, passwordChanged?: boolean }` (set by `EditProfile`/`ChangePassword` on save, via "pass params back") | (no header) | `screens/ConfigurationScreen` |
 | `EditProfile` | `{ displayName: string; lastName: string; username: string }` | (no header, screen renders its own back button) | `screens/EditProfileScreen` |
-| `Lesson` | `{ lessonId: string; unitLabel?: string; signsCount?: number }` | (no header, screen renders its own) | `features/courses/screens/LessonScreen` |
+| `CourseDetail` | `{ courseId: string }` | (no header, screen renders its own) | `features/courses/screens/CourseDetailScreen` — paid-course sheet + whole purchase flow |
+| `GemShop` | `{ missingGems?: number; returnTo?: string } \| undefined` (`returnTo` relabels the success button "Volver a …") | (no header, modal presentation, slide from bottom; renders its own header) | `features/store/screens/GemShopScreen` |
+| `PurchaseHistory` | — | (no header, screen renders its own) | `features/store/screens/PurchaseHistoryScreen` — orders + refund requests |
+| `Lesson` | `{ lessonId: string; unitLabel?: string; signsCount?: number; suggestedCourse?: { id: string; name: string } }` | (no header, screen renders its own) | `features/courses/screens/LessonScreen` |
 | `Notifications` | — | (no header, screen renders its own) | `features/social/screens/NotificationsScreen` |
 | `PracticeSession` | `{ mode: PracticeSessionParams }` — `PracticeSessionParams` is `{ mode: "type"; blockType: BlockType; title: string } \| { mode: "sign"; meaning: string } \| { mode: "mistakes" }` | (no header, screen renders its own) | `features/practice/screens/PracticeSessionScreen` |
 | `PublicProfile` | `{ username: string }` | (no header, screen renders its own) | `features/social/screens/PublicProfileScreen` |
-| `FriendAccepted` | `{ friendId, friendName, friendUsername, friendStreak: number }` | (no header, sky-blue celebration screen) | `features/social/screens/FriendAcceptedScreen` |
+| `FriendAccepted` | `{ friendId, friendName, friendUsername, friendStreak: number, friendAvatarUrl?: string \| null }` | (no header, sky-blue celebration screen) | `features/social/screens/FriendAcceptedScreen` |
+| `StreakDay` | `{ streak: number }` | (no header, full-screen modal, fade, no swipe-back; streak fire on `streakCelebration`) — shown by `RootNavigator` (`AchievementCelebrationConnected`) the first time each day the streak grows, before any achievement | `features/achievements/screens/StreakDayScreen` |
+| `StreakShield` | `{ streak: number }` | (no header, full-screen modal, fade, no swipe-back) — shown first, when the nightly scheduler burned a shield to protect the streak | `features/achievements/screens/StreakShieldScreen` |
 | `AchievementCelebration` | `{ achievementId, criteriaType, criteriaValue, title, rewardStreakShields, rewardGems }` | (no header, full-screen modal, fade, no swipe-back; colour and animation per achievement group) | `features/achievements/screens/AchievementCelebrationScreen` |
-| `SignRecognition` | — | "Practicar" | `features/ml/screens/SignRecognitionScreen` |
 | `ConnectionTest` | — | "Test de conexion" | `screens/ConnectionTestScreen` |
+| `SignDetail` | `{ signMeaning: string }` | (no header, screen renders its own) | `features/courses/screens/SignDetailScreen` — standalone sign viewer; navigated to from `NotificationsScreen` when tapping a `SIGN_REPORT_RESOLVED` notification |
 
 Header titles are UI copy (Spanish), kept verbatim from the code.
 
 ## TabNavigator (`src/navigation/TabNavigator.tsx`)
 
-Bottom tab navigation with five tabs. Uses `@react-navigation/bottom-tabs`. Tab bar displays only icons (no labels), styled with `colors.primary` (#7857FF) as active tint and `colors.neutral600` as inactive. Based on design in Perfil.dc.html.
+Bottom tab navigation with five tabs. Uses `@react-navigation/bottom-tabs`. Tab bar displays only icons (no labels; each icon is a tour target `tab-<Route>`, see [features/onboarding.md](./features/onboarding.md#post-login-tour-srcfeaturestour)); the bar adds `insets.bottom` to its padding for devices with an on-screen nav bar, styled with `colors.primary` (#7857FF) as active tint and `colors.neutral600` as inactive. Based on design in Perfil.dc.html.
 
 `TabParamList`:
 
@@ -75,7 +85,7 @@ Bottom tab navigation with five tabs. Uses `@react-navigation/bottom-tabs`. Tab 
 |---|---|---|
 | `Home` | home/home-outline | `screens/tabs/HomeTabScreen` |
 | `Practice` | hand-left/hand-left-outline | `screens/tabs/PracticeTabScreen` |
-| `Store` | storefront/storefront-outline | `screens/tabs/StoreTabScreen` |
+| `Store` | storefront/storefront-outline | `screens/tabs/StoreTabScreen` — params `{ fromLesson?: boolean } \| undefined` |
 | `Social` | people/people-outline | `features/social/screens/SocialScreen` |
 | `Profile` | person/person-outline | `screens/ProfileScreen` |
 

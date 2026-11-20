@@ -2,13 +2,11 @@
   "expo": {
     "name": "Signa",
     "slug": "signa-mobile",
+    "scheme": "signa",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "icon": "./assets/images/icon.jpg",
-    "splash": {
-      "backgroundColor": "#1D283C"
-    },
+    "icon": "./assets/images/icon.png",
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -21,8 +19,10 @@
     },
     "android": {
       "package": "com.signasource.signamobile",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "backgroundColor": "#1D283C"
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#F7F7F7"
       },
       "permissions": [
         "android.permission.CAMERA"
@@ -41,8 +41,48 @@
         }
       ],
       "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Signa accede a tus fotos solo para que elijas tu foto de perfil.",
+          "cameraPermission": "Signa usa la cámara para reconocer señas y para sacarte una foto de perfil si lo elegís.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
       "expo-asset",
-      "expo-iap"
+      "expo-web-browser",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.REEMPLAZAR-POR-CLIENT-ID-IOS"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#1D283C",
+          "iosDisplayInForeground": true
+        }
+      ],
+      "expo-status-bar",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#1D283C",
+          "image": "./assets/images/adaptive-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain"
+        }
+      ]
     ],
     "extra": {
       "eas": {

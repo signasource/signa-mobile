@@ -5,6 +5,7 @@ import { colors } from "@/theme";
 
 export type CelebrationKind =
   | "streak"
+  | "shield"
   | "lessons"
   | "courses"
   | "xp"
@@ -33,6 +34,12 @@ export const CELEBRATION_THEMES: Record<CelebrationKind, CelebrationTheme> = {
     icon: "flame",
     animation: require("@assets/animations/streak-fire.json"),
     aspect: 500 / 690,
+  },
+  shield: {
+    background: colors.celebrationShield,
+    icon: "snow",
+    animation: null,
+    aspect: 1,
   },
   lessons: {
     background: colors.celebrationLessons,
@@ -106,7 +113,28 @@ export function headlineFor(kind: CelebrationKind, value: number): string {
       return value === 1 ? "¡Hiciste tu primera compra!" : `¡Ya hiciste ${n} compras!`;
     case "generic":
       return "¡Logro desbloqueado!";
+    case "shield":
+      return streakShieldHeadline(value);
   }
+}
+
+/** Big line of the "streak day added" screen (not an achievement). `days` is the streak after today. */
+export function streakDayHeadline(days: number): string {
+  return days === 1 ? "¡Empezaste tu racha!" : `¡${formatCount(days)} días de racha!`;
+}
+
+export function streakDaySubtitle(days: number): string {
+  return days === 1
+    ? "Volvé mañana para sumar tu segundo día."
+    : "Sumaste un día más. Volvé mañana para mantenerla.";
+}
+
+export function streakShieldHeadline(streak: number): string {
+  return streak === 1 ? "¡Tu racha está a salvo!" : `¡Tu racha de ${formatCount(streak)} días está a salvo!`;
+}
+
+export function streakShieldSubtitle(): string {
+  return "No aprendiste ayer, pero un protector de racha guardó tu progreso.";
 }
 
 export function subtitleFor(kind: CelebrationKind): string {

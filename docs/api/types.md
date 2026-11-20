@@ -2,16 +2,19 @@
 
 > Responsibility: DTOs mirrored 1:1 from `signa-api` records.
 > Update when: a backend DTO changes or a request/response type is added.
-> Sources: src/types/index.ts, src/api/social.ts, src/api/notifications.ts, src/api/shop.ts, src/api/gemPurchases.ts
+> Sources: src/types/index.ts, src/api/signs.ts, src/api/social.ts, src/api/notifications.ts, src/api/shop.ts, src/api/gemOrders.ts
 
-- `AuthResponse { accessToken, refreshToken }` — **carries no user data**.
+- `AuthResponse { accessToken, refreshToken, role }` — **carries no other user data**.
+- `GoogleAuthRequest { idToken, dailyGoalMinutes? }` — body of `POST /auth/google`.
 - `LoginRequest { identifier, password }` — `identifier` is email or username.
-- `RegisterRequest { email, username, password, name, lastName }`.
+- `RegisterRequest { email, username, password, name, lastName, dailyGoalMinutes? }`.
 - `ForgotPasswordRequest { email }`.
 - `ResetPasswordRequest { email, code, newPassword }` — `code` is the 6-digit code from the email.
+- `VerifyEmailRequest { email, code }` — `code` is the 6-digit verification code from the email.
+- `ResendVerificationEmailRequest { email }`.
 - `ChangePasswordRequest { currentPassword, newPassword }`.
 - `ApiErrorResponse { message, status, timestamp }` — backend error shape; UI error messages come from `err?.response?.data?.message`.
-- `User { email, name? }` — `name` is best-effort local cache (see [session-persistence.md](./session-persistence.md)).
+- `User { email, name?, role? }` — `role` is the JWT claim; `name` is best-effort local cache (see [session-persistence.md](./session-persistence.md)).
 - `UserSettings { profileHeaderColor }` — subset of backend `UserSettings` exposed to the front-end; `profileHeaderColor` is a 6-digit hex string (e.g. `#7857FF`), default `#FFFFFF`.
 - `ShopItem { id, code, title, description, itemType, priceGems, quantity, durationMinutes, multiplierValue, active }` — mirrors `ShopItemResponse`. `itemType` is `STREAK_SHIELD | LIFE | XP_MULTIPLIER | UNLIMITED_LIVES | MYSTERY_CHEST | GEMS`.
 - `ShopInventory { gems, streakShields, livesMode, currentLives, nextLifeAt, effectiveXpMultiplier, xpMultiplierExpiresAt, xpMultiplierActive, unlimitedLivesExpiresAt, unlimitedLivesActive, learnedSignsCount }` — mirrors `UserInventoryResponse`; `livesMode` is `INFINITE | LIMITED`. `UserInventory` (`inventoryApi`) is an alias of it.
@@ -19,17 +22,28 @@
 - `PurchaseResult { id, item, gemsSpent, purchasedAt, effect, inventory }` — mirrors `PurchaseResponse`.
 - `Gift { id, item, senderId, senderUsername, recipientId, recipientUsername, message, status, sentAt, claimedAt, expiresAt }` — mirrors `GiftResponse`. `status` is `PENDING | CLAIMED | EXPIRED` (already `EXPIRED` once a pending gift passes `expiresAt`).
 - `GiftClaimResult { gift, effect, inventory }` — mirrors `GiftClaimResponse`; `effect` is an `AppliedEffect`, `inventory` the refreshed `ShopInventory`.
-- `GemPack { id, productId, gems, sortOrder }` — mirrors `GemPackResponse`. A gem bundle sold through Google Play; `productId` is the Play in-app product id. Carries no price.
-- `GemPurchaseResult { id, productId, gemsGranted, orderId, purchasedAt, alreadyGranted, inventory }` — mirrors `GemPurchaseResponse`. `alreadyGranted` is `true` when the token had been credited before (idempotent replay); `inventory` is the refreshed `ShopInventory`.
-- `GemOffer { pack: GemPack, product: Product }` (`src/features/store/useGemPurchase.ts`) — client-only pairing of a pack with its `expo-iap` product (localized `displayPrice`).
+- `GemPack { id, productId, gems, price, currency, sortOrder }` — mirrors `GemPackResponse`. A gem bundle sold through Mercado Pago; `productId` is a stable pack code and `price` is in `currency` (ARS).
+- `GemCheckout { orderId, checkoutUrl }` — mirrors `GemCheckoutResponse`. `checkoutUrl` is the Mercado Pago Checkout Pro page to open.
+- `PendingGemOrder { id, gems, amount, currency, createdAt }` — mirrors `PendingGemOrderResponse` (`GET /store/gem-orders/pending`).
+- `GemOrder { id, status, gems, inventory }` — mirrors `GemOrderResponse`. `status` is `GemOrderStatus` (`PENDING | PAID | REFUNDED`); `inventory` is the wallet after the sync.
+- `GemOrderHistoryItem { id, packName, gems, amount, currency, status, createdAt, paidAt, refundedAt, refundRequestStatus }` — mirrors `GemOrderHistoryResponse`. `status` is `GemOrderStatus`; `refundRequestStatus` is `"PENDING" | "RESOLVED" | null` — the most recent refund request's status for this order (`null` = no request ever submitted).
+- `CourseCheckout { orderId, checkoutUrl }` — mirrors `CourseCheckoutResponse`. The Mercado Pago page to open for a one-time paid-course purchase.
+- `CourseOrder { id, status, courseId, owned }` — mirrors `CourseOrderResponse`. `status` is `CourseOrderStatus` (`PENDING | PAID | REFUNDED`); `owned` is `true` once permanent access was granted.
+- `CourseOrderHistoryItem { id, courseId, courseName, amount, currency, status, createdAt, paidAt, refundedAt, refundRequestStatus }` — mirrors `CourseOrderHistoryResponse`. `status` is `CourseOrderStatus`; `refundRequestStatus` is `"PENDING" | "RESOLVED" | null` — same semantics as `GemOrderHistoryItem.refundRequestStatus`.
+- `RefundEligibilityResult { eligible, reason? }` — mirrors `RefundEligibilityResponse`. `reason` is a Spanish-language explanation when `eligible` is `false`.
+- `UserRefundRequest { id, purchaseType, purchaseId, reason, message, status, createdAt, productName, amount, currency }` — mirrors `UserRefundRequestResponse`. Returned by `createRefundRequest`; `purchaseType` is `GEMS | COURSE | SEATS`; `status` is `PENDING | APPROVED | REJECTED`. Does not trigger an automatic refund — the admin queue processes it.
+- `CourseDetail { id, name, description?, isFree, price, owned, unitCount, lessonCount, signCount, hasCameraPractice, hasAnimations?, hasVideos?, sampleSign: string | null, topics: { id, title, subtitle?, order, lessons: { name, signs: string[] }[] }[] }` — mirrors `CourseDetailResponse`. `hasAnimations`/`hasVideos` are mutually exclusive; indicate whether signs use `.glb` or `.mp4`.
+- `CourseSummary { id, name, description?, coverUrl?, isFree, price, owned, signLanguageCode }` — mirrors `CourseSummaryResponse`. `price` is the one-time ARS price (null for free courses); `owned` means the caller already has active access.
 - `RelationStatus` — `NONE | FRIEND | INCOMING | OUTGOING | BLOCKED | BLOCKED_BY`, from the **caller's** point of view: `OUTGOING` means "I sent it", `BLOCKED` means "I blocked them". `BLOCKED_BY` exists on the backend enum but never reaches the client — search filters those users out. A `REJECTED` friendship maps to `NONE`, so the request can be sent again.
 - `FriendEventType` — `ACHIEVEMENT | SIGN_LEARNED`.
 - `Friend { id, username, name, acceptedAt, currentStreak, totalXp, learnedSignsCount }` — mirrors `FriendResponse`. The three stats come from the friend's `UserStats` and are **0** when that row doesn't exist yet.
+- Every user-shaped response below carries an optional `avatarUrl` (path; `requesterAvatarUrl` / `addresseeAvatarUrl` / `friendAvatarUrl` in the request and event types): `Friend`, `FriendRequest`, `SentFriendRequest`, `FriendEvent`, `UserSearchResult`, `RankingEntry`, `PublicUserProfile`, `UserProfile`. Render it with `avatarUri()` + `AvatarPhoto`.
 - `FriendRequest { requesterId, requesterUsername, requesterName, requestedAt }` — mirrors `FriendRequestResponse` (requests received).
 - `SentFriendRequest { addresseeId, addresseeUsername, addresseeName, requestedAt }` — mirrors `SentFriendRequestResponse` (requests sent).
 - `FriendEvent { friendId, friendUsername, friendName, eventType, eventRefId, subject, context, liked, createdAt }` — mirrors `FriendEventResponse`. Feed events are **derived, not stored**, so `(eventType, eventRefId)` is their identity: `eventRefId` is the id of the `user_achievements` / `user_learned_signs` row behind it. `subject`/`context` are the raw pieces (achievement title + its description, or the sign + its course); the sentence is composed client-side by `eventSentence()` so the copy stays in the UI language.
 - `UserSearchResult { id, username, name, relation, mutualFriends }` — mirrors `UserSearchResultResponse`; already resolved against the caller.
 - `PublicUserProfile { id, username, name, profileHeaderColor, relation, visible, stats, weeklyXp, achievements, courses }` — mirrors `PublicUserProfileResponse`. When `visible` is `false` the account is private and the viewer isn't a friend: identity and `relation` are real, every progress field is empty.
+- `StreakDay { pending, currentStreak, shieldPending }` (`src/api/users.ts`) — mirrors `StreakDayResponse`; `shieldPending` = the nightly scheduler burned a shield; `currentStreak` is 0 when neither flag is set.
 - `PublicUserStats { currentStreak, longestStreak, totalXp, weeklyXp, learnedSignsCount }` — mirrors `PublicUserStatsResponse`; progress only, no wallet.
 - `PublicCourseProgress` / `PublicAchievement` — mirror `CourseProgressResponse` and `AchievementResponse` **as the backend actually sends them**. `Achievement` (`src/api/achievements.ts`) is an alias of `PublicAchievement`, and `learningApi.getProgress()` returns `PublicCourseProgress[]`. `PublicAchievement.rewardStreakShields` is the number of streak shields credited when the achievement is earned (0 for non-streak achievements); `rewardGems` is the gems credited.
 - `Challenge` / `Challenges` / `ChallengeClaim` (`src/api/challenges.ts`) — mirror `ChallengeResponse`, `ChallengesResponse` and `ChallengeClaimResponse`. `Challenge.id` is the user's own row, not the catalog entry; `progress` is already capped at `target`. `Challenges.daily` and `Challenges.weekly` are empty until `firstStepsDone`. Rules → [../features/challenges.md](../features/challenges.md).
@@ -45,6 +59,9 @@
   - `CONTEXT_RESPONSE`: `{ question, answer, options: string[] }` — same sign-carousel UI as `SELECT_SIGN`, but prompted by `question` with a single correct `answer`.
   - `MATCH`: `{ concepts: string[] }` — pairs a shuffled sign column with a shuffled word column, both listing the same `concepts`.
   - `VISUAL_RECOGNITION`: `{ sign_sequence: string[], options: string[], keep_order: boolean }` — user marks which of `options` appeared in `sign_sequence`. **Note:** the mobile app renders these keys as `sign_sequence`/`keep_order` because that's what's actually on the wire; `signa-api`'s own `BlockSignExtractor` reads them as `signSequence` (camelCase) and so never finds them — a pre-existing backend bug, out of scope here.
+- `SignSummary { id, meaning, description, handedness, animationUrl, youtubeUrl }` (`src/api/signs.ts`) — mirrors `SignSummaryResponse`.
+- `SignMedia { meaning, url, format: "glb" | "mp4", lateralUrl }` (`src/api/signs.ts`) — mirrors `SignMediaResponse`; the file each sign plays.
+- `CreateSignReportRequest { signMeaning, reason, description? }` — `reason` is `ReportReason` (see [endpoints.md](./endpoints.md)).
 - `PracticeSummary { signsLearnedCount, exercisesDoneCount }` — mirrors `PracticeSummaryResponse`, from `src/api/practice.ts`.
 - `LearnedSign { sign }` — mirrors `LearnedSignResponse`. No animation URL: `Sign.animationUrl` on the backend is a raw R2 object key, not a fetchable URL (same caveat as `SignSummary.animationUrl`, see above) — resolve real animation URLs via `signsApi.getSignAnimations`.
 - `PracticeMistake { lessonBlockId, type, misses }` — mirrors `PracticeMistakeResponse`. `type` is `BlockType`; keyed by `lessonBlockId` rather than a sign meaning because `MATCH`/`VISUAL_RECOGNITION` blocks don't have a single one.

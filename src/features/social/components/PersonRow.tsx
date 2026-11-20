@@ -17,6 +17,7 @@ interface Props {
   id: string;
   name: string;
   username: string;
+  avatarUrl?: string | null;
   /** Secondary line: handle plus the relation or the mutual-friend count. */
   sub: string;
   stats?: PersonStat[];
@@ -31,6 +32,7 @@ export function PersonRow({
   id,
   name,
   username,
+  avatarUrl,
   sub,
   stats = [],
   actions,
@@ -39,7 +41,13 @@ export function PersonRow({
 }: Props) {
   return (
     <View style={styles.row}>
-      <Avatar id={id} name={name} username={username} onPress={onPressAvatar} />
+      <Avatar
+        id={id}
+        name={name}
+        username={username}
+        avatarUrl={avatarUrl}
+        onPress={onPressAvatar}
+      />
 
       <View style={styles.info}>
         <Text style={styles.name} numberOfLines={1}>

@@ -1,0 +1,163 @@
+import { requireNativeViewManager, requireOptionalNativeModule } from "expo-modules-core";
+import * as React from "react";
+import type { ViewStyle } from "react-native";
+
+/**
+ * Espiga del reconocimiento nativo. Ver el módulo Kotlin para el porqué.
+ *
+ * Devuelve milisegundos por detección, medidos con los mismos modelos que hoy
+ * corren como WASM dentro del WebView.
+ */
+export interface ResultadoBanco {
+  delegado: string;
+  vueltas: number;
+  calentamientoPoseMs: number;
+  calentamientoManosMs: number;
+  poseMs: number;
+  manosMs: number;
+  poseMsMin: number;
+  manosMsMin: number;
+}
+
+const nativo = requireOptionalNativeModule("SignaVision");
+
+/** Solo Android trae el modulo: en iOS no hay implementacion nativa. */
+export const hayNativo = nativo !== null;
+
+/** Callers reject instead of throwing: a sync throw inside an effect kills the render. */
+const SIN_NATIVO = "SignaVision no esta disponible en esta plataforma";
+
+/**
+ * Contrasta ventana + modelo nativos contra las probabilidades que da el
+ * pipeline de Python sobre las mismas secuencias. Diferencia esperada: ~0.
+ */
+export function golden(): Promise<{ peorDiferencia: number; detalle: string; reproduccion: string }> {
+  if (!nativo) return Promise.reject(new Error(SIN_NATIVO));
+  return nativo.golden();
+}
+
+/** Por qué se cerró la app la última vez, según Android. */
+export function ultimaSalida(): Promise<{
+  salidas: {
+    motivo: string;
+    descripcion?: string;
+    memoriaKB?: number;
+    cuando?: number;
+    importancia?: number;
+    /** El volcado de la caída en base64, si fue una caída nativa. */
+    volcado?: string;
+  }[];
+}> {
+  if (!nativo) return Promise.resolve({ salidas: [] });
+  return nativo.ultimaSalida();
+}
+
+/** Abre y cierra los modelos N veces y dice cuánta memoria nativa quedó. */
+export function estres(vueltas = 10, que: "senas" | "abecedario" | "detectores" | "detectoresCpu" | "todo" = "todo"): Promise<{
+  que: string;
+  vueltas: number;
+  antesKB: number;
+  despuesKB: number;
+  porVueltaKB: number;
+}> {
+  if (!nativo) return Promise.reject(new Error(SIN_NATIVO));
+  return nativo.estres(vueltas, que);
+}
+
+export function banco(vueltas = 30, enGpu = true): Promise<ResultadoBanco> {
+  if (!nativo) return Promise.reject(new Error(SIN_NATIVO));
+  return nativo.banco(vueltas, enGpu);
+}
+
+/** Lo que el lado nativo informa dos veces por segundo. */
+export interface FrameNativo {
+  fps: number;
+  manosMs: number;
+  poseMs: number;
+  manos: number;
+  cuerpo: boolean;
+  delegado: string;
+  ancho: number;
+  /** Milisegundos de la LSTM. Cero mientras no haya señas que reconocer. */
+  inferenciaMs: number;
+  /** Memoria nativa en uso. Sirve para ver fugas desde un teléfono real. */
+  memoriaKB: number;
+}
+
+/** Cómo va la seña que se está mirando ahora. */
+export interface SenaNativa {
+  /** 0 a 1: cuánto le falta a la ventana para poder inferir. */
+  progreso: number;
+  /** Seña candidata entre las pedidas, o "" si no hay. */
+  sena: string;
+  /** Probabilidad de esa candidata. */
+  p: number;
+  /** "reposo" ganando: no se está haciendo ninguna seña. */
+  reposo: boolean;
+}
+
+interface ReconocedorProps {
+  style?: ViewStyle;
+  activo?: boolean;
+  mostrarEsqueleto?: boolean;
+  /** Sólo para probar en emulador, donde la frontal puede no dar cuadros. */
+  usarTrasera?: boolean;
+  /** Señas que este ejercicio acepta. Vacío = no se infiere nada. */
+  objetivos?: string[];
+  /** "dinamico" (LSTM sobre la ventana) o "estatico" (abecedario por cuadro). */
+  modo?: "dinamico" | "estatico";
+  onFrame?: (e: { nativeEvent: FrameNativo }) => void;
+  /** fase: "cuadros" (la cámara entrega), "detectando" (listo), "error". */
+  onListo?: (e: { nativeEvent: { fase: string; detalle?: string; error?: string } }) => void;
+  onSena?: (e: { nativeEvent: SenaNativa }) => void;
+  onConfirmada?: (e: { nativeEvent: { sena: string; p: number } }) => void;
+}
+
+const VistaNativa = requireNativeViewManager<ReconocedorProps>("SignaVision", "ReconocedorView");
+
+/**
+ * Cámara, detección y esqueleto, todo nativo.
+ *
+ * No recibe ni devuelve landmarks: el esqueleto lo dibuja la propia vista y a
+ * JS sólo le llegan métricas. Cruzar 75 puntos por cuadro sería pagar en el
+ * puente lo que se ahorró en la detección.
+ */
+export function ReconocedorNativo(props: ReconocedorProps) {
+  return React.createElement(VistaNativa, props);
+}
+
+interface AvatarProps {
+  style?: ViewStyle;
+  /** .glb a mostrar. Se guarda en disco la primera vez. */
+  url: string;
+  /** De dónde bajarlo si el principal no responde. */
+  urlRespaldo?: string;
+  /** Vuelve a la pose neutra y deja de animar. */
+  pausado?: boolean;
+  /** Arrastrar para girar el avatar. */
+  rotable?: boolean;
+  onCargado?: (e: {
+    nativeEvent: {
+      clips: number;
+      /** Bajar el .glb y, la primera vez, convertirle las texturas. */
+      msArchivo: number;
+      /** Armar la escena una vez que el archivo está en memoria. */
+      msMontaje: number;
+    };
+  }) => void;
+  onFalla?: (e: { nativeEvent: { error: string } }) => void;
+  /** Cada dos segundos: qué tan fluido va el avatar. */
+  onCuadros?: (e: {
+    nativeEvent: { fps: number; msDibujo: number; peorMs: number; clips: number; pausado: boolean };
+  }) => void;
+}
+
+const VistaAvatar = requireNativeViewManager<AvatarProps>("SignaVision", "AvatarView");
+
+/**
+ * El avatar de la seña con Filament, sin WebView ni runtime bajado de un CDN.
+ * Ver AvatarView.kt para el encuadre, que es el mismo que el de la versión web.
+ */
+export function AvatarNativo(props: AvatarProps) {
+  return React.createElement(VistaAvatar, props);
+}

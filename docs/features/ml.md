@@ -2,23 +2,68 @@
 
 > Responsibility: camera-based LSA sign-recognition module scope, state, and open decisions.
 > Update when: an ML decision is made, or camera/inference dependencies are added.
-> Sources: src/features/ml/, assets/mediapipe/, assets/tflite/, assets/models/, metro.config.js, scripts/build-recognizer.mjs, src/features/courses/components/lesson/blocks/{PerformSignBlock,SpellNameBlock}.tsx
+> Sources: modules/signa-vision/, src/features/ml/, assets/models/, src/features/courses/components/lesson/blocks/{PerformSignBlock,SpellNameBlock}.tsx
 
-Status: **real, on-device, real time**. Two lesson blocks use the camera — `PERFORM_SIGN` for
-dynamic signs and `SPELL_NAME` for fingerspelling a name letter by letter. **Nothing leaves the
-phone**: no clip upload, no inference server, no network call at all.
+Status: **real, on-device, real time — on Android**. Two lesson blocks use the camera —
+`PERFORM_SIGN` for dynamic signs and `SPELL_NAME` for fingerspelling a name letter by letter.
+**Nothing leaves the phone**: no clip upload, no inference server, no network call at all.
+
+## Current runtime: the native module `signa-vision` (Android only)
+
+Camera, MediaPipe, the 258-number window, both TFLite models and the confirmation rule run in
+**Kotlin**, inside the local Expo module `modules/signa-vision/` (`expo-module.config.json` →
+`"platforms": ["android"]`; no `ios/`). Across the bridge only a summary of each frame and the
+confirmed sign travel — never landmarks (75 points per frame would cost on the bridge what the
+detection saved). Measured on the same phone, hand detection went from 57–147 ms (WebView) to
+~35 ms; the numbers and the stage-by-stage story live in [../migracion-nativa.md](../migracion-nativa.md)
+and [../rendimiento.md](../rendimiento.md).
+
+| JS side | Role |
+|---|---|
+| `modules/signa-vision/index.ts` | `hayNativo` (`requireOptionalNativeModule("SignaVision") !== null`), the `ReconocedorNativo` and `AvatarNativo` views, and diagnostics (`golden`, `banco`, `estres`, `ultimaSalida`) |
+| `features/ml/components/ReconocedorSenasNativo.tsx` | wraps `ReconocedorNativo` with the same props and `LiveFrame` the blocks always used (`targets`, `modo: "dinamico" \| "estatico"`, `onFrame`, `onConfirmed`, `onReady`, `onError`, `active`, `paused`, `showLandmarks`); this is what `PerformSignBlock` and `SpellNameBlock` mount |
+| `features/ml/BancoNativoPantalla.tsx` | **temporary** startup bench, only shown when the build sets `EXPO_PUBLIC_BANCO_NATIVO=1` (`App.tsx`); also runs `golden()` / `estres()` / `ultimaSalida()` |
+| `features/ml/telemetria.ts` | **temporary** diagnostic reporter to a local collector (`EXPO_PUBLIC_METRICS_URL`, `EXPO_PUBLIC_BUILD`; `scripts/colector-metricas.py`) |
+
+| Kotlin (`com.signa.vision`) | Role |
+|---|---|
+| `Reconocedor` / `ReconocedorView` | CameraX capture + view, draws the skeleton and emits the two events (frame summary ×2/s, sign ×12/s) |
+| `Detectores` | MediaPipe Tasks (hands every frame, pose 1 in 5) in IMAGE mode on the analysis thread; GPU delegate with CPU fallback |
+| `Ventana` | the 258-number vector and the 2,5 s window — same maths as `signa-ml/src/data/normalization.py` |
+| `ModeloSenas` / `ModeloAbecedario` | the two TFLite models, run with **LiteRT** (`com.google.ai.edge.litert`, 16 KB page-aligned) |
+| `Confirmador` | confirms a sign held above its threshold for most of a stretch of **time**, not frames |
+| `Esqueleto` | skeleton drawing, smoothed by time constant |
+| `Golden` | checks window + model against the Python pipeline's probabilities on real sequences (expected difference ≈ 0) |
+| `AvatarView` / `MotorFilament` / `Glb` / `Reflejos` | the **3D avatar** with Filament (one shared engine for the whole app; converts the `.glb`'s webp textures once and caches the file on disk) — see [../avatar-3d.md](../avatar-3d.md) |
+| `SignaVisionModule` | the Expo module surface |
+
+Assets of the native recogniser live in `modules/signa-vision/android/src/main/assets/` (not in
+`android/app/…`, which `expo prebuild` regenerates): `hand_landmarker.task`, `pose_landmarker.task`,
+`modelo.tflite` (LSTM v9), `alfabeto.tflite`, `senas.json` / `alfabeto.json` (labels + calibrated
+thresholds), `golden*.json`; see `LEEME.md` there.
+
+**Without the module** (iOS, Expo Go): `hayNativo` is `false`; `PerformSignBlock` and `SpellNameBlock`
+show "Reconocimiento no disponible" with a "Continuar" button, and `LessonScreen` treats the block
+as not answered (lesson shown as incomplete). See [../status.md](../status.md#plataformas).
+
+The rest of this document describes the **models and the recognition rules**. The old WebView
+engine (MediaPipe WASM + TFLite Web in a `WebView`: `LiveSignRecognizer`, `engine/`,
+`assets/mediapipe/`, `assets/tflite/`, `scripts/build-recognizer.mjs`) is **still in the repo**: it was
+removed once and sign recognition stopped working, so the removal was reverted (see
+[../status.md](../status.md)). Its story and measurements are in [../migracion-nativa.md](../migracion-nativa.md) and
+[../rendimiento.md](../rendimiento.md).
 
 ## The two pipelines
 
 ```
-dynamic:  camera → MediaPipe (worker) → 258 numbers/frame → 2,5 s window → LSTM (TFLite) → sign
-static:   camera → MediaPipe (worker) → 21 landmarks + 21 world + face block → TFLite → letter
+dynamic:  camera → MediaPipe → 258 numbers/frame → 2,5 s window → LSTM (TFLite) → sign
+static:   camera → MediaPipe → 21 landmarks + 21 world + face block → TFLite → letter
 ```
 
 Neither model sees pixels. The dynamic one eats **258 numbers per frame** — 33 pose landmarks ×
 (x, y, z, visibility) plus 21 × (x, y, z) per hand — normalised against the shoulder centre and
 shoulder width, so the sign does not depend on where the person stands or how far away they are.
-`engine/keypoints.ts` mirrors `signa-ml/src/data/normalization.py` exactly; any drift there shifts
+`Ventana.kt` mirrors `signa-ml/src/data/normalization.py` exactly; any drift there shifts
 the input distribution and the model degrades silently.
 
 The static model is different on purpose: its features (canonical coordinates, joint angles,
@@ -26,23 +71,6 @@ distances between key points, position relative to the face) are computed **insi
 graph**, by a layer exported from `signa-ml/scripts/export_alphabet_for_app.py`. Porting that maths
 to JavaScript would be ~200 lines that must agree with numpy to the last decimal. Embedding it makes
 a train/serve mismatch impossible by construction.
-
-## Where each piece runs
-
-Everything happens inside a **WebView** (`components/LiveSignRecognizer.tsx`) because MediaPipe only
-ships as WASM for web. The app already used WebView for the 3D models, so this adds no new
-technology. `engine/recognizerHtml.ts` holds the page: camera, skeleton, sliding window, inference
-and confirmation rules.
-
-**MediaPipe runs in a Web Worker** (`engine/detectorWorker.ts`). `detectForVideo` is synchronous
-WASM: on a real phone it blocks for ~75 ms of every ~91 ms cycle, which left the drawing loop at
-21 fps instead of 60. Moving it out does not make detection faster — the same 61 ms of hand
-detection still cost 61 ms — but the screen stops stuttering. The worker is created from a **blob
-URL**: Chromium refuses module workers loaded from `file://`.
-
-The sign model stays on the main thread on purpose: inference is ~4 ms, and TFLite's runtime
-resolves its `.wasm` path by reading the `src` of its own `<script>` tag, a path that does not exist
-inside a worker.
 
 ## The window, and why it has rules
 
@@ -71,71 +99,18 @@ with realistic framings; they travel in `assets/models/lsa-signs-v9/manifest.jso
 confirmed when it stays above its threshold for 60% of a 700 ms stretch — measured in time, not in
 frames, so it does not depend on the device's frame rate.
 
-## Bundled assets (~41 MB)
-
-| file | size | what |
-|---|---|---|
-| `assets/mediapipe/vision_wasm_internal.wasm` | 12 MB | MediaPipe runtime |
-| `assets/mediapipe/hand_landmarker.task` | 7,5 MB | MediaPipe hands |
-| `assets/mediapipe/pose_landmarker.task` | 5,6 MB | MediaPipe pose (lite) |
-| `assets/mediapipe/vision_bundle.jsasset` | 152 KB | MediaPipe Tasks Vision JS |
-| `assets/mediapipe/engine.jsasset` | 4 KB | our keypoint code, **generated** — see below |
-| `assets/tflite/alfabeto.tflite` | 8,7 MB | alphabet model, features included in the graph |
-| `assets/tflite/modelo.tflite` | 634 KB | dynamic-sign LSTM |
-| `assets/tflite/*.jsasset`, `*.wasm` | ~6 MB | TFLite Web runtime |
-| `assets/models/lsa-signs-v9/manifest.json` | 1 KB | labels + thresholds + window size |
-| `assets/models/lsa-alphabet/manifest.json` | 1 KB | letters + thresholds |
-
-Mechanics worth knowing, each of which cost a debugging round:
-
-- **`.jsasset`** — Metro transforms anything ending in `.js`, and MediaPipe's bundle uses dynamic
-  `import()`, which its transformer rejects. The extension exists only so Metro copies the file;
-  `engine/assets.ts` renames it back to `.js` when staging.
-- **Staging to the sandbox** — bundled assets are not loose files (on Android they live compressed
-  inside the APK) and MediaPipe needs real paths. `engine/assets.ts` copies everything once into
-  `documentDirectory`, writes the HTML next to it so page and assets share one `file://` origin, and
-  names the folder after a fingerprint of everything that goes in it, so a changed asset means a
-  different folder and stale copies are impossible. It used to be a constant somebody had to
-  remember to bump; forgetting it left phones running an old engine that the new APK had already
-  replaced, which is invisible on a fresh install and only shows up on an upgrade.
-- **XHR, not `fetch`** — `fetch()` rejects `file://` by spec. The page reads its files with
-  `XMLHttpRequest`, and hands MediaPipe the wasm as a blob URL and the `.task` as
-  `modelAssetBuffer`, because MediaPipe's own loader would use `fetch` and fail.
-- **TFLite's wasm path** — `tflite.setWasmPath('')` *and* a relative `<script src>`. Its loader
-  rewrites any non-`http`, non-`/` path as "page directory + that path", which from `file://` points
-  nowhere; the only symptom is `cannot read properties of undefined (reading '_malloc')`.
-- **`ModuleFactory not set`** — inside a module worker MediaPipe falls back to `import()` for a
-  classic script, so its `var ModuleFactory` never reaches `self`. Indirect `eval` puts it in the
-  worker's global scope.
-
-`scripts/build-recognizer.mjs` compiles `engine/keypoints.ts` into `assets/mediapipe/engine.jsasset`.
-The TypeScript is the source of truth; the generated file is committed because the bundle needs it.
-**Run it after touching the engine.** It also guards the page template: a stray backtick, a syntax
-error or an undefined identifier inside `recognizerHtml.ts` would otherwise only show up as a blank
-WebView on a phone.
-
 ## Permissions
 
-`expo-camera`'s `useCameraPermissions` gates the block (the WebView then reuses the granted
+`expo-camera`'s `useCameraPermissions` gates the block (the native view uses the same granted
 permission). `app.json` carries the plugin, `NSCameraUsageDescription` and Android's `CAMERA`.
 The block always keeps an escape ("Saltear por ahora" / "No me sale, seguir"): a denied permission,
 or a model that will not cooperate, must never trap someone inside a lesson.
 
-## Performance — measured on a real phone
+## Performance
 
-| stage | cost |
-|---|---|
-| hand detection | 61 ms |
-| pose detection | 34 ms, run 1 frame in 5 |
-| LSTM inference | 3,6 ms |
-| bitmap copy | 0,6 ms |
-| drawing | 0,3 ms |
-
-Hands are 80% of the frame, which is why pose is sampled and inference is not: inference is 6% of
-the budget, so running it on every frame costs nothing and shortens the time to confirm a sign.
-
-**The Android emulator has no camera and delivers 1-5 fps.** It is useful for checking that the page
-loads, the assets stage and nothing throws — not for judging recognition. Test on a phone.
+Measured on a real phone, stage by stage, in [../rendimiento.md](../rendimiento.md). The emulator
+has no camera and delivers 1-5 fps: it is useful to check that the view loads and nothing throws,
+not to judge recognition. Test on a phone.
 
 ## Known limits
 
@@ -146,6 +121,6 @@ loads, the assets stage and nothing throws — not for judging recognition. Test
    simulate inter-person variation.
 3. **Four signs plus the alphabet.** Out-of-fold identification is 83% over five classes. Enough for
    a guided exercise where the app already knows what it asked for; not enough for open recognition.
-4. **APK size.** ~41 MB of assets, dominated by MediaPipe's runtime and the alphabet model.
+4. **Android only.** No `signa-vision` on iOS: the camera exercises are skipped there.
 
 See [../status.md](../status.md).

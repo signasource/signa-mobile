@@ -24,6 +24,7 @@ export function FeedCard({ event, onToggleLike, onPressAvatar }: Props) {
           id={event.friendId}
           name={event.friendName}
           username={event.friendUsername}
+          avatarUrl={event.friendAvatarUrl}
           size={42}
           onPress={onPressAvatar}
         />

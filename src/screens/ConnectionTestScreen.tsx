@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/Text";
 import { colors, fonts, fontSizes } from "@/theme";
 import { Card } from "@/components/Card";
@@ -11,6 +12,7 @@ import { API_URL } from "@/api/client";
  * Pantalla provisoria para validar,
  */
 export function ConnectionTestScreen() {
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ reachable: boolean; status?: number; detail: string } | null>(null);
 
@@ -23,7 +25,9 @@ export function ConnectionTestScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={[styles.container, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}
+    >
       <Text style={styles.title}>Test de conexion</Text>
       <Text style={styles.subtitle}>URL configurada:</Text>
       <Text style={styles.url}>{API_URL}</Text>
@@ -54,7 +58,7 @@ export function ConnectionTestScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, backgroundColor: colors.background, padding: 24, paddingTop: 64 },
+  container: { flexGrow: 1, backgroundColor: colors.background, padding: 24 },
   title: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.text },
   subtitle: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.textMuted, marginTop: 16 },
   url: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.md, color: colors.primary, marginTop: 4 },

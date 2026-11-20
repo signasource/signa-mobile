@@ -11,13 +11,15 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.signasource.app"
+        "EXPO_PUBLIC_API_URL": "https://api.signasource.app",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "207806214097-5dtqdh170tobkj4hqi8qvs38u56hcs8h.apps.googleusercontent.com"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.signasource.app"
+        "EXPO_PUBLIC_API_URL": "https://api.signasource.app",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "207806214097-5dtqdh170tobkj4hqi8qvs38u56hcs8h.apps.googleusercontent.com"
       }
     }
   },

@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, View, ViewStyle } from "react-native";
+import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, fonts, alpha } from "@/theme";
@@ -13,9 +13,9 @@ interface SignPlaceholderProps {
   tone?: Tone;
   icon?: keyof typeof Ionicons.glyphMap;
   badge?: string;
-  /** Muestra la ilustración de "animación preparándose" en vez del botón de play + label. */
+  /** Muestra la ilustración de "cargando" en vez del botón de play + label. */
   preparing?: boolean;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 /**
@@ -46,7 +46,9 @@ export function SignPlaceholder({
         <>
           <PajarosGrupoPequeno width={130} height={65} />
           <View style={styles.labelChip}>
-            <Text style={styles.labelText}>La animación se está preparando</Text>
+            <Text style={styles.labelText}>
+            Cargando
+          </Text>
           </View>
         </>
       ) : (

@@ -4,8 +4,10 @@ Entry point and mandatory rules for developing `signa-mobile` with Claude / Clau
 Detailed docs (retrieval map): [`docs/README.md`](./docs/README.md).
 
 `signa-mobile` is a React Native (Expo, TypeScript strict) app for Signa — learning Argentine
-Sign Language (LSA) with camera recognition. Backend: `signa-api` (Spring Boot). Solved today:
-auth, navigation, theming, onboarding. Reserved: courses (stub), ML (placeholder).
+Sign Language (LSA) with camera recognition. Backend: `signa-api` (Spring Boot). Real today: auth,
+onboarding + tour, lesson roadmap and player, practice, store, challenges, achievements, social,
+profile, push notifications, and on-device recognition + 3D avatar (Android native module
+`signa-vision`). Per-area state → [docs/status.md](./docs/status.md).
 
 ## Docs are code
 
@@ -26,7 +28,8 @@ If reality already diverged from a doc, **the code wins**: fix the doc first (re
 | Change an auth screen flow | [docs/authentication/screens.md](./docs/authentication/screens.md) |
 | Change a validation rule | [docs/authentication/validation.md](./docs/authentication/validation.md) |
 | Add/change a color, font, size, or UI primitive | [docs/design-system/colors.md](./docs/design-system/colors.md) |
-| Advance a feature or flip stub↔real | the feature's doc under [docs/features/](./docs/features/) ([onboarding](./docs/features/onboarding.md) · [courses](./docs/features/courses.md) · [store](./docs/features/store.md) · [challenges](./docs/features/challenges.md) · [social](./docs/features/social.md) · [ml](./docs/features/ml.md) · [achievements](./docs/features/achievements.md)) + [docs/status.md](./docs/status.md) |
+| Advance a feature or flip stub↔real | the feature's doc under [docs/features/](./docs/features/) ([onboarding](./docs/features/onboarding.md) · [courses](./docs/features/courses.md) · [practice](./docs/features/practice.md) · [profile](./docs/features/profile.md) · [store](./docs/features/store.md) · [challenges](./docs/features/challenges.md) · [social](./docs/features/social.md) · [ml](./docs/features/ml.md) · [achievements](./docs/features/achievements.md)) + [docs/status.md](./docs/status.md) |
+| Touch `modules/signa-vision` (recogniser or 3D avatar) | [docs/features/ml.md](./docs/features/ml.md) · [docs/avatar-3d.md](./docs/avatar-3d.md) · measurements in [docs/rendimiento.md](./docs/rendimiento.md) |
 | Change folder structure, alias, or app startup | [docs/architecture.md](./docs/architecture.md) |
 | Add/resolve tech debt | [docs/status.md](./docs/status.md) |
 
@@ -90,3 +93,20 @@ npm run typecheck  # tsc --noEmit ← minimum check before considering a change 
 
 Environment: copy `.env.example` → `.env`, set `EXPO_PUBLIC_API_URL` (base without `/api`).
 Per-platform host → [docs/api/http-client.md](./docs/api/http-client.md).
+
+### Running on a physical phone (Expo Go)
+
+```bash
+EXPO_TOKEN=<your-token> npx expo start --lan   # QR points at your LAN IP
+```
+
+- `--lan` is required: with `--localhost` the QR encodes `127.0.0.1`, which on the phone is the
+  phone itself. The phone must be on the same Wi-Fi as the computer.
+- `EXPO_TOKEN` (from expo.dev → Settings → Access tokens) is needed because Expo Go refuses to
+  open a dev server that is not signed in to the same account. Without a token, use
+  `EXPO_OFFLINE=1` and log out of Expo Go on the phone instead.
+- iOS: scan the QR with the **Camera** app — Expo Go for iOS has no built-in scanner.
+- Expo Go only ships the latest SDK, so the project's SDK must match the installed Expo Go.
+
+**iOS runs without the native module** — recognition exercises are skipped and avatars fall back
+to the WebView renderer. See [docs/status.md](./docs/status.md#plataformas).

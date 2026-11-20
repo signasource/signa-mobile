@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/Text";
 import { colors, fonts, alpha } from "@/theme";
 import { MatchConfig } from "@/features/courses/lessonContent.types";
-import { MultiGlbView } from "@/features/animations/MultiGlbView";
-import { getGlbUrl } from "@/features/animations/glbUrl";
 import { XpChip } from "../XpChip";
 import { LessonButton } from "../LessonButton";
+import { SignAnimation } from "../SignAnimation";
 import Check from "@assets/ilus/check.svg";
 import Denied from "@assets/ilus/denied.svg";
 
@@ -28,7 +28,7 @@ function shuffled<T>(items: T[]): T[] {
 
 type Kind = "sign" | "word";
 
-/** Shared by both columns so the WebView rows line up with the RN word tiles. */
+/** Shared by both columns so sign cells line up with word tiles. */
 const ROW_HEIGHT = 96;
 const ROW_GAP = 16;
 
@@ -38,16 +38,11 @@ const ROW_GAP = 16;
  * El contenido trae entre cinco y siete conceptos por bloque —los días de la
  * semana son siete— y todos juntos dejaban las señas pegadas una a la otra, sin
  * aire para distinguir dónde termina una y empieza la siguiente. Con cinco
- * entran holgados en cualquier teléfono, ahora que las filas están separadas.
- * Los que quedan afuera se ven igual en el resto de los ejercicios.
+ * entran holgados en cualquier teléfono.
  */
 const MAX_PARES = 5;
 
 export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps) {
-  // La clave es el contenido y no el array: `config` se vuelve a parsear en
-  // cada render del player, así que comparar por identidad rebarajaba las dos
-  // columnas cada vez que se acertaba un par — las señas se cambiaban de lugar
-  // en medio del ejercicio.
   const clave = config.concepts.join("|");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const conceptos = useMemo(() => shuffled(config.concepts).slice(0, MAX_PARES), [clave]);
@@ -56,12 +51,12 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const wordOrder = useMemo(() => shuffled(conceptos), [clave]);
 
-  const signUrls = useMemo(() => signOrder.map(getGlbUrl), [signOrder]);
-  const [modelsFailed, setModelsFailed] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const [matched, setMatched] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<{ kind: Kind; concept: string } | null>(null);
   const [wrongPair, setWrongPair] = useState<{ sign: string; word: string } | null>(null);
+  const [signModal, setSignModal] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => {
@@ -70,7 +65,6 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
 
   const total = conceptos.length;
   const done = matched.size === total;
-  const columnHeight = total * ROW_HEIGHT + (total - 1) * ROW_GAP;
 
   function handleTap(kind: Kind, concept: string) {
     if (matched.has(concept) || wrongPair) return;
@@ -117,26 +111,42 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
     return <Icon width={18} height={18} />;
   }
 
-  /**
-   * A sign row is a transparent hit area laid over its slice of the models WebView;
-   * only the border and the state tint are painted, so the avatar stays visible.
-   */
-  function SignRow({ concept, index }: { concept: string; index: number }) {
+  function SignCell({ concept }: { concept: string }) {
     const state = tileState("sign", concept);
     return (
       <TouchableOpacity
-        onPress={() => handleTap("sign", concept)}
+        onPress={() => {
+          if (matched.has(concept) || wrongPair) return;
+          setSignModal(concept);
+        }}
         disabled={state === "matched"}
         activeOpacity={0.85}
-        style={[
-          styles.signRow,
-          { top: index * (ROW_HEIGHT + ROW_GAP) },
-          state === "matched" && styles.signRowMatched,
-          state === "wrong" && styles.signRowWrong,
-          state === "selected" && styles.signRowSelected,
-        ]}
       >
-        <StateIcon state={state} />
+        <SignAnimation
+          meaning={concept}
+          label={concept}
+          height={ROW_HEIGHT}
+          paused={done}
+          style={[
+            styles.signCellAnim,
+            state === "selected" && styles.signCellSelected,
+            state === "wrong" && styles.signCellWrong,
+            state === "matched" && styles.signCellMatched,
+          ]}
+        />
+        {(state === "matched" || state === "wrong") && (
+          <View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFill,
+              styles.signCellOverlay,
+              state === "matched" && styles.signCellOverlayMatched,
+              state === "wrong" && styles.signCellOverlayWrong,
+            ]}
+          >
+            <StateIcon state={state} />
+          </View>
+        )}
       </TouchableOpacity>
     );
   }
@@ -171,9 +181,6 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
 
   return (
     <View style={styles.container}>
-      {/* Cinco filas de 96 px entran justo en un teléfono común y no entran en
-          uno chico. Scrollea sólo cuando no alcanza: es preferible a recortar
-          la última fila, que es lo que pasaría con una altura fija. */}
       <ScrollView
         style={styles.body}
         contentContainerStyle={styles.bodyContent}
@@ -196,21 +203,9 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
         <Text style={styles.hint}>Tocá una seña y luego su palabra. El par correcto se apaga; si no coinciden, perdés una vida.</Text>
 
         <View style={styles.grid}>
-          <View style={[styles.column, { height: columnHeight }]}>
-            {!modelsFailed && (
-              <MultiGlbView
-                urls={signUrls}
-                activeIndex={0}
-                layout="rows"
-                rowHeight={ROW_HEIGHT}
-                rowGap={ROW_GAP}
-                paused={done}
-                style={styles.models}
-                onError={() => setModelsFailed(true)}
-              />
-            )}
-            {signOrder.map((concept, i) => (
-              <SignRow key={concept} concept={concept} index={i} />
+          <View style={styles.column}>
+            {signOrder.map((concept) => (
+              <SignCell key={concept} concept={concept} />
             ))}
           </View>
           <View style={styles.column}>
@@ -230,6 +225,45 @@ export function MatchBlock({ config, xp, onAnswer, onContinue }: MatchBlockProps
           </Text>
         )}
       </View>
+
+      <Modal
+        visible={signModal !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSignModal(null)}
+        statusBarTranslucent
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setSignModal(null)}>
+          <Pressable
+            style={[styles.modalSheet, { paddingBottom: Math.max(insets.bottom, 24) }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.modalGrabber} />
+            {signModal !== null && (
+              <>
+                <SignAnimation
+                  meaning={signModal}
+                  label={signModal}
+                  height={280}
+                />
+                <TouchableOpacity
+                  style={styles.modalSelectBtn}
+                  onPress={() => {
+                    const concept = signModal;
+                    setSignModal(null);
+                    handleTap("sign", concept);
+                  }}
+                >
+                  <Text style={styles.modalSelectLabel}>Seleccionar esta seña</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setSignModal(null)}>
+                  <Text style={styles.modalCancelLabel}>Cerrar</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -254,7 +288,6 @@ const styles = StyleSheet.create({
   hint: { fontFamily: fonts.bodyRegular, fontSize: 13, lineHeight: 18, color: colors.textMuted },
   grid: { flexDirection: "row", gap: ROW_GAP },
   column: { flex: 1, gap: ROW_GAP },
-  models: { ...StyleSheet.absoluteFillObject, borderRadius: 16, overflow: "hidden" },
   tile: {
     height: ROW_HEIGHT,
     borderRadius: 16,
@@ -267,26 +300,65 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  signRow: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    height: ROW_HEIGHT,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: "flex-end",
-    padding: 8,
-  },
-  // Translucent tints: a solid state background would hide the avatar underneath.
-  signRowMatched: { backgroundColor: alpha(colors.matchSuccessTint, 0.72), borderColor: colors.success },
-  signRowWrong: { backgroundColor: alpha(colors.matchDangerTint, 0.55), borderWidth: 2, borderColor: colors.danger },
-  signRowSelected: { borderWidth: 2, borderColor: colors.primary },
   tileMatched: { backgroundColor: colors.successLight, opacity: 0.6 },
   tileWrong: { backgroundColor: colors.dangerLight, borderColor: colors.danger },
   tileSelected: { borderWidth: 2, borderColor: colors.primary, backgroundColor: colors.primaryLight },
   wordText: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.text },
-  // Sin alignItems: el botón ocupa el ancho, como en el resto de los ejercicios.
+  // Sign cells — cada seña tiene su propio renderer independiente, así un fallo
+  // en una no apaga las demás.
+  signCellAnim: { borderRadius: 16, borderWidth: 1, borderColor: colors.border },
+  signCellSelected: { borderWidth: 2, borderColor: colors.primary },
+  signCellWrong: { borderWidth: 2, borderColor: colors.danger },
+  signCellMatched: { borderColor: colors.success },
+  signCellOverlay: { borderRadius: 16, alignItems: "flex-end", padding: 8, overflow: "hidden" },
+  signCellOverlayMatched: { backgroundColor: alpha(colors.matchSuccessTint, 0.72) },
+  signCellOverlayWrong: { backgroundColor: alpha(colors.matchDangerTint, 0.55) },
   footer: { paddingHorizontal: 20, paddingVertical: 16 },
   footerHint: { fontFamily: fonts.bodyRegular, fontSize: 13, color: colors.textFaint, textAlign: "center" },
+  // Modal
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: alpha(colors.text, 0.55),
+    justifyContent: "flex-end",
+  },
+  modalSheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    gap: 12,
+  },
+  modalGrabber: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    alignSelf: "center",
+  },
+  modalSelectBtn: {
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 4,
+  },
+  modalSelectLabel: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15.5,
+    color: colors.onDark,
+  },
+  modalCancelBtn: {
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: colors.neutral100,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalCancelLabel: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    color: colors.neutral900,
+  },
 });

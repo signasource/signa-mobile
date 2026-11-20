@@ -11,7 +11,11 @@ Reuse a primitive before creating a new one. Tokens → [colors.md](./colors.md)
 | Component | Main props | Use |
 |---|---|---|
 | `Button` | `label, onPress, variant?("primary"\|"secondary"), loading?, disabled?, style?` | generic CTA (outside auth): black primary / neutral secondary |
-| `ScreenHeader` | `title, description?, paddingTop, tone, stats?, left?, right?, top?, children?, compact?` | **the** colored hero header of every top-level screen |
+| `ScreenHeader` | `title, description?, paddingTop, tone, stats?, statsRef?, left?, right?, top?, children?, compact?` | **the** colored hero header of every top-level screen. A `HeaderStat` with `onPress` becomes a tappable card with a white "+" chip (the gems counter in Inicio and Tienda opens `GemShop`); `dot` adds an orange dot (pending payment) |
+| `LivesTimerChip` (`@/features/lives`) | `state(LivesState), showFull?, labeled?` | the lives timer pill: time to the next life (neutral), unlimited-lives countdown (blue ∞) or "Completas" (green); used in Perfil → Vidas, the lesson header and `NoLivesOverlay`. `HeaderStat.caption` is the same info as a small line in the header cards (Inicio/Tienda) |
+| `AvatarPhoto` | `uri?` | profile photo filling its round parent (absolute, `borderRadius: 999`); draw the initials underneath (they show while loading, when there is no photo or it fails) and give the parent `overflow: "hidden"`. `uri` comes from `avatarUri(avatarUrl)` (`@/utils/avatar`) |
+| `VerifyEmailChip` | `onPress, style?` | amber pill "Email sin verificar · Verificar" (`warning`/`warningLight`); Perfil renders it inside the `ScreenHeader` while `GET /users/me` reports `verified === false`, and it opens `VerifyEmail` |
+| `PaidCourseRow` (`@/features/store`) | `course, onOpen` | row of a paid, not-owned course: price + "Ver" → opens `CourseDetail`; `dashed` = outlined "not yours yet" variant (Profile) |
 | `SegmentedControl` | `options(Segment[]), value, onChange, style?` | primary selector (full width, black active) |
 | `SubTabs` | `options(SubTab[]), value, onChange, style?` | secondary selector (outlined pills + icon) |
 | `EmptyState` / `EmptyNote` | `title, description` / `children` | the single empty-state style; illustration is a random pick from `EmptyStateArt`'s spiderweb pool (`@assets/ilus/spiderweb.svg`, `mano-con-spiderweb-1/2.svg`, `mano-con-spiderweb-negra.svg`) |
@@ -27,15 +31,16 @@ Reuse a primitive before creating a new one. Tokens → [colors.md](./colors.md)
 
 | Component | Main props | Use |
 |---|---|---|
-| `AuthScreen` | `children, onBack?, canGoBack?, contentStyle?` | **mandatory shell** for auth/onboarding: safe area, keyboard, scroll, back |
+| `AuthScreen` | `children, onBack?, canGoBack?, contentStyle?` | **mandatory shell** for auth/onboarding: safe area, keyboard, scroll, back; horizontal gutter grows so the column stays ≤ 480dp on tablets. Its `contentContainerStyle` is flattened to one object: `KeyboardAwareScrollView` on Android overwrites `paddingBottom` when given an array (do the same for any new `KeyboardAwareScrollView` with computed padding) |
 | `AuthField` | `icon(FieldIconName), secure?, invalid?, error?, hint?, hintTone?, trailing?` + `TextInputProps` | pill input with icon, password toggle, `trailing` slot (e.g. availability ✓/✕) |
 | `PrimaryButton` / `SecondaryButton` | `label, onPress, loading?, disabled?, style?` | auth CTA (dark primary / light secondary) |
+| `GoogleButton` | `label, onPress, loading?, disabled?, style?` | outlined "Continuar con Google" button (brand logo `assets/ilus/google.svg`, kept in brand colors) under the "o" divider in Login/Register |
 | `AuthHeading` | `title, subtitle?, style?` | heading (Bricolage + Figtree subtitle) |
 | `AuthIconBadge` | `icon(FieldIconName)` | medallion with icon (Verify/Forgot/Reset) |
 | `PasswordChecklist` | `rules(PasswordRules)` | live password-rules checklist |
 | `AuthDivider` / `AuthFooter` / `StatusText` | see source | "or" divider, footer with link, status/error text |
 
-Barrel exports (`src/components/auth/index.ts`): `AuthScreen`, `AuthField`, `PrimaryButton`, `SecondaryButton`, `AuthHeading`, `AuthIconBadge`, `AuthDivider`, `AuthFooter`, `StatusText`, `PasswordChecklist`.
+Barrel exports (`src/components/auth/index.ts`): `AuthScreen`, `AuthField`, `PrimaryButton`, `SecondaryButton`, `GoogleButton`, `AuthHeading`, `AuthIconBadge`, `AuthDivider`, `AuthFooter`, `StatusText`, `PasswordChecklist`.
 
 ## SVG icons & illustrations
 

@@ -11,7 +11,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomTabNavigationProp, BottomTabScreenProps } from "@react-navigation/bottom-tabs";
-import { CompositeNavigationProp, useFocusEffect } from "@react-navigation/native";
+import { CompositeNavigationProp, useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { useTour } from "@/features/tour/TourContext";
 import { SectionWelcomeModal } from "@/features/tour/components/SectionWelcomeModal";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -108,10 +108,15 @@ function searchSub(result: UserSearchResult): string {
 export function SocialScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { socialModalVisible, dismissSocialModal, showSectionModal } = useTour();
+  const isFocused = useIsFocused();
 
   useFocusEffect(
     useCallback(() => {
-      showSectionModal("social");
+      let focused = true;
+      showSectionModal("social", () => focused);
+      return () => {
+        focused = false;
+      };
     }, [showSectionModal]),
   );
 
@@ -295,6 +300,7 @@ export function SocialScreen({ navigation }: Props) {
             friendName: name,
             friendUsername: username,
             friendStreak: accepted?.currentStreak ?? 0,
+            friendAvatarUrl: accepted?.avatarUrl,
           });
         },
         "No pudimos aceptar la solicitud."
@@ -519,7 +525,10 @@ export function SocialScreen({ navigation }: Props) {
       />
 
       {isRanking ? (
-        <RankingTab onPressProfile={openProfile} />
+        <RankingTab
+          onPressProfile={openProfile}
+          onNavigateToSettings={() => navigation.navigate("Configuration")}
+        />
       ) : loading ? (
         <View style={styles.centered}>
           <ActivityIndicator color={colors.socialWine} />
@@ -610,6 +619,7 @@ export function SocialScreen({ navigation }: Props) {
                       id={result.id}
                       name={result.name}
                       username={result.username}
+                      avatarUrl={result.avatarUrl}
                       sub={searchSub(result)}
                       actions={actionsFor(
                         result.id,
@@ -656,6 +666,7 @@ export function SocialScreen({ navigation }: Props) {
                           id={friend.id}
                           name={friend.name}
                           username={friend.username}
+                          avatarUrl={friend.avatarUrl}
                           sub={`@${friend.username}`}
                           stats={friendStats(friend)}
                           actions={actionsFor(
@@ -681,6 +692,7 @@ export function SocialScreen({ navigation }: Props) {
                             id={request.requesterId}
                             name={request.requesterName}
                             username={request.requesterUsername}
+                            avatarUrl={request.requesterAvatarUrl}
                             sub={`@${request.requesterUsername} · te mandó una solicitud`}
                             actions={actionsFor(
                               request.requesterId,
@@ -706,6 +718,7 @@ export function SocialScreen({ navigation }: Props) {
                             id={request.addresseeId}
                             name={request.addresseeName}
                             username={request.addresseeUsername}
+                            avatarUrl={request.addresseeAvatarUrl}
                             sub={`@${request.addresseeUsername} · solicitud pendiente`}
                             actions={actionsFor(
                               request.addresseeId,
@@ -737,7 +750,7 @@ export function SocialScreen({ navigation }: Props) {
       />
 
       <SectionWelcomeModal
-        visible={socialModalVisible}
+        visible={socialModalVisible && isFocused}
         title="Social"
         subtitle="Seguí a tus amigos y mirá en qué andan."
         headerColor={colors.socialWine}
