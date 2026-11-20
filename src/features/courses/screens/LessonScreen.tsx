@@ -405,7 +405,7 @@ export function LessonScreen({ route, navigation }: Props) {
           onExit={() => navigation.goBack()}
           gems={gems}
           livesState={livesState}
-          onGetGems={() => navigation.navigate("GemShop", { returnTo: "la lección" })}
+          onGetGems={() => navigation.navigate("GemShop", { fromLesson: true })}
           storedInfiniteLives={storedInfiniteLives}
           activatingInfinite={activatingInfinite}
           onActivateInfiniteLives={async () => {
