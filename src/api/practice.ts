@@ -20,29 +20,36 @@ export interface PracticeMistake {
 }
 
 /**
- * Mirrors PracticeController.java. Practice sessions reuse real LessonContentBlock
+ * Mirrors PracticeController.java. Every list/exercise call takes an optional `courseId` (a course
+ * id, not a version): omitted = all enrolled courses, set = only that course (Práctica libre's
+ * course filter). Axios drops `undefined` params, so the unfiltered call is unchanged.
+ * Practice sessions reuse real LessonContentBlock
  * data (same shape lessonsApi.getLesson returns) but attempts are recorded
  * separately from a real lesson's — see recordAttempt.
  */
 export const practiceApi = {
   getSummary: () => apiClient.get<PracticeSummary>("/practice/summary"),
 
-  getExercisesByType: (type: BlockType, limit = 10) =>
-    apiClient.get<LessonContentBlock[]>("/practice/exercises", { params: { type, limit } }),
-
-  getLearnedSigns: (limit = 200) =>
-    apiClient.get<LearnedSign[]>("/practice/signs", { params: { limit } }),
-
-  getExercisesForSign: (meaning: string, limit = 10) =>
-    apiClient.get<LessonContentBlock[]>(`/practice/signs/${encodeURIComponent(meaning)}/exercises`, {
-      params: { limit },
+  getExercisesByType: (type: BlockType, courseId?: string, limit = 10) =>
+    apiClient.get<LessonContentBlock[]>("/practice/exercises", {
+      params: { type, limit, courseId },
     }),
 
-  getMistakes: (limit = 20) =>
-    apiClient.get<PracticeMistake[]>("/practice/mistakes", { params: { limit } }),
+  getLearnedSigns: (courseId?: string, limit = 200) =>
+    apiClient.get<LearnedSign[]>("/practice/signs", { params: { limit, courseId } }),
 
-  getMistakeExercises: (limit = 10) =>
-    apiClient.get<LessonContentBlock[]>("/practice/mistakes/exercises", { params: { limit } }),
+  getExercisesForSign: (meaning: string, courseId?: string, limit = 10) =>
+    apiClient.get<LessonContentBlock[]>(`/practice/signs/${encodeURIComponent(meaning)}/exercises`, {
+      params: { limit, courseId },
+    }),
+
+  getMistakes: (courseId?: string, limit = 20) =>
+    apiClient.get<PracticeMistake[]>("/practice/mistakes", { params: { limit, courseId } }),
+
+  getMistakeExercises: (courseId?: string, limit = 10) =>
+    apiClient.get<LessonContentBlock[]>("/practice/mistakes/exercises", {
+      params: { limit, courseId },
+    }),
 
   /**
    * Records the attempt and grants XP immediately when correct — unlike lesson exercises

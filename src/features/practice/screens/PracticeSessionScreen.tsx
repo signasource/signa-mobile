@@ -29,7 +29,7 @@ type Props = NativeStackScreenProps<AppStackParamList, "PracticeSession">;
  * Attempts go to practiceApi.recordAttempt instead, which pays XP per answer.
  */
 export function PracticeSessionScreen({ route, navigation }: Props) {
-  const { mode } = route.params;
+  const { mode, courseId } = route.params;
   const insets = useSafeAreaInsets();
 
   const [blocks, setBlocks] = useState<LessonContentBlock[] | null>(null);
@@ -62,10 +62,10 @@ export function PracticeSessionScreen({ route, navigation }: Props) {
 
     const request =
       mode.mode === "type"
-        ? practiceApi.getExercisesByType(mode.blockType)
+        ? practiceApi.getExercisesByType(mode.blockType, courseId)
         : mode.mode === "sign"
-          ? practiceApi.getExercisesForSign(mode.meaning)
-          : practiceApi.getMistakeExercises();
+          ? practiceApi.getExercisesForSign(mode.meaning, courseId)
+          : practiceApi.getMistakeExercises(courseId);
 
     request
       .then((res) =>
@@ -81,7 +81,7 @@ export function PracticeSessionScreen({ route, navigation }: Props) {
       )
       .catch(() => setError("No pudimos cargar los ejercicios."))
       .finally(() => setLoading(false));
-  }, [mode]);
+  }, [mode, courseId]);
 
   useEffect(() => {
     loadExercises();
