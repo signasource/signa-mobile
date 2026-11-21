@@ -49,7 +49,8 @@ export type AppStackParamList = {
   };
   CourseDetail: { courseId: string };
   Notifications: undefined;
-  PracticeSession: { mode: PracticeSessionParams };
+  /** `courseId` narrows the batch to one course (Práctica libre's course filter); omitted = all. */
+  PracticeSession: { mode: PracticeSessionParams; courseId?: string };
   PublicProfile: { username: string };
   FriendAccepted: {
     friendId: string;

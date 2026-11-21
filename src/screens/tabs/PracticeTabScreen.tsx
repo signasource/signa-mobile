@@ -9,11 +9,13 @@ import { Text } from "@/components/Text";
 import { colors, fonts } from "@/theme";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SegmentedControl, Segment } from "@/components/SegmentedControl";
+import { SubTabs, SubTab } from "@/components/SubTabs";
 import { EmptyState } from "@/components/EmptyState";
 import { BackButton } from "@/components/BackButton";
 import { TabParamList } from "@/navigation/TabNavigator";
 import { AppStackParamList } from "@/navigation/AppNavigator";
 import { practiceApi, LearnedSign, PracticeMistake } from "@/api/practice";
+import { learningApi, EnrollmentSummary } from "@/api/learning";
 import { SignAnimation } from "@/features/courses/components/lesson/SignAnimation";
 import { EXERCISE_TYPES, EXERCISE_TYPE_BY_KEY, isPracticableType } from "@/features/practice/types";
 import { useTour } from "@/features/tour/TourContext";
@@ -37,6 +39,9 @@ type PracticeTab = "ejercicios" | "señas" | "errores";
 /** Mirrors PracticeService.MISTAKE_REVIEW_XP_REWARD — the only practice mode that grants real XP. */
 const MISTAKE_REVIEW_XP_REWARD = 20;
 
+/** Course filter key: "all" or a course id (never a version id). */
+type CourseFilter = "all" | string;
+
 const TABS: readonly Segment<PracticeTab>[] = [
   { key: "ejercicios", label: "Ejercicios" },
   { key: "señas", label: "Señas" },
@@ -48,6 +53,9 @@ export function PracticeTabScreen({ navigation }: Props) {
   const [tab, setTab] = useState<PracticeTab>("ejercicios");
   const [query, setQuery] = useState("");
   const [detail, setDetail] = useState<string | null>(null);
+  const [enrollments, setEnrollments] = useState<EnrollmentSummary[]>([]);
+  const [courseFilter, setCourseFilter] = useState<CourseFilter>("all");
+  const courseId = courseFilter === "all" ? undefined : courseFilter;
 
   const [signsLearnedCount, setSignsLearnedCount] = useState(0);
   const [exercisesDoneCount, setExercisesDoneCount] = useState(0);
@@ -87,10 +95,40 @@ export function PracticeTabScreen({ navigation }: Props) {
     }, []),
   );
 
+  // Refetched on focus too: the user may have joined or lost a course since the last visit.
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      learningApi
+        .getEnrollments()
+        .then((res) => {
+          if (!active) return;
+          setEnrollments(res.data);
+          setCourseFilter((prev) =>
+            prev === "all" || res.data.some((e) => e.courseId === prev) ? prev : "all",
+          );
+        })
+        .catch(() => {});
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
+
+  // Only worth showing with 2+ courses: with one, "Todos" and that course are the same list.
+  const courseOptions: SubTab<CourseFilter>[] | null =
+    enrollments.length > 1
+      ? [
+          { key: "all", label: "Todos" },
+          ...enrollments.map((e) => ({ key: e.courseId, label: e.courseName })),
+        ]
+      : null;
+
   if (detail) {
     return (
       <SignDetail
         meaning={detail}
+        courseId={courseId}
         onBack={() => setDetail(null)}
         onOpen={setDetail}
         navigation={navigation}
@@ -128,14 +166,25 @@ export function PracticeTabScreen({ navigation }: Props) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {courseOptions && (
+          <>
+            <Text style={styles.sectionLabel}>CURSO</Text>
+            <SubTabs options={courseOptions} value={courseFilter} onChange={setCourseFilter} />
+          </>
+        )}
         {tab === "ejercicios" && (
-          <ExercisesTab navigation={navigation} />
+          <ExercisesTab navigation={navigation} courseId={courseId} />
         )}
         {tab === "señas" && (
-          <SignsTab query={query} onQueryChange={setQuery} onOpenSign={setDetail} />
+          <SignsTab
+            courseId={courseId}
+            query={query}
+            onQueryChange={setQuery}
+            onOpenSign={setDetail}
+          />
         )}
         {tab === "errores" && (
-          <MistakesTab navigation={navigation} />
+          <MistakesTab navigation={navigation} courseId={courseId} />
         )}
       </ScrollView>
 
@@ -171,7 +220,13 @@ export function PracticeTabScreen({ navigation }: Props) {
 
 // ── Ejercicios ────────────────────────────────────────────────────────────
 
-function ExercisesTab({ navigation }: { navigation: PracticeNavigation }) {
+function ExercisesTab({
+  navigation,
+  courseId,
+}: {
+  navigation: PracticeNavigation;
+  courseId: string | undefined;
+}) {
   return (
     <View>
       <Text style={styles.sectionLabel}>ELEGÍ UN TIPO DE EJERCICIO</Text>
@@ -184,6 +239,7 @@ function ExercisesTab({ navigation }: { navigation: PracticeNavigation }) {
             onPress={() =>
               navigation.navigate("PracticeSession", {
                 mode: { mode: "type", blockType: type.key, title: type.title },
+                courseId,
               })
             }
           >
@@ -207,10 +263,12 @@ function ExercisesTab({ navigation }: { navigation: PracticeNavigation }) {
 // ── Señas ─────────────────────────────────────────────────────────────────
 
 function SignsTab({
+  courseId,
   query,
   onQueryChange,
   onOpenSign,
 }: {
+  courseId: string | undefined;
   query: string;
   onQueryChange: (value: string) => void;
   onOpenSign: (meaning: string) => void;
@@ -218,11 +276,14 @@ function SignsTab({
   const [signs, setSigns] = useState<LearnedSign[] | null>(null);
 
   useEffect(() => {
+    let active = true;
+    setSigns(null);
     practiceApi
-      .getLearnedSigns()
-      .then((res) => setSigns(res.data))
-      .catch(() => setSigns([]));
-  }, []);
+      .getLearnedSigns(courseId)
+      .then((res) => { if (active) setSigns(res.data); })
+      .catch(() => { if (active) setSigns([]); });
+    return () => { active = false; };
+  }, [courseId]);
 
   if (signs === null) {
     return (
@@ -240,8 +301,12 @@ function SignsTab({
   if (meanings.length === 0) {
     return (
       <EmptyState
-        title="Todavía no aprendiste señas"
-        description="Completá alguna lección para verlas acá y practicarlas."
+        title={courseId ? "Sin señas en este curso" : "Todavía no aprendiste señas"}
+        description={
+          courseId
+            ? "Completá alguna lección de este curso para verlas acá y practicarlas."
+            : "Completá alguna lección para verlas acá y practicarlas."
+        }
       />
     );
   }
@@ -307,7 +372,13 @@ function SignsTab({
 
 // ── Errores ───────────────────────────────────────────────────────────────
 
-function MistakesTab({ navigation }: { navigation: PracticeNavigation }) {
+function MistakesTab({
+  navigation,
+  courseId,
+}: {
+  navigation: PracticeNavigation;
+  courseId: string | undefined;
+}) {
   const [mistakes, setMistakes] = useState<PracticeMistake[] | null>(null);
 
   useFocusEffect(
@@ -315,11 +386,11 @@ function MistakesTab({ navigation }: { navigation: PracticeNavigation }) {
       let active = true;
       setMistakes(null);
       practiceApi
-        .getMistakes()
+        .getMistakes(courseId)
         .then((res) => { if (active) setMistakes(res.data.filter((m) => isPracticableType(m.type))); })
         .catch(() => { if (active) setMistakes([]); });
       return () => { active = false; };
-    }, []),
+    }, [courseId]),
   );
 
   if (mistakes === null) {
@@ -362,7 +433,9 @@ function MistakesTab({ navigation }: { navigation: PracticeNavigation }) {
         <TouchableOpacity
           style={styles.ctaButton}
           activeOpacity={0.85}
-          onPress={() => navigation.navigate("PracticeSession", { mode: { mode: "mistakes" } })}
+          onPress={() =>
+            navigation.navigate("PracticeSession", { mode: { mode: "mistakes" }, courseId })
+          }
         >
           <Ionicons name="play" size={18} color={colors.onDark} />
           <Text style={styles.ctaText}>Empezar</Text>
@@ -400,11 +473,13 @@ function MistakesTab({ navigation }: { navigation: PracticeNavigation }) {
 
 function SignDetail({
   meaning,
+  courseId,
   onBack,
   onOpen,
   navigation,
 }: {
   meaning: string;
+  courseId: string | undefined;
   onBack: () => void;
   onOpen: (meaning: string) => void;
   navigation: PracticeNavigation;
@@ -414,10 +489,10 @@ function SignDetail({
 
   useEffect(() => {
     practiceApi
-      .getLearnedSigns()
+      .getLearnedSigns(courseId)
       .then((res) => setRelated(res.data.map((s) => s.sign).filter((s) => s !== meaning).slice(0, 4)))
       .catch(() => setRelated([]));
-  }, [meaning]);
+  }, [meaning, courseId]);
 
   return (
     <View style={styles.container}>
@@ -438,7 +513,7 @@ function SignDetail({
           style={styles.ctaButton}
           activeOpacity={0.85}
           onPress={() =>
-            navigation.navigate("PracticeSession", { mode: { mode: "sign", meaning } })
+            navigation.navigate("PracticeSession", { mode: { mode: "sign", meaning }, courseId })
           }
         >
           <Ionicons name="barbell" size={18} color={colors.onDark} />

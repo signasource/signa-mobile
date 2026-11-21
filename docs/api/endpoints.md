@@ -183,13 +183,18 @@ Notifications are produced server-side by whatever triggers them; the app reads 
 | Method | Path | Returns | Notes |
 |---|---|---|---|
 | `getSummary()` | `GET /practice/summary` | `PracticeSummary` | `{ signsLearnedCount, exercisesDoneCount }` for the tab header — `signsLearnedCount` is the same `UserStats.learnedSignsCount` used elsewhere, `exercisesDoneCount` counts `PracticeAttempt` rows |
-| `getExercisesByType(type, limit?)` | `GET /practice/exercises?type=&limit=` | `LessonContentBlock[]` | random blocks of that type from lessons in the user's enrolled courses. `type` rejects `INFO`/`INTRODUCE_SIGN`/`INVISIBLE_SIGNS` (400) — those aren't practicable exercise types |
-| `getLearnedSigns(limit?)` | `GET /practice/signs?limit=` | `LearnedSign[]` | `{ sign }[]`, deduped, from `UserLearnedSign` — signs the user actually learned, not the full catalog. No animation URL (see below) |
-| `getExercisesForSign(meaning, limit?)` | `GET /practice/signs/{meaning}/exercises?limit=` | `LessonContentBlock[]` | blocks (from enrolled courses) whose extracted sign(s) include `meaning`, via the same `BlockSignExtractor` the backend uses for roadmap `signsLearned` |
-| `getMistakes(limit?)` | `GET /practice/mistakes?limit=` | `PracticeMistake[]` | `{ lessonBlockId, type, misses }[]` — a block appears only if its most recent attempt (lesson **or** practice) was wrong |
-| `getMistakeExercises(limit?)` | `GET /practice/mistakes/exercises?limit=` | `LessonContentBlock[]` | same block set as `getMistakes`, full content, for playing the review session |
+| `getExercisesByType(type, courseId?, limit?)` | `GET /practice/exercises?type=&limit=&courseId=` | `LessonContentBlock[]` | random blocks of that type from lessons in the user's enrolled courses. `type` rejects `INFO`/`INTRODUCE_SIGN`/`INVISIBLE_SIGNS` (400) — those aren't practicable exercise types |
+| `getLearnedSigns(courseId?, limit?)` | `GET /practice/signs?limit=&courseId=` | `LearnedSign[]` | `{ sign }[]`, deduped, from `UserLearnedSign` — signs the user actually learned, not the full catalog. No animation URL (see below) |
+| `getExercisesForSign(meaning, courseId?, limit?)` | `GET /practice/signs/{meaning}/exercises?limit=&courseId=` | `LessonContentBlock[]` | blocks (from enrolled courses) whose extracted sign(s) include `meaning`, via the same `BlockSignExtractor` the backend uses for roadmap `signsLearned` |
+| `getMistakes(courseId?, limit?)` | `GET /practice/mistakes?limit=&courseId=` | `PracticeMistake[]` | `{ lessonBlockId, type, misses }[]` — a block appears only if its most recent attempt (lesson **or** practice) was wrong |
+| `getMistakeExercises(courseId?, limit?)` | `GET /practice/mistakes/exercises?limit=&courseId=` | `LessonContentBlock[]` | same block set as `getMistakes`, full content, for playing the review session |
 | `recordAttempt(lessonBlockId, isCorrect)` | `POST /practice/attempts` `{ lessonBlockId, isCorrect }` | `void` | **Not** `learningApi.recordBlockInteraction`: costs no lives, doesn't touch lesson/topic/course progress — feeds `getMistakes` and, when correct, grants the block's XP right away (Free Practice: each correct block pays and advances the streak). Called from `PracticeSessionScreen` per answered block |
 | `completeMistakeReview()` | `POST /practice/mistakes/complete` | `{ xpEarned }` | The one practice call that grants real XP: a flat bonus published as an `XpEarnedEvent` server-side. Called once, from `PracticeSessionScreen`, only when a `mode: "mistakes"` batch reaches its last block |
+
+`courseId` (optional, a **course** id — not a version) narrows any of the five list/exercise calls
+to that course: enrollment for exercises, `UserLearnedSign.courseVersion.course` for signs, the
+block's own course for mistakes. Omitted = all enrolled courses. `getSummary` and
+`completeMistakeReview` are never filtered.
 
 `PracticeSessionScreen` (`features/practice/screens/`) plays the returned blocks with the same
 block-renderer components `LessonScreen` uses — see [features/practice.md](../features/practice.md).

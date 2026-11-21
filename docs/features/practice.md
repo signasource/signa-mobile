@@ -12,6 +12,14 @@ hechos, from `practiceApi.getSummary()`, refetched on every focus), a 3-way `Seg
 Errores), and a sign-detail view that replaces the tab body when a sign is tapped (local `detail`
 state, not a stack route — same pattern `SocialScreen` uses for its modals).
 
+**Course filter.** With 2+ active enrollments (`learningApi.getEnrollments()`, refetched on focus),
+a "CURSO" `SubTabs` row (Todos + one per course) sits at the top of the scroll body. The selected
+course id (`courseFilter`, local state, shared by the three segments) is passed as `courseId` to
+every list call (`getLearnedSigns`, `getMistakes`), to the sign-detail's related signs, and on to
+`PracticeSession` as a route param so the session's batch is filtered the same way. With 0–1
+courses the row is hidden (nothing to filter). A selected course that disappears from the
+enrollments falls back to "Todos". The header stats (`getSummary`) stay global on purpose.
+
 - **Ejercicios**: a 2-column grid of exercise types, one card per real `BlockType` (see
   `lessonContent.types.ts`) except `INFO` — `SELECT_MEANING`, `SELECT_SIGN`, `MATCH`,
   `CONTEXT_RESPONSE`, `VISUAL_RECOGNITION`. Tapping a card navigates to `PracticeSession` with
@@ -66,6 +74,11 @@ mount-all-blocks-simultaneously pattern for WebView/3D preload.
   contextual message instead of erroring.
 
 ## Backend
+
+Every list/exercise endpoint takes an optional `courseId` (`PracticeService` methods' last arg):
+exercises filter the enrollments to that course before collecting blocks, learned signs query
+`findByUserIdAndCourseVersionCourseIdOrderByLearnedAtDesc`, and mistakes keep blocks whose
+`lesson.topic.courseVersion.course` matches (any version). `completeMistakeReview` stays global.
 
 `signa-api`'s `learning` module, `PracticeController`/`PracticeService` (see its `CLAUDE.md` §2 and
 `docs/diagrams/sequence.md#practica-libre`). Exercise/sign lookups pull from `LessonBlock`s in the
